@@ -87,6 +87,39 @@ incus_ensure_whiptail_host() {
   fi
 }
 
+incus_can_use_whiptail() {
+  command -v whiptail >/dev/null 2>&1 || return 1
+  [[ -t 0 && -t 1 ]] || return 1
+  [[ -n "${TERM:-}" && "${TERM}" != "dumb" ]] || return 1
+  return 0
+}
+
+incus_prompt_input() {
+  local title="${1:-INPUT}"
+  local label="${2:-Enter value}"
+  local default="${3:-}"
+  if incus_can_use_whiptail; then
+    whiptail --backtitle "Incus Helper Scripts" --title "$title" --inputbox "$label" 10 72 "$default" 3>&1 1>&2 2>&3
+  else
+    prompt_input "$label" "$default" 600
+  fi
+}
+
+incus_prompt_confirm() {
+  local title="${1:-CONFIRM}"
+  local label="${2:-Proceed?}"
+  local default="${3:-y}"
+  if incus_can_use_whiptail; then
+    if [[ "$default" == "y" ]]; then
+      whiptail --backtitle "Incus Helper Scripts" --title "$title" --yesno "$label" 10 72
+    else
+      whiptail --backtitle "Incus Helper Scripts" --defaultno --title "$title" --yesno "$label" 10 72
+    fi
+  else
+    prompt_confirm "$label" "$default" 180
+  fi
+}
+
 incus_pick_default_network() {
   local nets
   nets=$(incus network list -f csv,noheader 2>/dev/null | cut -d, -f1 | sed '/^\s*$/d' | grep -v '^lo$' || true)
@@ -133,14 +166,29 @@ incus_select_network() {
     return
   fi
 
-  local n
-  while IFS= read -r n; do
-    [[ -z "$n" ]] && continue
-    if prompt_confirm "Use network '${n}'?" "$([[ "$n" == "$preferred" ]] && echo y || echo n)" 20; then
-      echo "$n"
+  if incus_can_use_whiptail; then
+    local options=()
+    local n
+    while IFS= read -r n; do
+      [[ -z "$n" ]] && continue
+      options+=("$n" "Incus network")
+    done <<<"$nets"
+    local choice
+    choice=$(whiptail --backtitle "Incus Helper Scripts" --title "NETWORK BRIDGE" --menu "Select network bridge" 18 72 8 "${options[@]}" 3>&1 1>&2 2>&3) || true
+    if [[ -n "$choice" ]]; then
+      echo "$choice"
       return
     fi
-  done <<<"$nets"
+  else
+    local n
+    while IFS= read -r n; do
+      [[ -z "$n" ]] && continue
+      if incus_prompt_confirm "NETWORK BRIDGE" "Use network '${n}'?" "$([[ "$n" == "$preferred" ]] && echo y || echo n)"; then
+        echo "$n"
+        return
+      fi
+    done <<<"$nets"
+  fi
 
   echo "$preferred"
 }
@@ -329,7 +377,7 @@ incus_build_container() {
   incus_base_settings
 
   if [[ -z "${MODE:-}" ]]; then
-    if command -v whiptail >/dev/null 2>&1; then
+    if incus_can_use_whiptail; then
       if whiptail --backtitle "Incus Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?" --no-button "Advanced" 10 58; then
         MODE="default"
         METHOD="default"
@@ -477,7 +525,7 @@ diagnostics_menu() { msg_warn "diagnostics_menu is not implemented for Incus bui
 settings_menu() { msg_warn "settings_menu is not implemented for Incus build flow"; }
 
 incus_advanced_step_selection() {
-  if ! command -v whiptail >/dev/null 2>&1; then
+  if ! incus_can_use_whiptail; then
     echo "fallback"
     return
   fi
@@ -504,7 +552,8 @@ incus_advanced_step_selection() {
 }
 
 advanced_settings() {
-  msg_info "Applying advanced settings"
+  stop_spinner
+  log_msg "[INFO] Applying advanced settings"
 
   INCUS_RUN_PRECHECKS=0
   export INCUS_RUN_PRECHECKS
@@ -521,27 +570,27 @@ advanced_settings() {
 
   local v
   if has_step "name"; then
-    v=$(prompt_input "Container Name" "${CT_NAME}" 30)
+    v=$(incus_prompt_input "CONTAINER NAME" "Container Name" "${CT_NAME}")
     [[ -n "$v" ]] && CT_NAME=$(echo "${v,,}" | tr -d ' ' | tr '_' '-')
   fi
 
   if has_step "cpu"; then
-    v=$(prompt_input "CPU Cores" "${CORE_COUNT}" 30)
+    v=$(incus_prompt_input "CPU CORES" "CPU Cores" "${CORE_COUNT}")
     [[ "$v" =~ ^[0-9]+$ ]] && CORE_COUNT="$v" || msg_warn "Invalid CPU value, keeping ${CORE_COUNT}"
   fi
 
   if has_step "ram"; then
-    v=$(prompt_input "RAM (MiB)" "${RAM_SIZE}" 30)
+    v=$(incus_prompt_input "RAM" "RAM (MiB)" "${RAM_SIZE}")
     [[ "$v" =~ ^[0-9]+$ ]] && RAM_SIZE="$v" || msg_warn "Invalid RAM value, keeping ${RAM_SIZE}"
   fi
 
   if has_step "disk"; then
-    v=$(prompt_input "Disk (GiB)" "${DISK_SIZE}" 30)
+    v=$(incus_prompt_input "DISK" "Disk (GiB)" "${DISK_SIZE}")
     [[ "$v" =~ ^[0-9]+$ ]] && DISK_SIZE="$v" || msg_warn "Invalid Disk value, keeping ${DISK_SIZE}"
   fi
 
   if has_step "profile"; then
-    v=$(prompt_input "Profile" "${PROFILE}" 30)
+    v=$(incus_prompt_input "PROFILE" "Profile" "${PROFILE}")
     [[ -n "$v" ]] && PROFILE="$v"
   fi
 
@@ -551,53 +600,53 @@ advanced_settings() {
   fi
 
   if has_step "ip4"; then
-    v=$(prompt_input "IPv4 (dhcp or x.x.x.x)" "${NET}" 30)
+    v=$(incus_prompt_input "IPV4" "IPv4 (dhcp or x.x.x.x)" "${NET}")
     [[ -n "$v" ]] && NET="$v"
   fi
 
   if has_step "ip6"; then
-    v=$(prompt_input "IPv6 (auto/none/or address)" "${IPV6_ADDR}" 30)
+    v=$(incus_prompt_input "IPV6" "IPv6 (auto/none/or address)" "${IPV6_ADDR}")
     [[ -n "$v" ]] && IPV6_ADDR="$v"
   fi
 
   if has_step "mac"; then
-    v=$(prompt_input "MAC Address (empty=auto)" "${MAC}" 30)
+    v=$(incus_prompt_input "MAC" "MAC Address (empty=auto)" "${MAC}")
     [[ -n "$v" ]] && MAC="$v"
   fi
 
   if has_step "vlan"; then
-    v=$(prompt_input "VLAN Tag (empty=none)" "${VLAN_TAG}" 30)
+    v=$(incus_prompt_input "VLAN" "VLAN Tag (empty=none)" "${VLAN_TAG}")
     [[ -n "$v" ]] && VLAN_TAG="$v"
   fi
 
   if has_step "mtu"; then
-    v=$(prompt_input "MTU (empty=default)" "${MTU}" 30)
+    v=$(incus_prompt_input "MTU" "MTU (empty=default)" "${MTU}")
     [[ -n "$v" ]] && MTU="$v"
   fi
 
   if has_step "storage"; then
-    v=$(prompt_input "Storage Pool" "${STORAGE_POOL}" 30)
+    v=$(incus_prompt_input "STORAGE" "Storage Pool" "${STORAGE_POOL}")
     [[ -n "$v" ]] && STORAGE_POOL="$v"
   fi
 
   if has_step "tags"; then
-    v=$(prompt_input "Tags (; separated)" "${TAGS}" 30)
+    v=$(incus_prompt_input "TAGS" "Tags (; separated)" "${TAGS}")
     [[ -n "$v" ]] && TAGS="$v"
   fi
 
   if has_step "features"; then
-    if prompt_confirm "Enable nesting?" "$([[ "${ENABLE_NESTING}" == "1" ]] && echo y || echo n)" 20; then ENABLE_NESTING=1; else ENABLE_NESTING=0; fi
-    if prompt_confirm "Enable FUSE?" "$([[ "${ENABLE_FUSE}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_FUSE=yes; else ENABLE_FUSE=no; fi
-    if prompt_confirm "Enable TUN?" "$([[ "${ENABLE_TUN}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_TUN=yes; else ENABLE_TUN=no; fi
-    if prompt_confirm "Enable GPU passthrough flag?" "$([[ "${ENABLE_GPU}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_GPU=yes; else ENABLE_GPU=no; fi
-    if prompt_confirm "Use unprivileged container?" "$([[ "${UNPRIVILEGED}" == "1" ]] && echo y || echo n)" 20; then UNPRIVILEGED=1; else UNPRIVILEGED=0; fi
+    if incus_prompt_confirm "FEATURE" "Enable nesting?" "$([[ "${ENABLE_NESTING}" == "1" ]] && echo y || echo n)"; then ENABLE_NESTING=1; else ENABLE_NESTING=0; fi
+    if incus_prompt_confirm "FEATURE" "Enable FUSE?" "$([[ "${ENABLE_FUSE}" == "yes" ]] && echo y || echo n)"; then ENABLE_FUSE=yes; else ENABLE_FUSE=no; fi
+    if incus_prompt_confirm "FEATURE" "Enable TUN?" "$([[ "${ENABLE_TUN}" == "yes" ]] && echo y || echo n)"; then ENABLE_TUN=yes; else ENABLE_TUN=no; fi
+    if incus_prompt_confirm "FEATURE" "Enable GPU passthrough flag?" "$([[ "${ENABLE_GPU}" == "yes" ]] && echo y || echo n)"; then ENABLE_GPU=yes; else ENABLE_GPU=no; fi
+    if incus_prompt_confirm "FEATURE" "Use unprivileged container?" "$([[ "${UNPRIVILEGED}" == "1" ]] && echo y || echo n)"; then UNPRIVILEGED=1; else UNPRIVILEGED=0; fi
   fi
 
   if has_step "ssh"; then
-    if prompt_confirm "Inject SSH key?" "$([[ "${SSH}" == "yes" ]] && echo y || echo n)" 20; then
+    if incus_prompt_confirm "SSH" "Inject SSH key?" "$([[ "${SSH}" == "yes" ]] && echo y || echo n)"; then
       SSH=yes
       if [[ -z "${SSH_AUTHORIZED_KEY:-}" ]]; then
-        v=$(prompt_input "Public SSH key (single line)" "" 60)
+        v=$(incus_prompt_input "SSH KEY" "Public SSH key (single line)" "")
         [[ -n "$v" ]] && SSH_AUTHORIZED_KEY="$v"
       fi
     else
@@ -608,7 +657,7 @@ advanced_settings() {
   if has_step "preflight"; then
     INCUS_RUN_PRECHECKS=1
   elif [[ "$selected" == "fallback" ]]; then
-    if prompt_confirm "Run pre-flight checks?" "n" 20; then
+    if incus_prompt_confirm "PREFLIGHT" "Run pre-flight checks?" "n"; then
       INCUS_RUN_PRECHECKS=1
     fi
   else
