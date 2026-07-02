@@ -154,6 +154,8 @@ setting_up_container() {
     exit 1
   fi
 
+  _bootstrap
+
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
 
   if [[ "$PKG_MANAGER" == "apt" || -z "$PKG_MANAGER" ]]; then
@@ -224,7 +226,31 @@ os_info() {
 }
 
 # Kept for install.func API compatibility.
-_bootstrap() { :; }
+_bootstrap() {
+  if [[ "${PKG_MANAGER:-apt}" == "apt" ]]; then
+    local need_bootstrap=0
+    command -v sudo >/dev/null 2>&1 || need_bootstrap=1
+    command -v curl >/dev/null 2>&1 || need_bootstrap=1
+    command -v mc >/dev/null 2>&1 || need_bootstrap=1
+    command -v gpg >/dev/null 2>&1 || need_bootstrap=1
+    command -v jq >/dev/null 2>&1 || need_bootstrap=1
+
+    local base_pkgs=(sudo curl mc gnupg2 jq)
+    local ct_arch
+    ct_arch="$(dpkg --print-architecture 2>/dev/null || true)"
+    if [[ "$ct_arch" == "arm64" ]]; then
+      base_pkgs+=(openssh-server wget gcc)
+    fi
+
+    if [[ "$need_bootstrap" -eq 1 ]]; then
+      msg_info "Installing Base Dependencies"
+      $STD apt update
+      $STD apt install -y "${base_pkgs[@]}"
+      msg_ok "Installed Base Dependencies"
+    fi
+  fi
+}
+
 post_progress_to_api() { :; }
 
 motd_ssh() {
