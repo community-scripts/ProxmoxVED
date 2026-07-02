@@ -77,6 +77,64 @@ incus_run_preflight() {
   sleep 2
 }
 
+incus_pick_default_network() {
+  local nets
+  nets=$(incus network list -f csv,noheader 2>/dev/null | cut -d, -f1 | sed '/^\s*$/d' | grep -v '^lo$' || true)
+  [[ -z "$nets" ]] && { echo "incusbr0"; return; }
+
+  # Prefer physical/macvlan/sriov networks first (typically LAN-reachable).
+  local n cfg
+  while IFS= read -r n; do
+    [[ -z "$n" || "$n" == "incusbr0" ]] && continue
+    cfg=$(incus network show "$n" 2>/dev/null || true)
+    if echo "$cfg" | grep -qE '^type:\s*(physical|macvlan|sriov)$'; then
+      echo "$n"
+      return
+    fi
+  done <<<"$nets"
+
+  # Then prefer bridge networks without NAT.
+  while IFS= read -r n; do
+    [[ -z "$n" || "$n" == "incusbr0" ]] && continue
+    cfg=$(incus network show "$n" 2>/dev/null || true)
+    if echo "$cfg" | grep -q '^type:\s*bridge$' &&
+      ! echo "$cfg" | grep -qE 'ipv4\.nat:\s*"true"|ipv6\.nat:\s*"true"'; then
+      echo "$n"
+      return
+    fi
+  done <<<"$nets"
+
+  # Fallback: any non-incusbr0 network, else incusbr0.
+  while IFS= read -r n; do
+    [[ -n "$n" && "$n" != "incusbr0" ]] && { echo "$n"; return; }
+  done <<<"$nets"
+  echo "incusbr0"
+}
+
+incus_select_network() {
+  local preferred="${1:-$(incus_pick_default_network)}"
+  local nets
+  nets=$(incus network list -f csv,noheader 2>/dev/null | cut -d, -f1 | sed '/^\s*$/d' | grep -v '^lo$' || true)
+  [[ -z "$nets" ]] && { echo "incusbr0"; return; }
+
+  # Non-interactive/default mode: return preferred immediately.
+  if [[ ! -t 0 || "${MODE:-default}" != "advanced" ]]; then
+    echo "$preferred"
+    return
+  fi
+
+  local n
+  while IFS= read -r n; do
+    [[ -z "$n" ]] && continue
+    if prompt_confirm "Use network '${n}'?" "$([[ "$n" == "$preferred" ]] && echo y || echo n)" 20; then
+      echo "$n"
+      return
+    fi
+  done <<<"$nets"
+
+  echo "$preferred"
+}
+
 # ==============================================================================
 # SECTION 3: CONTAINER CREATION
 # ==============================================================================
@@ -91,7 +149,8 @@ incus_base_settings() {
   local requested_name="${var_hostname:-$NSAPP}"
   requested_name=$(echo "${requested_name,,}" | tr -d ' ' | tr '_' '-')
   CT_NAME=$(incus_get_next_name "$requested_name")
-  BRG=${var_brg:-"incusbr0"}; NET=${var_net:-"dhcp"}; IPV6_ADDR=${var_ip6:-"auto"}; GATE=${var_gateway:-""}; MAC=${var_mac:-""}
+  BRG=${var_brg:-""}; NET=${var_net:-"dhcp"}; IPV6_ADDR=${var_ip6:-"auto"}; GATE=${var_gateway:-""}; MAC=${var_mac:-""}
+  [[ -z "$BRG" ]] && BRG="$(incus_pick_default_network)"
   VLAN_TAG=${var_vlan:-""}; MTU=${var_mtu:-""}
   SSH=${var_ssh:-"no"}; SSH_AUTHORIZED_KEY=${var_ssh_authorized_key:-""}
   ENABLE_NESTING=${var_nesting:-"1"}; ENABLE_FUSE=${var_fuse:-"no"}; ENABLE_TUN=${var_tun:-"no"}; ENABLE_GPU=${var_gpu:-"no"}; UNPRIVILEGED=${var_unprivileged:-"1"}
@@ -113,6 +172,7 @@ incus_echo_config() {
   echo -e "${BL}║${CL}  Profile: ${GN}${PROFILE}${CL}   Privileged: ${GN}$([[ \"${UNPRIVILEGED}\" == \"1\" ]] && echo no || echo yes)${CL}"
   [[ -n "${MAC}" || -n "${VLAN_TAG}" || -n "${MTU}" ]] && echo -e "${BL}║${CL}  MAC: ${GN}${MAC:-auto}${CL}   VLAN: ${GN}${VLAN_TAG:-none}${CL}   MTU: ${GN}${MTU:-default}${CL}"
   [[ -n "${TAGS}" ]] && echo -e "${BL}║${CL}  Tags: ${GN}${TAGS}${CL}"
+  [[ "${BRG}" == "incusbr0" ]] && echo -e "${BL}║${CL}  ${YW}Hint: incusbr0 ist NAT-intern (oft nicht direkt aus LAN erreichbar).${CL}"
   echo -e "${BL}╚══════════════════════════════════════════════════════════════╝${CL}"
 }
 
@@ -120,6 +180,11 @@ incus_create_container() {
   local image_name="images:${IMAGE_OS}/${IMAGE_VERSION}"
   msg_info "Creating Incus container: ${CT_NAME}"
   incus_log_section "Container Creation: ${CT_NAME}"
+  if ! incus network show "${BRG}" >/dev/null 2>&1; then
+    msg_warn "Configured network '${BRG}' not found, auto-selecting fallback"
+    BRG="$(incus_pick_default_network)"
+    msg_ok "Using network '${BRG}'"
+  fi
   local launch_args=()
   launch_args+=("--config" "limits.cpu=${CORE_COUNT}")
   launch_args+=("--config" "limits.memory=${RAM_SIZE}MiB")
@@ -250,15 +315,30 @@ export INCUS_FUNCTIONS=\$FUNCTIONS_FILE_PATH" >>"$INCUS_BUILD_LOG" 2>&1 || { msg
 }
 
 incus_build_container() {
+  incus_base_settings
+
+  if [[ -z "${MODE:-}" ]]; then
+    if prompt_confirm "Use Default Settings? (No = Advanced)" "y" 60; then
+      MODE="default"
+      METHOD="default"
+      msg_custom "⚙️" "${BL}" "Using Default Settings"
+    else
+      MODE="advanced"
+      METHOD="advanced"
+      msg_custom "🧩" "${RD}" "Using Advanced Settings"
+    fi
+  fi
+
+  if [[ "${MODE:-default}" == "advanced" || "${var_advanced:-no}" == "yes" ]]; then
+    advanced_settings
+  fi
+
   if [[ "${INCUS_SKIP_PRECHECKS:-0}" == "1" || "${var_skip_prechecks:-no}" == "yes" ]]; then
     msg_warn "Skipping Incus pre-flight checks (requested)"
   else
     incus_run_preflight
   fi
-  incus_base_settings
-  if [[ "${MODE:-default}" == "advanced" || "${var_advanced:-no}" == "yes" ]]; then
-    advanced_settings
-  fi
+
   incus_echo_config
   [[ "${MODE:-default}" != "advanced" ]] && { echo -e "\n${INFO}${YW}Press Enter to create the container or Ctrl+C to abort...${CL}"; read -r; }
   incus_create_container
@@ -390,8 +470,8 @@ advanced_settings() {
   v=$(prompt_input "Profile" "${PROFILE}" 30)
   [[ -n "$v" ]] && PROFILE="$v"
 
-  v=$(prompt_input "Network Bridge" "${BRG}" 30)
-  [[ -n "$v" ]] && BRG="$v"
+  BRG="$(incus_select_network "${BRG}")"
+  echo -e "${BRIDGE}${BOLD}${DGN}Network Bridge: ${BGN}${BRG}${CL}"
 
   v=$(prompt_input "IPv4 (dhcp or x.x.x.x)" "${NET}" 30)
   [[ -n "$v" ]] && NET="$v"
