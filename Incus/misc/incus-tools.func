@@ -183,6 +183,50 @@ update_os() {
   msg_ok "Updated Container OS"
 }
 
+# install.func parity (safe Incus subset)
+pkg_update() { $STD apt update; }
+pkg_upgrade() { $STD apt upgrade -y; }
+pkg_install() { $STD apt install -y "$@"; }
+pkg_remove() { $STD apt remove -y "$@"; }
+pkg_clean() {
+  $STD apt -y autoremove 2>/dev/null || true
+  $STD apt -y autoclean 2>/dev/null || true
+  $STD apt -y clean 2>/dev/null || true
+}
+
+svc_enable() { systemctl enable -q "$@"; }
+svc_disable() { systemctl disable -q "$@"; }
+svc_start() { systemctl start "$@"; }
+svc_stop() { systemctl stop "$@"; }
+svc_restart() { systemctl restart "$@"; }
+svc_status() { systemctl status "$@"; }
+svc_reload_daemon() { systemctl daemon-reload; }
+
+validate_tz() {
+  local tz="${1:-}"
+  [[ -z "$tz" ]] && return 1
+  [[ -f "/usr/share/zoneinfo/$tz" ]]
+}
+
+set_timezone() {
+  local tz="${1:-${CT_TIMEZONE:-}}"
+  [[ -z "$tz" || "$tz" == "host" ]] && return 0
+  validate_tz "$tz" || { msg_warn "Invalid timezone: $tz"; return 1; }
+  timedatectl set-timezone "$tz" 2>/dev/null || ln -sf "/usr/share/zoneinfo/$tz" /etc/localtime
+}
+
+os_info() {
+  echo "OS Type:      $OS_TYPE"
+  echo "OS Family:    $OS_FAMILY"
+  echo "OS Version:   $OS_VERSION"
+  echo "Pkg Manager:  $PKG_MANAGER"
+  echo "Init System:  $INIT_SYSTEM"
+}
+
+# Kept for install.func API compatibility.
+_bootstrap() { :; }
+post_progress_to_api() { :; }
+
 motd_ssh() {
   local ip
   ip=$(get_lxc_ip)

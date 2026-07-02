@@ -292,7 +292,161 @@ incus_update_os() {
 }
 
 # ==============================================================================
-# SECTION 8: BARE FUNCTION ALIASES (for CT script compatibility)
+# SECTION 8: BUILD.FUNC COMPATIBILITY HELPERS
+# ==============================================================================
+
+base_settings() { incus_base_settings; }
+run_preflight() { incus_run_preflight; }
+create_lxc_container() { incus_create_container; }
+install_script() { incus_run_install_script; }
+check_container_storage() { incus_check_container_storage "$@"; }
+check_container_resources() { incus_check_container_resources "$@"; }
+echo_default() { incus_echo_config; }
+destroy_lxc() { incus_delete_container "${1:-$CT_NAME}"; }
+update_motd_ip() { command -v update_motd_ip >/dev/null 2>&1 && update_motd_ip || true; }
+ensure_log_on_host() { :; }
+api_exit_script() { :; }
+dev_mode_menu() { msg_warn "dev_mode_menu is not implemented for Incus build flow"; }
+diagnostics_menu() { msg_warn "diagnostics_menu is not implemented for Incus build flow"; }
+settings_menu() { msg_warn "settings_menu is not implemented for Incus build flow"; }
+advanced_settings() { msg_warn "advanced_settings is not implemented for Incus build flow"; }
+edit_default_storage() { msg_warn "edit_default_storage is not implemented for Incus build flow"; }
+configure_ssh_settings() { :; }
+ensure_storage_selection_for_vars_file() { :; }
+ensure_global_default_vars_file() { :; }
+choose_and_set_storage_for_file() { :; }
+_write_storage_to_vars() { :; }
+resolve_storage_preselect() { :; }
+check_storage_support() { return 0; }
+select_storage() { return 0; }
+validate_storage_space() { return 0; }
+default_var_settings() { :; }
+load_vars_file() { :; }
+get_app_defaults_path() { echo ""; }
+_is_whitelisted_key() { return 0; }
+_sanitize_value() { echo "${1:-}"; }
+_load_vars_file_to_map() { :; }
+_build_vars_diff() { :; }
+_build_current_app_vars_tmp() { :; }
+maybe_offer_save_app_defaults() { :; }
+fix_gpu_gids() { :; }
+msg_menu() { msg_info "${1:-Incus menu not required in non-interactive flow}"; }
+diagnostics_check() { return 0; }
+install_ssh_keys_into_ct() { incus_inject_ssh_keys; }
+find_host_ssh_keys() { :; }
+ssh_extract_keys_from_file() { :; }
+ssh_build_choices_from_files() { :; }
+ssh_discover_default_files() { :; }
+
+preflight_pass() { msg_ok "$1"; }
+preflight_warn() { msg_warn "$1"; }
+preflight_fail() { msg_error "$1"; return 1; }
+preflight_maxkeys() { return 0; }
+preflight_storage_rootdir() { return 0; }
+preflight_storage_vztmpl() { return 0; }
+preflight_storage_space() { return 0; }
+preflight_network_bridge() { return 0; }
+preflight_dns_resolution() { return 0; }
+preflight_repo_access() { return 0; }
+preflight_cluster_quorum() { return 0; }
+preflight_lxc_stack() { return 0; }
+preflight_container_id() { return 0; }
+preflight_template_connectivity() { return 0; }
+preflight_template_available() { return 0; }
+
+validate_container_id() {
+  [[ "${1:-}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+}
+
+get_valid_container_id() {
+  echo "${1:-$CT_NAME}"
+}
+
+validate_hostname() {
+  local hostname="${1:-}"
+  [[ -n "$hostname" ]] || return 1
+  [[ "$hostname" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$ ]]
+}
+
+validate_mac_address() {
+  local mac="${1:-}"
+  [[ "$mac" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]
+}
+
+validate_vlan_tag() {
+  local tag="${1:-}"
+  [[ "$tag" =~ ^[0-9]+$ ]] || return 1
+  ((tag >= 0 && tag <= 4094))
+}
+
+validate_mtu() {
+  local mtu="${1:-}"
+  [[ "$mtu" =~ ^[0-9]+$ ]] || return 1
+  ((mtu >= 576 && mtu <= 9216))
+}
+
+validate_ipv6_address() {
+  local ip="${1:-}"
+  [[ "$ip" == "dhcp" || "$ip" == "auto" || "$ip" == "none" ]] && return 0
+  [[ "$ip" =~ : ]]
+}
+
+validate_bridge() {
+  local bridge="${1:-}"
+  [[ -z "$bridge" ]] && return 1
+  incus network show "$bridge" >/dev/null 2>&1
+}
+
+validate_ip_address() {
+  local ip="${1:-}"
+  [[ "$ip" == "dhcp" ]] && return 0
+  [[ "$ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]{1,2})?$ ]]
+}
+
+validate_gateway_ip() {
+  local ip="${1:-}"
+  [[ "$ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]
+}
+
+validate_gateway_in_subnet() { return 0; }
+validate_timezone() { [[ -n "${1:-}" ]]; }
+
+validate_tags() {
+  local tags="${1:-}"
+  [[ -z "$tags" ]] && return 0
+  [[ "$tags" =~ ^[a-zA-Z0-9._-]+(\;[a-zA-Z0-9._-]+)*$ ]]
+}
+
+ip_to_int() {
+  local a b c d
+  IFS=. read -r a b c d <<<"${1:-0.0.0.0}"
+  echo $((a * 256 ** 3 + b * 256 ** 2 + c * 256 + d))
+}
+
+int_to_ip() {
+  local ip=${1:-0}
+  echo "$(((ip >> 24) & 255)).$(((ip >> 16) & 255)).$(((ip >> 8) & 255)).$((ip & 255))"
+}
+
+is_ip_range() { [[ "${1:-}" == *-* ]]; }
+
+resolve_ip_from_range() {
+  local range="${1:-}"
+  if [[ "$range" =~ ^([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)-([0-9]+)$ ]]; then
+    local base="${BASH_REMATCH[1]}"
+    local start="${BASH_REMATCH[2]}"
+    echo "${base}${start}"
+    return 0
+  fi
+  echo "$range"
+}
+
+get_current_ip() {
+  command -v get_lxc_ip >/dev/null 2>&1 && get_lxc_ip || hostname -I 2>/dev/null | awk '{print $1}'
+}
+
+# ==============================================================================
+# SECTION 9: BARE FUNCTION ALIASES (for CT script compatibility)
 # ==============================================================================
 #
 # These aliases allow CT scripts to use the same function names as Proxmox
