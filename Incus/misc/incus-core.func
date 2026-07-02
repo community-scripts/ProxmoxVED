@@ -527,6 +527,34 @@ incus_is_verbose_mode() {
 }
 
 # ------------------------------------------------------------------------------
+# incus_is_unattended()
+# ------------------------------------------------------------------------------
+incus_is_unattended() {
+  local mode="${MODE:-${mode:-}}"
+  mode="${mode,,}"
+
+  case "$mode" in
+  default | 1 | mydefaults | userdefaults | 3 | appdefaults | 4)
+    return 0
+    ;;
+  advanced | 2)
+    # On Incus host: advanced remains interactive.
+    # Inside container install phase (incus command unavailable): unattended.
+    if command -v incus >/dev/null 2>&1; then
+      return 1
+    fi
+    return 0
+    ;;
+  esac
+
+  [[ "${PHS_SILENT:-0}" == "1" ]] && return 0
+  [[ "${var_unattended:-}" =~ ^(yes|true|1)$ ]] && return 0
+  [[ "${UNATTENDED:-}" =~ ^(yes|true|1)$ ]] && return 0
+  [[ ! -t 0 ]] && return 0
+  return 1
+}
+
+# ------------------------------------------------------------------------------
 # incus_fatal()
 # ------------------------------------------------------------------------------
 incus_fatal() {
@@ -712,6 +740,7 @@ incus_install_compat_aliases() {
   eval 'check() { incus_check; }'
   eval 'pve_check() { incus_check; }'
   eval 'load_functions() { load_incus_functions; }'
+  eval 'is_unattended() { incus_is_unattended; }'
   eval 'get_storage_pools() { incus_get_storage_pools; }'
   eval 'get_networks() { incus_get_networks; }'
   eval 'get_profiles() { incus_get_profiles; }'

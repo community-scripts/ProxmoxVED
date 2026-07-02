@@ -77,6 +77,16 @@ incus_run_preflight() {
   sleep 2
 }
 
+incus_ensure_whiptail_host() {
+  command -v whiptail >/dev/null 2>&1 && return 0
+  if command -v apt >/dev/null 2>&1; then
+    msg_info "Installing whiptail on host"
+    incus_silent apt update
+    incus_silent apt install -y whiptail
+    msg_ok "Installed whiptail"
+  fi
+}
+
 incus_pick_default_network() {
   local nets
   nets=$(incus network list -f csv,noheader 2>/dev/null | cut -d, -f1 | sed '/^\s*$/d' | grep -v '^lo$' || true)
@@ -315,6 +325,7 @@ export INCUS_FUNCTIONS=\$FUNCTIONS_FILE_PATH" >>"$INCUS_BUILD_LOG" 2>&1 || { msg
 }
 
 incus_build_container() {
+  incus_ensure_whiptail_host
   incus_base_settings
 
   if [[ -z "${MODE:-}" ]]; then
@@ -467,7 +478,7 @@ settings_menu() { msg_warn "settings_menu is not implemented for Incus build flo
 
 incus_advanced_step_selection() {
   if ! command -v whiptail >/dev/null 2>&1; then
-    echo "all"
+    echo "fallback"
     return
   fi
 
@@ -495,11 +506,14 @@ incus_advanced_step_selection() {
 advanced_settings() {
   msg_info "Applying advanced settings"
 
+  INCUS_RUN_PRECHECKS=0
+  export INCUS_RUN_PRECHECKS
+
   local selected
   selected="$(incus_advanced_step_selection)"
 
-  if [[ "$selected" == "all" ]]; then
-    selected='"name" "cpu" "ram" "disk" "profile" "network" "ip4" "ip6" "mac" "vlan" "mtu" "storage" "tags" "features" "ssh" "preflight"'
+  if [[ "$selected" == "fallback" ]]; then
+    selected='"name" "cpu" "ram" "disk" "profile" "network" "ip4" "ip6" "mac" "vlan" "mtu" "storage" "tags" "features" "ssh"'
   fi
 
   local has_step
@@ -593,6 +607,10 @@ advanced_settings() {
 
   if has_step "preflight"; then
     INCUS_RUN_PRECHECKS=1
+  elif [[ "$selected" == "fallback" ]]; then
+    if prompt_confirm "Run pre-flight checks?" "n" 20; then
+      INCUS_RUN_PRECHECKS=1
+    fi
   else
     INCUS_RUN_PRECHECKS=0
   fi
