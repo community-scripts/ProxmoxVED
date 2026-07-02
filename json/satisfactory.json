@@ -1,0 +1,49 @@
+{
+  "name": "Satisfactory",
+  "slug": "satisfactory",
+  "categories": [
+    24
+  ],
+  "date_created": "2026-07-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 7777,
+  "documentation": "https://satisfactory.wiki.gg/wiki/Dedicated_servers",
+  "website": "https://www.satisfactorygame.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/satisfactory.webp",
+  "description": "Host a persistent Satisfactory world for PC players using the official Linux dedicated server and SteamCMD.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/satisfactory.sh",
+      "config_path": "/root/.config/Epic/FactoryGame/Saved/Config/LinuxServer",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Open or forward ports 7777 TCP/UDP and 8888 TCP. External and internal port 7777 must match.",
+      "type": "info"
+    },
+    {
+      "text": "The server is managed and claimed from the in-game Server Manager.",
+      "type": "info"
+    },
+    {
+      "text": "Updates stop and restart the game server; schedule them when no players are connected.",
+      "type": "warning"
+    }
+  ]
+}
