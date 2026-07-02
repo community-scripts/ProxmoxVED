@@ -41,6 +41,7 @@ incus_variables() {
   METHOD="default"
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
   SESSION_ID="${RANDOM_UUID:0:8}"
+  EXECUTION_ID="${EXECUTION_ID:-$RANDOM_UUID}"
   INCUS_BUILD_LOG="/tmp/incus-create-${SESSION_ID}.log"
   INCUS_INSTALL_LOG="/tmp/incus-install-${SESSION_ID}.log"
   _INCUS_HOST_LOGFILE="$INCUS_BUILD_LOG"
@@ -184,12 +185,23 @@ export INCUS_FUNCTIONS=\$FUNCTIONS_FILE_PATH" >>"$INCUS_BUILD_LOG" 2>&1 || { msg
   incus exec "${CT_NAME}" -- bash -c "
     export FUNCTIONS_FILE_PATH=\$(cat /tmp/incus-functions)
     export INCUS_FUNCTIONS=\"\${FUNCTIONS_FILE_PATH}\"
+    export DIAGNOSTICS='${DIAGNOSTICS:-yes}'
+    export RANDOM_UUID='${RANDOM_UUID}'
+    export EXECUTION_ID='${EXECUTION_ID}'
+    export SESSION_ID='${SESSION_ID}'
     export VERBOSE='${VERBOSE}'
     export STD='silent'
     export APP='${APP}'
     export APPLICATION='${APP}'
     export NSAPP='${NSAPP}'
     export app='${NSAPP}'
+    export PASSWORD='${PW:-}'
+    export CTID='${CT_NAME}'
+    export CTTYPE='1'
+    export PCT_OSTYPE='${IMAGE_OS}'
+    export PCT_OSVERSION='${IMAGE_VERSION}'
+    export PCT_DISK_SIZE='${DISK_SIZE}'
+    export tz='${tz:-UTC}'
     export INCUS_HEADER='Incus :: ${APP}'
     bash <(curl -fsSL '${INCUS_COMMUNITY_SCRIPTS_URL}/Incus/install/${var_install}.sh')
   " 2>&1 | tee -a "$INCUS_BUILD_LOG" || { msg_error "Installation failed inside container"; exit 1; }
