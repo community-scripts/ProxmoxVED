@@ -319,6 +319,7 @@ NODE_VERSION="24" NODE_MODULE="corepack" setup_nodejs
 # of `npm i -g pnpm@X`, which collides (EEXIST) with the corepack pnpm shim shipped by the
 # NodeSource nodejs package.
 $STD corepack prepare "pnpm@${PNPM_VERSION}" --activate
+$STD pnpm setup --global
 $STD pnpm config set --global dangerouslyAllowAllBuilds true || true
 
 msg_info "Installing Immich (patience)"
