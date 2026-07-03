@@ -351,21 +351,10 @@ $STD pnpm --filter @immich/sdk --filter immich-web --filter @immich/cli build
 $STD pnpm --filter @immich/cli --prod --no-optional deploy "$APP_DIR"/cli
 cp -a web/build "$APP_DIR"/www
 cp LICENSE "$APP_DIR"
-
-# plugins
-# Build the plugin(s) directly instead of via the `mise //:plugins` monorepo task path,
-# which repeatedly breaks across mise releases (experimental/monorepo_root setting churn).
-# mise is used only to provide the build tools (extism-js, wasm-opt, etc.) via `mise install`
-# and `mise exec`, both of which are stable and do not depend on the monorepo feature.
 cd "$SRC_DIR"
 export MISE_TRUSTED_CONFIG_PATHS="$SRC_DIR"/mise.toml
 export MISE_DISABLE_TOOLS=github:jellyfin/jellyfin-ffmpeg
 $STD mise install
-# extism-js (the JS PDK compiler used by plugin-core's `build:wasm`) is provided by the
-# `github:extism/js-pdk` mise tool, but mise's github backend does not reliably expose it on
-# PATH for nested pnpm build scripts. The `@extism/js-pdk` npm package is only type defs and
-# ships no binary. Guarantee availability by fetching the pinned release binary directly if it
-# is not already resolvable.
 export PATH="$(mise bin-paths 2>/dev/null | tr '\n' ':')$PATH"
 if ! command -v extism-js >/dev/null 2>&1; then
   # extism-js is published as a bare gzip-compressed single binary (.gz), which
