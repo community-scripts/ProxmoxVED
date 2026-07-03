@@ -25,7 +25,7 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /usr/local/bin/solidinvoice ]]; then
+  if [[ ! -f /usr/bin/solidinvoice ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
@@ -38,7 +38,7 @@ function update_script() {
     ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m)
     [[ "$ARCH" == "x86_64" ]] && ARCH="amd64"
     [[ "$ARCH" == "aarch64" ]] && ARCH="arm64"
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "solidinvoice" "SolidInvoice/SolidInvoice" "singlefile" "latest" "/usr/local/bin" "solidinvoice-linux-${ARCH}"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "solidinvoice" "SolidInvoice/SolidInvoice" "singlefile" "latest" "/usr/bin" "solidinvoice-linux-${ARCH}"
 
     msg_info "Starting ${APP} Service"
     systemctl start solidinvoice

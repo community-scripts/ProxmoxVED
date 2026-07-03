@@ -20,7 +20,7 @@ msg_ok "Created Directories"
 ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m)
 [[ "$ARCH" == "x86_64" ]] && ARCH="amd64"
 [[ "$ARCH" == "aarch64" ]] && ARCH="arm64"
-fetch_and_deploy_gh_release "solidinvoice" "SolidInvoice/SolidInvoice" "singlefile" "latest" "/usr/local/bin" "solidinvoice-linux-${ARCH}"
+fetch_and_deploy_gh_release "solidinvoice" "SolidInvoice/SolidInvoice" "singlefile" "latest" "/usr/bin" "solidinvoice-linux-${ARCH}"
 
 msg_info "Configuring SolidInvoice"
 cat <<'EOF' >/etc/solidinvoice/solidinvoice.env
@@ -173,7 +173,7 @@ After=network.target
 Type=exec
 User=root
 WorkingDirectory=/var/lib/solidinvoice
-ExecStart=/usr/local/bin/solidinvoice run
+ExecStart=/usr/bin/solidinvoice run
 EnvironmentFile=/etc/solidinvoice/solidinvoice.env
 Restart=on-failure
 RestartSec=5
@@ -183,6 +183,15 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now solidinvoice
 msg_ok "Created Service"
+
+msg_info "Waiting for SolidInvoice to Start"
+ELAPSED=0
+until curl -sf "http://127.0.0.1:8765/" >/dev/null 2>&1; do
+  sleep 2
+  ELAPSED=$((ELAPSED + 2))
+  [[ $ELAPSED -ge 60 ]] && break
+done
+msg_ok "SolidInvoice is Running"
 
 motd_ssh
 customize
