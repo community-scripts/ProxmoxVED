@@ -313,7 +313,13 @@ mkdir -p {"${APP_DIR}","${UPLOAD_DIR}","${GEO_DIR}","${INSTALL_DIR}"/cache}
 
 fetch_and_deploy_gh_release "Immich" "immich-app/immich" "tarball" "v3.0.1" "$SRC_DIR"
 PNPM_VERSION="$(jq -r '.packageManager | split("@")[1] | split("+")[0]' ${SRC_DIR}/package.json)"
-NODE_VERSION="24" NODE_MODULE="corepack,pnpm@${PNPM_VERSION}" setup_nodejs
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+NODE_VERSION="24" NODE_MODULE="corepack" setup_nodejs
+# Provision the exact pnpm pinned in package.json's packageManager field via corepack instead
+# of `npm i -g pnpm@X`, which collides (EEXIST) with the corepack pnpm shim shipped by the
+# NodeSource nodejs package.
+$STD corepack prepare "pnpm@${PNPM_VERSION}" --activate
+$STD pnpm config set --global dangerouslyAllowAllBuilds true || true
 
 msg_info "Installing Immich (patience)"
 
