@@ -17,9 +17,14 @@ msg_info "Creating Directories"
 mkdir -p /etc/solidinvoice /var/lib/solidinvoice
 msg_ok "Created Directories"
 
-ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m)
-[[ "$ARCH" == "x86_64" ]] && ARCH="amd64"
-[[ "$ARCH" == "aarch64" ]] && ARCH="arm64"
+case "$(dpkg --print-architecture)" in
+  amd64) ARCH="amd64" ;;
+  arm64) ARCH="arm64" ;;
+  *)
+    msg_error "Unsupported architecture: $(dpkg --print-architecture)"
+    exit 1
+    ;;
+esac
 fetch_and_deploy_gh_release "solidinvoice" "SolidInvoice/SolidInvoice" "singlefile" "latest" "/usr/bin" "solidinvoice-linux-${ARCH}"
 
 msg_info "Configuring SolidInvoice"
@@ -189,9 +194,12 @@ ELAPSED=0
 until curl -sf "http://127.0.0.1:8765/" >/dev/null 2>&1; do
   sleep 2
   ELAPSED=$((ELAPSED + 2))
-  [[ $ELAPSED -ge 60 ]] && break
+  if [[ $ELAPSED -ge 60 ]]; then
+    msg_error "SolidInvoice did not respond within 60 seconds"
+    break
+  fi
 done
-msg_ok "SolidInvoice is Running"
+[[ $ELAPSED -lt 60 ]] && msg_ok "SolidInvoice is Running"
 
 motd_ssh
 customize
