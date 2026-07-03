@@ -311,7 +311,7 @@ ML_DIR="${APP_DIR}/machine-learning"
 GEO_DIR="${INSTALL_DIR}/geodata"
 mkdir -p {"${APP_DIR}","${UPLOAD_DIR}","${GEO_DIR}","${INSTALL_DIR}"/cache}
 
-fetch_and_deploy_gh_release "Immich" "immich-app/immich" "tarball" "v3.0.0" "$SRC_DIR"
+fetch_and_deploy_gh_release "Immich" "immich-app/immich" "tarball" "v3.0.1" "$SRC_DIR"
 PNPM_VERSION="$(jq -r '.packageManager | split("@")[1] | split("+")[0]' ${SRC_DIR}/package.json)"
 NODE_VERSION="24" NODE_MODULE="corepack,pnpm@${PNPM_VERSION}" setup_nodejs
 
@@ -347,10 +347,32 @@ cp -a web/build "$APP_DIR"/www
 cp LICENSE "$APP_DIR"
 
 # plugins
+# Build the plugin(s) directly instead of via the `mise //:plugins` monorepo task path,
+# which repeatedly breaks across mise releases (experimental/monorepo_root setting churn).
+# mise is used only to provide the build tools (extism-js, wasm-opt, etc.) via `mise install`
+# and `mise exec`, both of which are stable and do not depend on the monorepo feature.
 cd "$SRC_DIR"
 export MISE_TRUSTED_CONFIG_PATHS="$SRC_DIR"/mise.toml
 export MISE_DISABLE_TOOLS=github:jellyfin/jellyfin-ffmpeg
-$STD mise //:plugins
+$STD mise install
+# extism-js (the JS PDK compiler used by plugin-core's `build:wasm`) is provided by the
+# `github:extism/js-pdk` mise tool, but mise's github backend does not reliably expose it on
+# PATH for nested pnpm build scripts. The `@extism/js-pdk` npm package is only type defs and
+# ships no binary. Guarantee availability by fetching the pinned release binary directly if it
+# is not already resolvable.
+export PATH="$(mise bin-paths 2>/dev/null | tr '\n' ':')$PATH"
+if ! command -v extism-js >/dev/null 2>&1; then
+  # extism-js is published as a bare gzip-compressed single binary (.gz), which
+  # fetch_and_deploy_gh_release cannot deploy (singlefile leaves it compressed,
+  # prebuild only handles zip/tar). Fetch + gunzip it directly.
+  EXTISM_ARCH="$(arch_resolve x86_64 aarch64)"
+  curl_download /tmp/extism-js.gz "https://github.com/extism/js-pdk/releases/download/v1.6.0/extism-js-${EXTISM_ARCH}-linux-v1.6.0.gz"
+  gunzip -f /tmp/extism-js.gz
+  install -m 0755 /tmp/extism-js /usr/local/bin/extism-js
+  rm -f /tmp/extism-js
+fi
+$STD mise exec -- pnpm --filter @immich/sdk --filter @immich/plugin-sdk --filter @immich/plugin-core install --frozen-lockfile
+$STD mise exec -- pnpm --filter @immich/sdk --filter @immich/plugin-sdk --filter @immich/plugin-core build
 mkdir -p "$PLUGIN_DIR"
 cp -r ./packages/plugin-core/dist "$PLUGIN_DIR"/dist
 cp ./packages/plugin-core/manifest.json "$PLUGIN_DIR"
