@@ -1,0 +1,47 @@
+{
+  "name": "OpenVoice AI",
+  "slug": "openvoice-ai",
+  "categories": [
+    20,
+    22
+  ],
+  "date_created": "2026-07-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 8088,
+  "documentation": "https://github.com/nikpottbecker/openvoice-ai/tree/main/docs",
+  "website": "https://github.com/nikpottbecker/openvoice-ai",
+  "logo": "https://raw.githubusercontent.com/nikpottbecker/openvoice-ai/main/branding/logo.svg",
+  "config_path": "/opt/phone-agent/.env",
+  "description": "Self-hosted AI communication platform with phone agent, dashboard, local STT/TTS, AI providers, email and automation support.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/openvoice-ai.sh",
+      "config_path": "/opt/phone-agent/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 6144,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Preview / early alpha. Configure API keys, SIP, SMTP and provider settings in /opt/phone-agent/.env after installation.",
+      "type": "warning"
+    },
+    {
+      "text": "Speech-to-text quality depends heavily on hardware and phone audio quality. 6GB RAM is recommended for benchmarking.",
+      "type": "info"
+    }
+  ]
+}
