@@ -315,9 +315,11 @@ fetch_and_deploy_gh_release "Immich" "immich-app/immich" "tarball" "v3.0.1" "$SR
 PNPM_VERSION="$(jq -r '.packageManager | split("@")[1] | split("+")[0]' ${SRC_DIR}/package.json)"
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 NODE_VERSION="24" NODE_MODULE="corepack" setup_nodejs
-
 $STD corepack prepare "pnpm@${PNPM_VERSION}" --activate
-$STD pnpm setup --global
+export PNPM_HOME="/root/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+mkdir -p "$PNPM_HOME"
+
 $STD pnpm config set --global dangerouslyAllowAllBuilds true || true
 msg_info "Installing Immich (patience)"
 
