@@ -20,8 +20,8 @@
       "script": "ct/solidinvoice.sh",
       "config_path": "/etc/solidinvoice/solidinvoice.env",
       "resources": {
-        "cpu": 1,
-        "ram": 512,
+        "cpu": 2,
+        "ram": 1512,
         "hdd": 4,
         "os": "Debian",
         "version": "13"
