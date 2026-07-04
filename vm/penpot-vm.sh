@@ -635,6 +635,29 @@ fi
 function configure_penpot_setup() {
   msg_info "Configuring Penpot first-boot automation"
 
+  local penpot_telemetry_value="true"
+  [ "$PENPOT_TELEMETRY_INPUT" = "disable" ] && penpot_telemetry_value="false"
+
+  local penpot_flags_value="disable-secure-session-cookies disable-email-verification enable-login-with-password enable-prepl-server ${PENPOT_REGISTRATION_INPUT}-registration"
+
+  local penpot_secret_key
+  penpot_secret_key=$(openssl rand -base64 64 | tr -d '\n')
+
+  # Host-expanded env file consumed by the first-boot setup script
+  local penpot_env_tmp
+  penpot_env_tmp=$(mktemp)
+  cat >"$penpot_env_tmp" <<ENVEOF
+PENPOT_TELEMETRY_VALUE="${penpot_telemetry_value}"
+PENPOT_FLAGS_VALUE="${penpot_flags_value}"
+PENPOT_SECRET_KEY_VALUE="${penpot_secret_key}"
+PENPOT_REGISTRATION_VALUE="${PENPOT_REGISTRATION_INPUT}"
+PENPOT_ADMIN_NAME_VALUE="${PENPOT_ADMIN_NAME}"
+PENPOT_ADMIN_EMAIL_VALUE="${PENPOT_ADMIN_EMAIL}"
+PENPOT_ADMIN_PASSWORD_VALUE="${PENPOT_ADMIN_PASSWORD}"
+ENVEOF
+  virt-customize -q -a "$WORK_FILE" --upload "${penpot_env_tmp}:/root/penpot.env" >/dev/null 2>&1
+  rm -f "$penpot_env_tmp"
+
   # First-boot setup script (single-quoted heredoc — no host variable expansion)
   local penpot_setup_tmp
   penpot_setup_tmp=$(mktemp)
@@ -652,11 +675,47 @@ for i in {1..60}; do
 done
 docker info >/dev/null 2>&1 || { echo "[$(date)] ERROR: Docker not ready after 5 min"; exit 1; }
 
+set -a
+source /root/penpot.env
+set +a
+
 mkdir -p /root/penpot
 cd /root/penpot
 
 curl -fsSL https://raw.githubusercontent.com/penpot/penpot/main/docker/images/docker-compose.yaml -o docker-compose.yaml
 echo "[$(date)] Downloaded docker-compose.yaml"
+
+PENPOT_IP=$(hostname -I | awk '{print $1}')
+
+sed -i \
+  -e "s|^  PENPOT_FLAGS:.*|  PENPOT_FLAGS: ${PENPOT_FLAGS_VALUE}|" \
+  -e "s|^  PENPOT_PUBLIC_URI:.*|  PENPOT_PUBLIC_URI: http://${PENPOT_IP}:9001|" \
+  -e "s|^  PENPOT_SECRET_KEY:.*|  PENPOT_SECRET_KEY: ${PENPOT_SECRET_KEY_VALUE}|" \
+  -e "s|^      PENPOT_TELEMETRY_ENABLED:.*|      PENPOT_TELEMETRY_ENABLED: \"${PENPOT_TELEMETRY_VALUE}\"|" \
+  docker-compose.yaml
+echo "[$(date)] Patched docker-compose.yaml (flags, public URI, secret key, telemetry)"
+
+echo "[$(date)] Running docker compose up"
+docker compose -p penpot -f docker-compose.yaml up -d
+
+if [ "$PENPOT_REGISTRATION_VALUE" = "disable" ]; then
+  echo "[$(date)] Creating first Penpot account (registration disabled)"
+  penpot_account_created="no"
+  for i in {1..30}; do
+    if docker exec penpot-penpot-backend-1 python3 manage.py create-profile \
+      -n "$PENPOT_ADMIN_NAME_VALUE" -e "$PENPOT_ADMIN_EMAIL_VALUE" -p "$PENPOT_ADMIN_PASSWORD_VALUE" \
+      --skip-tutorial --skip-walkthrough >/tmp/penpot-create-profile.log 2>&1; then
+      penpot_account_created="yes"
+      echo "[$(date)] Created account for ${PENPOT_ADMIN_EMAIL_VALUE}"
+      break
+    fi
+    sleep 10
+  done
+  if [ "$penpot_account_created" = "no" ]; then
+    echo "[$(date)] ERROR: failed to create first account after 5 minutes"
+    cat /tmp/penpot-create-profile.log 2>/dev/null || true
+  fi
+fi
 
 touch /root/.penpot-setup-done
 echo "[$(date)] Penpot setup completed"
@@ -691,6 +750,30 @@ FBSVCEOF
     --upload "${penpot_first_boot_svc_tmp}:/etc/systemd/system/penpot-setup.service" \
     --run-command "systemctl enable penpot-setup.service" >/dev/null 2>&1
   rm -f "$penpot_first_boot_svc_tmp"
+
+  # Persistent service: brings the compose stack back up on every boot
+  local penpot_svc_tmp
+  penpot_svc_tmp=$(mktemp)
+  cat >"$penpot_svc_tmp" <<'SVCEOF'
+[Unit]
+Description=Penpot (docker compose)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/root/penpot
+ExecStart=/usr/bin/docker compose -p penpot -f docker-compose.yaml up -d
+ExecStop=/usr/bin/docker compose -p penpot -f docker-compose.yaml down
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+  virt-customize -q -a "$WORK_FILE" \
+    --upload "${penpot_svc_tmp}:/etc/systemd/system/penpot.service" \
+    --run-command "systemctl enable penpot.service" >/dev/null 2>&1
+  rm -f "$penpot_svc_tmp"
 
   msg_ok "Configured Penpot first-boot automation"
 }
