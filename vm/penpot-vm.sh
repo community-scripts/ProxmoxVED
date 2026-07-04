@@ -719,6 +719,7 @@ fi
 
 touch /root/.penpot-setup-done
 echo "[$(date)] Penpot setup completed"
+echo "[$(date)] Penpot is available at: http://${PENPOT_IP}:9001"
 SETUPEOF
   virt-customize -q -a "$WORK_FILE" \
     --upload "${penpot_setup_tmp}:/root/penpot-setup.sh" \
@@ -976,7 +977,9 @@ if [ -n "$VM_IP" ]; then
   echo -e "${INFO}${YW} Access it using the following URL (once first-boot setup completes):${CL}"
   echo -e "${GATEWAY}${BGN}http://${VM_IP}:9001${CL}"
 else
-  echo -e "${INFO}${YW} IP not detected yet - check the Summary tab in the Proxmox UI for this VM's IP once it boots.${CL}"
+  echo -e "${INFO}${YW} IP not detected yet. Once first-boot setup completes, the real URL is printed by:${CL}"
+  echo -e "${TAB}${BGN}journalctl -u penpot-setup | grep 'available at'${CL}"
+  echo -e "${TAB}${DGN}(or check the Summary tab in the Proxmox UI for this VM's IP)${CL}"
   echo -e "${GATEWAY}${BGN}http://<VM-IP>:9001${CL}"
 fi
 
