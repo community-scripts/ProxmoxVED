@@ -629,6 +629,74 @@ else
   msg_ok "Packages will be installed on first boot"
 fi
 
+# ==============================================================================
+# PENPOT FIRST-BOOT AUTOMATION
+# ==============================================================================
+function configure_penpot_setup() {
+  msg_info "Configuring Penpot first-boot automation"
+
+  # First-boot setup script (single-quoted heredoc — no host variable expansion)
+  local penpot_setup_tmp
+  penpot_setup_tmp=$(mktemp)
+  cat >"$penpot_setup_tmp" <<'SETUPEOF'
+#!/bin/bash
+exec > /var/log/penpot-setup.log 2>&1
+set -e
+
+echo "[$(date)] Starting Penpot automated setup"
+
+# Wait for Docker (up to 5 minutes)
+for i in {1..60}; do
+  docker info >/dev/null 2>&1 && break
+  sleep 5
+done
+docker info >/dev/null 2>&1 || { echo "[$(date)] ERROR: Docker not ready after 5 min"; exit 1; }
+
+mkdir -p /root/penpot
+cd /root/penpot
+
+curl -fsSL https://raw.githubusercontent.com/penpot/penpot/main/docker/images/docker-compose.yaml -o docker-compose.yaml
+echo "[$(date)] Downloaded docker-compose.yaml"
+
+touch /root/.penpot-setup-done
+echo "[$(date)] Penpot setup completed"
+SETUPEOF
+  virt-customize -q -a "$WORK_FILE" \
+    --upload "${penpot_setup_tmp}:/root/penpot-setup.sh" \
+    --run-command "chmod +x /root/penpot-setup.sh" >/dev/null 2>&1
+  rm -f "$penpot_setup_tmp"
+
+  # First-boot oneshot unit that runs the setup script exactly once
+  local penpot_first_boot_svc_tmp
+  penpot_first_boot_svc_tmp=$(mktemp)
+  cat >"$penpot_first_boot_svc_tmp" <<'FBSVCEOF'
+[Unit]
+Description=Penpot Initial Setup
+After=network-online.target docker.service
+Wants=network-online.target
+ConditionPathExists=!/root/.penpot-setup-done
+
+[Service]
+Type=oneshot
+ExecStart=/root/penpot-setup.sh
+RemainAfterExit=yes
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=1200
+
+[Install]
+WantedBy=multi-user.target
+FBSVCEOF
+  virt-customize -q -a "$WORK_FILE" \
+    --upload "${penpot_first_boot_svc_tmp}:/etc/systemd/system/penpot-setup.service" \
+    --run-command "systemctl enable penpot-setup.service" >/dev/null 2>&1
+  rm -f "$penpot_first_boot_svc_tmp"
+
+  msg_ok "Configured Penpot first-boot automation"
+}
+
+configure_penpot_setup
+
 msg_info "Finalizing image (hostname, SSH config)"
 # Set hostname and prepare for unique machine-id
 virt-customize -q -a "$WORK_FILE" --hostname "${HN}" >/dev/null 2>&1 || true
@@ -825,7 +893,7 @@ if [ -n "$VM_IP" ]; then
   echo -e "${INFO}${YW} Access it using the following URL (once first-boot setup completes):${CL}"
   echo -e "${GATEWAY}${BGN}http://${VM_IP}:9001${CL}"
 else
-  echo -e "${INFO}${YW} Access it once first-boot setup completes at:${CL}"
+  echo -e "${INFO}${YW} IP not detected yet - check the Summary tab in the Proxmox UI for this VM's IP once it boots.${CL}"
   echo -e "${GATEWAY}${BGN}http://<VM-IP>:9001${CL}"
 fi
 
