@@ -138,7 +138,7 @@ function get_image_url() {
 # ==============================================================================
 function prompt_penpot_telemetry() {
   if whiptail --backtitle "Proxmox VE Helper Scripts" --title "PENPOT TELEMETRY" \
-    --yesno "Send anonymous usage telemetry to the Penpot team?\n\nOn (default, matches Penpot's own default): sends anonymous data about how this instance is used - no personal data or design content, just usage patterns.\n\nOff: sets PENPOT_TELEMETRY_ENABLED to false in docker-compose.yaml.\n\nYou can change this later: edit /root/penpot/docker-compose.yaml, then run:\n  docker compose -p penpot -f docker-compose.yaml up -d" 18 74; then
+    --yesno "Send anonymous usage telemetry to the Penpot team?\n\nOn by default. You can change this later." 9 60; then
     PENPOT_TELEMETRY_INPUT="enable"
   else
     PENPOT_TELEMETRY_INPUT="disable"
@@ -148,7 +148,7 @@ function prompt_penpot_telemetry() {
 
 function prompt_penpot_registration() {
   if whiptail --backtitle "Proxmox VE Helper Scripts" --title "PENPOT USER REGISTRATION" --defaultno \
-    --yesno "Allow anyone who reaches this VM's URL to create their own Penpot account?\n\nOn: the public sign-up page is enabled. There is no email verification on this LAN-HTTP setup, so anyone who can reach the URL can self-register.\n\nOff (default, recommended): the sign-up page is disabled. You'll be asked to set up the first account next, and it will be created automatically on first boot." 16 76; then
+    --yesno "Allow anyone who reaches this VM's URL to create their own Penpot account?\n\nOff by default. You'll set up the first account next." 9 65; then
     PENPOT_REGISTRATION_INPUT="enable"
   else
     PENPOT_REGISTRATION_INPUT="disable"
@@ -789,7 +789,7 @@ fi
 VM_IP=""
 if [ "$START_VM" == "yes" ]; then
   set +e
-  for i in {1..10}; do
+  for i in {1..20}; do
     VM_IP=$(qm guest cmd "$VMID" network-get-interfaces 2>/dev/null |
       jq -r '.[] | select(.name != "lo") | ."ip-addresses"[]? | select(."ip-address-type" == "ipv4") | ."ip-address"' 2>/dev/null |
       grep -v "^127\." | head -1) || true
@@ -823,10 +823,10 @@ echo -e "${TAB}${DGN}Registration: ${BGN}${PENPOT_REGISTRATION_INPUT}d${CL}"
 echo -e ""
 if [ -n "$VM_IP" ]; then
   echo -e "${INFO}${YW} Access it using the following URL (once first-boot setup completes):${CL}"
-  echo -e "${TAB}${GATEWAY}${BGN}http://${VM_IP}:9001${CL}"
+  echo -e "${GATEWAY}${BGN}http://${VM_IP}:9001${CL}"
 else
   echo -e "${INFO}${YW} Access it once first-boot setup completes at:${CL}"
-  echo -e "${TAB}${GATEWAY}${BGN}http://<VM-IP>:9001${CL}"
+  echo -e "${GATEWAY}${BGN}http://<VM-IP>:9001${CL}"
 fi
 
 if [ "$PENPOT_REGISTRATION_INPUT" = "enable" ]; then
