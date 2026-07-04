@@ -956,20 +956,23 @@ fi
 # ==============================================================================
 VM_IP=""
 if [ "$START_VM" == "yes" ]; then
-  msg_info "Waiting for VM IP address (up to 60s)"
-  set +e
-  for i in {1..20}; do
+  msg_info "Waiting for guest agent (first boot pulls Docker images, ~5-6 min)"
+  for i in {1..180}; do
     VM_IP=$(qm guest cmd "$VMID" network-get-interfaces 2>/dev/null |
       jq -r '.[] | select(.name != "lo") | ."ip-addresses"[]? | select(."ip-address-type" == "ipv4") | ."ip-address"' 2>/dev/null |
-      grep -v "^127\." | head -1) || true
-    [ -n "$VM_IP" ] && break
-    sleep 3
+      grep -v "^127\." | head -1 || echo "")
+    if [ -n "$VM_IP" ]; then
+      break
+    fi
+    # Show elapsed time so it doesn't look stuck
+    printf "\r${TAB}${YW}${HOLD}Waiting for guest agent (first boot pulls Docker images, ~5-6 min) [%ds]${HOLD}" "$((i * 2))"
+    sleep 2
   done
-  set -e
+
   if [ -n "$VM_IP" ]; then
-    msg_ok "VM IP address: ${VM_IP}"
+    msg_ok "Guest agent responding — VM IP: ${VM_IP}"
   else
-    msg_ok "VM IP address not detected yet (see notes below)"
+    msg_ok "VM started (could not detect IP — check VM console)"
   fi
 fi
 
