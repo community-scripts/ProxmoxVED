@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: thost96 (thost96) | michelroegl-brunner | MickLesk
+# Author: unreadablename
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://penpot.app
 
 # ==============================================================================
-# Docker VM - Creates a Docker-ready Virtual Machine
+# Penpot VM - Creates a Docker-based Penpot Virtual Machine
 # ==============================================================================
 
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVE/raw/branch/main/misc/api.func) 2>/dev/null
@@ -16,16 +17,16 @@ load_functions
 # ==============================================================================
 # SCRIPT VARIABLES
 # ==============================================================================
-APP="Docker"
+APP="Penpot"
 APP_TYPE="vm"
-NSAPP="docker-vm"
+NSAPP="penpot-vm"
 var_os="debian"
 var_version="13"
 
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
-DISK_SIZE="10G"
+DISK_SIZE="40G"
 USE_CLOUD_INIT="no"
 OS_TYPE=""
 OS_VERSION=""
@@ -56,7 +57,7 @@ function error_handler() {
 # ==============================================================================
 function select_os() {
   if OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT OS" --radiolist \
-    "Choose Operating System for Docker VM" 14 68 4 \
+    "Choose Operating System for Penpot VM" 14 68 4 \
     "debian13" "Debian 13 (Trixie) - Latest" ON \
     "debian12" "Debian 12 (Bookworm) - Stable" OFF \
     "ubuntu2404" "Ubuntu 24.04 LTS (Noble)" OFF \
@@ -138,8 +139,8 @@ function default_settings() {
   FORMAT=""
   MACHINE=" -machine q35"
   DISK_CACHE=""
-  DISK_SIZE="10G"
-  HN="docker"
+  DISK_SIZE="40G"
+  HN="penpot"
   CPU_TYPE=" -cpu host"
   CORE_COUNT="2"
   RAM_SIZE="4096"
@@ -163,7 +164,7 @@ function default_settings() {
   echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
-  echo -e "${CREATING}${BOLD}${DGN}Creating a Docker VM using the above settings${CL}"
+  echo -e "${CREATING}${BOLD}${DGN}Creating a Penpot VM using the above settings${CL}"
 }
 
 function advanced_settings() {
@@ -215,7 +216,7 @@ function advanced_settings() {
   fi
 
   # Disk Size
-  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 40, 60)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     DISK_SIZE=$(echo "$DISK_SIZE" | tr -d ' ')
     if [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
       DISK_SIZE="${DISK_SIZE}G"
@@ -223,7 +224,7 @@ function advanced_settings() {
     elif [[ "$DISK_SIZE" =~ ^[0-9]+G$ ]]; then
       echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
     else
-      echo -e "${DISKSIZE}${BOLD}${RD}Invalid Disk Size. Please use a number (e.g., 10 or 10G).${CL}"
+      echo -e "${DISKSIZE}${BOLD}${RD}Invalid Disk Size. Please use a number (e.g., 40 or 40G).${CL}"
       exit_script
     fi
   else
@@ -247,9 +248,9 @@ function advanced_settings() {
   fi
 
   # Hostname
-  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 docker --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 penpot --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="docker"
+      HN="penpot"
     else
       HN=$(echo "${VM_NAME,,}" | tr -cs 'a-z0-9-' '-' | sed 's/^-//;s/-$//')
       if [ "$HN" != "${VM_NAME,,}" ]; then
@@ -384,8 +385,8 @@ function advanced_settings() {
   fi
 
   # Confirm
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a Docker VM?" --no-button Do-Over 10 58); then
-    echo -e "${CREATING}${BOLD}${DGN}Creating a Docker VM using the above advanced settings${CL}"
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a Penpot VM?" --no-button Do-Over 10 58); then
+    echo -e "${CREATING}${BOLD}${DGN}Creating a Penpot VM using the above advanced settings${CL}"
   else
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
@@ -414,7 +415,7 @@ check_root
 arch_check
 pve_check
 
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Docker VM" --yesno "This will create a New Docker VM. Proceed?" 10 58; then
+if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Penpot VM" --yesno "This will create a New Penpot VM. Proceed?" 10 58; then
   :
 else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
@@ -646,7 +647,7 @@ msg_ok "Resized disk image"
 # ==============================================================================
 # VM CREATION
 # ==============================================================================
-msg_info "Creating Docker VM shell"
+msg_info "Creating Penpot VM shell"
 
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci >/dev/null
@@ -705,9 +706,9 @@ fi
 
 # Start VM
 if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting Docker VM"
+  msg_info "Starting Penpot VM"
   qm start $VMID >/dev/null 2>&1
-  msg_ok "Started Docker VM"
+  msg_ok "Started Penpot VM"
 fi
 
 # ==============================================================================
@@ -726,7 +727,7 @@ if [ "$START_VM" == "yes" ]; then
   set -e
 fi
 
-echo -e "\n${INFO}${BOLD}${GN}Docker VM Configuration Summary:${CL}"
+echo -e "\n${INFO}${BOLD}${GN}Penpot VM Configuration Summary:${CL}"
 echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
 echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
 echo -e "${TAB}${DGN}OS: ${BGN}${OS_DISPLAY}${CL}"
