@@ -36,6 +36,7 @@ PENPOT_REGISTRATION_INPUT="disable"
 PENPOT_ADMIN_NAME=""
 PENPOT_ADMIN_EMAIL=""
 PENPOT_ADMIN_PASSWORD=""
+PROTECT_VM="no"
 
 # ==============================================================================
 # ERROR HANDLING & CLEANUP
@@ -194,6 +195,16 @@ function prompt_penpot_admin_account() {
   done
 }
 
+function prompt_vm_protection() {
+  if whiptail --backtitle "Proxmox VE Helper Scripts" --title "VM PROTECTION" --defaultno \
+    --yesno "Enable VM Protection?\n\nPrevents accidental deletion of this VM. You must disable protection before removing it." 11 65; then
+    PROTECT_VM="yes"
+  else
+    PROTECT_VM="no"
+  fi
+  echo -e "${INFO}${BOLD}${DGN}VM Protection: ${BGN}${PROTECT_VM}${CL}"
+}
+
 # ==============================================================================
 # SETTINGS FUNCTIONS
 # ==============================================================================
@@ -201,6 +212,7 @@ function default_settings() {
   prompt_penpot_telemetry
   prompt_penpot_registration
   prompt_penpot_admin_account
+  prompt_vm_protection
   select_os
   select_cloud_init
 
@@ -240,6 +252,7 @@ function advanced_settings() {
   prompt_penpot_telemetry
   prompt_penpot_registration
   prompt_penpot_admin_account
+  prompt_vm_protection
   select_os
   select_cloud_init
 
@@ -873,8 +886,11 @@ msg_ok "Resized disk image"
 # ==============================================================================
 msg_info "Creating Penpot VM shell"
 
+PROTECTION_FLAG=""
+[ "$PROTECT_VM" = "yes" ] && PROTECTION_FLAG=" -protection 1"
+
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci >/dev/null
+  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci${PROTECTION_FLAG} >/dev/null
 
 msg_ok "Created VM shell"
 
@@ -940,6 +956,7 @@ fi
 # ==============================================================================
 VM_IP=""
 if [ "$START_VM" == "yes" ]; then
+  msg_info "Waiting for VM IP address (up to 60s)"
   set +e
   for i in {1..20}; do
     VM_IP=$(qm guest cmd "$VMID" network-get-interfaces 2>/dev/null |
@@ -949,6 +966,11 @@ if [ "$START_VM" == "yes" ]; then
     sleep 3
   done
   set -e
+  if [ -n "$VM_IP" ]; then
+    msg_ok "VM IP address: ${VM_IP}"
+  else
+    msg_ok "VM IP address not detected yet (see notes below)"
+  fi
 fi
 
 echo -e "\n${INFO}${BOLD}${GN}Penpot VM Configuration Summary:${CL}"
