@@ -31,6 +31,11 @@ USE_CLOUD_INIT="no"
 OS_TYPE=""
 OS_VERSION=""
 THIN="discard=on,ssd=1,"
+PENPOT_TELEMETRY_INPUT="enable"
+PENPOT_REGISTRATION_INPUT="disable"
+PENPOT_ADMIN_NAME=""
+PENPOT_ADMIN_EMAIL=""
+PENPOT_ADMIN_PASSWORD=""
 
 # ==============================================================================
 # ERROR HANDLING & CLEANUP
@@ -129,9 +134,73 @@ function get_image_url() {
 }
 
 # ==============================================================================
+# PENPOT OPTIONS
+# ==============================================================================
+function prompt_penpot_telemetry() {
+  if whiptail --backtitle "Proxmox VE Helper Scripts" --title "PENPOT TELEMETRY" \
+    --yesno "Send anonymous usage telemetry to the Penpot team?\n\nOn (default, matches Penpot's own default): sends anonymous data about how this instance is used - no personal data or design content, just usage patterns.\n\nOff: sets PENPOT_TELEMETRY_ENABLED to false in docker-compose.yaml.\n\nYou can change this later: edit /root/penpot/docker-compose.yaml, then run:\n  docker compose -p penpot -f docker-compose.yaml up -d" 18 74; then
+    PENPOT_TELEMETRY_INPUT="enable"
+  else
+    PENPOT_TELEMETRY_INPUT="disable"
+  fi
+  echo -e "${INFO}${BOLD}${DGN}Penpot Telemetry: ${BGN}${PENPOT_TELEMETRY_INPUT}d${CL}"
+}
+
+function prompt_penpot_registration() {
+  if whiptail --backtitle "Proxmox VE Helper Scripts" --title "PENPOT USER REGISTRATION" --defaultno \
+    --yesno "Allow anyone who reaches this VM's URL to create their own Penpot account?\n\nOn: the public sign-up page is enabled. There is no email verification on this LAN-HTTP setup, so anyone who can reach the URL can self-register.\n\nOff (default, recommended): the sign-up page is disabled. You'll be asked to set up the first account next, and it will be created automatically on first boot." 16 76; then
+    PENPOT_REGISTRATION_INPUT="enable"
+  else
+    PENPOT_REGISTRATION_INPUT="disable"
+  fi
+  echo -e "${INFO}${BOLD}${DGN}Penpot Registration: ${BGN}${PENPOT_REGISTRATION_INPUT}d${CL}"
+}
+
+function prompt_penpot_admin_account() {
+  [ "$PENPOT_REGISTRATION_INPUT" = "enable" ] && return
+
+  if PENPOT_ADMIN_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PENPOT FIRST USER" \
+    --inputbox "Registration is disabled, so this account will be the only way to log in.\n\nFull name for the first Penpot account:" 11 70 "Admin" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    [ -z "$PENPOT_ADMIN_NAME" ] && PENPOT_ADMIN_NAME="Admin"
+    echo -e "${INFO}${BOLD}${DGN}First User Name: ${BGN}${PENPOT_ADMIN_NAME}${CL}"
+  else
+    exit_script
+  fi
+
+  while true; do
+    if PENPOT_ADMIN_EMAIL=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PENPOT FIRST USER" \
+      --inputbox "Email for the first account (this is the login username):" 10 70 "" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [[ "$PENPOT_ADMIN_EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then
+        echo -e "${INFO}${BOLD}${DGN}First User Email: ${BGN}${PENPOT_ADMIN_EMAIL}${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "Enter a valid email address (e.g. you@example.com)." 8 60
+    else
+      exit_script
+    fi
+  done
+
+  while true; do
+    if PENPOT_ADMIN_PASSWORD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PENPOT FIRST USER" \
+      --passwordbox "Password for the first account (min. 8 characters):" 10 70 --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ "${#PENPOT_ADMIN_PASSWORD}" -ge 8 ]; then
+        echo -e "${INFO}${BOLD}${DGN}First User Password: ${BGN}(hidden)${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "Password must be at least 8 characters." 8 60
+    else
+      exit_script
+    fi
+  done
+}
+
+# ==============================================================================
 # SETTINGS FUNCTIONS
 # ==============================================================================
 function default_settings() {
+  prompt_penpot_telemetry
+  prompt_penpot_registration
+  prompt_penpot_admin_account
   select_os
   select_cloud_init
 
@@ -168,6 +237,9 @@ function default_settings() {
 }
 
 function advanced_settings() {
+  prompt_penpot_telemetry
+  prompt_penpot_registration
+  prompt_penpot_admin_account
   select_os
   select_cloud_init
 
@@ -739,6 +811,30 @@ else
   echo -e "${TAB}${DGN}Docker: ${BGN}Installing on first boot${CL}"
   echo -e "${TAB}${YW}⚠️  Wait 2-3 minutes for installation to complete${CL}"
   echo -e "${TAB}${YW}⚠️  Check progress: ${BL}cat /var/log/install-docker.log${CL}"
+fi
+
+echo -e ""
+echo -e "${INFO}${BOLD}${GN}Penpot is being configured automatically on first boot!${CL}"
+echo -e "${TAB}${YW}⚠️  First boot pulls several GB of Docker images — this can take several minutes.${CL}"
+echo -e "${TAB}${DGN}Setup log: ${BGN}journalctl -u penpot-setup -f${CL}"
+echo -e "${TAB}${DGN}Telemetry: ${BGN}${PENPOT_TELEMETRY_INPUT}d${CL}"
+echo -e "${TAB}${DGN}Registration: ${BGN}${PENPOT_REGISTRATION_INPUT}d${CL}"
+
+echo -e ""
+if [ -n "$VM_IP" ]; then
+  echo -e "${INFO}${YW} Access it using the following URL (once first-boot setup completes):${CL}"
+  echo -e "${TAB}${GATEWAY}${BGN}http://${VM_IP}:9001${CL}"
+else
+  echo -e "${INFO}${YW} Access it once first-boot setup completes at:${CL}"
+  echo -e "${TAB}${GATEWAY}${BGN}http://<VM-IP>:9001${CL}"
+fi
+
+if [ "$PENPOT_REGISTRATION_INPUT" = "enable" ]; then
+  echo -e "${INFO}${YW} Log in: ${CL}open the URL above and use Create account to register the first user."
+else
+  echo -e "${INFO}${YW} Log in: ${CL}registration is disabled — the account below is created automatically on first boot."
+  echo -e "${TAB}${DGN}Email: ${BGN}${PENPOT_ADMIN_EMAIL}${CL}"
+  echo -e "${TAB}${DGN}Password: ${BGN}(the one you entered during setup)${CL}"
 fi
 
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
