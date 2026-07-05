@@ -1,0 +1,49 @@
+{
+  "name": "LiteLLM",
+  "slug": "litellm",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-07-05",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 4000,
+  "documentation": "https://docs.litellm.ai/",
+  "website": "https://github.com/BerriAI/litellm",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openai.webp",
+  "description": "LiteLLM is an OpenAI-compatible LLM proxy with cost tracking, load balancing, and observability.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/litellm.sh",
+      "config_path": "/opt/litellm/litellm.yaml",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Master key and secrets are saved to ~/litellm.creds after install.",
+      "type": "info"
+    },
+    {
+      "text": "Uses PostgreSQL and Python (uv) with the official LiteLLM release tarball.",
+      "type": "info"
+    },
+    {
+      "text": "LITELLM_SALT_KEY cannot be changed after models are added to the proxy.",
+      "type": "warning"
+    }
+  ]
+}
