@@ -33,10 +33,37 @@
     "password": null
   },
   "notes": [
-    "First boot pulls the official Penpot Docker Compose stack and can take several minutes depending on network speed.",
-    "Access Penpot at http://<VM-IP>:9001 once first-boot setup completes (check with: journalctl -u penpot-setup -f).",
-    "Public self-registration is disabled by default; enable it via the whiptail prompt during install or by editing PENPOT_FLAGS in /root/penpot/docker-compose.yaml.",
-    "This is a LAN-HTTP setup with no TLS. For internet-facing deployments, put a reverse proxy in front and update PENPOT_PUBLIC_URI accordingly.",
-    "As a rule of thumb, start with a minimum database size of 50GB to 100GB with elastic sizing capability — this configuration should adequately support up to 10 editors. For environments with more than 10 users, we recommend adding approximately 5GB of capacity per additional editor."
+    {
+      "text": "Defaults: 2 vCPU, 4096 MB RAM, 40G disk, Debian 13 (Trixie), Q35 machine type.",
+      "type": "info"
+    },
+    {
+      "text": "Telemetry is enabled by default (change in Advanced Settings during install).",
+      "type": "info"
+    },
+    {
+      "text": "Public registration is disabled by default (change in Advanced Settings during install, or later by editing PENPOT_FLAGS in /root/penpot/docker-compose.yaml).",
+      "type": "info"
+    },
+    {
+      "text": "VM Protection is disabled by default (change in Advanced Settings during install).",
+      "type": "info"
+    },
+    {
+      "text": "First boot pulls the official Penpot Docker Compose stack and can take several minutes depending on network speed.",
+      "type": "warning"
+    },
+    {
+      "text": "Access Penpot at http://<VM-IP>:9001 once first-boot setup completes (check with: journalctl -u penpot-setup -f).",
+      "type": "info"
+    },
+    {
+      "text": "This is a LAN-HTTP setup with no TLS. For internet-facing deployments, put a reverse proxy in front and update PENPOT_PUBLIC_URI accordingly.",
+      "type": "warning"
+    },
+    {
+      "text": "As a rule of thumb, start with a minimum database size of 50GB to 100GB with elastic sizing capability - this configuration should adequately support up to 10 editors. For environments with more than 10 users, we recommend adding approximately 5GB of capacity per additional editor.",
+      "type": "info"
+    }
   ]
 }
