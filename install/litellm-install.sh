@@ -4,7 +4,7 @@
 # Author: stout01
 # Co-Authors: MickLesk, tremor021 (prior pip/Prisma versions)
 # Refactor: Docker Compose official stack (community contribution preserved)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/BerriAI/litellm
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -15,19 +15,12 @@ setting_up_container
 network_check
 update_os
 
-# Pinned upstream compose artifacts (BerriAI/litellm)
-LITELLM_REF="79a6b8f7f0cd"
-LITELLM_RAW="https://raw.githubusercontent.com/BerriAI/litellm/${LITELLM_REF}"
 LITELLM_DIR="/opt/litellm"
+LITELLM_REPO="BerriAI/litellm"
 
 setup_docker
 
-msg_info "Fetching LiteLLM Docker Compose stack (${LITELLM_REF})"
-mkdir -p "$LITELLM_DIR"
-cd "$LITELLM_DIR"
-curl -fsSL "${LITELLM_RAW}/docker-compose.yml" -o docker-compose.yml
-curl -fsSL "${LITELLM_RAW}/prometheus.yml" -o prometheus.yml
-msg_ok "Fetched compose files"
+fetch_and_deploy_gh_release "litellm" "$LITELLM_REPO" "tarball" "latest" "$LITELLM_DIR"
 
 msg_info "Generating secrets"
 LITELLM_MASTER_KEY="sk-$(openssl rand -hex 16)"
@@ -40,14 +33,12 @@ LITELLM_SALT_KEY="${LITELLM_SALT_KEY}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
 EOF
 
-# Replace example credentials from upstream compose with generated secrets
 sed -i "s/dbpassword9090/${POSTGRES_PASSWORD}/g" "$LITELLM_DIR/docker-compose.yml"
 if grep -q "dbpassword9090" "$LITELLM_DIR/docker-compose.yml"; then
   msg_error "Failed to replace default Postgres password in docker-compose.yml"
   exit 150
 fi
 
-# Bind auxiliary services to localhost only (proxy stays on :4000)
 sed -i 's/- "5432:5432"/- "127.0.0.1:5432:5432"/' "$LITELLM_DIR/docker-compose.yml"
 sed -i 's/- "9090:9090"/- "127.0.0.1:9090:9090"/' "$LITELLM_DIR/docker-compose.yml"
 msg_ok "Generated secrets and hardened port bindings"

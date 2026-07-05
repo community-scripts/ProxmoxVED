@@ -4,7 +4,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Author: stout01
 # Co-Authors: MickLesk, tremor021 (prior pip/Prisma versions)
 # Refactor: Docker Compose official stack (community contribution preserved)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/BerriAI/litellm
 
 APP="LiteLLM"
@@ -15,6 +15,7 @@ var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_nesting="${var_nesting:-1}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -32,11 +33,20 @@ function update_script() {
     exit
   fi
 
-  msg_info "Updating LiteLLM (Docker Compose)"
-  cd /opt/litellm
-  $STD docker compose pull
-  $STD docker compose up -d
-  msg_ok "Updated LiteLLM containers"
+  if check_for_gh_release "litellm" "BerriAI/litellm"; then
+    msg_info "Updating LiteLLM (Docker Compose)"
+    cd /opt/litellm
+    cp .env /tmp/litellm.env.bak
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "litellm" "BerriAI/litellm" "tarball" "latest" "/opt/litellm"
+    mv /tmp/litellm.env.bak .env
+    POSTGRES_PASSWORD=$(grep '^POSTGRES_PASSWORD=' .env | cut -d= -f2- | tr -d '"')
+    sed -i "s/dbpassword9090/${POSTGRES_PASSWORD}/g" docker-compose.yml
+    sed -i 's/- "5432:5432"/- "127.0.0.1:5432:5432"/' docker-compose.yml
+    sed -i 's/- "9090:9090"/- "127.0.0.1:9090:9090"/' docker-compose.yml
+    $STD docker compose pull
+    $STD docker compose up -d
+    msg_ok "Updated LiteLLM containers"
+  fi
 
   msg_ok "Updated successfully!"
   exit
