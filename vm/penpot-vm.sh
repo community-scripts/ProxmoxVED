@@ -954,33 +954,10 @@ fi
 # ==============================================================================
 # FINAL OUTPUT
 # ==============================================================================
-VM_IP=""
-if [ "$START_VM" == "yes" ]; then
-  msg_info "Waiting for guest agent (first boot pulls Docker images, ~5-6 min)"
-  for i in {1..180}; do
-    VM_IP=$(qm guest cmd "$VMID" network-get-interfaces 2>/dev/null |
-      jq -r '.[] | select(.name != "lo") | ."ip-addresses"[]? | select(."ip-address-type" == "ipv4") | ."ip-address"' 2>/dev/null |
-      grep -v "^127\." | head -1 || echo "")
-    if [ -n "$VM_IP" ]; then
-      break
-    fi
-    # Show elapsed time so it doesn't look stuck
-    printf "\r${TAB}${YW}${HOLD}Waiting for guest agent (first boot pulls Docker images, ~5-6 min) [%ds]${HOLD}" "$((i * 2))"
-    sleep 2
-  done
-
-  if [ -n "$VM_IP" ]; then
-    msg_ok "Guest agent responding — VM IP: ${VM_IP}"
-  else
-    msg_ok "VM started (could not detect IP — check VM console)"
-  fi
-fi
-
 echo -e "\n${INFO}${BOLD}${GN}Penpot VM Configuration Summary:${CL}"
 echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
 echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
 echo -e "${TAB}${DGN}OS: ${BGN}${OS_DISPLAY}${CL}"
-[ -n "$VM_IP" ] && echo -e "${TAB}${DGN}IP Address: ${BGN}${VM_IP}${CL}"
 
 if [ "$DOCKER_PREINSTALLED" = "yes" ]; then
   echo -e "${TAB}${DGN}Docker: ${BGN}Pre-installed (via get.docker.com)${CL}"
@@ -998,15 +975,9 @@ echo -e "${TAB}${DGN}Telemetry: ${BGN}${PENPOT_TELEMETRY_INPUT}d${CL}"
 echo -e "${TAB}${DGN}Registration: ${BGN}${PENPOT_REGISTRATION_INPUT}d${CL}"
 
 echo -e ""
-if [ -n "$VM_IP" ]; then
-  echo -e "${INFO}${YW} Access it using the following URL (once first-boot setup completes):${CL}"
-  echo -e "${GATEWAY}${BGN}http://${VM_IP}:9001${CL}"
-else
-  echo -e "${INFO}${YW} IP not detected yet. Once first-boot setup completes, the real URL is printed by:${CL}"
-  echo -e "${TAB}${BGN}journalctl -u penpot-setup | grep 'available at'${CL}"
-  echo -e "${TAB}${DGN}(or check the Summary tab in the Proxmox UI for this VM's IP)${CL}"
-  echo -e "${GATEWAY}${BGN}http://<VM-IP>:9001${CL}"
-fi
+echo -e "${INFO}${YW} Once first-boot setup completes, open Penpot on this VM's IP at port 9001:${CL}"
+echo -e "${GATEWAY}${BGN}http://<this-VM's-IP>:9001${CL}"
+echo -e "${TAB}${DGN}Find the IP in the Proxmox UI: select this VM -> Summary tab.${CL}"
 
 if [ "$PENPOT_REGISTRATION_INPUT" = "enable" ]; then
   echo -e "${INFO}${YW} Log in: ${CL}open the URL above and use Create account to register the first user."
