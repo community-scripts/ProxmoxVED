@@ -144,7 +144,7 @@ function prompt_penpot_telemetry() {
   else
     PENPOT_TELEMETRY_INPUT="disable"
   fi
-  echo -e "${INFO}${BOLD}${DGN}Penpot Telemetry: ${BGN}${PENPOT_TELEMETRY_INPUT}d${CL}"
+  msg_custom "$INFO" "${BOLD}${DGN}" "Penpot Telemetry: ${BGN}${PENPOT_TELEMETRY_INPUT}d"
 }
 
 function prompt_penpot_registration() {
@@ -154,7 +154,7 @@ function prompt_penpot_registration() {
   else
     PENPOT_REGISTRATION_INPUT="disable"
   fi
-  echo -e "${INFO}${BOLD}${DGN}Penpot Registration: ${BGN}${PENPOT_REGISTRATION_INPUT}d${CL}"
+  msg_custom "$INFO" "${BOLD}${DGN}" "Penpot Registration: ${BGN}${PENPOT_REGISTRATION_INPUT}d"
 }
 
 function prompt_penpot_admin_account() {
@@ -163,7 +163,7 @@ function prompt_penpot_admin_account() {
   if PENPOT_ADMIN_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PENPOT FIRST USER" \
     --inputbox "Registration is disabled, so this account will be the only way to log in.\n\nFull name for the first Penpot account:" 11 70 "Admin" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     [ -z "$PENPOT_ADMIN_NAME" ] && PENPOT_ADMIN_NAME="Admin"
-    echo -e "${INFO}${BOLD}${DGN}First User Name: ${BGN}${PENPOT_ADMIN_NAME}${CL}"
+    msg_custom "$INFO" "${BOLD}${DGN}" "First User Name: ${BGN}${PENPOT_ADMIN_NAME}"
   else
     exit_script
   fi
@@ -172,7 +172,7 @@ function prompt_penpot_admin_account() {
     if PENPOT_ADMIN_EMAIL=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PENPOT FIRST USER" \
       --inputbox "Email for the first account (this is the login username):" 10 70 "" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
       if [[ "$PENPOT_ADMIN_EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then
-        echo -e "${INFO}${BOLD}${DGN}First User Email: ${BGN}${PENPOT_ADMIN_EMAIL}${CL}"
+        msg_custom "$INFO" "${BOLD}${DGN}" "First User Email: ${BGN}${PENPOT_ADMIN_EMAIL}"
         break
       fi
       whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "Enter a valid email address (e.g. you@example.com)." 8 60
@@ -185,7 +185,7 @@ function prompt_penpot_admin_account() {
     if PENPOT_ADMIN_PASSWORD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PENPOT FIRST USER" \
       --passwordbox "Password for the first account (min. 8 characters):" 10 70 --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
       if [ "${#PENPOT_ADMIN_PASSWORD}" -ge 8 ]; then
-        echo -e "${INFO}${BOLD}${DGN}First User Password: ${BGN}(hidden)${CL}"
+        msg_custom "$INFO" "${BOLD}${DGN}" "First User Password: ${BGN}(hidden)"
         break
       fi
       whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "Password must be at least 8 characters." 8 60
@@ -202,7 +202,7 @@ function prompt_vm_protection() {
   else
     PROTECT_VM="no"
   fi
-  echo -e "${INFO}${BOLD}${DGN}VM Protection: ${BGN}${PROTECT_VM}${CL}"
+  msg_custom "$INFO" "${BOLD}${DGN}" "VM Protection: ${BGN}${PROTECT_VM}"
 }
 
 # ==============================================================================
@@ -954,7 +954,8 @@ fi
 # ==============================================================================
 # FINAL OUTPUT
 # ==============================================================================
-echo -e "\n${INFO}${BOLD}${GN}Penpot VM Configuration Summary:${CL}"
+echo -e ""
+msg_custom "$INFO" "${BOLD}${GN}" "Penpot VM Configuration Summary:"
 echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
 echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
 echo -e "${TAB}${DGN}OS: ${BGN}${OS_DISPLAY}${CL}"
@@ -968,21 +969,21 @@ else
 fi
 
 echo -e ""
-echo -e "${INFO}${BOLD}${GN}Penpot is being configured automatically on first boot!${CL}"
+msg_custom "$INFO" "${BOLD}${GN}" "Penpot is being configured automatically on first boot!"
 echo -e "${TAB}${YW}⚠️  First boot pulls several GB of Docker images — this can take several minutes.${CL}"
 echo -e "${TAB}${DGN}Setup log: ${BGN}journalctl -u penpot-setup -f${CL}"
 echo -e "${TAB}${DGN}Telemetry: ${BGN}${PENPOT_TELEMETRY_INPUT}d${CL}"
 echo -e "${TAB}${DGN}Registration: ${BGN}${PENPOT_REGISTRATION_INPUT}d${CL}"
 
 echo -e ""
-echo -e "${INFO}${YW} Once first-boot setup completes, open Penpot on this VM's IP at port 9001:${CL}"
+msg_custom "$INFO" "$YW" "Once first-boot setup completes, open Penpot on this VM's IP at port 9001:"
 echo -e "${GATEWAY}${BGN}http://<this-VM's-IP>:9001${CL}"
 echo -e "${TAB}${DGN}Find the IP in the Proxmox UI: select this VM -> Summary tab.${CL}"
 
 if [ "$PENPOT_REGISTRATION_INPUT" = "enable" ]; then
-  echo -e "${INFO}${YW} Log in: ${CL}open the URL above and use Create account to register the first user."
+  msg_custom "$INFO" "$YW" "Log in: ${CL}open the URL above and use Create account to register the first user."
 else
-  echo -e "${INFO}${YW} Log in: ${CL}registration is disabled — the account below is created automatically on first boot."
+  msg_custom "$INFO" "$YW" "Log in: ${CL}registration is disabled — the account below is created automatically on first boot."
   echo -e "${TAB}${DGN}Email: ${BGN}${PENPOT_ADMIN_EMAIL}${CL}"
   echo -e "${TAB}${DGN}Password: ${BGN}(the one you entered during setup)${CL}"
 fi
