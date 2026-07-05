@@ -1,7 +1,7 @@
 name: PR Script Requirements Check
 on:
   pull_request_target:
-    types: [opened, edited, synchronize]
+    types: [opened, edited, synchronize, reopened]
 permissions:
   pull-requests: write
   contents: read
@@ -104,16 +104,26 @@ jobs:
               missing.push("One arm64 support option (`arm64 supported`, `arm64 not tested`, or `arm64 not supported`) must be checked");
             }
 
-            const aiOptions = [
-              "**No AI used**",
-              "**AI was used**"
-            ];
-            const hasAISelection = aiOptions.some(opt => {
-              const line = findLine(opt);
-              return line && checkboxChecked(line);
-            });
-            if (!hasAISelection) {
-              missing.push("One AI assistance option (`No AI used` or `AI was used – confirmed compliance with AGENTS.md and pve-script-creator.agent.md`) must be checked");
+            // Only enforce template-version-gated checks if the section exists in the PR body.
+            // This prevents old PRs (opened before the section was added) from being closed on sync.
+            const aiNoUsedLine = findLine("**No AI used**");
+            const aiWasUsedLine = findLine("**AI was used**");
+            if (aiNoUsedLine || aiWasUsedLine) {
+              const hasAISelection = (aiNoUsedLine && checkboxChecked(aiNoUsedLine)) ||
+                                     (aiWasUsedLine && checkboxChecked(aiWasUsedLine));
+              if (!hasAISelection) {
+                missing.push("One AI assistance option (`No AI used` or `AI was used – confirmed compliance with AGENTS.md and pve-script-creator.agent.md`) must be checked");
+              }
+            }
+
+            const noDockerLine = findLine("**No Docker / Docker Compose**");
+            if (noDockerLine && !checkboxChecked(noDockerLine)) {
+              missing.push("`No Docker / Docker Compose` must be confirmed – the application must run bare-metal");
+            }
+
+            const noGitPullLine = findLine("**No git pull**");
+            if (noGitPullLine && !checkboxChecked(noGitPullLine)) {
+              missing.push("`No git pull` must be confirmed – use `fetch_and_deploy_gh_release` (or the Codeberg/GitLab/URL variants) instead");
             }
 
             if (missing.length > 0) {

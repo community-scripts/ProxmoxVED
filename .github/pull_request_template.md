@@ -41,6 +41,8 @@ Link: #
 - [ ] **Follows `CODE-AUDIT.md` & `CONTRIBUTING.md` guidelines**  
 - [ ] **Uses correct script structure (`AppName.sh`, `AppName-install.sh`, `AppName.json`)**  
 - [ ] **No hardcoded credentials**  
+- [ ] **No Docker / Docker Compose** – The application is installed bare-metal; Docker is not used.
+- [ ] **No git pull** – Updates use `fetch_and_deploy_gh_release`, `fetch_and_deploy_codeberg_release`, `fetch_and_deploy_gl_release`, or `fetch_and_deploy_from_url` instead of `git pull`.
 
 ---
 
