@@ -70,9 +70,9 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URLs:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:4000${CL} (Web UI)"
+echo -e "${INFO}${YW}Access it using the following URLs:${CL}"
+echo -e "${GATEWAY}${BGN}https://${IP}:4000${CL} (Web UI)"
 echo -e "${INFO}${YW} Before using: import the self-signed cert into your browser:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:4000/colanode.crt${CL}"
+echo -e "${GATEWAY}${BGN}https://${IP}:4000/colanode.crt${CL}"
 echo -e "${INFO}${YW} Server URL to use inside the app:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:4000/config${CL}"
+echo -e "${GATEWAY}${BGN}https://${IP}:4000/config${CL}"

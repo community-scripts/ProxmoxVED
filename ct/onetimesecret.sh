@@ -96,7 +96,7 @@ esac
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}${DISPLAY_SCHEME}://${DISPLAY_HOST}${CL}"
+echo -e "${INFO}${YW}Access it using the following URL:${CL}"
+echo -e "${GATEWAY}${BGN}${DISPLAY_SCHEME}://${DISPLAY_HOST}${CL}"
 echo -e "${INFO}${YW} Configure hostname, TLS, and SMTP settings in:${CL}"
 echo -e "${TAB}${BGN}/opt/onetimesecret/.env${CL}"
