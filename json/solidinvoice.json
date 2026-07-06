@@ -21,7 +21,7 @@
       "config_path": "/etc/solidinvoice/solidinvoice.env",
       "resources": {
         "cpu": 2,
-        "ram": 1512,
+        "ram": 2048,
         "hdd": 4,
         "os": "Debian",
         "version": "13"
