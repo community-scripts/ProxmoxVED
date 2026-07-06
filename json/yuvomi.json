@@ -1,0 +1,45 @@
+{
+    "name": "Yuvomi",
+    "slug": "yuvomi",
+    "categories": [
+        0
+    ],
+    "date_created": "2026-07-06",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": 3000,
+    "documentation": "https://github.com/ulsklyc/yuvomi",
+    "website": "https://github.com/ulsklyc/yuvomi",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/yuvomi.webp",
+    "config_path": "/opt/yuvomi/.env",
+    "description": "Yuvomi is a self-hosted family planner covering tasks, calendars, shopping lists, meals, and budget tracking. Data is stored in an encrypted SQLite database (SQLCipher) with optional WebDAV backup and OIDC support.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/yuvomi.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 1024,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Database encryption key and session secret are auto-generated and stored in /opt/yuvomi/.env. Do not lose the DB_ENCRYPTION_KEY — without it the database is unrecoverable.",
+            "type": "warning"
+        },
+        {
+            "text": "Data is stored in /opt/yuvomi/data. Backups go to /opt/yuvomi/backups.",
+            "type": "info"
+        }
+    ]
+}
