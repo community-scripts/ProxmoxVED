@@ -38,7 +38,7 @@
       "type": "info"
     },
     {
-      "text": "After setup, authenticate your AI providers via the built-in management panel at port 8317.",
+      "text": "After setup, authenticate your AI providers via the built-in management panel at http://<CT-IP>:8317/management.html.",
       "type": "warning"
     }
   ]
