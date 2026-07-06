@@ -1,0 +1,44 @@
+{
+    "name": "CookCLI",
+    "slug": "cookcli",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-07-06",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": 9080,
+    "documentation": "https://github.com/cooklang/cookcli/blob/main/docs/server.md",
+    "website": "https://cooklang.org",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/cooklang.webp",
+    "description": "CookCLI is a recipe management CLI and embedded web server in a single binary. It serves a Cooklang recipe collection as a web interface with shopping lists, pantry tracking, and meal planning.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/cookcli.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Recipes are stored in /opt/cookcli/recipes. Sample recipes are added on first install.",
+            "type": "info"
+        },
+        {
+            "text": "Add your own .cook recipe files to /opt/cookcli/recipes and restart the service.",
+            "type": "info"
+        }
+    ]
+}
