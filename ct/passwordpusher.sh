@@ -25,24 +25,24 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /opt/pwpush ]]; then
+  if [[ ! -d /opt/passwordpusher ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  if check_for_gh_release "pwpush" "pglombardo/PasswordPusher"; then
+  if check_for_gh_release "passwordpusher" "pglombardo/PasswordPusher"; then
     msg_info "Stopping Service"
-    systemctl stop pwpush
+    systemctl stop passwordpusher
     msg_ok "Stopped Service"
 
-    create_backup /opt/pwpush/storage /opt/pwpush/.env.production
+    create_backup /opt/passwordpusher/storage /opt/passwordpusher/.env.production
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "pwpush" "pglombardo/PasswordPusher" "tarball"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "passwordpusher" "pglombardo/PasswordPusher" "tarball"
 
     export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
 
     msg_info "Installing Gem Dependencies"
-    cd /opt/pwpush
+    cd /opt/passwordpusher
     $STD bundle config set --local without 'development test'
     $STD bundle config set --local deployment 'true'
     $STD bundle install
@@ -63,7 +63,7 @@ function update_script() {
     restore_backup
 
     msg_info "Starting Service"
-    systemctl start pwpush
+    systemctl start passwordpusher
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi

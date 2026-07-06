@@ -18,8 +18,7 @@ $STD apt install -y \
   python3 \
   make \
   g++ \
-  libsqlcipher-dev \
-  libsqlcipher0
+  libsqlcipher-dev
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" setup_nodejs

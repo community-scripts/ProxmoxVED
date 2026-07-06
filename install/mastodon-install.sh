@@ -15,6 +15,7 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
+  git \
   imagemagick \
   libvips-tools \
   libpq-dev \

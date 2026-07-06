@@ -13,7 +13,7 @@
     "documentation": "https://hister.org/docs",
     "website": "https://hister.org",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/hister.webp",
-    "config_path": "/etc/hister/hister.env",
+    "config_path": "/etc/hister/config.yaml",
     "description": "Hister is a privacy-focused personal search engine that indexes the websites you visit via a browser extension. It stores your browsing history locally with full-text search, advanced query language, and optional semantic search.",
     "install_methods": [
         {

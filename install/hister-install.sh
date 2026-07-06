@@ -18,9 +18,13 @@ fetch_and_deploy_gh_release "hister" "asciimoo/hister" "singlefile" "latest" "/u
 
 msg_info "Configuring Hister"
 mkdir -p /opt/hister/data /etc/hister
-cat <<EOF >/etc/hister/hister.env
-HISTER_DATA_DIR=/opt/hister/data
-HISTER__SERVER__ADDRESS=0.0.0.0:4433
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+cat <<EOF >/etc/hister/config.yaml
+app:
+  directory: '/opt/hister/data'
+server:
+  address: '0.0.0.0:4433'
+  base_url: 'http://${LOCAL_IP}:4433'
 EOF
 msg_ok "Configured Hister"
 
@@ -33,8 +37,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-EnvironmentFile=/etc/hister/hister.env
-ExecStart=/usr/local/bin/hister listen
+ExecStart=/usr/local/bin/hister listen --config /etc/hister/config.yaml
 Restart=on-failure
 RestartSec=5
 
