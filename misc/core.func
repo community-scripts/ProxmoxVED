@@ -704,7 +704,7 @@ msg_ok() {
 msg_error() {
   stop_spinner
   local msg="$1"
-  echo -e "${BFR:-}${CROSS:-✖️} ${RD}${msg}${CL}" >&2
+  echo -e "${BFR:-}${CROSS:-✖️}${RD}${msg}${CL}" >&2
   log_msg "[ERROR] $msg"
 }
 
