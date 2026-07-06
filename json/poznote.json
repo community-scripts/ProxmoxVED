@@ -29,8 +29,8 @@
         }
     ],
     "default_credentials": {
-        "username": null,
-        "password": null
+        "username": "admin_change_me",
+        "password": "admin"
     },
     "notes": [
         {

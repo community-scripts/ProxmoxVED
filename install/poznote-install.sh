@@ -55,6 +55,7 @@ ln -sf /etc/nginx/sites-available/poznote /etc/nginx/sites-enabled/poznote
 rm -f /etc/nginx/sites-enabled/default
 $STD nginx -t
 systemctl enable -q --now nginx
+systemctl reload nginx
 msg_ok "Configured Nginx"
 
 motd_ssh
