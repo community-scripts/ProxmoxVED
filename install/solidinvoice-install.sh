@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Pierre du Plessis
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://solidinvoice.co
+# Source: https://github.com/solidinvoice/solidinvoice
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
