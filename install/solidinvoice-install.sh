@@ -181,17 +181,6 @@ EOF
 systemctl enable -q --now solidinvoice
 msg_ok "Created Service"
 
-msg_info "Waiting for SolidInvoice to Start"
-ELAPSED=0
-until curl -sf "http://127.0.0.1:8765/" >/dev/null 2>&1; do
-  sleep 2
-  ELAPSED=$((ELAPSED + 2))
-  if [[ $ELAPSED -ge 60 ]]; then
-    msg_error "SolidInvoice did not respond within 60 seconds"
-    break
-  fi
-done
-[[ $ELAPSED -lt 60 ]] && msg_ok "SolidInvoice is Running"
 
 motd_ssh
 customize
