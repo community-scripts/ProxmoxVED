@@ -36,10 +36,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     create_backup /opt/leafwiki/data
-
-    ARCH=$(dpkg --print-architecture)
-    fetch_and_deploy_gh_release "leafwiki" "perber/leafwiki" "singlefile" "latest" "/usr/local/bin" "leafwiki-v*-linux-${ARCH}"
-
+    fetch_and_deploy_gh_release "leafwiki" "perber/leafwiki" "singlefile" "latest" "/usr/local/bin" "leafwiki-v*-linux-$(arch_resolve)"
     restore_backup
 
     msg_info "Starting Service"

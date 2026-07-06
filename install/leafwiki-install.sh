@@ -13,8 +13,7 @@ setting_up_container
 network_check
 update_os
 
-ARCH=$(dpkg --print-architecture)
-fetch_and_deploy_gh_release "leafwiki" "perber/leafwiki" "singlefile" "latest" "/usr/local/bin" "leafwiki-v*-linux-${ARCH}"
+fetch_and_deploy_gh_release "leafwiki" "perber/leafwiki" "singlefile" "latest" "/usr/local/bin" "leafwiki-v*-linux-$(arch_resolve)"
 
 msg_info "Configuring LeafWiki"
 mkdir -p /opt/leafwiki/data
