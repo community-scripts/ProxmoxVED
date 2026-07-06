@@ -52,4 +52,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Configure certs and AGENT_PORT in:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}/etc/godoxy-agent.env${CL}"
+echo -e "${GATEWAY}${BGN}/etc/godoxy-agent.env${CL}"
