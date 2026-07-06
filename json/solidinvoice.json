@@ -34,7 +34,7 @@
   },
   "notes": [
     {
-      "text": "Complete the setup wizard via the web interface on first access.",
+      "text": "App startup could be slow. Once the app has started, complete the setup wizard via the web interface on first access.",
       "type": "info"
     }
   ]
