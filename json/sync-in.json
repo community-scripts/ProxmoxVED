@@ -1,0 +1,49 @@
+{
+    "name": "Sync-in",
+    "slug": "sync-in",
+    "categories": [
+        11
+    ],
+    "date_created": "2026-07-06",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": 8080,
+    "documentation": "https://sync-in.com/docs",
+    "website": "https://sync-in.com",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/sync-in.webp",
+    "config_path": "/opt/sync-in/environment.yaml",
+    "description": "Sync-in is a self-hosted platform for file storage, synchronization, and team collaboration. Features include drag-and-drop uploads, OIDC/LDAP authentication, WebDAV support, full-text search, and online document editing with OnlyOffice or Collabora.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/sync-in.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "sync-in",
+        "password": "sync-in"
+    },
+    "notes": [
+        {
+            "text": "Change the default credentials (sync-in / sync-in) immediately after first login.",
+            "type": "warning"
+        },
+        {
+            "text": "Configuration and generated secrets are stored in /opt/sync-in/environment.yaml.",
+            "type": "info"
+        },
+        {
+            "text": "Files are stored in /opt/sync-in/data. Increase disk size accordingly.",
+            "type": "info"
+        }
+    ]
+}

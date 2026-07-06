@@ -1,0 +1,45 @@
+{
+    "name": "NoteDiscovery",
+    "slug": "notediscovery",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-07-06",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": 8000,
+    "documentation": "https://github.com/gamosoft/NoteDiscovery/tree/main/documentation",
+    "website": "https://www.notediscovery.com",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/notediscovery.webp",
+    "config_path": "/opt/notediscovery/config.yaml",
+    "description": "NoteDiscovery is a lightweight, self-hosted knowledge base and note-taking platform. Write Markdown notes, build a graph of linked knowledge, and search full-text across your entire vault — all stored as plain files.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/notediscovery.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": "admin"
+    },
+    "notes": [
+        {
+            "text": "Authentication is disabled by default. Enable it in /opt/notediscovery/config.yaml and change the default password.",
+            "type": "warning"
+        },
+        {
+            "text": "Notes are stored as plain Markdown files in /opt/notediscovery/data.",
+            "type": "info"
+        }
+    ]
+}
