@@ -17,15 +17,7 @@ msg_info "Creating Directories"
 mkdir -p /etc/solidinvoice /var/lib/solidinvoice
 msg_ok "Created Directories"
 
-case "$(dpkg --print-architecture)" in
-  amd64) ARCH="amd64" ;;
-  arm64) ARCH="arm64" ;;
-  *)
-    msg_error "Unsupported architecture: $(dpkg --print-architecture)"
-    exit 1
-    ;;
-esac
-fetch_and_deploy_gh_release "solidinvoice" "SolidInvoice/SolidInvoice" "singlefile" "latest" "/usr/bin" "solidinvoice-linux-${ARCH}"
+fetch_and_deploy_gh_release "solidinvoice" "SolidInvoice/SolidInvoice" "singlefile" "latest" "/usr/bin" "solidinvoice-linux-$(arch_resolve)"
 
 msg_info "Configuring SolidInvoice"
 cat <<'EOF' >/etc/solidinvoice/solidinvoice.env
