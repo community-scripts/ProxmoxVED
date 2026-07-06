@@ -15,6 +15,7 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
+  git \
   libpq-dev \
   libsqlite3-dev
 msg_ok "Installed Dependencies"

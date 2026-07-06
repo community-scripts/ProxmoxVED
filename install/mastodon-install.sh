@@ -67,8 +67,8 @@ msg_ok "Installed Node.js Dependencies"
 
 msg_info "Configuring Mastodon"
 LOCAL_IP=$(hostname -I | awk '{print $1}')
-SECRET_KEY_BASE=$(bundle exec rails secret)
-OTP_SECRET=$(bundle exec rails secret)
+SECRET_KEY_BASE=$(RAILS_ENV=production bundle exec rails secret)
+OTP_SECRET=$(RAILS_ENV=production bundle exec rails secret)
 
 VAPID_OUTPUT=$(RAILS_ENV=production bundle exec rails mastodon:webpush:generate_vapid_key 2>/dev/null)
 VAPID_PRIVATE_KEY=$(echo "$VAPID_OUTPUT" | grep "^VAPID_PRIVATE_KEY=" | cut -d= -f2-)
