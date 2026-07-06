@@ -686,7 +686,7 @@ msg_ok() {
   [[ -z "$msg" ]] && return
   stop_spinner
   clear_line
-  echo -e "$CM ${GN}${msg}${CL}"
+  echo -e "$CM${GN}${msg}${CL}"
   log_msg "[OK] $msg"
   local sanitized_key
   sanitized_key=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
@@ -704,7 +704,7 @@ msg_ok() {
 msg_error() {
   stop_spinner
   local msg="$1"
-  echo -e "${BFR:-}${CROSS:-✖️} ${RD}${msg}${CL}" >&2
+  echo -e "${BFR:-}${CROSS:-✖️}${RD}${msg}${CL}" >&2
   log_msg "[ERROR] $msg"
 }
 
