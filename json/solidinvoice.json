@@ -1,0 +1,41 @@
+{
+  "name": "SolidInvoice",
+  "slug": "solidinvoice",
+  "categories": [
+    23
+  ],
+  "date_created": "2026-06-19",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8765,
+  "documentation": "https://solidinvoice.co/docs",
+  "website": "https://solidinvoice.co",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/solidinvoice.webp",
+  "description": "SolidInvoice is an open-source invoicing application that helps small businesses and freelancers manage clients, create professional invoices, track payments, and handle recurring billing.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/solidinvoice.sh",
+      "config_path": "/etc/solidinvoice/solidinvoice.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "App startup could be slow. Once the app has started, complete the setup wizard via the web interface on first access.",
+      "type": "info"
+    }
+  ]
+}
