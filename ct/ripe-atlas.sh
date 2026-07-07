@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 Juan Lago
 # Author: Juan Lago (juanparati)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/RIPE-NCC/ripe-atlas-software-probe
 
-APP="RIPE Atlas Probe"
+APP="RIPE-Atlas"
 var_tags="${var_tags:-network;monitoring}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-256}"
