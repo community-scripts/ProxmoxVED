@@ -44,5 +44,11 @@ msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW}Register your probe at:${CL}"
 echo -e "${GATEWAY}${BGN}https://atlas.ripe.net/apply/swprobe/${CL}"
-echo -e "${INFO}${YW}Retrieve the public key with:${CL}"
-echo -e "${BGN}pct exec ${CTID} -- cat /etc/ripe-atlas/probe_key.pub${CL}"
+PROBE_KEY=$(pct exec "$CTID" -- cat /etc/ripe-atlas/probe_key.pub 2>/dev/null || true)
+if [[ -n "$PROBE_KEY" ]]; then
+  echo -e "${INFO}${YW}Public key (also in /etc/ripe-atlas/probe_key.pub inside the container):${CL}"
+  echo -e "${BGN}${PROBE_KEY}${CL}"
+else
+  echo -e "${INFO}${YW}Retrieve the public key with:${CL}"
+  echo -e "${BGN}pct exec ${CTID} -- cat /etc/ripe-atlas/probe_key.pub${CL}"
+fi
