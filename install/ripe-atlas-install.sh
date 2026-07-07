@@ -36,6 +36,19 @@ echo 'RXTXRPT=yes' >/etc/ripe-atlas/config.txt
 systemctl enable -q --now ripe-atlas.service
 msg_ok "Installed RIPE Atlas Probe"
 
+msg_info "Waiting for probe key generation"
+for i in {1..15}; do
+  [[ -s /etc/ripe-atlas/probe_key.pub ]] && break
+  sleep 2
+done
+if [[ ! -s /etc/ripe-atlas/probe_key.pub ]]; then
+  # Fallback: generate the key pair manually (same parameters RIPE documents)
+  ssh-keygen -t rsa -b 2048 -P '' -C software-probe -f /etc/ripe-atlas/probe_key >/dev/null 2>&1
+  chown ripe-atlas:ripe-atlas /etc/ripe-atlas/probe_key /etc/ripe-atlas/probe_key.pub 2>/dev/null || true
+  systemctl restart ripe-atlas.service
+fi
+msg_ok "Probe key ready"
+
 motd_ssh
 customize
 cleanup_lxc
