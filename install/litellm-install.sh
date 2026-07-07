@@ -20,7 +20,9 @@ $STD apt install -y \
   python3-dev \
   libpq-dev \
   openssl \
-  curl
+  curl \
+  gnupg \
+  sudo
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
@@ -32,7 +34,7 @@ fetch_and_deploy_gh_release "litellm" "BerriAI/litellm" "tarball" "latest" "/opt
 # #region agent log
 _debug_log() {
   local hid="$1" msg="$2" data="$3"
-  printf '%s\n' "{\"sessionId\":\"691d2a\",\"runId\":\"pre-fix\",\"hypothesisId\":\"${hid}\",\"location\":\"litellm-install.sh\",\"message\":\"${msg}\",\"data\":${data},\"timestamp\":$(date +%s%3N)}" >>/tmp/debug-691d2a.log
+  printf '%s\n' "{\"sessionId\":\"691d2a\",\"runId\":\"post-fix\",\"hypothesisId\":\"${hid}\",\"location\":\"litellm-install.sh\",\"message\":\"${msg}\",\"data\":${data},\"timestamp\":$(date +%s%3N)}" >>/tmp/debug-691d2a.log
 }
 # #endregion
 
