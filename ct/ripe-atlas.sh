@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-# Copyright (c) 2021-2026 Juan Lago
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: Juan Lago (juanparati)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/RIPE-NCC/ripe-atlas-software-probe
@@ -30,8 +30,8 @@ function update_script() {
   fi
 
   msg_info "Updating ${APP}"
-  $STD apt-get update
-  $STD apt-get -y install --only-upgrade ripe-atlas-probe
+  $STD apt update
+  $STD apt install -y --only-upgrade ripe-atlas-probe
   msg_ok "Updated ${APP}"
   exit
 }
@@ -40,7 +40,7 @@ start
 build_container
 description
 
-msg_ok "Completed successfully!\n"
+msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW}Register your probe at:${CL}"
 echo -e "${GATEWAY}${BGN}https://atlas.ripe.net/apply/swprobe/${CL}"

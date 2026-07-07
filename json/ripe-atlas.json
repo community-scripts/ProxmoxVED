@@ -11,18 +11,18 @@
   "interface_port": null,
   "documentation": "https://atlas.ripe.net/docs/howtos/software-probes/",
   "website": "https://atlas.ripe.net/",
-  "logo": "https://atlas.ripe.net/static/img/favicon.png",
-  "config_path": "/etc/ripe-atlas/config.txt",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ripe-atlas.webp",
   "description": "RIPE Atlas is a global network of probes that measure Internet connectivity and reachability.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/ripe-atlas.sh",
+      "config_path": "/etc/ripe-atlas/config.txt",
       "resources": {
         "cpu": 1,
         "ram": 256,
         "hdd": 3,
-        "os": "debian",
+        "os": "Debian",
         "version": "13"
       }
     }

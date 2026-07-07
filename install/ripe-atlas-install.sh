@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2026 Juan Lago
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: Juan Lago (juanparati)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/RIPE-NCC/ripe-atlas-software-probe
@@ -16,9 +16,10 @@ update_os
 msg_info "Setting up RIPE Atlas Repository"
 ARCH=$(dpkg --print-architecture)
 CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
-REPO_PKG="ripe-atlas-repo_1.5-5_all.deb"
+REPO_URL="https://ftp.ripe.net/ripe/atlas/software-probe/debian/dists/${CODENAME}/main/binary-${ARCH}"
+REPO_PKG=$(curl -fsSL "${REPO_URL}/" | grep -oE 'ripe-atlas-repo_[^"]+_all\.deb' | sort -uV | tail -1)
 cd /tmp
-curl -fsSLO "https://ftp.ripe.net/ripe/atlas/software-probe/debian/dists/${CODENAME}/main/binary-${ARCH}/${REPO_PKG}"
+curl -fsSLO "${REPO_URL}/${REPO_PKG}"
 curl -fsSLO "https://github.com/RIPE-NCC/ripe-atlas-software-probe/releases/latest/download/CHECKSUMS"
 if ! grep -qF "$(sha256sum "$REPO_PKG")" CHECKSUMS; then
   msg_error "Checksum verification failed for ${REPO_PKG}"
@@ -30,9 +31,11 @@ rm -f "$REPO_PKG" CHECKSUMS
 msg_ok "Set up RIPE Atlas Repository"
 
 msg_info "Installing RIPE Atlas Probe"
-$STD apt-get update
-$STD apt-get -y install ripe-atlas-probe
-echo 'RXTXRPT=yes' >/etc/ripe-atlas/config.txt
+$STD apt update
+$STD apt install -y ripe-atlas-probe
+cat <<EOF >/etc/ripe-atlas/config.txt
+RXTXRPT=yes
+EOF
 systemctl enable -q --now ripe-atlas.service
 msg_ok "Installed RIPE Atlas Probe"
 
