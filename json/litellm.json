@@ -12,7 +12,7 @@
   "interface_port": 4000,
   "documentation": "https://docs.litellm.ai/",
   "website": "https://github.com/BerriAI/litellm",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openai.webp",
+  "logo": "https://raw.githubusercontent.com/BerriAI/litellm/main/litellm/proxy/logo.jpg",
   "description": "LiteLLM is an OpenAI-compatible LLM proxy with cost tracking, load balancing, and observability.",
   "install_methods": [
     {
@@ -20,9 +20,9 @@
       "script": "ct/litellm.sh",
       "config_path": "/opt/litellm/litellm.yaml",
       "resources": {
-        "cpu": 2,
-        "ram": 4096,
-        "hdd": 20,
+        "cpu": 1,
+        "ram": 2048,
+        "hdd": 10,
         "os": "Debian",
         "version": "13"
       }
