@@ -1,0 +1,44 @@
+{
+  "name": "RIPE Atlas Probe",
+  "slug": "ripe-atlas",
+  "categories": [
+    4
+  ],
+  "date_created": "2026-07-07",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://atlas.ripe.net/docs/howtos/software-probes/",
+  "website": "https://atlas.ripe.net/",
+  "logo": "https://atlas.ripe.net/static/img/favicon.png",
+  "config_path": "/etc/ripe-atlas/config.txt",
+  "description": "RIPE Atlas is a global network of probes that measure Internet connectivity and reachability.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/ripe-atlas.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 256,
+        "hdd": 3,
+        "os": "debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "After installation, register your probe at https://atlas.ripe.net/apply/swprobe/ using the public key found in /etc/ripe-atlas/probe_key.pub",
+      "type": "info"
+    },
+    {
+      "text": "The probe key pair identifies your probe. Back up /etc/ripe-atlas/probe_key and never share the private key.",
+      "type": "warning"
+    }
+  ]
+}
