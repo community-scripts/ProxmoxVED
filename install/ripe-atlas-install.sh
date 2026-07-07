@@ -20,7 +20,7 @@ REPO_PKG="ripe-atlas-repo_1.5-5_all.deb"
 cd /tmp
 curl -fsSLO "https://ftp.ripe.net/ripe/atlas/software-probe/debian/dists/${CODENAME}/main/binary-${ARCH}/${REPO_PKG}"
 curl -fsSLO "https://github.com/RIPE-NCC/ripe-atlas-software-probe/releases/latest/download/CHECKSUMS"
-if ! grep -q "$(sha256sum "$REPO_PKG")" CHECKSUMS; then
+if ! grep -qF "$(sha256sum "$REPO_PKG")" CHECKSUMS; then
   msg_error "Checksum verification failed for ${REPO_PKG}"
   rm -f "$REPO_PKG" CHECKSUMS
   exit 1
