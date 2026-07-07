@@ -19,10 +19,7 @@ $STD apt install -y \
   build-essential \
   python3-dev \
   libpq-dev \
-  openssl \
-  curl \
-  gnupg \
-  sudo
+  openssl
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
@@ -30,13 +27,6 @@ PG_DB_NAME="litellm" PG_DB_USER="litellm" setup_postgresql_db
 PYTHON_VERSION="3.12" USE_UVX="YES" setup_uv
 
 fetch_and_deploy_gh_release "litellm" "BerriAI/litellm" "tarball" "latest" "/opt/litellm"
-
-# #region agent log
-_debug_log() {
-  local hid="$1" msg="$2" data="$3"
-  printf '%s\n' "{\"sessionId\":\"691d2a\",\"runId\":\"post-fix\",\"hypothesisId\":\"${hid}\",\"location\":\"litellm-install.sh\",\"message\":\"${msg}\",\"data\":${data},\"timestamp\":$(date +%s%3N)}" >>/tmp/debug-691d2a.log
-}
-# #endregion
 
 msg_info "Installing LiteLLM (Patience)"
 cd /opt/litellm
@@ -60,19 +50,8 @@ litellm_settings:
 EOF
 
 export DATABASE_URL
-# #region agent log
-_debug_log "H2" "PATH before prisma generate" "{\"path\":\"${PATH}\",\"venv_prisma_client_py\":\"$([ -x /opt/litellm/.venv/bin/prisma-client-py ] && echo yes || echo no)\"}"
-# #endregion
 export PATH="/opt/litellm/.venv/bin:${PATH}"
-# #region agent log
-_debug_log "H4" "PATH after venv prepend" "{\"path\":\"${PATH}\"}"
-# #endregion
 $STD .venv/bin/prisma generate --schema=/opt/litellm/schema.prisma
-_prisma_gen_rc=$?
-# #region agent log
-_debug_log "H4" "prisma generate finished" "{\"exit_code\":${_prisma_gen_rc}}"
-# #endregion
-[[ "${_prisma_gen_rc}" -eq 0 ]] || exit "${_prisma_gen_rc}"
 $STD .venv/bin/litellm --config /opt/litellm/litellm.yaml --use_prisma_db_push --skip_server_startup
 msg_ok "Configured LiteLLM"
 
