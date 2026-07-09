@@ -7,24 +7,12 @@
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}/misc/vm-core.func")
 load_functions
 
-function header_info {
-  clear
-  cat <<"EOF"
-   __  ____                __           ___   ______ ____  __ __     _    ____  ___
-  / / / / /_  __  ______  / /___  __   |__ \ / ____// __ \/ // /    | |  / /  |/  /
- / / / / __ \/ / / / __ \/ __/ / / /   __/ //___ \ / / / / // /_    | | / / /|_/ / 
-/ /_/ / /_/ / /_/ / / / / /_/ /_/ /   / __/____/ // /_/ /__  __/    | |/ / /  / /  
-\____/_.___/\__,_/_/ /_/\__/\__,_/   /____/_____(_)____/  /_/       |___/_/  /_/ (Plucky Puffin)
-                                                                                   
-EOF
-}
-
 APP="Ubuntu 26.04 VM"
 APP_TYPE="vm"
+NSAPP="ubuntu2604-vm"
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
-NSAPP="ubuntu2604-vm"
 var_os="ubuntu"
 var_version="2604"
 THIN="discard=on,ssd=1,"
