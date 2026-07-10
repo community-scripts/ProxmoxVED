@@ -40,6 +40,11 @@ arch_check
 pve_check
 ssh_check
 
+if [[ "$(pveversion | awk -F'/' '{print $2}' | awk -F'.' '{print $1}')" -lt 9 ]]; then
+  msg_error "Nextcloud VM requires Proxmox VE 9.0 or later (Q35 + UEFI / QEMU 10.x)."
+  exit 105
+fi
+
 function default_settings() {
   VMID=$(get_valid_nextid)
   DISK_SIZE="100G"
@@ -139,3 +144,6 @@ fi
 
 post_update_to_api "done" "none"
 msg_ok "Completed successfully!\n"
+echo -e "${INFO}${YW}Default login credentials:${CL}"
+echo -e "${GATEWAY}${BGN}Username: ncadmin  |  Password: nextcloud${CL}"
+echo -e "${INFO}${YW}After first boot, log in and run ${BGN}sudo bash${YW} to launch the interactive setup wizard.${CL}\n"
