@@ -1,0 +1,45 @@
+{
+    "name": "Nextcloud VM",
+    "slug": "nextcloud-vm",
+    "categories": [
+        11
+    ],
+    "date_created": "2026-07-10",
+    "type": "vm",
+    "updateable": false,
+    "privileged": false,
+    "has_arm": false,
+    "interface_port": 443,
+    "documentation": "https://docs.hanssonit.se/s/W6fMouPiqQz3_Mog/virtual-machines-vm/d/W6fMquPiqQz3_Moi/nextcloud-vm",
+    "website": "https://www.hanssonit.se",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nextcloud.webp",
+    "description": "The Nextcloud VM by T&M Hansson IT is a pre-installed, production-ready virtual machine running Nextcloud on Debian. It is deployed via VZDUMP restore and includes an interactive setup wizard that runs on first boot.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "vm/nextcloud-vm.sh",
+            "config_path": "",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 100,
+                "os": "Debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "The VM is restored from a pre-installed 100 GB image. Ensure your storage pool has at least 100 GB of free space before running this script.",
+            "type": "warning"
+        },
+        {
+            "text": "The download is approximately 100 GB – this may take a significant amount of time depending on your internet connection.",
+            "type": "info"
+        }
+    ]
+}
