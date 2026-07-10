@@ -119,9 +119,30 @@ curl -f#SL -o "$FILE" "$URL"
 echo -en "\e[1A\e[0K"
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-msg_info "Restoring Nextcloud VM (100 GB – Patience)"
-qmrestore "$FILE" "$VMID" --storage "$STORAGE" --unique 1>&/dev/null
-msg_ok "Restored Nextcloud VM"
+msg_info "Extracting Nextcloud VM Image (Patience)"
+tar --use-compress-program=unzstd -xf "$FILE"
+msg_ok "Extracted Nextcloud VM Image"
+
+msg_info "Preparing VM Configuration"
+ORIG_STORAGE=$(grep -m1 '^scsi0:' qemu-server.conf | sed 's/^scsi0: \([^:]*\):.*/\1/')
+PATCHED_CONF=$(mktemp /tmp/nextcloud-vm-XXXX.conf)
+sed "s|${ORIG_STORAGE}:vm-999-|${STORAGE}:vm-${VMID}-|g" qemu-server.conf >"$PATCHED_CONF"
+msg_ok "Prepared VM Configuration"
+
+msg_info "Creating Nextcloud VM"
+qm create "${VMID}" --name "nextcloud" >/dev/null
+msg_ok "Created Nextcloud VM"
+
+msg_info "Importing Disks (Patience)"
+qm importdisk "${VMID}" vm-999-disk-0.qcow2 "${STORAGE}" 1>&/dev/null
+qm importdisk "${VMID}" vm-999-disk-1.qcow2 "${STORAGE}" 1>&/dev/null
+qm importdisk "${VMID}" vm-999-disk-2.raw "${STORAGE}" 1>&/dev/null
+msg_ok "Imported Disks"
+
+msg_info "Applying VM Configuration"
+cp "$PATCHED_CONF" /etc/pve/qemu-server/${VMID}.conf
+rm -f "$PATCHED_CONF"
+msg_ok "Applied VM Configuration"
 
 msg_info "Configuring Nextcloud VM"
 qm set "$VMID" \
