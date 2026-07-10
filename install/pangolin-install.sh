@@ -29,6 +29,7 @@ fetch_and_deploy_gh_release "gerbil" "fosrl/gerbil" "singlefile" "latest" "/usr/
 fetch_and_deploy_gh_release "traefik" "traefik/traefik" "prebuild" "latest" "/usr/bin" "traefik_v*_linux_$(arch_resolve).tar.gz"
 
 read -rp "${TAB3}Enter your Pangolin URL (ex: https://pangolin.example.com): " pango_url
+[[ "$pango_url" != https://* && "$pango_url" != http://* ]] && pango_url="https://${pango_url}"
 read -rp "${TAB3}Enter your email address: " pango_email
 
 msg_info "Setup Pangolin"
