@@ -42,6 +42,7 @@ ssh_check
 
 function default_settings() {
   VMID=$(get_valid_nextid)
+  DISK_SIZE="100G"
   HN="nextcloud"
   CORE_COUNT="2"
   RAM_SIZE="2048"
@@ -60,12 +61,14 @@ function default_settings() {
   echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
   echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
   echo -e "${CREATING}${BOLD}${DGN}Creating a Nextcloud VM using the above default settings${CL}"
 }
 
 function advanced_settings() {
   METHOD="advanced"
+  DISK_SIZE="100G"
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_hostname "nextcloud"
   vm_prompt_cpu_cores "2"
