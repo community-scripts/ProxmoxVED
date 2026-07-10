@@ -103,12 +103,12 @@ post_to_api_vm
 vm_select_storage "$HN"
 
 msg_info "Retrieving the URL for the Nextcloud Pre-installed Disk Image"
-URL="https://download.kafit.se/s/8w43PHG3cKoz5ZK/download"
+URL="https://download.kafit.se/public.php/dav/files/8w43PHG3cKoz5ZK/vzdump-qemu-999-2026_07_07-11_56_12.tar.zst"
+FILE="vzdump-qemu-999-2026_07_07-11_56_12.tar.zst"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "nextcloud-vm.vma.zst" "$URL"
+curl -f#SL -o "$FILE" "$URL"
 echo -en "\e[1A\e[0K"
-FILE="nextcloud-vm.vma.zst"
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
 msg_info "Restoring Nextcloud VM (100 GB – Patience)"
