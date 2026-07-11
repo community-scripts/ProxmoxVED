@@ -47,6 +47,21 @@ server {
     location ~ /(LICENSE\.txt|composer\.lock|composer\.json|nginx\.conf|web\.config|htaccess\.txt|\.htaccess) { return 403; }
     ## End - Security
 
+    ## Begin - API
+    location ^~ /api/ {
+        try_files $uri $uri/ /index.php$is_args$args;
+    }
+    ## End - API
+
+    # deny all direct access to these sensitive user folders, whatever the file type
+    location ~* /user/(accounts|config|env)/.*$ { return 403; }
+    # allow public media uploads under user/data to be served directly;
+    # this must come before the user/data deny so it wins the match
+    location ~* /user/data/.*\.(jpe?g|png|gif|webp|avif|bmp|ico|mp4|webm|ogg|ogv|mov|mp3|wav|m4a|flac|pdf)$ { try_files $uri =404; }
+    # deny everything else under user/data
+    location ~* /user/data/.*$ { return 403; }
+
+
     ## Begin - Caching
     location ~* ^/forms-basic-captcha-image.jpg$ {
         try_files \$uri \$uri/ /index.php\$is_args\$args;
