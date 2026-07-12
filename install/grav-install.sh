@@ -49,7 +49,7 @@ server {
 
     ## Begin - API
     location ^~ /api/ {
-        try_files $uri $uri/ /index.php$is_args$args;
+        try_files \$uri \$uri/ /index.php\$is_args\$args;
     }
     ## End - API
 
@@ -57,7 +57,7 @@ server {
     location ~* /user/(accounts|config|env)/.*$ { return 403; }
     # allow public media uploads under user/data to be served directly;
     # this must come before the user/data deny so it wins the match
-    location ~* /user/data/.*\.(jpe?g|png|gif|webp|avif|bmp|ico|mp4|webm|ogg|ogv|mov|mp3|wav|m4a|flac|pdf)$ { try_files $uri =404; }
+    location ~* /user/data/.*\.(jpe?g|png|gif|webp|avif|bmp|ico|mp4|webm|ogg|ogv|mov|mp3|wav|m4a|flac|pdf)$ { try_files \$uri =404; }
     # deny everything else under user/data
     location ~* /user/data/.*$ { return 403; }
 
