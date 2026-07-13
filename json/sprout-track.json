@@ -1,0 +1,49 @@
+{
+  "name": "Sprout Track",
+  "slug": "sprout-track",
+  "categories": [
+    0
+  ],
+  "date_created": "2026-07-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 3000,
+  "documentation": "https://github.com/Oak-and-Sprout/sprout-track/tree/main/documentation/Admin-Documentation",
+  "website": "https://www.sprout-track.com",
+  "logo": null,
+  "description": "Sprout Track is a self-hosted application for tracking baby activities, milestones, growth, feeding, sleep, medicine, and other development information.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/sprout-track.sh",
+      "config_path": "/opt/sprout-track/.env",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": "admin"
+  },
+  "notes": [
+    {
+      "text": "Complete the setup wizard through the web interface on first access.",
+      "type": "info"
+    },
+    {
+      "text": "The default Family Manager password is admin and should be changed after installation.",
+      "type": "warning"
+    },
+    {
+      "text": "The default family PIN is 111222.",
+      "type": "info"
+    }
+  ]
+}
