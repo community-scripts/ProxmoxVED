@@ -28,6 +28,7 @@ fetch_and_deploy_gh_release \
 
 msg_info "Setting up Sprout Track"
 cd /opt/sprout-track || exit
+export NODE_OPTIONS="--max-old-space-size=1536"
 chmod +x scripts/*.sh ./*.sh 2>/dev/null || true
 $STD ./scripts/setup.sh
 msg_ok "Set up Sprout Track"

@@ -21,7 +21,7 @@
       "config_path": "/opt/sprout-track/.env",
       "resources": {
         "cpu": 1,
-        "ram": 1024,
+        "ram": 2048,
         "hdd": 8,
         "os": "Debian",
         "version": "13"

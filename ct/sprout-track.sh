@@ -8,7 +8,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 APP="Sprout-Track"
 var_tags="${var_tags:-tracking}"
 var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-1024}"
+var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
@@ -50,6 +50,7 @@ function update_script() {
 
     msg_info "Updating Sprout Track"
     cd /opt/sprout-track || exit
+    export NODE_OPTIONS="--max-old-space-size=1536"
     chmod +x scripts/*.sh ./*.sh 2>/dev/null || true
     $STD ./scripts/env-update.sh
     $STD npm install
