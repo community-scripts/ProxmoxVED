@@ -48,7 +48,7 @@ function update_script() {
     source /opt/taskosaur/.env
     set +a
     export NODE_OPTIONS="--max-old-space-size=3072"
-    $STD npm install
+    HUSKY=0 $STD npm install --include=dev
     $STD npm run build:dist
     cd /opt/taskosaur/dist || exit
     $STD npm run prisma:generate
