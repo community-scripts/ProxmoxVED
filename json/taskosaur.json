@@ -1,0 +1,45 @@
+{
+  "name": "Taskosaur",
+  "slug": "taskosaur",
+  "categories": [
+    25
+  ],
+  "date_created": "2026-07-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 3000,
+  "documentation": "https://github.com/Taskosaur/Taskosaur",
+  "website": "https://taskosaur.com/",
+  "logo": "https://raw.githubusercontent.com/Taskosaur/Taskosaur/main/frontend/public/taskosaur-logo.png",
+  "config_path": "/opt/taskosaur/.env",
+  "description": "Taskosaur is an open-source project management platform with conversational AI task execution, Kanban boards, sprints, and team collaboration.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/taskosaur.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 12,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Create the initial administrator account on first access.",
+      "type": "info"
+    },
+    {
+      "text": "Configuration is stored in /opt/taskosaur/.env and uploaded files in /opt/taskosaur/uploads.",
+      "type": "info"
+    }
+  ]
+}
