@@ -45,6 +45,7 @@ DATABASE_URL="postgresql://pangolin:${PG_DB_PASS}@localhost:5432/pangolin" $STD 
 $STD npm run build
 $STD npm run build:cli
 cp -R .next/standalone ./
+cp -r server/migrations ./dist/init
 
 cat <<EOF >/usr/local/bin/pangctl
 #!/bin/sh
