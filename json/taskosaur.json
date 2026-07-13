@@ -8,17 +8,17 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "has_arm": false,
   "interface_port": 3000,
   "documentation": "https://github.com/Taskosaur/Taskosaur",
   "website": "https://taskosaur.com/",
   "logo": "https://raw.githubusercontent.com/Taskosaur/Taskosaur/main/frontend/public/taskosaur-logo.png",
-  "config_path": "/opt/taskosaur/.env",
   "description": "Taskosaur is an open-source project management platform with conversational AI task execution, Kanban boards, sprints, and team collaboration.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/taskosaur.sh",
+      "config_path": "/opt/taskosaur/.env",
       "resources": {
         "cpu": 4,
         "ram": 4096,
