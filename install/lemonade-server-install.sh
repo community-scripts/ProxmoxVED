@@ -30,7 +30,7 @@ msg_ok "Installed Lemonade Server dependencies"
 
 setup_hwaccel
 
-fetch_and_deploy_gh_release "lemonade-server" "lemonade-sdk/lemonade" "binary" "latest" "/tmp" "lemonade-server_*-debian13_amd64.deb"
+fetch_and_deploy_gh_release "lemonade-server" "lemonade-sdk/lemonade" "binary" "latest" "/tmp" "lemonade-server_*-debian13_$(arch_resolve).deb"
 
 msg_info "Configuring Remote Access"
 systemctl enable -q --now lemond

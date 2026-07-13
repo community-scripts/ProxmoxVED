@@ -35,7 +35,7 @@ function update_script() {
     systemctl stop lemond
     msg_ok "Stopped Service"
 
-    fetch_and_deploy_gh_release "lemonade-server" "lemonade-sdk/lemonade" "binary" "latest" "/tmp" "lemonade-server_*-debian13_amd64.deb"
+    fetch_and_deploy_gh_release "lemonade-server" "lemonade-sdk/lemonade" "binary" "latest" "/tmp" "lemonade-server_*-debian13_$(arch_resolve).deb"
 
     msg_info "Starting Service"
     systemctl start lemond
