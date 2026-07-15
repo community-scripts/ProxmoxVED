@@ -59,15 +59,15 @@ function update_script() {
     cd /opt/firecrawl/apps/api
     $STD pnpm install --frozen-lockfile
     $STD pnpm build
-    $STD pnpm prune --prod --ignore-scripts
+    CI=true $STD pnpm prune --prod --ignore-scripts
     msg_ok "Built Firecrawl API"
 
     msg_info "Building Playwright Service"
     cd /opt/firecrawl/apps/playwright-service-ts
-    $STD pnpm install --frozen-lockfile
-    $STD pnpm exec playwright install chromium --with-deps
-    $STD pnpm build
-    $STD pnpm prune --prod --ignore-scripts
+    $STD npm install
+    $STD npx playwright install chromium --with-deps
+    $STD npm run build
+    $STD npm prune --omit=dev
     msg_ok "Built Playwright Service"
 
     msg_info "Starting Services"
