@@ -17,8 +17,8 @@ fetch_and_deploy_gh_release "nexterm-engine" "gnmyt/Nexterm" "prebuild" "latest"
 fetch_and_deploy_gh_release "nexterm-server" "gnmyt/Nexterm" "singlefile" "latest" "/opt/nexterm/server" "nexterm-server-linux-$(arch_resolve "x64" "arm64")"
 
 msg_info "Configuring Nexterm"
-LOCAL_ENGINE_TOKEN=$(openssl rand -base64 32)
-ENCRYPTION_KEY=$(openssl rand -base64 32)
+LOCAL_ENGINE_TOKEN=$(tr -d '-' </proc/sys/kernel/random/uuid)$(tr -d '-' </proc/sys/kernel/random/uuid)
+ENCRYPTION_KEY=$(tr -d '-' </proc/sys/kernel/random/uuid)$(tr -d '-' </proc/sys/kernel/random/uuid)
 mkdir -p /etc/nexterm-engine /etc/nexterm-server /opt/nexterm/data
 cat <<EOF >/etc/nexterm-engine/config.yaml
 server_host: "127.0.0.1"
