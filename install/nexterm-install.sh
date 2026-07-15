@@ -75,7 +75,9 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now nexterm-server nexterm-engine
+systemctl enable -q --now nexterm-server
+sleep 5
+systemctl enable -q --now nexterm-engine
 msg_ok "Created Services"
 
 motd_ssh

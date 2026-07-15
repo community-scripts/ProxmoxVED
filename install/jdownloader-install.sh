@@ -25,6 +25,17 @@ cd /opt/jdownloader
 $STD java -Djava.awt.headless=true -jar /opt/jdownloader/JDownloader.jar -norestart
 msg_ok "Installed JDownloader"
 
+msg_info "Configuring JDownloader"
+cat <<EOF >/opt/jdownloader/cfg/org.jdownloader.api.myjdownloader.MyJDownloaderSettings.json
+{
+    "email" : "changeme@example.com",
+    "password" : "changeme",
+    "devicename" : "JDownloader@LXC",
+    "autoconnectenabledv2" : false
+}
+EOF
+msg_ok "Configured JDownloader"
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/jdownloader.service
 [Unit]
