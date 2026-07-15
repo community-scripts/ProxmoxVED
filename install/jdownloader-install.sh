@@ -15,6 +15,22 @@ update_os
 
 JAVA_VERSION="21" setup_java
 
+msg_info "Installing GUI Dependencies (Xvfb, Openbox, x11vnc, noVNC, tint2)"
+$STD apt install -y \
+  xvfb \
+  x11vnc \
+  novnc \
+  websockify \
+  openbox \
+  tint2 \
+  x11-xserver-utils \
+  x11-utils \
+  wmctrl \
+  fonts-dejavu-core \
+  ffmpeg \
+  rtmpdump
+msg_ok "Installed GUI Dependencies"
+
 msg_info "Downloading JDownloader"
 mkdir -p /opt/jdownloader
 $STD wget -O /opt/jdownloader/JDownloader.jar https://installer.jdownloader.org/JDownloader.jar
@@ -28,33 +44,163 @@ msg_ok "Installed JDownloader"
 msg_info "Configuring JDownloader"
 cat <<EOF >/opt/jdownloader/cfg/org.jdownloader.api.myjdownloader.MyJDownloaderSettings.json
 {
-    "email" : "changeme@example.com",
-    "password" : "changeme",
+    "email" : null,
+    "password" : null,
     "devicename" : "JDownloader@LXC",
     "autoconnectenabledv2" : false
 }
 EOF
+
+cat <<EOF >/opt/jdownloader/cfg/org.jdownloader.api.RemoteAPIConfig.json
+{"headlessmyjdownloadermandatory":false,"deprecatedapienabled":false,"jdanywhereapienabled":false}
+EOF
 msg_ok "Configured JDownloader"
 
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/jdownloader.service
+msg_info "Configuring Openbox (Auto-Maximize JDownloader Window)"
+mkdir -p /root/.config/openbox
+cat <<'EOF' >/root/.config/openbox/rc.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+  <applications>
+    <application class="*">
+      <maximized>true</maximized>
+      <position force="yes">
+        <x>0</x>
+        <y>0</y>
+      </position>
+    </application>
+  </applications>
+</openbox_config>
+EOF
+msg_ok "Configured Openbox"
+
+msg_info "Creating Xvfb Service"
+cat <<EOF >/etc/systemd/system/xvfb.service
 [Unit]
-Description=JDownloader Download Manager
+Description=Virtual Framebuffer X Server
 After=network.target
 
 [Service]
 Type=simple
+ExecStartPre=/bin/sh -c 'rm -f /tmp/.X1-lock'
+ExecStart=/usr/bin/Xvfb :1 -screen 0 1280x800x24
+ExecStartPost=/bin/sh -c 'sleep 1 && DISPLAY=:1 xset s off && DISPLAY=:1 xset s noblank && DISPLAY=:1 xset -dpms'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+msg_ok "Created Xvfb Service"
+
+msg_info "Creating Openbox Service"
+cat <<EOF >/etc/systemd/system/openbox.service
+[Unit]
+Description=Openbox Window Manager
+After=xvfb.service
+Requires=xvfb.service
+
+[Service]
+Type=simple
+Environment=DISPLAY=:1
+ExecStart=/usr/bin/openbox
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+msg_ok "Created Openbox Service"
+
+msg_info "Creating tint2 Taskbar Service"
+cat <<EOF >/etc/systemd/system/tint2.service
+[Unit]
+Description=tint2 Taskbar
+After=openbox.service
+Requires=openbox.service
+
+[Service]
+Type=simple
+Environment=DISPLAY=:1
+ExecStart=/usr/bin/tint2
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+msg_ok "Created tint2 Service"
+
+msg_info "Creating JDownloader Service"
+cat <<EOF >/etc/systemd/system/jdownloader.service
+[Unit]
+Description=JDownloader Download Manager
+After=openbox.service
+Requires=openbox.service
+
+[Service]
+Type=simple
 User=root
+Environment=DISPLAY=:1
 WorkingDirectory=/opt/jdownloader
-ExecStart=/usr/bin/java -Djava.awt.headless=true -jar /opt/jdownloader/JDownloader.jar
+ExecStartPre=/bin/sleep 3
+ExecStart=/usr/bin/java -Dsun.java2d.xrender=false -Dsun.java2d.pmoffscreen=false -Dsun.java2d.opengl=false -jar /opt/jdownloader/JDownloader.jar
 Restart=always
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 EOF
+msg_ok "Created JDownloader Service"
+
+msg_info "Creating x11vnc Service"
+cat <<EOF >/etc/systemd/system/x11vnc.service
+[Unit]
+Description=x11vnc Server
+After=jdownloader.service
+Requires=xvfb.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/x11vnc -display :1 -forever -shared -rfbport 5900 -nopw -noipv6 -xkb -noxdamage -nowf -nowcr -wait 50 -defer 50
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+msg_ok "Created x11vnc Service"
+
+msg_info "Creating noVNC Service"
+cat <<EOF >/etc/systemd/system/novnc.service
+[Unit]
+Description=noVNC WebSocket Proxy
+After=x11vnc.service
+Requires=x11vnc.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/websockify --web=/usr/share/novnc 6080 localhost:5900
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+msg_ok "Created noVNC Service"
+
+msg_info "Starting Services"
+systemctl daemon-reload
+systemctl enable -q --now xvfb
+sleep 2
+systemctl enable -q --now openbox
+sleep 1
+systemctl enable -q --now tint2
 systemctl enable -q --now jdownloader
-msg_ok "Created Service"
+sleep 3
+systemctl enable -q --now x11vnc
+systemctl enable -q --now novnc
+msg_ok "Started Services"
 
 motd_ssh
 customize
