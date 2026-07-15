@@ -1,0 +1,40 @@
+{
+  "name": "Firecrawl",
+  "slug": "firecrawl",
+  "categories": [20],
+  "date_created": "2026-07-15",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 3002,
+  "documentation": "https://docs.firecrawl.dev/",
+  "website": "https://www.firecrawl.dev/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/firecrawl.webp",
+  "config_path": "/opt/firecrawl/.env",
+  "description": "API service that turns websites into clean data for AI applications, scraping, crawling, and extraction workflows.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/firecrawl.sh",
+      "config_path": "/opt/firecrawl/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 60,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "AI provider credentials are optional and can be added later in /opt/firecrawl/.env.",
+      "type": "info"
+    }
+  ]
+}
