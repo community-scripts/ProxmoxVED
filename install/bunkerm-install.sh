@@ -110,13 +110,15 @@ cp /opt/bunkerm/backend/mosquitto/dynsec/dynamic-security.json /var/lib/mosquitt
 touch /etc/mosquitto/mosquitto_passwd
 id -u mosquitto &>/dev/null || useradd -r -s /usr/sbin/nologin mosquitto
 chown -R mosquitto:mosquitto /var/lib/mosquitto /var/log/mosquitto /etc/mosquitto
-chmod 664 /etc/mosquitto/mosquitto_passwd
+sed -i "s|^plugin /usr/lib/mosquitto_dynamic_security.so$|plugin $(dpkg -L mosquitto | grep '/mosquitto_dynamic_security.so$')|" /etc/mosquitto/mosquitto.conf
+chmod 600 /etc/mosquitto/mosquitto_passwd
 msg_ok "Configured Mosquitto"
 
 msg_info "Configuring Nginx"
 mkdir -p /run/nginx /etc/nginx/conf.d /var/log/nginx /var/lib/history
 cp /opt/bunkerm/nginx.conf /etc/nginx/nginx.conf
 cp /opt/bunkerm/default.conf /etc/nginx/conf.d/default.conf
+sed -i 's/^user nginx;$/user www-data;/' /etc/nginx/nginx.conf
 msg_ok "Configured Nginx"
 
 msg_info "Configuring Supervisor"

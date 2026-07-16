@@ -65,6 +65,7 @@ function update_script() {
     touch /app/monitor/__init__.py
     cp /opt/bunkerm/nginx.conf /etc/nginx/nginx.conf
     cp /opt/bunkerm/default.conf /etc/nginx/conf.d/default.conf
+    sed -i 's/^user nginx;$/user www-data;/' /etc/nginx/nginx.conf
     cp /opt/bunkerm/backend/supervisord.conf /etc/supervisor/conf.d/bunkerm.conf
     msg_ok "Updated Backend"
 
