@@ -27,17 +27,29 @@ $STD apt-get update
 msg_ok "Updated CouchDB Repository"
 
 msg_info "Installing CouchDB"
+
 COUCHDB_ADMIN_USER="admin"
 COUCHDB_ADMIN_PASSWORD="$(openssl rand -base64 32 | tr -d '\n')"
 
-debconf-set-selections <<EOF
+cat <<EOF | debconf-set-selections
 couchdb couchdb/mode select standalone
+couchdb couchdb/mode seen true
 couchdb couchdb/bindaddress string 127.0.0.1
+couchdb couchdb/bindaddress seen true
 couchdb couchdb/adminpass password ${COUCHDB_ADMIN_PASSWORD}
+couchdb couchdb/adminpass seen true
 couchdb couchdb/adminpass_again password ${COUCHDB_ADMIN_PASSWORD}
+couchdb couchdb/adminpass_again seen true
 EOF
 
 DEBIAN_FRONTEND=noninteractive $STD apt-get install -y couchdb
+
+cat <<EOF >/root/.couchdb.credentials
+COUCHDB_ADMIN_USER="${COUCHDB_ADMIN_USER}"
+COUCHDB_ADMIN_PASSWORD="${COUCHDB_ADMIN_PASSWORD}"
+EOF
+chmod 600 /root/.couchdb.credentials
+
 msg_ok "Installed CouchDB"
 
 msg_info "Configuring CouchDB"
