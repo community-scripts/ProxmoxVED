@@ -31,7 +31,7 @@ msg_info "Installing Satisfactory Dedicated Server"
 $STD /opt/steamcmd/steamcmd.sh \
   +force_install_dir /opt/satisfactory/server \
   +login anonymous \
-  +app_update 1690800 validate \
+  +app_update 1690800 -beta public validate \
   +quit
 msg_ok "Installed Satisfactory Dedicated Server"
 

@@ -41,7 +41,7 @@ function update_script() {
   if $STD /opt/steamcmd/steamcmd.sh \
     +force_install_dir /opt/satisfactory/server \
     +login anonymous \
-    +app_update 1690800 validate \
+    +app_update 1690800 -beta public validate \
     +quit; then
     msg_ok "Updated ${APP}"
   else
