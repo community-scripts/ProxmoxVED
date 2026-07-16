@@ -18,7 +18,8 @@ $STD apt install -y \
   default-libmysqlclient-dev \
   git \
   libpq-dev \
-  libsqlite3-dev
+  libsqlite3-dev \
+  pkg-config
 msg_ok "Installed Dependencies"
 
 RUBY_VERSION="4.0.5" RUBY_INSTALL_RAILS="false" setup_ruby
