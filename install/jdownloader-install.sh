@@ -42,6 +42,7 @@ $STD java -Djava.awt.headless=true -jar /opt/jdownloader/JDownloader.jar -norest
 msg_ok "Installed JDownloader"
 
 msg_info "Configuring JDownloader"
+# MyJDownloader-Login leer lassen (kein Erzwungener Login, kein Konsolen-Fallback-Crash)
 cat <<EOF >/opt/jdownloader/cfg/org.jdownloader.api.myjdownloader.MyJDownloaderSettings.json
 {
     "email" : null,
@@ -64,17 +65,13 @@ cat <<'EOF' >/root/.config/openbox/rc.xml
   <applications>
     <application class="*">
       <maximized>true</maximized>
-      <position force="yes">
-        <x>0</x>
-        <y>0</y>
-      </position>
     </application>
   </applications>
 </openbox_config>
 EOF
 msg_ok "Configured Openbox"
 
-msg_info "Creating Xvfb Service"
+msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/xvfb.service
 [Unit]
 Description=Virtual Framebuffer X Server
@@ -91,9 +88,7 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Created Xvfb Service"
 
-msg_info "Creating Openbox Service"
 cat <<EOF >/etc/systemd/system/openbox.service
 [Unit]
 Description=Openbox Window Manager
@@ -110,9 +105,7 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Created Openbox Service"
 
-msg_info "Creating tint2 Taskbar Service"
 cat <<EOF >/etc/systemd/system/tint2.service
 [Unit]
 Description=tint2 Taskbar
@@ -129,9 +122,7 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Created tint2 Service"
 
-msg_info "Creating JDownloader Service"
 cat <<EOF >/etc/systemd/system/jdownloader.service
 [Unit]
 Description=JDownloader Download Manager
@@ -151,9 +142,7 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Created JDownloader Service"
 
-msg_info "Creating x11vnc Service"
 cat <<EOF >/etc/systemd/system/x11vnc.service
 [Unit]
 Description=x11vnc Server
@@ -162,16 +151,14 @@ Requires=xvfb.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/x11vnc -display :1 -forever -shared -rfbport 5900 -nopw -noipv6 -xkb -noxdamage -nowf -nowcr -wait 50 -defer 50
+ExecStart=/usr/bin/x11vnc -display :1 -forever -shared -rfbport 5900 -nopw -noipv6 -xkb -noxdamage -nowf -nowcr -wait 50 -defer 50 -focus map
 Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Created x11vnc Service"
 
-msg_info "Creating noVNC Service"
 cat <<EOF >/etc/systemd/system/novnc.service
 [Unit]
 Description=noVNC WebSocket Proxy
@@ -187,7 +174,7 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Created noVNC Service"
+msg_ok "Created Services"
 
 msg_info "Starting Services"
 systemctl daemon-reload
@@ -199,6 +186,7 @@ systemctl enable -q --now tint2
 systemctl enable -q --now jdownloader
 sleep 3
 systemctl enable -q --now x11vnc
+sleep 1
 systemctl enable -q --now novnc
 msg_ok "Started Services"
 
