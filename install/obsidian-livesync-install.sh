@@ -13,13 +13,21 @@ setting_up_container
 network_check
 update_os
 
-curl https://couchdb.apache.org/repo/keys.asc | gpg --dearmor | sudo tee /usr/share/keyrings/couchdb-archive-keyring.gpg >/dev/null 2>&1
+curl -fsSL https://couchdb.apache.org/repo/keys.asc |
+  gpg --dearmor --yes \
+    -o /usr/share/keyrings/couchdb-archive-keyring.gpg
+
 source /etc/os-release
-echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main" |
-  sudo tee /etc/apt/sources.list.d/couchdb.list >/dev/null
+
+echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main" \
+  >/etc/apt/sources.list.d/couchdb.list
+
+msg_info "Updating CouchDB Repository"
+$STD apt-get update
+msg_ok "Updated CouchDB Repository"
 
 msg_info "Installing CouchDB"
-DEBIAN_FRONTEND=noninteractive $STD apt install -y couchdb
+DEBIAN_FRONTEND=noninteractive $STD apt-get install -y couchdb
 msg_ok "Installed CouchDB"
 
 msg_info "Configuring CouchDB"
