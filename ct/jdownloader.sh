@@ -30,9 +30,14 @@ function update_script() {
     exit
   fi
 
-  msg_info "Restarting ${APP} (triggers built-in self-update)"
+  msg_info "Updating Container OS"
+  $STD apt update
+  $STD apt -y upgrade
+  msg_ok "Updated Container OS"
+
+  msg_info "Restarting JDownloader (triggers built-in self-update)"
   systemctl restart jdownloader
-  msg_ok "Restarted ${APP}"
+  msg_ok "Restarted JDownloader"
   msg_ok "JDownloader will self-update automatically on restart"
   exit
 }
