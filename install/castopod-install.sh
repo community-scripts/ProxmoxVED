@@ -22,8 +22,15 @@ setup_ffmpeg
 setup_mariadb
 MARIADB_DB_NAME="castopod" MARIADB_DB_USER="castopod" setup_mariadb_db
 
-GITLAB_URL="https://code.castopod.org" fetch_and_deploy_gl_release "castopod" "adaures/castopod" "prebuild" "latest" "/opt/castopod" "castopod-*.tar.gz"
+GITLAB_URL="https://code.castopod.org" fetch_and_deploy_gl_release \
+  "castopod" \
+  "adaures/castopod" \
+  "prebuild" \
+  "latest" \
+  "/opt/castopod" \
+  "castopod-*.tar.gz"
 
+cd /
 msg_info "Configuring Castopod"
 mkdir -p /opt/castopod/public/media /opt/castopod/writable
 CASTOPOD_SALT=$(openssl rand -hex 32)
