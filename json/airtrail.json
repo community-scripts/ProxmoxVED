@@ -18,7 +18,7 @@
     {
       "type": "default",
       "script": "ct/airtrail.sh",
-      "config_path": "/etc/airtrail/airtrail.env",
+      "config_path": "/opt/airtrail/.env",
       "resources": {
         "cpu": 2,
         "ram": 2048,
@@ -38,11 +38,7 @@
       "type": "info"
     },
     {
-      "text": "The AirTrail configuration is stored in /etc/airtrail/airtrail.env.",
-      "type": "info"
-    },
-    {
-      "text": "A PostgreSQL database backup is created in /var/lib/airtrail/backups before each application update.",
+      "text": "The AirTrail configuration is stored in /opt/airtrail/.env.",
       "type": "info"
     }
   ]
