@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "has_arm": true,
   "interface_port": 80,
   "documentation": "https://github.com/iib0011/omni-tools#self-hostrun",
   "website": "https://omnitools.app",
