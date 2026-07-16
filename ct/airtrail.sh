@@ -42,9 +42,22 @@ function update_script() {
 
   if check_for_gh_release "airtrail" "johanohly/AirTrail"; then
     msg_info "Backing Up Database"
-    mkdir -p /var/lib/airtrail/backups
+    install -d \
+      -o root \
+      -g root \
+      -m 0700 \
+      /var/lib/airtrail/backups
+
     backup_file="/var/lib/airtrail/backups/airtrail-$(date +%Y%m%d-%H%M%S).sql"
-    sudo -u postgres pg_dump airtrail | tee "$backup_file" >/dev/null
+
+    sudo -u postgres pg_dump airtrail |
+      install \
+        -o root \
+        -g root \
+        -m 0600 \
+        /dev/stdin \
+        "$backup_file"
+
     find /var/lib/airtrail/backups \
       -type f \
       -name 'airtrail-*.sql' \
