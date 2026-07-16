@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt install -y nginx
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="20" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 
 fetch_and_deploy_gh_release "omnitools" "iib0011/omni-tools" "tarball"
 
