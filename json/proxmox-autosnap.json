@@ -1,0 +1,45 @@
+{
+  "name": "proxmox-autosnap",
+  "slug": "proxmox-autosnap",
+  "categories": [
+    1,
+    7
+  ],
+  "date_created": "2026-07-15",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 80,
+  "documentation": "https://github.com/Kr1sCode/proxmox-autosnap#readme",
+  "website": "https://github.com/Kr1sCode/proxmox-autosnap",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/proxmox.webp",
+  "description": "proxmox-autosnap adds scheduled snapshots with automatic retention to Proxmox VE through a clean web UI. It runs in its own unprivileged LXC and talks to the host only via a scoped API token (VM.Snapshot + VM.Audit), so the hypervisor itself is never modified and the tool survives PVE upgrades. Per-guest interval or calendar schedules, retention, dry-run, global pause and bulk enable/disable are all managed from the UI.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/proxmox-autosnap.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 3,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "On first access, complete the setup wizard: enter your Proxmox host/IP and an API token with the VM.Snapshot + VM.Audit privileges. The setup page shows the exact pveum commands to create it.",
+      "type": "info"
+    },
+    {
+      "text": "Log in with your Proxmox credentials (root@pam by default), validated live against the PVE API. Put the panel behind a reverse proxy / VPN before exposing it publicly.",
+      "type": "warning"
+    }
+  ]
+}
