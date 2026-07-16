@@ -118,13 +118,19 @@ RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 $STD bundle exec rails assets:preco
 msg_ok "Precompiled Assets"
 
 msg_info "Creating Admin Account"
-ADMIN_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c12)
-RAILS_ENV=production bundle exec bin/tootctl accounts create admin \
+if ! ADMIN_OUTPUT=$(EMAIL_DOMAIN_ALLOWLIST="${LOCAL_IP}" RAILS_ENV=production bundle exec bin/tootctl accounts create admin \
   --email "admin@${LOCAL_IP}" \
   --confirmed \
-  --role Owner 2>/dev/null || true
-RAILS_ENV=production bundle exec bin/tootctl accounts modify admin \
-  --password "${ADMIN_PASS}" 2>/dev/null || true
+  --approve \
+  --role Owner); then
+  msg_error "Failed to create Mastodon admin account"
+  exit 1
+fi
+ADMIN_PASS=$(echo "$ADMIN_OUTPUT" | sed -n 's/^New password: //p')
+if [[ -z "$ADMIN_PASS" ]]; then
+  msg_error "Failed to retrieve Mastodon admin password"
+  exit 1
+fi
 RAILS_ENV=production $STD bundle exec bin/tootctl settings registrations approved
 {
   echo "Mastodon Admin Credentials"
