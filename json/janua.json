@@ -1,0 +1,45 @@
+{
+    "name": "Janua",
+    "slug": "janua",
+    "categories": [
+        21
+    ],
+    "date_created": "2026-07-16",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": false,
+    "interface_port": 8080,
+    "documentation": "https://github.com/Skylark-Software/Janua/blob/main/docs/SETUP.md",
+    "website": "https://github.com/Skylark-Software/Janua",
+    "logo": "https://raw.githubusercontent.com/Skylark-Software/Janua/main/docs/janua-logo.svg",
+    "description": "Janua is a fork of Apache Guacamole focused on modern Wayland remote desktops. Its guacd is built against a pinned, tested FreeRDP 3 with patches enabling full GNOME Remote Desktop compatibility (Graphics Pipeline + audio via RDPSND v8), H.264/AVC for KDE KRdp, and an RDPGFX surface-sync fix — clientless browser access to GNOME and KDE Wayland desktops, plus everything upstream Guacamole connects to.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/janua.sh",
+            "config_path": "/etc/guacamole/guacamole.properties",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 10,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "First install compiles FreeRDP and the patched guacd from source and takes 10-20 minutes. Do not interrupt the process.",
+            "type": "warning"
+        },
+        {
+            "text": "A random admin password is generated during installation and shown once in the install output. Save it — it is not stored anywhere.",
+            "type": "warning"
+        }
+    ]
+}
