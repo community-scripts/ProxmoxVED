@@ -56,11 +56,9 @@ function update_script() {
       /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
     cp /opt/aliasvault/core/rust/dist/wasm/aliasvault_core.js \
       /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
-    mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/{identity-generator,password-generator,vault}
+    mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/{identity-generator,vault}
     cp -r /opt/aliasvault/core/typescript/identity-generator/dist/. \
       /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/identity-generator/
-    cp -r /opt/aliasvault/core/typescript/password-generator/dist/. \
-      /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/password-generator/
     cp -r /opt/aliasvault/core/vault/dist/. \
       /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/vault/
     msg_ok "Copied Core Artifacts"
