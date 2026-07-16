@@ -157,7 +157,8 @@ User=root
 WorkingDirectory=/opt/firecrawl/apps/playwright-service-ts
 EnvironmentFile=/opt/firecrawl/.env
 Environment=PORT=3000
-ExecStart=/usr/bin/node /opt/firecrawl/apps/playwright-service-ts/dist/api.js
+# /opt/firecrawl/.env also contains the API PORT=3002; force Playwright's private port here.
+ExecStart=/usr/bin/env PORT=3000 /usr/bin/node /opt/firecrawl/apps/playwright-service-ts/dist/api.js
 Restart=on-failure
 RestartSec=5
 
