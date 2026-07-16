@@ -12,7 +12,6 @@ var_ram="${var_ram:-512}"
 var_disk="${var_disk:-3}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -25,21 +24,24 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /opt/autosnap ]]; then
+  if [[ ! -d /opt/proxmox-autosnap ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  msg_info "Updating ${APP}"
-  tmp_dir=$(mktemp -d)
-  curl -fsSL "https://github.com/Kr1sCode/proxmox-autosnap/archive/refs/heads/main.tar.gz" | tar -xz -C "$tmp_dir"
-  src=$(find "$tmp_dir" -mindepth 1 -maxdepth 1 -type d | head -1)
-  cp -r "$src"/app/. /opt/autosnap/
-  cp "$src"/systemd/*.service "$src"/systemd/*.timer /etc/systemd/system/
-  rm -rf "$tmp_dir"
-  systemctl daemon-reload
-  systemctl restart autosnap-web.service
-  msg_ok "Updated ${APP}"
+  if check_for_gh_release "proxmox-autosnap" "Kr1sCode/proxmox-autosnap"; then
+    msg_info "Stopping Service"
+    systemctl stop autosnap-web.service
+    msg_ok "Stopped Service"
+
+    fetch_and_deploy_gh_release "proxmox-autosnap" "Kr1sCode/proxmox-autosnap" "tarball"
+
+    msg_info "Starting Service"
+    systemctl daemon-reload
+    systemctl start autosnap-web.service
+    msg_ok "Started Service"
+    msg_ok "Updated Successfully"
+  fi
   exit
 }
 
