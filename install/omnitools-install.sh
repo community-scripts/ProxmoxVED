@@ -32,6 +32,7 @@ msg_info "Publishing Web Assets"
 rm -rf /usr/share/nginx/html
 mkdir -p /usr/share/nginx/html
 cp -a /opt/omnitools/dist/. /usr/share/nginx/html/
+rm -rf /opt/omnitools/node_modules
 msg_ok "Published Web Assets"
 
 msg_info "Configuring Nginx"

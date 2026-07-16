@@ -47,6 +47,7 @@ function update_script() {
     rm -rf /usr/share/nginx/html
     mkdir -p /usr/share/nginx/html
     cp -a /opt/omnitools/dist/. /usr/share/nginx/html/
+    rm -rf /opt/omnitools/node_modules
     systemctl reload nginx
     msg_ok "Published Web Assets"
 
