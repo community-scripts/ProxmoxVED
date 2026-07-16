@@ -38,6 +38,8 @@ function update_script() {
     create_backup /opt/mastodon/public/system /opt/mastodon/.env.production
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "mastodon" "mastodon/mastodon" "tarball"
+    sed -i "s/config.force_ssl = true/config.force_ssl = ENV.fetch('LOCAL_HTTPS', 'false') == 'true'/" /opt/mastodon/config/environments/production.rb
+    sed -i "s/https = Rails.env.production? || ENV\['LOCAL_HTTPS'\] == 'true'/https = ENV.fetch('LOCAL_HTTPS', 'false') == 'true'/" /opt/mastodon/config/initializers/1_hosts.rb
 
     export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
     cd /opt/mastodon

@@ -53,6 +53,8 @@ RUBY_VERSION="4.0.5" RUBY_INSTALL_RAILS="false" setup_ruby
 export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
 
 fetch_and_deploy_gh_release "mastodon" "mastodon/mastodon" "tarball"
+sed -i "s/config.force_ssl = true/config.force_ssl = ENV.fetch('LOCAL_HTTPS', 'false') == 'true'/" /opt/mastodon/config/environments/production.rb
+sed -i "s/https = Rails.env.production? || ENV\['LOCAL_HTTPS'\] == 'true'/https = ENV.fetch('LOCAL_HTTPS', 'false') == 'true'/" /opt/mastodon/config/initializers/1_hosts.rb
 
 msg_info "Installing Ruby Dependencies"
 cd /opt/mastodon
@@ -82,6 +84,7 @@ AR_PRIMARY=$(echo "$ENCRYPT_OUTPUT" | grep "^ACTIVE_RECORD_ENCRYPTION_PRIMARY_KE
 mkdir -p /opt/mastodon/public/system
 cat <<EOF >/opt/mastodon/.env.production
 LOCAL_DOMAIN=${LOCAL_IP}
+LOCAL_HTTPS=false
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 DB_HOST=127.0.0.1
@@ -122,6 +125,7 @@ RAILS_ENV=production bundle exec bin/tootctl accounts create admin \
   --role Owner 2>/dev/null || true
 RAILS_ENV=production bundle exec bin/tootctl accounts modify admin \
   --password "${ADMIN_PASS}" 2>/dev/null || true
+RAILS_ENV=production $STD bundle exec bin/tootctl settings registrations approved
 {
   echo "Mastodon Admin Credentials"
   echo "URL:      http://${LOCAL_IP}"
@@ -259,6 +263,7 @@ rm -f /etc/nginx/sites-enabled/default
 $STD nginx -t
 systemctl enable -q --now redis-server
 systemctl enable -q --now nginx
+systemctl reload nginx
 msg_ok "Configured Nginx"
 
 motd_ssh
