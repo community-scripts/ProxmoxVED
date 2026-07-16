@@ -5,15 +5,16 @@
     1,
     7
   ],
-  "date_created": "2026-07-15",
+  "date_created": "2026-07-16",
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "has_arm": false,
   "interface_port": 80,
   "documentation": "https://github.com/Kr1sCode/proxmox-autosnap#readme",
   "website": "https://github.com/Kr1sCode/proxmox-autosnap",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/proxmox.webp",
+  "config_path": "/etc/autosnap/config.json",
   "description": "proxmox-autosnap adds scheduled snapshots with automatic retention to Proxmox VE through a clean web UI. It runs in its own unprivileged LXC and talks to the host only via a scoped API token (VM.Snapshot + VM.Audit), so the hypervisor itself is never modified and the tool survives PVE upgrades. Per-guest interval or calendar schedules, retention, dry-run, global pause and bulk enable/disable are all managed from the UI.",
   "install_methods": [
     {

@@ -12,6 +12,7 @@ var_ram="${var_ram:-512}"
 var_disk="${var_disk:-3}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -37,7 +38,6 @@ function update_script() {
     fetch_and_deploy_gh_release "proxmox-autosnap" "Kr1sCode/proxmox-autosnap" "tarball"
 
     msg_info "Starting Service"
-    systemctl daemon-reload
     systemctl start autosnap-web.service
     msg_ok "Started Service"
     msg_ok "Updated Successfully"

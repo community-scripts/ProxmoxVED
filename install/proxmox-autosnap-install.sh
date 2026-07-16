@@ -14,8 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  python3 \
+$STD apt install -y \
   python3-flask \
   python3-requests \
   python3-gunicorn
