@@ -8316,7 +8316,25 @@ setup_ruby() {
   local RBENV_DIR="$HOME/.rbenv"
   local RBENV_BIN="$RBENV_DIR/bin/rbenv"
   local PROFILE_FILE="$HOME/.profile"
+  local BASH_PROFILE_FILE="$HOME/.bash_profile"
+  local BASHRC_FILE="$HOME/.bashrc"
   local TMP_DIR=$(mktemp -d)
+
+  if ! grep -q 'rbenv init' "$PROFILE_FILE" 2>/dev/null; then
+    cat <<'EOF' >>"$PROFILE_FILE"
+export PATH="$HOME/.rbenv/bin:$PATH"
+eval "$(rbenv init -)"
+EOF
+  fi
+  if ! grep -q '.rbenv/shims' "$PROFILE_FILE" 2>/dev/null; then
+    echo 'export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"' >>"$PROFILE_FILE"
+  fi
+  if [[ -f "$BASH_PROFILE_FILE" ]] && ! grep -q '.rbenv/shims' "$BASH_PROFILE_FILE"; then
+    echo 'export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"' >>"$BASH_PROFILE_FILE"
+  fi
+  if [[ -f "$BASHRC_FILE" ]] && ! grep -q '.rbenv/shims' "$BASHRC_FILE"; then
+    echo 'export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"' >>"$BASHRC_FILE"
+  fi
 
   # Get currently installed Ruby version
   local CURRENT_RUBY_VERSION=""
@@ -8415,11 +8433,6 @@ setup_ruby() {
       return 150
     }
 
-    # Setup profile
-    if ! grep -q 'rbenv init' "$PROFILE_FILE" 2>/dev/null; then
-      echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >>"$PROFILE_FILE"
-      echo 'eval "$(rbenv init -)"' >>"$PROFILE_FILE"
-    fi
   fi
 
   # Install ruby-build plugin
