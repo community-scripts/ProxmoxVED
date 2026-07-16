@@ -33,6 +33,14 @@
   },
   "notes": [
     {
+      "text": "Firecrawl's API is unauthenticated by default. Expose port 3002 only to trusted clients or protect it with external access controls.",
+      "type": "warning"
+    },
+    {
+      "text": "The installer configures nftables to allow inbound SSH on port 22 and Firecrawl API access on port 3002 only. Adjust /etc/nftables.conf if your deployment requires different inbound access.",
+      "type": "info"
+    },
+    {
       "text": "AI provider credentials are optional and can be added later in /opt/firecrawl/.env.",
       "type": "info"
     }

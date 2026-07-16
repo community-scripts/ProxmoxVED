@@ -18,6 +18,7 @@ $STD apt install -y \
   build-essential \
   cmake \
   git \
+  nftables \
   pkg-config \
   procps \
   python3 \
@@ -189,6 +190,40 @@ EOF
 systemctl enable -q --now firecrawl-playwright
 systemctl enable -q --now firecrawl
 msg_ok "Created Services"
+
+msg_info "Configuring Firewall"
+cat <<'EOF' >/etc/nftables.conf
+#!/usr/sbin/nft -f
+
+flush ruleset
+
+table inet firecrawl_filter {
+  chain input {
+    type filter hook input priority 0; policy drop;
+
+    iif "lo" accept
+    ct state established,related accept
+
+    ip protocol icmp accept
+    ip6 nexthdr icmpv6 accept
+    udp sport 67 udp dport 68 accept
+    udp sport 547 udp dport 546 accept
+
+    tcp dport { 22, 3002 } accept
+  }
+
+  chain forward {
+    type filter hook forward priority 0; policy drop;
+  }
+
+  chain output {
+    type filter hook output priority 0; policy accept;
+  }
+}
+EOF
+systemctl enable -q nftables
+systemctl restart nftables
+msg_ok "Configured Firewall"
 
 motd_ssh
 customize
