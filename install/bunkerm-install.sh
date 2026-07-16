@@ -79,18 +79,21 @@ msg_ok "Set up Python Environment"
 
 msg_info "Building Frontend"
 cd /opt/bunkerm/frontend
-rm -f package-lock.json
 export NODE_OPTIONS="--max-old-space-size=4096"
 $STD npm install
+$STD npm install --no-save tailwindcss@3 autoprefixer tailwindcss-animate
 if [[ -f postcss.config.js ]] && grep -q 'module\.exports' postcss.config.js; then
   mv postcss.config.js postcss.config.cjs
 fi
-AUTH_SECRET="build-time-placeholder" NEXT_TELEMETRY_DISABLED=1 $STD npm run build
+$STD npm run build
 unset NODE_OPTIONS
-mkdir -p /nextjs
-cp -r /opt/bunkerm/frontend/.next/standalone/. /nextjs/
-cp -r /opt/bunkerm/frontend/.next/static /nextjs/.next/static
-cp -r /opt/bunkerm/frontend/public /nextjs/public
+mkdir -p /usr/share/nginx/html
+cp -r /opt/bunkerm/frontend/dist/. /usr/share/nginx/html/
+rm -rf /frontend
+cp -r /opt/bunkerm/frontend /frontend
+rm -rf /frontend/node_modules
+cd /frontend/src/auth
+$STD npm install
 msg_ok "Built Frontend"
 
 msg_info "Setting up Application"
@@ -113,12 +116,12 @@ msg_ok "Configured Mosquitto"
 msg_info "Configuring Nginx"
 mkdir -p /run/nginx /etc/nginx/conf.d /var/log/nginx /var/lib/history
 cp /opt/bunkerm/nginx.conf /etc/nginx/nginx.conf
-cp /opt/bunkerm/default-next.conf /etc/nginx/conf.d/default.conf
+cp /opt/bunkerm/default.conf /etc/nginx/conf.d/default.conf
 msg_ok "Configured Nginx"
 
 msg_info "Configuring Supervisor"
-mkdir -p /var/log/supervisor /var/log/api /etc/bunkerm /nextjs/data
-cp /opt/bunkerm/supervisord-next.conf /etc/supervisor/conf.d/bunkerm.conf
+mkdir -p /var/log/supervisor /var/log/api /etc/bunkerm /data
+cp /opt/bunkerm/backend/supervisord.conf /etc/supervisor/conf.d/bunkerm.conf
 msg_ok "Configured Supervisor"
 
 msg_info "Creating Environment"
@@ -155,6 +158,16 @@ PYTHONPATH=/app/monitor
 NODE_ENV=production
 BUNKERAI_API_KEY=
 BUNKERAI_WS_URL=wss://api.bunkerai.dev/connect
+EOF
+cat <<EOF >/usr/share/nginx/html/config.js
+window.__runtime_config__ = {
+  API_URL: "http://${LOCAL_IP}:2000/api/monitor",
+  DYNSEC_API_URL: "http://${LOCAL_IP}:2000/api/dynsec",
+  AWS_BRIDGE_API_URL: "http://${LOCAL_IP}:2000/api/aws-bridge",
+  MONITOR_API_URL: "http://${LOCAL_IP}:2000/api/monitor",
+  EVENT_API_URL: "http://${LOCAL_IP}:2000/api/event",
+  host: "${LOCAL_IP}"
+};
 EOF
 msg_ok "Created Environment"
 
