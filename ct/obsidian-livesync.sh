@@ -6,7 +6,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/vrtmrz/obsidian-livesync
 
-APP="Obsidian LiveSync"
+APP="Obsidian-LiveSync"
 var_tags="${var_tags:-documents;notes}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-1024}"
