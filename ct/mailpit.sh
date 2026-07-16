@@ -36,7 +36,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     create_backup /opt/mailpit/.env \
-                  /opt/mailpit/data
+      /opt/mailpit/data
 
     fetch_and_deploy_gh_release "mailpit" "axllent/mailpit" "prebuild" "latest" "/opt/mailpit" "mailpit-linux-$(arch_resolve).tar.gz"
 
