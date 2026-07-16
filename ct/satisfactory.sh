@@ -38,18 +38,26 @@ function update_script() {
   create_backup /root/.config/Epic/FactoryGame/Saved
 
   msg_info "Updating ${APP}"
-  if $STD /opt/steamcmd/steamcmd.sh \
-    +force_install_dir /opt/satisfactory/server \
-    +login anonymous \
-    +app_update 1690800 -beta public validate \
-    +quit; then
-    msg_ok "Updated ${APP}"
-  else
-    restore_backup
-    systemctl start satisfactory
-    msg_error "Failed to update ${APP}"
-    exit 1
-  fi
+  for attempt in {1..5}; do
+    if $STD /opt/steamcmd/steamcmd.sh \
+      +force_install_dir /opt/satisfactory/server \
+      +login anonymous \
+      +app_update 1690800 -beta public validate \
+      +quit; then
+      msg_ok "Updated ${APP}"
+      break
+    fi
+
+    if [[ "$attempt" -eq 5 ]]; then
+      restore_backup
+      systemctl start satisfactory
+      msg_error "Failed to update ${APP}"
+      exit 1
+    fi
+
+    msg_warn "SteamCMD failed, retrying (${attempt}/5)"
+    sleep 15
+  done
 
   restore_backup
 

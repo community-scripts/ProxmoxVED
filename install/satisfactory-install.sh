@@ -15,6 +15,8 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
+  ca-certificates \
+  curl \
   lib32gcc-s1 \
   lib32stdc++6
 msg_ok "Installed Dependencies"
@@ -28,11 +30,23 @@ fetch_and_deploy_from_url \
   "/opt/steamcmd"
 
 msg_info "Installing Satisfactory Dedicated Server"
-$STD /opt/steamcmd/steamcmd.sh \
-  +force_install_dir /opt/satisfactory/server \
-  +login anonymous \
-  +app_update 1690800 -beta public validate \
-  +quit
+for attempt in {1..5}; do
+  if $STD /opt/steamcmd/steamcmd.sh \
+    +force_install_dir /opt/satisfactory/server \
+    +login anonymous \
+    +app_update 1690800 -beta public validate \
+    +quit; then
+    break
+  fi
+
+  if [[ "$attempt" -eq 5 ]]; then
+    msg_error "Failed to install Satisfactory Dedicated Server"
+    exit 1
+  fi
+
+  msg_warn "SteamCMD failed, retrying (${attempt}/5)"
+  sleep 15
+done
 msg_ok "Installed Satisfactory Dedicated Server"
 
 msg_info "Creating Service"
