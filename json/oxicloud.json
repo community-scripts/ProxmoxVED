@@ -22,7 +22,7 @@
       "config_path": "/etc/oxicloud/.env",
       "resources": {
         "cpu": 2,
-        "ram": 4096,
+        "ram": 6144,
         "hdd": 20,
         "os": "Debian",
         "version": "13"
