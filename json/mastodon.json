@@ -42,11 +42,15 @@
             "type": "info"
         },
         {
-            "text": "LOCAL_DOMAIN in /opt/mastodon/.env.production is set to the container IP. For federation to work, change it to your actual domain and add TLS via a reverse proxy.",
+            "text": "This installation uses the container IP and HTTP, so it is suitable only for LAN or testing. LOCAL_DOMAIN must not be changed after initial setup; reinstall with a public domain and TLS before enabling federation.",
             "type": "warning"
         },
         {
             "text": "SMTP is not configured by default. Set SMTP_SERVER, SMTP_LOGIN, and SMTP_PASSWORD in .env.production for email notifications.",
+            "type": "info"
+        },
+        {
+            "text": "New account registrations require Owner approval by default.",
             "type": "info"
         },
         {
