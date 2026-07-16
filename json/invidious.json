@@ -10,7 +10,7 @@
   "privileged": false,
   "has_arm": false,
   "interface_port": 3000,
-  "documentation": "https:/docs.invidious.io",
+  "documentation": "https://docs.invidious.io",
   "website": "https://invidious.io",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/invidious.webp",
   "description": "A self-hosted alternative frontend for YouTube",
@@ -22,7 +22,7 @@
       "resources": {
         "cpu": 2,
         "ram": 4096,
-        "hdd": 8,
+        "hdd": 20,
         "os": "Debian",
         "version": "13"
       }
@@ -34,7 +34,7 @@
   },
   "notes": [
     {
-      "text": "Invidious Companion comes pre-installed and is running on port 8082.",
+      "text": "Invidious Companion comes pre-installed and runs internally on localhost port 8282.",
       "type": "info"
     }
   ]
