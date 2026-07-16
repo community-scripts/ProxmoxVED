@@ -44,4 +44,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Manage your downloads remotely via:${CL}"
-echo -e "${GATEWAY}${BGN}https://my.jdownloader.org${CL}"
+echo -e "${GATEWAY}${BGN}https://${IP}:6080/vnc.html?resize=scale&autoconnect=true${CL}"

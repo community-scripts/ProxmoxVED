@@ -42,7 +42,6 @@ $STD java -Djava.awt.headless=true -jar /opt/jdownloader/JDownloader.jar -norest
 msg_ok "Installed JDownloader"
 
 msg_info "Configuring JDownloader"
-# MyJDownloader-Login leer lassen (kein Erzwungener Login, kein Konsolen-Fallback-Crash)
 cat <<EOF >/opt/jdownloader/cfg/org.jdownloader.api.myjdownloader.MyJDownloaderSettings.json
 {
     "email" : null,
@@ -151,9 +150,9 @@ Requires=xvfb.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/x11vnc -display :1 -forever -shared -rfbport 5900 -nopw -noipv6 -xkb -noxdamage -nowf -nowcr -wait 50 -defer 50 -focus map
-Restart=always
+ExecStart=/usr/bin/x11vnc -display :1 -forever -shared -rfbport 5900 -nopw -noipv6 -xkb -noxdamage -nowf -nowcr -wait 50 -defer 50
 RestartSec=5
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
