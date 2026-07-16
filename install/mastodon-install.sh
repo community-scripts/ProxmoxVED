@@ -190,7 +190,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable --now mastodon-web mastodon-sidekiq mastodon-streaming
+systemctl enable -q --now mastodon-web mastodon-sidekiq mastodon-streaming
 msg_ok "Created Services"
 
 msg_info "Configuring Nginx"
