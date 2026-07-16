@@ -265,6 +265,9 @@ error_handler() {
 
   local explanation
   explanation="$(explain_exit_code "$exit_code")"
+  if [[ "$explanation" == curl:* && ! "$command" =~ (^|[[:space:]])([^[:space:]]*/)?curl([[:space:]]|$) ]]; then
+    explanation="Command failed with exit status ${exit_code}"
+  fi
 
   # ALWAYS report failure to API immediately - don't wait for container checks
   # This ensures we capture failures that occur before/after container exists
