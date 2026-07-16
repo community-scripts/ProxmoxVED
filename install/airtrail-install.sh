@@ -13,18 +13,11 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt install -y \
-  curl \
-  skopeo \
-  unzip
-msg_ok "Installed Dependencies"
-
 NODE_VERSION="22" setup_nodejs
 
 msg_info "Installing Bun"
 export BUN_INSTALL="/root/.bun"
-curl -fsSL https://bun.com/install | $STD bash
+curl -fsSL https://bun.sh/install | $STD bash
 ln -sf /root/.bun/bin/bun /usr/local/bin/bun
 ln -sf /root/.bun/bin/bunx /usr/local/bin/bunx
 msg_ok "Installed Bun"
@@ -34,134 +27,41 @@ PG_DB_NAME="airtrail" PG_DB_USER="airtrail" setup_postgresql_db
 
 fetch_and_deploy_gh_release "airtrail" "johanohly/AirTrail" "tarball"
 
-msg_info "Configuring AirTrail"
-useradd \
-  --system \
-  --home-dir /opt/airtrail \
-  --shell /usr/sbin/nologin \
-  airtrail
-
-mkdir -p \
-  /etc/airtrail \
-  /var/lib/airtrail/uploads
-
-cat <<EOF_ENV >/etc/airtrail/airtrail.env
+msg_info "Setting up AirTrail"
+cd /opt/airtrail
+mkdir -p /opt/airtrail/uploads
+cat <<EOF >/opt/airtrail/.env
 NODE_ENV=production
 HOST=0.0.0.0
 PORT=3000
 ORIGIN=http://${LOCAL_IP}:3000
 DB_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}
-UPLOAD_LOCATION=/var/lib/airtrail/uploads
+UPLOAD_LOCATION=/opt/airtrail/uploads
 BODY_SIZE_LIMIT=20M
-EOF_ENV
-
-chown root:airtrail /etc/airtrail/airtrail.env
-chmod 640 /etc/airtrail/airtrail.env
-chown -R airtrail:airtrail /var/lib/airtrail
-msg_ok "Configured AirTrail"
-
-msg_info "Building AirTrail"
-cd /opt/airtrail
+EOF
 $STD bun install --frozen-lockfile
 $STD bun run build
-
-rm -rf /opt/airtrail/node_modules
-$STD bun install --frozen-lockfile --production
-msg_ok "Built AirTrail"
-
-msg_info "Installing Airport Overlay"
-overlay_tmp=$(mktemp -d)
-
-overlay_image=$(
-  awk '
-    $1 == "FROM" &&
-    $2 ~ /^johly\/airtrail-airport-overlay(:|@)/ {
-      print $2
-      exit
-    }
-  ' /opt/airtrail/docker/Dockerfile
-)
-
-if [[ -z "$overlay_image" ]]; then
-  msg_error "Airport overlay image not found"
-  exit 1
-fi
-
-if [[ "$overlay_image" == *@sha256:* ]]; then
-  image_without_digest="${overlay_image%@*}"
-  image_digest="${overlay_image#*@}"
-  image_repository="${image_without_digest%:*}"
-  skopeo_image="${image_repository}@${image_digest}"
-else
-  skopeo_image="$overlay_image"
-fi
-
-mkdir -p \
-  "$overlay_tmp/archive" \
-  "$overlay_tmp/rootfs"
-
-$STD skopeo copy \
-  "docker://docker.io/${skopeo_image}" \
-  "docker-archive:${overlay_tmp}/overlay.tar:airtrail-overlay:latest"
-
-tar -xf "$overlay_tmp/overlay.tar" \
-  -C "$overlay_tmp/archive"
-
-overlay_layer=$(
-  jq -r '.[0].Layers[-1]' \
-    "$overlay_tmp/archive/manifest.json"
-)
-
-tar -xf "$overlay_tmp/archive/$overlay_layer" \
-  -C "$overlay_tmp/rootfs"
-
-if [[ ! -s "$overlay_tmp/rootfs/airport-overlay.pmtiles" ]]; then
-  msg_error "Airport overlay file not found"
-  exit 1
-fi
-
-install \
-  -o root \
-  -g root \
-  -m 0644 \
-  "$overlay_tmp/rootfs/airport-overlay.pmtiles" \
-  /opt/airtrail/build/client/airport-overlay.pmtiles
-
-rm -rf "$overlay_tmp"
-msg_ok "Installed Airport Overlay"
-
-msg_info "Applying Database Migrations"
-set -a
-source /etc/airtrail/airtrail.env
-set +a
-$STD node /opt/airtrail/docker/migrate.js
-msg_ok "Applied Database Migrations"
+$STD bun run db:migrate-deploy
+msg_ok "Set up AirTrail"
 
 msg_info "Creating Service"
-cat <<'EOF_SERVICE' >/etc/systemd/system/airtrail.service
+cat <<EOF >/etc/systemd/system/airtrail.service
 [Unit]
 Description=AirTrail Flight Tracker
-After=network-online.target postgresql.service
-Wants=network-online.target
-Requires=postgresql.service
+After=network.target postgresql.service
 
 [Service]
 Type=simple
-User=airtrail
-Group=airtrail
+User=root
 WorkingDirectory=/opt/airtrail
-EnvironmentFile=/etc/airtrail/airtrail.env
+EnvironmentFile=/opt/airtrail/.env
 ExecStart=/usr/bin/node /opt/airtrail/build
 Restart=on-failure
 RestartSec=5
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target
-EOF_SERVICE
-
+EOF
 systemctl enable -q --now airtrail
 msg_ok "Created Service"
 
