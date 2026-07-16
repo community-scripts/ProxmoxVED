@@ -102,7 +102,8 @@ User=root
 WorkingDirectory=/opt/onetimesecret
 Environment=HOME=/root
 Environment=PATH=/root/.rbenv/shims:/root/.rbenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/bin/bash -lc 'source .env.sh && exec bundle exec puma -C etc/puma.rb'
+EnvironmentFile=/opt/onetimesecret/.env
+ExecStart=/root/.rbenv/shims/bundle exec puma -C etc/puma.rb
 Restart=on-failure
 RestartSec=5
 

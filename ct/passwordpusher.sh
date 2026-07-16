@@ -53,11 +53,11 @@ function update_script() {
     msg_ok "Installed JS Dependencies"
 
     msg_info "Running Database Migrations"
-    $STD bundle exec rails db:migrate RAILS_ENV=production
+    RAILS_ENV=production $STD bundle exec rails db:migrate
     msg_ok "Ran Database Migrations"
 
     msg_info "Precompiling Assets"
-    $STD SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile RAILS_ENV=production
+    RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 $STD bundle exec rails assets:precompile
     msg_ok "Precompiled Assets"
 
     restore_backup

@@ -15,6 +15,7 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
+  default-libmysqlclient-dev \
   git \
   libpq-dev \
   libsqlite3-dev
@@ -52,11 +53,11 @@ EOF
 msg_ok "Configured PasswordPusher"
 
 msg_info "Setting up Database"
-$STD bundle exec rails db:setup RAILS_ENV=production
+RAILS_ENV=production $STD bundle exec rails db:setup
 msg_ok "Set up Database"
 
 msg_info "Precompiling Assets"
-$STD SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile RAILS_ENV=production
+RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 $STD bundle exec rails assets:precompile
 msg_ok "Precompiled Assets"
 
 msg_info "Creating Service"

@@ -107,11 +107,11 @@ EOF
 msg_ok "Configured Mastodon"
 
 msg_info "Setting up Database"
-$STD RAILS_ENV=production bundle exec rails db:setup
+RAILS_ENV=production $STD bundle exec rails db:setup
 msg_ok "Set up Database"
 
 msg_info "Precompiling Assets (Patience)"
-$STD SECRET_KEY_BASE_DUMMY=1 RAILS_ENV=production bundle exec rails assets:precompile
+RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 $STD bundle exec rails assets:precompile
 msg_ok "Precompiled Assets"
 
 msg_info "Creating Admin Account"
