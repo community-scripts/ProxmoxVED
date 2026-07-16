@@ -35,7 +35,7 @@ function update_script() {
 
   msg_info "Updating Bun"
   export BUN_INSTALL="/root/.bun"
-  curl -fsSL https://bun.sh/install | $STD bash
+  curl -fsSL https://bun.com/install | $STD bash
   ln -sf /root/.bun/bin/bun /usr/local/bin/bun
   ln -sf /root/.bun/bin/bunx /usr/local/bin/bunx
   msg_ok "Updated Bun"

@@ -23,12 +23,12 @@ NODE_VERSION="22" setup_nodejs
 
 msg_info "Installing Bun"
 export BUN_INSTALL="/root/.bun"
-curl -fsSL https://bun.sh/install | $STD bash
+curl -fsSL https://bun.com/install | $STD bash
 ln -sf /root/.bun/bin/bun /usr/local/bin/bun
 ln -sf /root/.bun/bin/bunx /usr/local/bin/bunx
 msg_ok "Installed Bun"
 
-PG_VERSION="17" setup_postgresql
+PG_VERSION="16" setup_postgresql
 PG_DB_NAME="airtrail" PG_DB_USER="airtrail" setup_postgresql_db
 
 fetch_and_deploy_gh_release "airtrail" "johanohly/AirTrail" "tarball"
