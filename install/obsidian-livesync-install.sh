@@ -13,6 +13,11 @@ setting_up_container
 network_check
 update_os
 
+curl https://couchdb.apache.org/repo/keys.asc | gpg --dearmor | sudo tee /usr/share/keyrings/couchdb-archive-keyring.gpg >/dev/null 2>&1
+source /etc/os-release
+echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main" |
+  sudo tee /etc/apt/sources.list.d/couchdb.list >/dev/null
+
 msg_info "Installing CouchDB"
 DEBIAN_FRONTEND=noninteractive $STD apt install -y couchdb
 msg_ok "Installed CouchDB"
