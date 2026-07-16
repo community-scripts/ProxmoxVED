@@ -40,6 +40,14 @@ fetch_and_deploy_gh_release "foundationdb-clients" "apple/foundationdb" "binary"
 
 PG_DB_NAME="firecrawl" PG_DB_USER="firecrawl" PG_DB_EXTENSIONS="pgcrypto,pg_cron" PG_DB_CREDS_FILE="/dev/null" setup_postgresql_db
 
+msg_info "Configuring pg_cron"
+# pg_cron defaults to libpq connections against localhost, which pg_hba rejects
+# (scram auth, no postgres password); background workers need no connection.
+$STD runuser -u postgres -- psql -c "ALTER SYSTEM SET cron.use_background_workers = 'on';"
+systemctl restart postgresql
+until runuser -u postgres -- psql -c "SELECT 1;" &>/dev/null; do sleep 1; done
+msg_ok "Configured pg_cron"
+
 msg_info "Configuring RabbitMQ"
 systemctl enable -q --now rabbitmq-server
 until rabbitmqctl status &>/dev/null; do sleep 1; done
