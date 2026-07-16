@@ -19,9 +19,22 @@ $STD apt install -y \
   tesseract-ocr \
   tesseract-ocr-deu \
   tesseract-ocr-eng \
-  unoconv \
   unpaper \
-  wkhtmltopdf
+  weasyprint \
+  libreoffice-core \
+  libreoffice-writer \
+  libreoffice-calc \
+  python3 \
+  python3-pip \
+  python3-uno \
+  python3-venv
+
+python3 -m venv \
+  --system-site-packages \
+  /opt/unoserver
+
+$STD /opt/unoserver/bin/pip install --upgrade pip
+$STD /opt/unoserver/bin/pip install unoserver
 msg_ok "Installed Dependencies"
 
 setup_gs
