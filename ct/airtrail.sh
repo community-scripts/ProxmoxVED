@@ -67,6 +67,71 @@ function update_script() {
     $STD bun install --frozen-lockfile --production
     msg_ok "Built AirTrail"
 
+    msg_info "Installing Airport Overlay"
+    if ! command -v skopeo >/dev/null 2>&1; then
+      $STD apt install -y skopeo
+    fi
+
+    overlay_tmp=$(mktemp -d)
+
+    overlay_image=$(
+      awk '
+        $1 == "FROM" &&
+        $2 ~ /^johly\/airtrail-airport-overlay(:|@)/ {
+          print $2
+          exit
+        }
+      ' /opt/airtrail/docker/Dockerfile
+    )
+
+    if [[ -z "$overlay_image" ]]; then
+      msg_error "Airport overlay image not found"
+      exit 1
+    fi
+
+    if [[ "$overlay_image" == *@sha256:* ]]; then
+      image_without_digest="${overlay_image%@*}"
+      image_digest="${overlay_image#*@}"
+      image_repository="${image_without_digest%:*}"
+      skopeo_image="${image_repository}@${image_digest}"
+    else
+      skopeo_image="$overlay_image"
+    fi
+
+    mkdir -p \
+      "$overlay_tmp/archive" \
+      "$overlay_tmp/rootfs"
+
+    $STD skopeo copy \
+      "docker://docker.io/${skopeo_image}" \
+      "docker-archive:${overlay_tmp}/overlay.tar:airtrail-overlay:latest"
+
+    tar -xf "$overlay_tmp/overlay.tar" \
+      -C "$overlay_tmp/archive"
+
+    overlay_layer=$(
+      jq -r '.[0].Layers[-1]' \
+        "$overlay_tmp/archive/manifest.json"
+    )
+
+    tar -xf "$overlay_tmp/archive/$overlay_layer" \
+      -C "$overlay_tmp/rootfs"
+
+    if [[ ! -s "$overlay_tmp/rootfs/airport-overlay.pmtiles" ]]; then
+      msg_error "Airport overlay file not found"
+      exit 1
+    fi
+
+    install \
+      -o root \
+      -g root \
+      -m 0644 \
+      "$overlay_tmp/rootfs/airport-overlay.pmtiles" \
+      /opt/airtrail/build/client/airport-overlay.pmtiles
+
+    rm -rf "$overlay_tmp"
+    msg_ok "Installed Airport Overlay"
+
     msg_info "Applying Database Migrations"
     set -a
     source /etc/airtrail/airtrail.env
