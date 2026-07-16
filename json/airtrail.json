@@ -1,0 +1,49 @@
+{
+  "name": "AirTrail",
+  "slug": "airtrail",
+  "categories": [
+    24
+  ],
+  "date_created": "2026-07-16",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 3000,
+  "documentation": "https://airtrail.johan.ohly.dk/docs/overview/introduction",
+  "website": "https://airtrail.johan.ohly.dk",
+  "logo": "https://cdn.jsdelivr.net/gh/johanohly/AirTrail@main/static/favicon.png",
+  "description": "AirTrail is a self-hosted web application for tracking flights, viewing flight history on an interactive map, importing flight data, and displaying travel statistics.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/airtrail.sh",
+      "config_path": "/etc/airtrail/airtrail.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The first user registered through the web interface becomes the AirTrail owner.",
+      "type": "info"
+    },
+    {
+      "text": "The AirTrail configuration is stored in /etc/airtrail/airtrail.env.",
+      "type": "info"
+    },
+    {
+      "text": "A PostgreSQL database backup is created in /var/lib/airtrail/backups before each application update.",
+      "type": "info"
+    }
+  ]
+}
