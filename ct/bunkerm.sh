@@ -36,7 +36,7 @@ function update_script() {
     msg_ok "Stopped Services"
 
     create_backup /etc/bunkerm/bunkerm.env \
-                  /var/lib/mosquitto/dynamic-security.json
+      /var/lib/mosquitto/dynamic-security.json
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "bunkerm" "bunkeriot/BunkerM" "tarball"
 
@@ -44,6 +44,9 @@ function update_script() {
     cd /opt/bunkerm/frontend
     export NODE_OPTIONS="--max-old-space-size=4096"
     NODE_ENV=development $STD npm ci
+    if [[ -f postcss.config.js ]] && grep -q 'module\.exports' postcss.config.js; then
+      mv postcss.config.js postcss.config.cjs
+    fi
     AUTH_SECRET="build-time-placeholder" NEXT_TELEMETRY_DISABLED=1 $STD npm run build
     unset NODE_OPTIONS
     mkdir -p /nextjs
