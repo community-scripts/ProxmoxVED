@@ -31,131 +31,51 @@ function update_script() {
     exit
   fi
 
-  NODE_VERSION="22" setup_nodejs
-
-  msg_info "Updating Bun"
-  export BUN_INSTALL="/root/.bun"
-  curl -fsSL https://bun.com/install | $STD bash
-  ln -sf /root/.bun/bin/bun /usr/local/bin/bun
-  ln -sf /root/.bun/bin/bunx /usr/local/bin/bunx
-  msg_ok "Updated Bun"
-
   if check_for_gh_release "airtrail" "johanohly/AirTrail"; then
-    msg_info "Backing Up Database"
-    install -d \
-      -o root \
-      -g root \
-      -m 0700 \
-      /var/lib/airtrail/backups
-
-    backup_file="/var/lib/airtrail/backups/airtrail-$(date +%Y%m%d-%H%M%S).sql"
-
-    sudo -u postgres pg_dump airtrail |
-      install \
-        -o root \
-        -g root \
-        -m 0600 \
-        /dev/stdin \
-        "$backup_file"
-
-    find /var/lib/airtrail/backups \
-      -type f \
-      -name 'airtrail-*.sql' \
-      -mtime +14 \
-      -delete
-    msg_ok "Backed Up Database"
-
+    msg_info "Stopping Service"
     systemctl stop airtrail
+    msg_ok "Stopped Service"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release \
-      "airtrail" \
-      "johanohly/AirTrail" \
-      "tarball"
+    create_backup /opt/airtrail/.env /opt/airtrail/uploads
 
-    msg_info "Building AirTrail"
+    NODE_VERSION="22" setup_nodejs
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "airtrail" "johanohly/AirTrail" "tarball"
+
+    restore_backup
+
+    msg_info "Updating AirTrail"
     cd /opt/airtrail
     $STD bun install --frozen-lockfile
     $STD bun run build
-    rm -rf /opt/airtrail/node_modules
-    $STD bun install --frozen-lockfile --production
-    msg_ok "Built AirTrail"
+    $STD bun run db:migrate-deploy
+    msg_ok "Updated AirTrail"
 
-    msg_info "Installing Airport Overlay"
-    if ! command -v skopeo >/dev/null 2>&1; then
-      $STD apt install -y skopeo
-    fi
+    msg_info "Updating Service"
+    cat <<EOF >/etc/systemd/system/airtrail.service
+[Unit]
+Description=AirTrail Flight Tracker
+After=network.target postgresql.service
 
-    overlay_tmp=$(mktemp -d)
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/airtrail
+EnvironmentFile=/opt/airtrail/.env
+ExecStart=/usr/bin/node /opt/airtrail/build
+Restart=on-failure
+RestartSec=5
 
-    overlay_image=$(
-      awk '
-        $1 == "FROM" &&
-        $2 ~ /^johly\/airtrail-airport-overlay(:|@)/ {
-          print $2
-          exit
-        }
-      ' /opt/airtrail/docker/Dockerfile
-    )
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    msg_ok "Updated Service"
 
-    if [[ -z "$overlay_image" ]]; then
-      msg_error "Airport overlay image not found"
-      exit 1
-    fi
-
-    if [[ "$overlay_image" == *@sha256:* ]]; then
-      image_without_digest="${overlay_image%@*}"
-      image_digest="${overlay_image#*@}"
-      image_repository="${image_without_digest%:*}"
-      skopeo_image="${image_repository}@${image_digest}"
-    else
-      skopeo_image="$overlay_image"
-    fi
-
-    mkdir -p \
-      "$overlay_tmp/archive" \
-      "$overlay_tmp/rootfs"
-
-    $STD skopeo copy \
-      "docker://docker.io/${skopeo_image}" \
-      "docker-archive:${overlay_tmp}/overlay.tar:airtrail-overlay:latest"
-
-    tar -xf "$overlay_tmp/overlay.tar" \
-      -C "$overlay_tmp/archive"
-
-    overlay_layer=$(
-      jq -r '.[0].Layers[-1]' \
-        "$overlay_tmp/archive/manifest.json"
-    )
-
-    tar -xf "$overlay_tmp/archive/$overlay_layer" \
-      -C "$overlay_tmp/rootfs"
-
-    if [[ ! -s "$overlay_tmp/rootfs/airport-overlay.pmtiles" ]]; then
-      msg_error "Airport overlay file not found"
-      exit 1
-    fi
-
-    install \
-      -o root \
-      -g root \
-      -m 0644 \
-      "$overlay_tmp/rootfs/airport-overlay.pmtiles" \
-      /opt/airtrail/build/client/airport-overlay.pmtiles
-
-    rm -rf "$overlay_tmp"
-    msg_ok "Installed Airport Overlay"
-
-    msg_info "Applying Database Migrations"
-    set -a
-    source /etc/airtrail/airtrail.env
-    set +a
-    $STD node /opt/airtrail/docker/migrate.js
-    msg_ok "Applied Database Migrations"
-
+    msg_info "Starting Service"
     systemctl start airtrail
+    msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi
-
   exit
 }
 
