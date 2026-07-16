@@ -10,7 +10,7 @@
   "interface_port": 3002,
   "documentation": "https://docs.firecrawl.dev/",
   "website": "https://www.firecrawl.dev/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/firecrawl.webp",
+  "logo": "https://raw.githubusercontent.com/firecrawl/firecrawl/main/img/firecrawl_logo.png",
   "config_path": "/opt/firecrawl/.env",
   "description": "API service that turns websites into clean data for AI applications, scraping, crawling, and extraction workflows.",
   "install_methods": [

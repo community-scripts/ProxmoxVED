@@ -27,7 +27,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" NODE_MODULE="pnpm@11.4.0" setup_nodejs
-GO_VERSION="1.24.0" setup_go
+setup_go
 RUST_PROFILE="minimal" setup_rust
 PG_VERSION="17" PG_MODULES="cron" setup_postgresql
 
@@ -42,6 +42,7 @@ PG_DB_NAME="firecrawl" PG_DB_USER="firecrawl" PG_DB_EXTENSIONS="pgcrypto,pg_cron
 
 msg_info "Configuring RabbitMQ"
 systemctl enable -q --now rabbitmq-server
+until rabbitmqctl status &>/dev/null; do sleep 1; done
 RABBITMQ_PASSWORD="$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c24)"
 $STD rabbitmqctl add_user firecrawl "$RABBITMQ_PASSWORD"
 $STD rabbitmqctl set_permissions -p / firecrawl ".*" ".*" ".*"
