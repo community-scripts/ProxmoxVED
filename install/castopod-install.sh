@@ -14,8 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
-  caddy
+$STD apt install -y caddy
 msg_ok "Installed Dependencies"
 
 PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULES="curl,exif,gd,intl,mbstring,mysql,xml,zip" setup_php
@@ -80,7 +79,6 @@ msg_info "Creating Castopod Superadmin"
 CASTOPOD_ADMIN_USERNAME="admin"
 CASTOPOD_ADMIN_EMAIL="admin@${LOCAL_IP}.nip.io"
 CASTOPOD_ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-20)"
-
 if ! printf '%s\n%s\n' "${CASTOPOD_ADMIN_PASSWORD}" "${CASTOPOD_ADMIN_PASSWORD}" |
   runuser -u www-data -- php /opt/castopod/spark install:create-superadmin \
     -n "${CASTOPOD_ADMIN_USERNAME}" \
@@ -89,28 +87,22 @@ if ! printf '%s\n%s\n' "${CASTOPOD_ADMIN_PASSWORD}" "${CASTOPOD_ADMIN_PASSWORD}"
   exit 1
 fi
 
-cat <<EOF >/root/.castopod.credentials
+cat <<EOF >/root/castopod.creds
 Castopod URL: http://${LOCAL_IP}/cp-admin
 Username: ${CASTOPOD_ADMIN_USERNAME}
 Email: ${CASTOPOD_ADMIN_EMAIL}
 Password: ${CASTOPOD_ADMIN_PASSWORD}
 EOF
-
-chmod 600 /root/.castopod.credentials
-
 unset CASTOPOD_ADMIN_USERNAME
 unset CASTOPOD_ADMIN_EMAIL
 unset CASTOPOD_ADMIN_PASSWORD
-
 cd /
 msg_ok "Created Castopod Superadmin"
 
 msg_info "Configuring Caddy"
-
 PHP_VER="$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')"
 PHP_FPM_SERVICE="php${PHP_VER}-fpm"
 PHP_FPM_SOCKET="/run/php/php${PHP_VER}-fpm.sock"
-
 cat <<EOF >/etc/caddy/Caddyfile
 :80 {
     root * /opt/castopod/public
@@ -119,24 +111,18 @@ cat <<EOF >/etc/caddy/Caddyfile
     file_server
 }
 EOF
-
 usermod -aG www-data caddy
-
 $STD caddy fmt --overwrite /etc/caddy/Caddyfile
 $STD caddy validate \
   --config /etc/caddy/Caddyfile \
   --adapter caddyfile
-
 msg_ok "Configured Caddy"
 
 msg_info "Creating Scheduled Tasks"
-
 cat <<'EOF' >/etc/cron.d/castopod
 * * * * * www-data cd /opt/castopod && /usr/bin/php spark tasks:run >/dev/null 2>&1
 EOF
-
 chmod 644 /etc/cron.d/castopod
-
 msg_ok "Created Scheduled Tasks"
 
 msg_info "Starting Services"
@@ -144,15 +130,6 @@ msg_info "Starting Services"
 systemctl enable -q "$PHP_FPM_SERVICE" caddy
 systemctl restart "$PHP_FPM_SERVICE"
 systemctl restart caddy
-
-if ! systemctl is-active --quiet "$PHP_FPM_SERVICE" ||
-  ! systemctl is-active --quiet caddy ||
-  ! ss -ltn | grep -qE '[:.]80\s'; then
-  msg_error "Castopod services did not start correctly"
-  systemctl --no-pager --full status "$PHP_FPM_SERVICE" caddy
-  exit 1
-fi
-
 msg_ok "Started Services"
 
 motd_ssh
