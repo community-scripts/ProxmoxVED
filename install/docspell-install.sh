@@ -95,6 +95,7 @@ docspell.joex {
   text-analysis.nlp.mode = "basic"
 }
 EOF
+chown root:docspell /etc/docspell-joex/docspell-joex.conf /etc/docspell-restserver/docspell-server.conf
 chmod 640 /etc/docspell-joex/docspell-joex.conf /etc/docspell-restserver/docspell-server.conf
 msg_ok "Configured Docspell"
 
