@@ -20,9 +20,17 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULES="curl,exif,gd,intl,mbstring,mysql,xml,zip" setup_php
-setup_ffmpeg
 setup_mariadb
 MARIADB_DB_NAME="castopod" MARIADB_DB_USER="castopod" setup_mariadb_db
+
+setup_deb822_repo \
+  "jellyfin" \
+  "https://repo.jellyfin.org/jellyfin_team.gpg.key" \
+  "https://repo.jellyfin.org/debian" \
+  "$(get_os_info codename)"
+$STD apt install -y jellyfin-ffmpeg7
+ln -sf /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/bin/ffmpeg
+ln -sf /usr/lib/jellyfin-ffmpeg/ffprobe /usr/bin/ffprobe
 
 GITLAB_URL="https://code.castopod.org" fetch_and_deploy_gl_release \
   "castopod" \
