@@ -6,8 +6,8 @@
 # ==============================================================================
 # INCUS-BUILD.FUNC - INCUS CONTAINER BUILD & CONFIGURATION
 # ==============================================================================
-# Loads incus-core.func AND incus-tools.func so ALL functions
-# (msg_info, msg_ok, header_info, setup_*, etc.) work on the HOST too.
+# Loaded automatically by misc/build.func on Incus hosts and Incus containers.
+# CT scripts always source misc/build.func — no separate Incus/ct copies needed.
 # ==============================================================================
 
 [[ -n "${_INCUS_BUILD_FUNC_LOADED:-}" ]] && return
@@ -17,14 +17,14 @@ INCUS_COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercont
 
 # --- LOAD incus-core.func (incus_* prefixed functions) ---
 if [[ -z "${_INCUS_CORE_FUNC_LOADED:-}" ]]; then
-  source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/Incus/misc/incus-core.func")
+  source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/misc/incus-core.func")
   load_incus_functions
   incus_catch_errors
 fi
 
 # --- LOAD incus-tools.func (bare function stubs: msg_info, header_info, etc.) ---
 if [[ -z "${_INCUS_TOOLS_FUNC_LOADED:-}" ]]; then
-  source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/Incus/misc/incus-tools.func")
+  source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/misc/incus-tools.func")
   incus_install_compat_aliases
 fi
 
@@ -329,7 +329,7 @@ MOTDEOF
 
 incus_build_functions_content() {
   FUNCTIONS_FILE_PATH=""
-  FUNCTIONS_FILE_PATH=$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/Incus/misc/incus-tools.func" 2>/dev/null || true)
+  FUNCTIONS_FILE_PATH=$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/misc/incus-tools.func" 2>/dev/null || true)
   [[ -z "$FUNCTIONS_FILE_PATH" ]] && { msg_error "Could not fetch incus-tools.func"; exit 1; }
   export FUNCTIONS_FILE_PATH
 }
@@ -367,7 +367,7 @@ export INCUS_FUNCTIONS=\$FUNCTIONS_FILE_PATH" >>"$INCUS_BUILD_LOG" 2>&1 || { msg
     export PCT_DISK_SIZE='${DISK_SIZE}'
     export tz='${tz:-UTC}'
     export INCUS_HEADER='Incus :: ${APP}'
-    bash <(curl -fsSL '${INCUS_COMMUNITY_SCRIPTS_URL}/Incus/install/${var_install}.sh')
+    bash <(curl -fsSL '${INCUS_COMMUNITY_SCRIPTS_URL}/install/${var_install}.sh')
   " 2>&1 | tee -a "$INCUS_BUILD_LOG" || { msg_error "Installation failed inside container"; exit 1; }
   msg_ok "Installation completed"
 }

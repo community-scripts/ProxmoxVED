@@ -21,7 +21,7 @@ INCUS_COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercont
 
 # Load Incus core first so msg_*/silent/catch_errors aliases are available.
 if [[ -z "${_INCUS_CORE_FUNC_LOADED:-}" ]]; then
-  source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/Incus/misc/incus-core.func")
+  source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/misc/incus-core.func")
   load_incus_functions
   incus_install_compat_aliases
 fi

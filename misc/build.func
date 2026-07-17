@@ -3,6 +3,21 @@
 # Author: tteck (tteckster) | MickLesk | michelroegl-brunner
 # License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
+# Unified entry point: Proxmox VE and Incus share ct/ + install/ scripts.
+[[ -n "${_LXC_BUILD_DISPATCHED:-}" ]] && return
+_LXC_BUILD_DISPATCHED=1
+
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+
+if [[ -z "${_LXC_PLATFORM_FUNC_LOADED:-}" ]]; then
+  source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/lxc-platform.func" 2>/dev/null || wget -qO- "$COMMUNITY_SCRIPTS_URL/misc/lxc-platform.func")
+fi
+
+if is_incus_lxc_backend; then
+  source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/incus-build.func" 2>/dev/null || wget -qO- "$COMMUNITY_SCRIPTS_URL/misc/incus-build.func")
+  return 0
+fi
+
 # ==============================================================================
 # BUILD.FUNC - LXC CONTAINER BUILD & CONFIGURATION
 # ==============================================================================

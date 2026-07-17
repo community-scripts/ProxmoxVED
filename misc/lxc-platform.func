@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Copyright (c) 2021-2026 community-scripts ORG
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+
+# ==============================================================================
+# LXC-PLATFORM.FUNC - PROXMOX VE / INCUS PLATFORM DETECTION
+# ==============================================================================
+#
+# Detects whether scripts run on a Proxmox VE host, an Incus host, or inside
+# a container (update mode). Used by build.func to load the correct backend.
+#
+# Override: export LXC_PLATFORM=pve|incus|incus-container|container
+#
+# ==============================================================================
+
+[[ -n "${_LXC_PLATFORM_FUNC_LOADED:-}" ]] && return
+_LXC_PLATFORM_FUNC_LOADED=1
+
+detect_lxc_platform() {
+  if [[ -n "${LXC_PLATFORM:-}" ]]; then
+    echo "$LXC_PLATFORM"
+    return
+  fi
+
+  if command -v pveversion &>/dev/null; then
+    echo "pve"
+    return
+  fi
+
+  if command -v incus &>/dev/null && incus info &>/dev/null 2>&1; then
+    echo "incus"
+    return
+  fi
+
+  if [[ -S /dev/incus/sock ]] || [[ -f /etc/profile.d/incus-motd.sh ]]; then
+    echo "incus-container"
+    return
+  fi
+
+  echo "container"
+}
+
+is_incus_lxc_backend() {
+  local platform
+  platform="$(detect_lxc_platform)"
+  [[ "$platform" == "incus" || "$platform" == "incus-container" ]]
+}

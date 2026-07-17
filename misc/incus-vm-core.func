@@ -7,7 +7,7 @@ _INCUS_VM_CORE_LOADED=1
 
 INCUS_COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
 
-source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/Incus/misc/incus-core.func")
+source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/misc/incus-core.func")
 load_incus_functions
 incus_install_compat_aliases
 

@@ -19,7 +19,7 @@
 #   - No pveam (uses incus image copy/list)
 #
 # Usage:
-#   source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/Incus/misc/incus-core.func)
+#   source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/incus-core.func)
 #   load_incus_functions
 #
 # ==============================================================================
