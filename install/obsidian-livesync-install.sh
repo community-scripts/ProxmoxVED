@@ -29,7 +29,7 @@ msg_ok "Updated CouchDB Repository"
 msg_info "Installing CouchDB"
 
 COUCHDB_ADMIN_USER="admin"
-COUCHDB_ADMIN_PASSWORD="$(openssl rand -base64 32 | tr -d '\n')"
+COUCHDB_PASSWORD="$(openssl rand -hex 24)"
 COUCHDB_COOKIE="$(openssl rand -hex 16)"
 
 cat <<EOF | debconf-set-selections
@@ -39,9 +39,9 @@ couchdb couchdb/bindaddress string 127.0.0.1
 couchdb couchdb/bindaddress seen true
 couchdb couchdb/cookie string ${COUCHDB_COOKIE}
 couchdb couchdb/cookie seen true
-couchdb couchdb/adminpass password ${COUCHDB_ADMIN_PASSWORD}
+couchdb couchdb/adminpass password ${COUCHDB_PASSWORD}
 couchdb couchdb/adminpass seen true
-couchdb couchdb/adminpass_again password ${COUCHDB_ADMIN_PASSWORD}
+couchdb couchdb/adminpass_again password ${COUCHDB_PASSWORD}
 couchdb couchdb/adminpass_again seen true
 EOF
 
@@ -49,14 +49,14 @@ DEBIAN_FRONTEND=noninteractive $STD apt-get install -y couchdb
 
 cat <<EOF >/root/.couchdb.credentials
 COUCHDB_ADMIN_USER="${COUCHDB_ADMIN_USER}"
-COUCHDB_ADMIN_PASSWORD="${COUCHDB_ADMIN_PASSWORD}"
+COUCHDB_ADMIN_PASSWORD="${COUCHDB_PASSWORD}"
+COUCHDB_COOKIE="${COUCHDB_COOKIE}"
 EOF
 chmod 600 /root/.couchdb.credentials
 
 msg_ok "Installed CouchDB"
 
 msg_info "Configuring CouchDB"
-COUCHDB_PASSWORD="$(openssl rand -hex 24)"
 mkdir -p /etc/couchdb/local.d /opt/obsidian-livesync
 cat <<EOF >/etc/couchdb/local.d/obsidian-livesync.ini
 [couchdb]
