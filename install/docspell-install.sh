@@ -22,9 +22,9 @@ $STD apt install -y \
   unpaper \
   weasyprint \
   libreoffice-core \
+  ghostscript \
   libreoffice-writer \
   libreoffice-calc \
-  python3 \
   python3-pip \
   python3-uno \
   python3-venv
@@ -37,7 +37,6 @@ $STD /opt/unoserver/bin/pip install --upgrade pip
 $STD /opt/unoserver/bin/pip install unoserver
 msg_ok "Installed Dependencies"
 
-setup_gs
 JAVA_VERSION="21" setup_java
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="docspell" PG_DB_USER="docspell" setup_postgresql_db
