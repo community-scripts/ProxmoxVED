@@ -30,12 +30,15 @@ msg_info "Installing CouchDB"
 
 COUCHDB_ADMIN_USER="admin"
 COUCHDB_ADMIN_PASSWORD="$(openssl rand -base64 32 | tr -d '\n')"
+COUCHDB_COOKIE="$(openssl rand -hex 16)"
 
 cat <<EOF | debconf-set-selections
 couchdb couchdb/mode select standalone
 couchdb couchdb/mode seen true
 couchdb couchdb/bindaddress string 127.0.0.1
 couchdb couchdb/bindaddress seen true
+couchdb couchdb/cookie string ${COUCHDB_COOKIE}
+couchdb couchdb/cookie seen true
 couchdb couchdb/adminpass password ${COUCHDB_ADMIN_PASSWORD}
 couchdb couchdb/adminpass seen true
 couchdb couchdb/adminpass_again password ${COUCHDB_ADMIN_PASSWORD}
