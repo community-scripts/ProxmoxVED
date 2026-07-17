@@ -15,8 +15,7 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  caddy \
-  expect
+  caddy
 msg_ok "Installed Dependencies"
 
 PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULES="curl,exif,gd,intl,mbstring,mysql,xml,zip" setup_php
@@ -64,77 +63,27 @@ database.default.DBPrefix="cp_"
 
 cache.handler="file"
 EOF
-
 chown root:www-data /opt/castopod/.env
-chmod 640 /opt/castopod/.env
-
 chown -R www-data:www-data \
   /opt/castopod/public/media \
   /opt/castopod/writable
-
 msg_ok "Configured Castopod"
 
 msg_info "Initializing Castopod Database"
-
 cd /opt/castopod
 $STD runuser -u www-data -- php spark install:init-database
-
 cd /
 msg_ok "Initialized Castopod Database"
 
 msg_info "Creating Castopod Superadmin"
-
 CASTOPOD_ADMIN_USERNAME="admin"
-CASTOPOD_ADMIN_EMAIL="admin@castopod.local"
+CASTOPOD_ADMIN_EMAIL="admin@${LOCAL_IP}.nip.io"
 CASTOPOD_ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-20)"
 
-export CASTOPOD_ADMIN_USERNAME
-export CASTOPOD_ADMIN_EMAIL
-export CASTOPOD_ADMIN_PASSWORD
-
-cat >/tmp/create-castopod-superadmin.exp <<'EOF'
-#!/usr/bin/expect -f
-
-set timeout 120
-
-set username $env(CASTOPOD_ADMIN_USERNAME)
-set email    $env(CASTOPOD_ADMIN_EMAIL)
-set password $env(CASTOPOD_ADMIN_PASSWORD)
-
-spawn runuser -u www-data -- php /opt/castopod/spark install:create-superadmin
-
-expect {
-    -re "(?i)user(name)?.*:" {
-        send -- "$username\r"
-        exp_continue
-    }
-    -re "(?i)e-?mail.*:" {
-        send -- "$email\r"
-        exp_continue
-    }
-    -re "(?i)(confirm|repeat|again|confirmation).*password.*:" {
-        send -- "$password\r"
-        exp_continue
-    }
-    -re "(?i)password.*:" {
-        send -- "$password\r"
-        exp_continue
-    }
-    -re "(?i)(yes/no|y/n).*:" {
-        send -- "yes\r"
-        exp_continue
-    }
-    eof
-}
-
-catch wait result
-set exit_code [lindex $result 3]
-exit $exit_code
-EOF
-
-chmod 700 /tmp/create-castopod-superadmin.exp
-$STD /usr/bin/expect /tmp/create-castopod-superadmin.exp
-rm -f /tmp/create-castopod-superadmin.exp
+printf '%s\n%s\n' "${CASTOPOD_ADMIN_PASSWORD}" "${CASTOPOD_ADMIN_PASSWORD}" |
+  runuser -u www-data -- php /opt/castopod/spark install:create-superadmin \
+    -n "${CASTOPOD_ADMIN_USERNAME}" \
+    -e "${CASTOPOD_ADMIN_EMAIL}"
 
 cat <<EOF >/root/.castopod.credentials
 Castopod URL: http://${LOCAL_IP}/cp-admin
