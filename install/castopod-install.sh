@@ -51,6 +51,7 @@ CASTOPOD_SALT="$(openssl rand -hex 32)"
 cat <<EOF >/opt/castopod/.env
 app.baseURL="http://${LOCAL_IP}/"
 media.baseURL="http://${LOCAL_IP}/media/"
+app.forceGlobalSecureRequests=false
 admin.gateway="cp-admin"
 auth.gateway="cp-auth"
 analytics.salt="${CASTOPOD_SALT}"
@@ -143,6 +144,15 @@ msg_info "Starting Services"
 systemctl enable -q "$PHP_FPM_SERVICE" caddy
 systemctl restart "$PHP_FPM_SERVICE"
 systemctl restart caddy
+
+if ! systemctl is-active --quiet "$PHP_FPM_SERVICE" ||
+  ! systemctl is-active --quiet caddy ||
+  ! ss -ltn | grep -qE '[:.]80\s'; then
+  msg_error "Castopod services did not start correctly"
+  systemctl --no-pager --full status "$PHP_FPM_SERVICE" caddy
+  exit 1
+fi
+
 msg_ok "Started Services"
 
 motd_ssh
