@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://docs.ankiweb.net/sync-server.html
 
-APP="Anki Sync Server"
+APP="Anki-Sync-Server"
 var_tags="${var_tags:-anki;flashcards;sync}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
