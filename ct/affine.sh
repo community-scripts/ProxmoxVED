@@ -56,7 +56,7 @@ function update_script() {
     $STD git config user.email "build@local"
     $STD git config user.name "Build"
     $STD git add -A
-    $STD git commit -q -m "update" --no-verify
+    $STD git commit -q -m "update" --no-verify --allow-empty
 
     # Force Turbo to run sequentially
     mkdir -p /opt/affine/.turbo
