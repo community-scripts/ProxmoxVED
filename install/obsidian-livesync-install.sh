@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/vrtmrz/obsidian-livesync
+# Source: https://github.com/vrtmrz/obsidian-livesync | https://couchdb.apache.org/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -13,21 +13,14 @@ setting_up_container
 network_check
 update_os
 
-curl -fsSL https://couchdb.apache.org/repo/keys.asc |
-  gpg --dearmor --yes \
-    -o /usr/share/keyrings/couchdb-archive-keyring.gpg
-
-source /etc/os-release
-
-echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main" \
-  >/etc/apt/sources.list.d/couchdb.list
-
-msg_info "Updating CouchDB Repository"
-$STD apt-get update
-msg_ok "Updated CouchDB Repository"
+setup_deb822_repo \
+  "couchdb" \
+  "https://couchdb.apache.org/repo/keys.asc" \
+  "https://apache.jfrog.io/artifactory/couchdb-deb/" \
+  "$(get_os_info codename)" \
+  "main"
 
 msg_info "Installing CouchDB"
-
 COUCHDB_ADMIN_USER="admin"
 COUCHDB_PASSWORD="$(openssl rand -hex 24)"
 COUCHDB_COOKIE="$(openssl rand -hex 16)"
@@ -35,7 +28,7 @@ COUCHDB_COOKIE="$(openssl rand -hex 16)"
 cat <<EOF | debconf-set-selections
 couchdb couchdb/mode select standalone
 couchdb couchdb/mode seen true
-couchdb couchdb/bindaddress string 127.0.0.1
+couchdb couchdb/bindaddress string 0.0.0.0
 couchdb couchdb/bindaddress seen true
 couchdb couchdb/cookie string ${COUCHDB_COOKIE}
 couchdb couchdb/cookie seen true
@@ -44,7 +37,6 @@ couchdb couchdb/adminpass seen true
 couchdb couchdb/adminpass_again password ${COUCHDB_PASSWORD}
 couchdb couchdb/adminpass_again seen true
 EOF
-
 DEBIAN_FRONTEND=noninteractive $STD apt-get install -y couchdb
 
 cat <<EOF >/root/.couchdb.credentials
@@ -52,8 +44,6 @@ COUCHDB_ADMIN_USER="${COUCHDB_ADMIN_USER}"
 COUCHDB_ADMIN_PASSWORD="${COUCHDB_PASSWORD}"
 COUCHDB_COOKIE="${COUCHDB_COOKIE}"
 EOF
-chmod 600 /root/.couchdb.credentials
-
 msg_ok "Installed CouchDB"
 
 msg_info "Configuring CouchDB"

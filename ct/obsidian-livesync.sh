@@ -4,7 +4,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/vrtmrz/obsidian-livesync
+# Source: https://github.com/vrtmrz/obsidian-livesync | https://couchdb.apache.org/
 
 APP="Obsidian-LiveSync"
 var_tags="${var_tags:-documents;notes}"
@@ -59,4 +59,4 @@ description
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW}Configure the Self-hosted LiveSync plugin with the credentials in /opt/obsidian-livesync/.env${CL}"
-echo -e "${GATEWAY}${BGN}http://${IP}:5984${CL}"
+echo -e "${GATEWAY}${BGN}http://${IP}:5984/_utils/${CL}"
