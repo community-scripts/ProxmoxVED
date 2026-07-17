@@ -58,10 +58,10 @@ EOF
 chmod 640 /opt/directus/.env
 msg_ok "Configured Directus"
 
-msg_info "Initializing Directus"
-cd /opt/directus
-$STD /opt/directus/node_modules/.bin/directus bootstrap
-msg_ok "Initialized Directus"
+# msg_info "Initializing Directus"
+# cd /opt/directus
+# $STD /opt/directus/node_modules/.bin/directus bootstrap
+# msg_ok "Initialized Directus"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/directus.service
