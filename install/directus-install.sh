@@ -46,7 +46,7 @@ DB_DATABASE="${PG_DB_NAME}"
 DB_USER="${PG_DB_USER}"
 DB_PASSWORD="${PG_DB_PASS}"
 
-ADMIN_EMAIL="admin@directus.local"
+ADMIN_EMAIL="admin@community-scripts.org"
 ADMIN_PASSWORD="${DIRECTUS_ADMIN_PASSWORD}"
 
 STORAGE_LOCATIONS="local"
