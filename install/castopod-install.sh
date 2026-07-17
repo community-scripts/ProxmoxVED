@@ -80,10 +80,13 @@ CASTOPOD_ADMIN_USERNAME="admin"
 CASTOPOD_ADMIN_EMAIL="admin@${LOCAL_IP}.nip.io"
 CASTOPOD_ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-20)"
 
-printf '%s\n%s\n' "${CASTOPOD_ADMIN_PASSWORD}" "${CASTOPOD_ADMIN_PASSWORD}" |
+if ! printf '%s\n%s\n' "${CASTOPOD_ADMIN_PASSWORD}" "${CASTOPOD_ADMIN_PASSWORD}" |
   runuser -u www-data -- php /opt/castopod/spark install:create-superadmin \
     -n "${CASTOPOD_ADMIN_USERNAME}" \
-    -e "${CASTOPOD_ADMIN_EMAIL}"
+    -e "${CASTOPOD_ADMIN_EMAIL}"; then
+  msg_error "Failed to create Castopod Superadmin"
+  exit 1
+fi
 
 cat <<EOF >/root/.castopod.credentials
 Castopod URL: http://${LOCAL_IP}/cp-admin
