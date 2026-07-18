@@ -53,3 +53,34 @@ is_incus_host() {
 is_incus_container() {
   [[ "$(detect_lxc_platform)" == "incus-container" ]]
 }
+
+# Writable state directory for defaults/diagnostics.
+# Root (or writable /usr/local) → /usr/local/community-scripts
+# Non-root Incus users → ~/.config/community-scripts
+community_scripts_dir() {
+  if [[ -n "${COMMUNITY_SCRIPTS_STATE_DIR:-}" ]]; then
+    mkdir -p "$COMMUNITY_SCRIPTS_STATE_DIR" 2>/dev/null || true
+    echo "$COMMUNITY_SCRIPTS_STATE_DIR"
+    return 0
+  fi
+
+  local system_dir="/usr/local/community-scripts"
+  if [[ "$(id -u)" -eq 0 ]]; then
+    mkdir -p "$system_dir" 2>/dev/null || true
+    echo "$system_dir"
+    return 0
+  fi
+  if [[ -d "$system_dir" && -w "$system_dir" ]]; then
+    echo "$system_dir"
+    return 0
+  fi
+  if mkdir -p "$system_dir" 2>/dev/null && [[ -w "$system_dir" ]]; then
+    echo "$system_dir"
+    return 0
+  fi
+
+  local user_dir="${XDG_CONFIG_HOME:-${HOME:-/tmp}/.config}/community-scripts"
+  mkdir -p "$user_dir" 2>/dev/null || user_dir="/tmp/community-scripts-$$"
+  mkdir -p "$user_dir" 2>/dev/null || true
+  echo "$user_dir"
+}

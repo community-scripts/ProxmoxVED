@@ -1772,8 +1772,10 @@ default_var_settings() {
   # Find default.vars location
   local _find_default_vars
   _find_default_vars() {
-    local f
+    local f base
+    base="$(declare -f community_scripts_dir >/dev/null 2>&1 && community_scripts_dir || echo /usr/local/community-scripts)"
     for f in \
+      "${base}/default.vars" \
       /usr/local/community-scripts/default.vars \
       "$HOME/.config/community-scripts/default.vars" \
       "./default.vars"; do
@@ -1793,9 +1795,11 @@ default_var_settings() {
   _ensure_default_vars() {
     _find_default_vars >/dev/null 2>&1 && return 0
 
-    local canonical="/usr/local/community-scripts/default.vars"
+    local canonical_dir canonical
+    canonical_dir="$(declare -f community_scripts_dir >/dev/null 2>&1 && community_scripts_dir || echo /usr/local/community-scripts)"
+    canonical="${canonical_dir}/default.vars"
     # Silent creation - no msg_info output
-    mkdir -p /usr/local/community-scripts
+    mkdir -p "$canonical_dir"
 
     # Pick storages before writing the file (always ask unless only one)
     # Create a minimal temp file to write into
@@ -1903,7 +1907,9 @@ EOF
 
 get_app_defaults_path() {
   local n="${NSAPP:-${APP,,}}"
-  echo "/usr/local/community-scripts/defaults/${n}.vars"
+  local base
+  base="$(declare -f community_scripts_dir >/dev/null 2>&1 && community_scripts_dir || echo /usr/local/community-scripts)"
+  echo "${base}/defaults/${n}.vars"
 }
 
 # ------------------------------------------------------------------------------
@@ -2243,9 +2249,11 @@ ensure_storage_selection_for_vars_file() {
 }
 
 ensure_global_default_vars_file() {
-  local vars_path="/usr/local/community-scripts/default.vars"
+  local vars_dir vars_path
+  vars_dir="$(declare -f community_scripts_dir >/dev/null 2>&1 && community_scripts_dir || echo /usr/local/community-scripts)"
+  vars_path="${vars_dir}/default.vars"
   if [[ ! -f "$vars_path" ]]; then
-    mkdir -p "$(dirname "$vars_path")"
+    mkdir -p "$vars_dir"
     touch "$vars_path"
   fi
   echo "$vars_path"
@@ -3338,22 +3346,25 @@ Advanced:
 # - Sets global DIAGNOSTICS variable for API telemetry opt-in/out
 # ------------------------------------------------------------------------------
 diagnostics_check() {
-  if ! [ -d "/usr/local/community-scripts" ]; then
-    mkdir -p /usr/local/community-scripts
+  local _cs_dir _diag_file
+  _cs_dir="$(declare -f community_scripts_dir >/dev/null 2>&1 && community_scripts_dir || echo /usr/local/community-scripts)"
+  _diag_file="${_cs_dir}/diagnostics"
+  if ! [ -d "$_cs_dir" ]; then
+    mkdir -p "$_cs_dir"
   fi
 
-  if ! [ -f "/usr/local/community-scripts/diagnostics" ]; then
+  if ! [ -f "$_diag_file" ]; then
     if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "DIAGNOSTICS" --yesno "Send Diagnostics of LXC Installation?\n\n(This only transmits data without user data, just RAM, CPU, LXC name, ...)" 10 58); then
-      cat <<EOF >/usr/local/community-scripts/diagnostics
+      cat <<EOF >"$_diag_file"
 DIAGNOSTICS=yes
 
 #This file is used to store the diagnostics settings for the Community-Scripts API.
 #https://git.community-scripts.org/community-scripts/ProxmoxVED/discussions/1836
 #Your diagnostics will be sent to the Community-Scripts API for troubleshooting/statistical purposes.
 #You can review the data at https://community-scripts.github.io/ProxmoxVED/data
-#If you do not wish to send diagnostics, please set the variable 'DIAGNOSTICS' to "no" in /usr/local/community-scripts/diagnostics, or use the menue.
+#If you do not wish to send diagnostics, please set the variable 'DIAGNOSTICS' to "no" in ${_diag_file}, or use the menue.
 #This will disable the diagnostics feature.
-#To send diagnostics, set the variable 'DIAGNOSTICS' to "yes" in /usr/local/community-scripts/diagnostics, or use the menue.
+#To send diagnostics, set the variable 'DIAGNOSTICS' to "yes" in ${_diag_file}, or use the menue.
 #This will enable the diagnostics feature.
 #The following information will be sent:
 #"disk_size"
@@ -3369,16 +3380,16 @@ DIAGNOSTICS=yes
 EOF
       DIAGNOSTICS="yes"
     else
-      cat <<EOF >/usr/local/community-scripts/diagnostics
+      cat <<EOF >"$_diag_file"
 DIAGNOSTICS=no
 
 #This file is used to store the diagnostics settings for the Community-Scripts API.
 #https://git.community-scripts.org/community-scripts/ProxmoxVED/discussions/1836
 #Your diagnostics will be sent to the Community-Scripts API for troubleshooting/statistical purposes.
 #You can review the data at https://community-scripts.github.io/ProxmoxVED/data
-#If you do not wish to send diagnostics, please set the variable 'DIAGNOSTICS' to "no" in /usr/local/community-scripts/diagnostics, or use the menue.
+#If you do not wish to send diagnostics, please set the variable 'DIAGNOSTICS' to "no" in ${_diag_file}, or use the menue.
 #This will disable the diagnostics feature.
-#To send diagnostics, set the variable 'DIAGNOSTICS' to "yes" in /usr/local/community-scripts/diagnostics, or use the menue.
+#To send diagnostics, set the variable 'DIAGNOSTICS' to "yes" in ${_diag_file}, or use the menue.
 #This will enable the diagnostics feature.
 #The following information will be sent:
 #"disk_size"
@@ -3395,7 +3406,7 @@ EOF
       DIAGNOSTICS="no"
     fi
   else
-    DIAGNOSTICS=$(awk -F '=' '/^DIAGNOSTICS/ {print $2}' /usr/local/community-scripts/diagnostics)
+    DIAGNOSTICS=$(awk -F '=' '/^DIAGNOSTICS/ {print $2}' "$_diag_file")
 
   fi
 }
@@ -3460,13 +3471,15 @@ dev_mode_menu() {
 }
 
 diagnostics_menu() {
+  local _diag_file
+  _diag_file="$(declare -f community_scripts_dir >/dev/null 2>&1 && community_scripts_dir || echo /usr/local/community-scripts)/diagnostics"
   if [ "${DIAGNOSTICS:-no}" = "yes" ]; then
     if whiptail --backtitle "Proxmox VE Helper Scripts" \
       --title "DIAGNOSTIC SETTINGS" \
       --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
       --yes-button "No" --no-button "Back"; then
       DIAGNOSTICS="no"
-      sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' /usr/local/community-scripts/diagnostics
+      sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' "$_diag_file"
       whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
     fi
   else
@@ -3475,7 +3488,7 @@ diagnostics_menu() {
       --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
       --yes-button "Yes" --no-button "Back"; then
       DIAGNOSTICS="yes"
-      sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' /usr/local/community-scripts/diagnostics
+      sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' "$_diag_file"
       whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
     fi
   fi

@@ -16,12 +16,57 @@ incus_ct_exec() {
   incus exec "${CT_NAME}" -- "$@"
 }
 
+_incus_parse_size_to_bytes() {
+  # Accepts raw bytes or human values like 589.51GiB / 211MiB / 1.5TB
+  local raw="${1:-}" val unit
+  raw="${raw// /}"
+  [[ -z "$raw" ]] && return 1
+  if [[ "$raw" =~ ^[0-9]+$ ]]; then
+    echo "$raw"
+    return 0
+  fi
+  val=$(echo "$raw" | sed -E 's/[^0-9.].*$//')
+  unit=$(echo "$raw" | sed -E 's/^[0-9.]+//' | tr '[:lower:]' '[:upper:]')
+  [[ -z "$val" ]] && return 1
+  case "$unit" in
+  B | "") echo "$(awk -v v="$val" 'BEGIN{printf "%d", v}')" ;;
+  KB | KIB | K) echo "$(awk -v v="$val" 'BEGIN{printf "%d", v*1024}')" ;;
+  MB | MIB | M) echo "$(awk -v v="$val" 'BEGIN{printf "%d", v*1024*1024}')" ;;
+  GB | GIB | G) echo "$(awk -v v="$val" 'BEGIN{printf "%d", v*1024*1024*1024}')" ;;
+  TB | TIB | T) echo "$(awk -v v="$val" 'BEGIN{printf "%d", v*1024*1024*1024*1024}')" ;;
+  *) return 1 ;;
+  esac
+}
+
 incus_storage_pool_free_gb() {
   local pool="${1:-}"
-  local info free_bytes
-  info=$(incus storage info "$pool" 2>/dev/null || true)
-  free_bytes=$(echo "$info" | awk '/^  space free:/ {print $3}')
-  [[ -z "$free_bytes" ]] && return 1
+  local info free_bytes total_bytes used_bytes free_raw total_raw used_raw
+
+  # Prefer machine-readable bytes when available (Incus --bytes).
+  info=$(incus storage info --bytes "$pool" 2>/dev/null || true)
+  free_raw=$(echo "$info" | awk -F': *' '/space free:/ {print $2; exit}')
+  if [[ -n "$free_raw" ]]; then
+    free_bytes="$(_incus_parse_size_to_bytes "$free_raw" 2>/dev/null || true)"
+  fi
+
+  # Older/human output often has only "space used" + "total space" (no free line).
+  if [[ -z "${free_bytes:-}" ]]; then
+    info=$(incus storage info "$pool" 2>/dev/null || true)
+    free_raw=$(echo "$info" | awk -F': *' '/space free:/ {print $2; exit}')
+    total_raw=$(echo "$info" | awk -F': *' '/total space:/ {print $2; exit}')
+    used_raw=$(echo "$info" | awk -F': *' '/space used:/ {print $2; exit}')
+    if [[ -n "$free_raw" ]]; then
+      free_bytes="$(_incus_parse_size_to_bytes "$free_raw" 2>/dev/null || true)"
+    elif [[ -n "$total_raw" && -n "$used_raw" ]]; then
+      total_bytes="$(_incus_parse_size_to_bytes "$total_raw" 2>/dev/null || true)"
+      used_bytes="$(_incus_parse_size_to_bytes "$used_raw" 2>/dev/null || true)"
+      if [[ -n "${total_bytes:-}" && -n "${used_bytes:-}" && "$total_bytes" -ge "$used_bytes" ]]; then
+        free_bytes=$((total_bytes - used_bytes))
+      fi
+    fi
+  fi
+
+  [[ -z "${free_bytes:-}" || "$free_bytes" -le 0 ]] && return 1
   echo $((free_bytes / 1024 / 1024 / 1024))
 }
 
@@ -163,7 +208,6 @@ incus_create_lxc_container() {
   launch_args+=("--network" "${BRG}")
 
   [[ "${ENABLE_NESTING:-1}" == "1" ]] && launch_args+=("--config" "security.nesting=true")
-  [[ "${CT_TYPE:-1}" == "1" ]] && launch_args+=("--config" "linux.sysctl.kernel.keys.maxkeys=2000")
 
   if [[ "${CT_TYPE:-1}" != "1" || "${ENABLE_FUSE:-no}" == "yes" || "${ENABLE_TUN:-no}" == "yes" ]]; then
     launch_args+=("--config" "security.privileged=true")
@@ -172,10 +216,37 @@ incus_create_lxc_container() {
   launch_args+=("--storage" "${STORAGE_POOL}")
   launch_args+=("--device" "root,size=${DISK_SIZE}GiB")
 
-  incus launch "${image_name}" "${CT_NAME}" "${launch_args[@]}" >>"$LOGFILE" 2>&1 || {
+  # Prefer a unique name if the chosen one already exists.
+  if incus_container_exists "${CT_NAME}"; then
+    local alt
+    alt="$(incus_get_next_name "${CT_NAME}")"
+    msg_warn "Instance '${CT_NAME}' already exists — using '${alt}'"
+    CT_NAME="$alt"
+    CTID="$CT_NAME"
+  fi
+
+  {
+    echo "=== incus launch ${image_name} ${CT_NAME} ==="
+    echo "args: ${launch_args[*]}"
+    echo "user: $(id -un) uid=$(id -u)"
+  } >>"$LOGFILE"
+
+  if ! incus launch "${image_name}" "${CT_NAME}" "${launch_args[@]}" >>"$LOGFILE" 2>&1; then
     msg_error "Failed to create container ${CT_NAME}"
+    echo -e "${YW}Last launch errors:${CL}"
+    tail -n 30 "$LOGFILE" 2>/dev/null | sed 's/^/  /' || true
+    echo -e "${YW}Log: ${BL}${LOGFILE}${CL}"
     exit 1
-  }
+  fi
+
+  # Optional configs that some Incus versions reject at launch time.
+  if [[ "${CT_TYPE:-1}" == "1" ]]; then
+    incus config set "${CT_NAME}" linux.sysctl.kernel.keys.maxkeys=2000 >>"$LOGFILE" 2>&1 || true
+  fi
+  if [[ -n "${HN:-}" && "${HN,,}" != "${CT_NAME,,}" ]]; then
+    incus config set "${CT_NAME}" user.hostname="${HN}" >>"$LOGFILE" 2>&1 || true
+  fi
+
   msg_ok "LXC Container ${CT_NAME} was successfully created."
 
   msg_info "Waiting for container to initialize"

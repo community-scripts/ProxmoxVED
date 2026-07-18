@@ -159,7 +159,9 @@ populate_advanced_bridge_menu() {
 }
 
 _incus_sync_from_pve_settings() {
-  CT_NAME=$(echo "${HN:-${CT_ID:-$NSAPP}}" | tr '[:upper:]' '[:lower:]' | tr -d ' ' | tr '_' '-')
+  # On Incus the instance name must be CT_ID (e.g. debian-1), not the hostname.
+  local _name="${CT_ID:-${HN:-$NSAPP}}"
+  CT_NAME=$(echo "${_name}" | tr '[:upper:]' '[:lower:]' | tr -d ' ' | tr '_' '-')
   CTID="$CT_NAME"
   UNPRIVILEGED="${CT_TYPE:-1}"
   IMAGE_OS="${var_os:-debian}"
@@ -239,10 +241,41 @@ validate_bridge() {
 validate_gateway_in_subnet() { return 0; }
 
 ensure_global_default_vars_file() {
-  local vf="/usr/local/community-scripts/default.vars"
-  mkdir -p /usr/local/community-scripts
-  [[ -f "$vf" ]] || touch "$vf"
+  local dir vf
+  dir="$(community_scripts_dir)"
+  vf="${dir}/default.vars"
+  mkdir -p "$dir" 2>/dev/null || true
+  [[ -f "$vf" ]] || touch "$vf" 2>/dev/null || true
   echo "$vf"
+}
+
+get_app_defaults_path() {
+  local n="${NSAPP:-${APP,,}}"
+  echo "$(community_scripts_dir)/defaults/${n}.vars"
+}
+
+diagnostics_check() {
+  local dir diag
+  dir="$(community_scripts_dir)"
+  diag="${dir}/diagnostics"
+  mkdir -p "$dir" 2>/dev/null || true
+
+  if [[ ! -f "$diag" ]]; then
+    if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "DIAGNOSTICS" --yesno "Send Diagnostics of LXC Installation?\n\n(This only transmits data without user data, just RAM, CPU, LXC name, ...)" 10 58); then
+      cat <<EOF >"$diag"
+DIAGNOSTICS=yes
+EOF
+      DIAGNOSTICS="yes"
+    else
+      cat <<EOF >"$diag"
+DIAGNOSTICS=no
+EOF
+      DIAGNOSTICS="no"
+    fi
+  else
+    DIAGNOSTICS=$(awk -F '=' '/^DIAGNOSTICS/ {print $2}' "$diag" 2>/dev/null || echo "yes")
+  fi
+  export DIAGNOSTICS
 }
 
 choose_and_set_storage_for_file() {
