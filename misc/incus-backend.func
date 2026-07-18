@@ -1,0 +1,564 @@
+#!/usr/bin/env bash
+# Copyright (c) 2021-2026 community-scripts ORG
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/main/LICENSE
+
+# ==============================================================================
+# INCUS-BACKEND.FUNC - FULL PARITY BACKEND FOR INCUS CONTAINER CREATION
+# ==============================================================================
+# Mirrors misc/build.func build_container / create_lxc_container flow for Incus.
+# Requires incus-build.func hooks and UI functions to be loaded first.
+# ==============================================================================
+
+[[ -n "${_INCUS_BACKEND_LOADED:-}" ]] && return
+_INCUS_BACKEND_LOADED=1
+
+incus_ct_exec() {
+  incus exec "${CT_NAME}" -- "$@"
+}
+
+incus_storage_pool_free_gb() {
+  local pool="${1:-}"
+  local info free_bytes
+  info=$(incus storage info "$pool" 2>/dev/null || true)
+  free_bytes=$(echo "$info" | awk '/^  space free:/ {print $3}')
+  [[ -z "$free_bytes" ]] && return 1
+  echo $((free_bytes / 1024 / 1024 / 1024))
+}
+
+incus_validate_storage_space() {
+  local pool="${1:-$CONTAINER_STORAGE}"
+  local need_gb="${2:-${DISK_SIZE:-4}}"
+  local free_gb
+  free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo "")
+  if [[ -z "$free_gb" ]]; then
+    msg_warn "Could not determine free space on pool '${pool}'"
+    return 0
+  fi
+  if [[ "$free_gb" -lt "$need_gb" ]]; then
+    msg_error "Not enough space on '${pool}'. Required: ${need_gb}GB, Available: ~${free_gb}GB"
+    exit 214
+  fi
+  msg_ok "Storage space validated (${pool}: ~${free_gb}GB free)"
+}
+
+resolve_storage_preselect() {
+  local _class="${1:-container}"
+  local preselect="${2:-}"
+  [[ -z "$preselect" ]] && return 1
+  incus storage info "$preselect" &>/dev/null || return 1
+  STORAGE_RESULT="$preselect"
+  local free_gb
+  free_gb=$(incus_storage_pool_free_gb "$preselect" 2>/dev/null || echo "?")
+  STORAGE_INFO="Free: ~${free_gb}GB"
+  return 0
+}
+
+check_storage_support() {
+  local _content="${1:-rootdir}"
+  case "$_content" in
+  vztmpl | template)
+    getent hosts images.linuxcontainers.org &>/dev/null
+    ;;
+  *)
+    [[ "$(incus storage list -f csv,noheader 2>/dev/null | wc -l)" -gt 0 ]]
+    ;;
+  esac
+}
+
+validate_storage_space() {
+  local pool="${1:-$CONTAINER_STORAGE}"
+  local need_gb="${2:-${DISK_SIZE:-4}}"
+  local free_gb
+  free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo 0)
+  [[ -n "$free_gb" && "$free_gb" -ge "$need_gb" ]]
+}
+
+_incus_prepare_install_exports() {
+  if [[ "${var_os:-debian}" == "alpine" ]]; then
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/misc/alpine-install.func")"
+  else
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/misc/install.func")"
+  fi
+
+  export DIAGNOSTICS="${DIAGNOSTICS:-yes}"
+  export RANDOM_UUID="${RANDOM_UUID}"
+  export EXECUTION_ID="${EXECUTION_ID}"
+  export SESSION_ID="${SESSION_ID}"
+  export CACHER="${APT_CACHER:-}"
+  export CACHER_IP="${APT_CACHER_IP:-}"
+  export tz="${timezone:-UTC}"
+  export APPLICATION="$APP"
+  export app="$NSAPP"
+  export PASSWORD="$PW"
+  export VERBOSE="${VERBOSE:-no}"
+  export SSH_ROOT="${SSH:-no}"
+  export SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY:-}"
+  export CTID="$CT_NAME"
+  export CTTYPE="${CT_TYPE:-1}"
+  export ENABLE_FUSE="${ENABLE_FUSE:-no}"
+  export ENABLE_TUN="${ENABLE_TUN:-no}"
+  export PCT_OSTYPE="${var_os:-debian}"
+  export PCT_OSVERSION="${var_version:-13}"
+  export PCT_DISK_SIZE="${DISK_SIZE}"
+  export IPV6_METHOD="${IPV6_METHOD:-auto}"
+  export ENABLE_GPU="${ENABLE_GPU:-no}"
+  export APPLICATION_VERSION="${var_appversion:-}"
+  export BUILD_LOG="${BUILD_LOG:-$INCUS_BUILD_LOG}"
+  export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
+  export COMMUNITY_SCRIPTS_URL="${INCUS_COMMUNITY_SCRIPTS_URL}"
+  export MODE="${METHOD:-default}"
+  _HOST_LOGFILE="${BUILD_LOG:-$INCUS_BUILD_LOG}"
+}
+
+incus_create_lxc_container() {
+  local image_name="images:${IMAGE_OS}/${IMAGE_VERSION}"
+  LOGFILE="${INCUS_BUILD_LOG}"
+
+  [[ "${CT_NAME:-}" ]] || { msg_error "Container name not set"; exit 203; }
+
+  post_to_api 2>/dev/null || true
+  post_progress_to_api "validation" 2>/dev/null || true
+
+  check_storage_support "rootdir" || { msg_error "No Incus storage pools found"; exit 1; }
+
+  if resolve_storage_preselect container "${CONTAINER_STORAGE:-}"; then
+    STORAGE_POOL="$STORAGE_RESULT"
+    msg_ok "Storage ${BL}${STORAGE_POOL}${CL} (${STORAGE_INFO}) [Container]"
+  elif [[ -z "${CONTAINER_STORAGE:-}" ]]; then
+    select_storage container && STORAGE_POOL="$CONTAINER_STORAGE"
+    msg_ok "Storage ${BL}${STORAGE_POOL}${CL} [Container]"
+  else
+    STORAGE_POOL="${CONTAINER_STORAGE}"
+  fi
+
+  msg_info "Validating storage '${STORAGE_POOL}'"
+  incus storage info "$STORAGE_POOL" &>/dev/null || { msg_error "Storage pool '${STORAGE_POOL}' invalid"; exit 213; }
+  msg_ok "Storage '${STORAGE_POOL}' validated"
+
+  if ! incus network show "${BRG}" >/dev/null 2>&1; then
+    msg_warn "Network '${BRG}' not found, auto-selecting fallback"
+    BRG="$(incus_pick_default_network)"
+    msg_ok "Using network '${BRG}'"
+  fi
+
+  msg_info "Creating LXC Container"
+  incus_log_section "Container Creation: ${CT_NAME}"
+
+  local launch_args=()
+  launch_args+=("--config" "limits.cpu=${CORE_COUNT}")
+  launch_args+=("--config" "limits.memory=${RAM_SIZE}MiB")
+  launch_args+=("--config" "boot.autostart=true")
+  [[ -n "${PROFILE:-}" && "${PROFILE}" != "default" ]] && launch_args+=("--profile" "${PROFILE}")
+  launch_args+=("--network" "${BRG}")
+
+  [[ "${ENABLE_NESTING:-1}" == "1" ]] && launch_args+=("--config" "security.nesting=true")
+  [[ "${CT_TYPE:-1}" == "1" ]] && launch_args+=("--config" "linux.sysctl.kernel.keys.maxkeys=2000")
+
+  if [[ "${CT_TYPE:-1}" != "1" || "${ENABLE_FUSE:-no}" == "yes" || "${ENABLE_TUN:-no}" == "yes" ]]; then
+    launch_args+=("--config" "security.privileged=true")
+  fi
+
+  launch_args+=("--storage" "${STORAGE_POOL}")
+  launch_args+=("--device" "root,size=${DISK_SIZE}GiB")
+
+  incus launch "${image_name}" "${CT_NAME}" "${launch_args[@]}" >>"$LOGFILE" 2>&1 || {
+    msg_error "Failed to create container ${CT_NAME}"
+    exit 1
+  }
+  msg_ok "LXC Container ${CT_NAME} was successfully created."
+
+  msg_info "Waiting for container to initialize"
+  local waited=0
+  while ! incus_ct_exec true &>/dev/null; do
+    sleep 2
+    waited=$((waited + 2))
+    [[ "$waited" -ge 60 ]] && { msg_error "Container not ready"; exit 1; }
+  done
+  msg_ok "Container ${CT_NAME} is ready"
+
+  local net_reconfigure=0
+  if [[ -n "${MAC:-}" ]]; then
+    incus config device set "${CT_NAME}" eth0 hwaddr "${MAC}" >>"$LOGFILE" 2>&1 || msg_warn "Could not apply MAC (${MAC})"
+    net_reconfigure=1
+  fi
+  if [[ -n "${VLAN_TAG:-}" ]]; then
+    incus config device set "${CT_NAME}" eth0 vlan "${VLAN_TAG}" >>"$LOGFILE" 2>&1 || msg_warn "Could not apply VLAN (${VLAN_TAG})"
+    net_reconfigure=1
+  fi
+  if [[ -n "${MTU:-}" ]]; then
+    incus config device set "${CT_NAME}" eth0 mtu "${MTU}" >>"$LOGFILE" 2>&1 || msg_warn "Could not apply MTU (${MTU})"
+    net_reconfigure=1
+  fi
+  if [[ -n "${NET:-}" && "${NET}" != "dhcp" ]]; then
+    incus config device set "${CT_NAME}" eth0 ipv4.address "${NET}" >>"$LOGFILE" 2>&1 || msg_warn "Could not apply IPv4 (${NET})"
+    net_reconfigure=1
+  fi
+  if [[ -n "${GATE:-}" ]]; then
+    incus config device set "${CT_NAME}" eth0 ipv4.gateway "${GATE}" >>"$LOGFILE" 2>&1 || msg_warn "Could not apply gateway (${GATE})"
+    net_reconfigure=1
+  fi
+  case "${IPV6_METHOD:-auto}" in
+  auto | dhcp)
+    incus config device set "${CT_NAME}" eth0 ipv6.address "auto" >>"$LOGFILE" 2>&1 || true
+    ;;
+  static)
+    [[ -n "${IPV6_ADDR:-}" ]] && incus config device set "${CT_NAME}" eth0 ipv6.address "${IPV6_ADDR}" >>"$LOGFILE" 2>&1 || true
+    [[ -n "${IPV6_GATE:-}" ]] && incus config device set "${CT_NAME}" eth0 ipv6.gateway "${IPV6_GATE}" >>"$LOGFILE" 2>&1 || true
+    net_reconfigure=1
+    ;;
+  none)
+    incus config device set "${CT_NAME}" eth0 ipv6.address "none" >>"$LOGFILE" 2>&1 || true
+    ;;
+  esac
+  if [[ -n "${TAGS:-}" ]]; then
+    incus config set "${CT_NAME}" user.tags "${TAGS}" >>"$LOGFILE" 2>&1 || msg_warn "Could not apply tags"
+  fi
+
+  [[ "$net_reconfigure" -eq 1 ]] && {
+    msg_info "Reconfiguring network settings"
+    incus restart "${CT_NAME}" >>"$LOGFILE" 2>&1 || msg_warn "Restart after network reconfiguration failed"
+    msg_ok "Network settings applied"
+  }
+}
+
+incus_is_gpu_app() {
+  [[ "${var_gpu:-no}" == "yes" || "${ENABLE_GPU:-no}" == "yes" ]]
+}
+
+incus_detect_gpu_devices() {
+  INTEL_DEVICES=()
+  AMD_DEVICES=()
+  NVIDIA_DEVICES=()
+  local pci_vga_info
+  pci_vga_info=$(lspci -nn 2>/dev/null | grep -E "VGA|Display|3D" || true)
+  if echo "$pci_vga_info" | grep -q "\[8086:"; then
+    msg_custom "🎮" "${BL}" "Detected Intel GPU"
+    [[ -d /dev/dri ]] && for d in /dev/dri/renderD* /dev/dri/card*; do [[ -e "$d" ]] && INTEL_DEVICES+=("$d"); done
+  fi
+  if echo "$pci_vga_info" | grep -qE "\[1002:|\[1022:"; then
+    msg_custom "🎮" "${RD}" "Detected AMD GPU"
+    [[ ${#INTEL_DEVICES[@]} -eq 0 && -d /dev/dri ]] && for d in /dev/dri/renderD* /dev/dri/card*; do [[ -e "$d" ]] && AMD_DEVICES+=("$d"); done
+  fi
+  if echo "$pci_vga_info" | grep -q "\[10de:"; then
+    msg_custom "🎮" "${GN}" "Detected NVIDIA GPU"
+    for d in /dev/nvidia*; do [[ -c "$d" ]] && NVIDIA_DEVICES+=("$d"); done
+    [[ -d /dev/nvidia-caps ]] && for d in /dev/nvidia-caps/*; do [[ -c "$d" ]] && NVIDIA_DEVICES+=("$d"); done
+  fi
+}
+
+incus_configure_device_passthrough() {
+  if incus_is_gpu_app; then
+    incus_detect_gpu_devices
+    local dev_idx=0 dev selected_gpu="" gpu_count=0
+    local -a available_gpus=()
+    [[ ${#INTEL_DEVICES[@]} -gt 0 ]] && { available_gpus+=("INTEL"); gpu_count=$((gpu_count + 1)); }
+    [[ ${#AMD_DEVICES[@]} -gt 0 ]] && { available_gpus+=("AMD"); gpu_count=$((gpu_count + 1)); }
+    [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]] && { available_gpus+=("NVIDIA"); gpu_count=$((gpu_count + 1)); }
+
+    if [[ "$gpu_count" -gt 0 ]]; then
+      selected_gpu="${available_gpus[0]}"
+      [[ "$gpu_count" -gt 1 ]] && selected_gpu=$(prompt_select "Which GPU type to passthrough?" 1 60 "${available_gpus[@]}")
+      selected_gpu="${selected_gpu^^}"
+      case "$selected_gpu" in
+      INTEL) dev_idx=0; for dev in "${INTEL_DEVICES[@]}"; do
+          incus config device add "${CT_NAME}" "gpu${dev_idx}" gpu gputype=physical device="${dev}" >>"$LOGFILE" 2>&1 ||
+            incus config device add "${CT_NAME}" "gpu${dev_idx}" unix-char source="${dev}" path="${dev}" >>"$LOGFILE" 2>&1 || true
+          dev_idx=$((dev_idx + 1))
+        done
+        export GPU_TYPE="INTEL"
+        msg_ok "Intel GPU passthrough configured (${#INTEL_DEVICES[@]} devices)"
+        ;;
+      AMD) dev_idx=0; for dev in "${AMD_DEVICES[@]}"; do
+          incus config device add "${CT_NAME}" "gpu${dev_idx}" gpu gputype=physical device="${dev}" >>"$LOGFILE" 2>&1 ||
+            incus config device add "${CT_NAME}" "gpu${dev_idx}" unix-char source="${dev}" path="${dev}" >>"$LOGFILE" 2>&1 || true
+          dev_idx=$((dev_idx + 1))
+        done
+        export GPU_TYPE="AMD"
+        msg_ok "AMD GPU passthrough configured (${#AMD_DEVICES[@]} devices)"
+        ;;
+      NVIDIA) dev_idx=0; for dev in "${NVIDIA_DEVICES[@]}"; do
+          incus config device add "${CT_NAME}" "nvidia${dev_idx}" unix-char source="${dev}" path="${dev}" >>"$LOGFILE" 2>&1 || true
+          dev_idx=$((dev_idx + 1))
+        done
+        export GPU_TYPE="NVIDIA"
+        msg_ok "NVIDIA GPU passthrough configured (${#NVIDIA_DEVICES[@]} devices)"
+        ;;
+      esac
+    else
+      msg_custom "ℹ️" "${YW}" "No GPU devices found for passthrough"
+    fi
+  fi
+
+  if [[ "${ENABLE_TUN:-no}" == "yes" ]]; then
+    incus config device add "${CT_NAME}" tun unix-char source=/dev/net/tun path=/dev/net/tun >>"$LOGFILE" 2>&1 ||
+      msg_warn "Could not add TUN device (privileged container may be required)"
+  fi
+
+  if [[ "${CT_TYPE:-1}" == "0" ]]; then
+    msg_info "Privileged container — USB serial passthrough available if needed"
+  fi
+
+  if [[ -e /dev/apex_0 ]]; then
+    msg_custom "🔌" "${BL}" "Detected Coral TPU - configuring passthrough"
+    incus config device add "${CT_NAME}" apex0 unix-char source=/dev/apex_0 path=/dev/apex_0 >>"$LOGFILE" 2>&1 || true
+  fi
+}
+
+incus_wait_for_network() {
+  [[ "${var_os:-debian}" == "alpine" ]] && return 0
+  msg_info "Waiting for network in LXC container"
+  local ip_in_lxc="" i
+  for i in {1..20}; do
+    ip_in_lxc=$(incus_ct_exec ip -4 addr show dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
+    [[ -z "$ip_in_lxc" ]] && ip_in_lxc=$(incus_ct_exec ip -6 addr show dev eth0 scope global 2>/dev/null | awk '/inet6 / {print $2}' | cut -d/ -f1 | head -n1)
+    [[ -n "$ip_in_lxc" ]] && break
+    sleep 1
+  done
+  if [[ -z "$ip_in_lxc" ]]; then
+    msg_error "No IP assigned to ${CT_NAME} after 20s"
+    echo -e "${YW}Troubleshooting:${CL}"
+    echo "  • Verify network ${BRG} exists and has connectivity"
+    echo "  • Check DHCP server (if using DHCP)"
+    echo "  • Verify static IP configuration"
+    exit 1
+  fi
+
+  local ping_success=false retry
+  for retry in {1..3}; do
+    if incus_ct_exec ping -c 1 -W 2 1.1.1.1 &>/dev/null ||
+      incus_ct_exec ping -c 1 -W 2 8.8.8.8 &>/dev/null ||
+      incus_ct_exec ping6 -c 1 -W 2 2606:4700:4700::1111 &>/dev/null; then
+      ping_success=true
+      break
+    fi
+    sleep 2
+  done
+
+  if [[ "$ping_success" == "false" ]]; then
+    msg_warn "Network configured (IP: $ip_in_lxc) but connectivity test failed"
+    echo -e "${YW}Container may have limited internet access. Installation will continue...${CL}"
+  else
+    msg_ok "Network in LXC is reachable (ping)"
+  fi
+  msg_ok "IPv4 set to ${ip_in_lxc}"
+  export IP="$ip_in_lxc"
+}
+
+fix_gpu_gids() {
+  [[ -z "${GPU_TYPE:-}" ]] && return 0
+  msg_info "Detecting and setting correct GPU group IDs"
+  local video_gid render_gid
+  video_gid=$(incus_ct_exec getent group video 2>/dev/null | cut -d: -f3)
+  render_gid=$(incus_ct_exec getent group render 2>/dev/null | cut -d: -f3)
+  [[ -z "$video_gid" ]] && incus_ct_exec groupadd -r video 2>/dev/null || true
+  [[ -z "$render_gid" ]] && incus_ct_exec groupadd -r render 2>/dev/null || true
+  video_gid=$(incus_ct_exec getent group video 2>/dev/null | cut -d: -f3)
+  render_gid=$(incus_ct_exec getent group render 2>/dev/null | cut -d: -f3)
+  [[ -z "$video_gid" ]] && video_gid="44"
+  [[ -z "$render_gid" ]] && render_gid="104"
+  if [[ "${CT_TYPE:-1}" == "0" && -d /dev/dri ]]; then
+    incus_ct_exec bash -c "
+      for dev in /dev/dri/*; do
+        [[ -e \"\$dev\" ]] || continue
+        case \"\$dev\" in
+          *renderD*) chgrp ${render_gid} \"\$dev\" 2>/dev/null || true ;;
+          *) chgrp ${video_gid} \"\$dev\" 2>/dev/null || true ;;
+        esac
+        chmod 660 \"\$dev\" 2>/dev/null || true
+      done
+    " &>/dev/null || true
+  fi
+  msg_ok "GPU passthrough configured (video:${video_gid}, render:${render_gid})"
+}
+
+incus_fix_debian13_root_ownership() {
+  [[ "${var_os:-}" == "debian" && "${var_version:-}" == "13" ]] || return 0
+  incus_ct_exec chown root:root / 2>/dev/null || true
+}
+
+incus_set_root_password() {
+  [[ -z "${PW:-}" ]] && return 0
+  local pw_raw="${PW#--password }"
+  [[ -z "$pw_raw" ]] && return 0
+  msg_info "Setting root password"
+  incus_ct_exec bash -c "echo 'root:${pw_raw}' | chpasswd" &>/dev/null && msg_ok "Set root password" || msg_warn "Could not set root password"
+}
+
+incus_customize_container() {
+  msg_info "Customizing LXC Container"
+  ARCH="$(dpkg --print-architecture 2>/dev/null || uname -m)"
+
+  if [[ "${var_os:-debian}" == "alpine" ]]; then
+    sleep 2
+    incus_ct_exec /bin/sh -c 'cat <<EOF >/etc/apk/repositories
+http://dl-cdn.alpinelinux.org/alpine/latest-stable/main
+http://dl-cdn.alpinelinux.org/alpine/latest-stable/community
+EOF'
+    incus_ct_exec ash -c "apk add bash newt curl openssh nano mc ncurses jq >/dev/null" || msg_warn "Alpine base package install had issues"
+  elif [[ "${var_os:-debian}" =~ ^(debian|ubuntu|devuan)$ ]]; then
+    sleep 2
+    local _ct_env='export LC_ALL=C.UTF-8 LANG=C.UTF-8 DEBIAN_FRONTEND=noninteractive;'
+    [[ "${var_os}" == "devuan" ]] && incus_ct_exec bash -c "${_ct_env} apt-get update >/dev/null && apt-get install -y locales >/dev/null" || true
+
+    local tz_val="${timezone:-UTC}"
+    [[ -z "$tz_val" ]] && tz_val=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "UTC")
+    [[ "$tz_val" == Etc/* ]] && tz_val="UTC"
+    timezone="$tz_val"
+    if incus_ct_exec test -e "/usr/share/zoneinfo/$tz_val"; then
+      incus_ct_exec bash -c "${_ct_env} ln -sf \"/usr/share/zoneinfo/$tz_val\" /etc/localtime && echo \"$tz_val\" >/etc/timezone || true"
+    fi
+
+    local _base_pkgs="sudo curl mc gnupg2 jq"
+    [[ "$ARCH" == "arm64" ]] && _base_pkgs+=" openssh-server wget gcc"
+
+    if ! incus_ct_exec bash -c "${_ct_env} getent hosts deb.debian.org >/dev/null 2>&1 && getent hosts archive.ubuntu.com >/dev/null 2>&1"; then
+      msg_warn "APT repository DNS resolution failed in container, injecting public DNS servers"
+      incus_ct_exec bash -c "echo -e 'nameserver 8.8.8.8\nnameserver 1.1.1.1' >/etc/resolv.conf"
+    fi
+
+    incus_ct_exec bash -c "${_ct_env} apt-get update >/dev/null 2>&1 && apt-get install -y ${_base_pkgs} >/dev/null 2>&1" || {
+      msg_warn "apt-get update failed, trying alternate mirrors..."
+      msg_custom "ℹ️" "${YW}" "Probing alternate mirrors (this can take 1-2 minutes on network issues)"
+      incus_ct_exec env APT_BASE="$_base_pkgs" bash -c '
+        DISTRO=$(. /etc/os-release 2>/dev/null && echo "$ID" || echo "debian")
+        if [ "$DISTRO" = "ubuntu" ]; then
+          MIRRORS="de.archive.ubuntu.com fr.archive.ubuntu.com archive.ubuntu.com mirrors.edge.kernel.org"
+        else
+          MIRRORS="ftp.de.debian.org ftp.fr.debian.org ftp.nl.debian.org debian.mirror.lrz.de mirror.init7.net"
+        fi
+        echo "Acquire::By-Hash \"no\";" >/etc/apt/apt.conf.d/99no-by-hash
+        for m in $MIRRORS; do
+          sed -i "s|URIs: http[s]*://[^/]*/|URIs: http://${m}/|g; s|deb http[s]*://[^/]*/|deb http://${m}/|g" /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+          sed -i "s|deb http[s]*://[^/]*/|deb http://${m}/|g" /etc/apt/sources.list 2>/dev/null || true
+          rm -rf /var/lib/apt/lists/*
+          apt-get update >/dev/null 2>&1 && apt-get install -y $APT_BASE >/dev/null 2>&1 && exit 0
+        done
+        exit 1
+      ' || { msg_error "apt-get base packages installation failed"; exit 100; }
+    }
+  else
+    sleep 2
+    incus_ct_exec bash -c "command -v curl >/dev/null 2>&1 || (command -v dnf >/dev/null 2>&1 && dnf install -y curl >/dev/null 2>&1) || (command -v zypper >/dev/null 2>&1 && zypper -n install curl >/dev/null 2>&1) || (command -v pacman >/dev/null 2>&1 && pacman -Sy --noconfirm curl >/dev/null 2>&1)" || true
+  fi
+
+  incus_set_root_password
+  msg_ok "Customized LXC Container"
+}
+
+incus_setup_motd_pve_style() {
+  msg_info "Setting up MOTD"
+  local motd_file
+  motd_file=$(mktemp)
+  cat >"$motd_file" <<MOTDEOF
+#!/bin/bash
+# Community Scripts MOTD
+if [[ -f /etc/os-release ]]; then . /etc/os-release; fi
+echo ''
+echo '  🚀 ${APP} LXC'
+echo "  🖥️  OS: \${PRETTY_NAME:-Linux}"
+echo "  📡 IP: \$(hostname -I 2>/dev/null | awk '{print \$1}')"
+echo ''
+MOTDEOF
+  incus file push "$motd_file" "${CT_NAME}/etc/profile.d/99-community-scripts-motd.sh" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
+  incus_ct_exec chmod +x /etc/profile.d/99-community-scripts-motd.sh >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
+  rm -f "$motd_file"
+  msg_ok "MOTD configured"
+}
+
+incus_run_install_script_with_recovery() {
+  msg_info "Preparing installation"
+  incus_log_section "Application Installation: ${APP}"
+  msg_info "Pushing functions to container"
+  incus_ct_exec bash -c "cat > /tmp/incus-functions <<'INNEREOF'
+${FUNCTIONS_FILE_PATH}
+INNEREOF" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 || { msg_error "Failed to push functions"; exit 1; }
+  msg_ok "Functions pushed"
+
+  declare -f start_install_timer &>/dev/null && start_install_timer || true
+  post_progress_to_api "installing" 2>/dev/null || true
+  CONTAINER_INSTALLING=true
+  export CONTAINER_INSTALLING
+
+  msg_info "Starting application installation"
+  local _install_script _run_env install_exit_code=0 lxc_exit=0
+  _install_script="$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/install/${var_install}.sh")"
+  _run_env="$(_incus_build_install_env)"
+  _run_env+=$'\nsource /dev/stdin <<<"$(cat /tmp/incus-functions)"'
+
+  set +Eeuo pipefail
+  trap - ERR
+  incus_ct_exec bash -c "${_run_env}
+${_install_script}" 2>&1 | tee -a "${LOGFILE:-$INCUS_BUILD_LOG}" || lxc_exit=$?
+  set -Eeuo pipefail
+  declare -f error_handler &>/dev/null && trap 'error_handler' ERR || true
+
+  if [[ -n "${SESSION_ID:-}" ]]; then
+    local error_flag="/root/.install-${SESSION_ID}.failed"
+    if incus_ct_exec test -f "$error_flag" 2>/dev/null; then
+      install_exit_code=$(incus_ct_exec cat "$error_flag" 2>/dev/null || echo "1")
+      incus_ct_exec rm -f "$error_flag" 2>/dev/null || true
+    fi
+  fi
+  [[ "$install_exit_code" -eq 0 && "$lxc_exit" -ne 0 ]] && install_exit_code=$lxc_exit
+
+  if [[ "$install_exit_code" -ne 0 ]]; then
+    msg_error "Installation failed in container ${CT_NAME} (exit code: ${install_exit_code})"
+    post_update_to_api "failed" "$install_exit_code" 2>/dev/null || true
+    exit "$install_exit_code"
+  fi
+  msg_ok "Installation completed"
+  CONTAINER_INSTALLING=false
+}
+
+_incus_build_install_env() {
+  cat <<EOF
+export FUNCTIONS_FILE_PATH=\$(cat /tmp/incus-functions)
+export DIAGNOSTICS='${DIAGNOSTICS:-yes}'
+export RANDOM_UUID='${RANDOM_UUID}'
+export EXECUTION_ID='${EXECUTION_ID}'
+export SESSION_ID='${SESSION_ID}'
+export VERBOSE='${VERBOSE:-no}'
+export STD='$([ "${VERBOSE:-no}" = "yes" ] && echo "" || echo silent)'
+export APP='${APP}'
+export APPLICATION='${APP}'
+export NSAPP='${NSAPP}'
+export app='${NSAPP}'
+export PASSWORD='${PW:-}'
+export CTID='${CT_NAME}'
+export CTTYPE='${CT_TYPE:-1}'
+export PCT_OSTYPE='${var_os:-debian}'
+export PCT_OSVERSION='${var_version:-13}'
+export PCT_DISK_SIZE='${DISK_SIZE}'
+export tz='${timezone:-UTC}'
+export MODE='${METHOD:-default}'
+export ENABLE_FUSE='${ENABLE_FUSE:-no}'
+export ENABLE_TUN='${ENABLE_TUN:-no}'
+export ENABLE_GPU='${ENABLE_GPU:-no}'
+export IPV6_METHOD='${IPV6_METHOD:-auto}'
+export COMMUNITY_SCRIPTS_URL='${INCUS_COMMUNITY_SCRIPTS_URL}'
+EOF
+}
+
+incus_build_container() {
+  _incus_sync_from_pve_settings
+  _incus_prepare_install_exports
+
+  if [[ -n "${CONTAINER_STORAGE:-$STORAGE_POOL}" ]]; then
+    msg_info "Validating storage space"
+    incus_validate_storage_space "${CONTAINER_STORAGE:-$STORAGE_POOL}" "${DISK_SIZE}" || true
+  fi
+
+  incus_create_lxc_container
+  post_progress_to_api "configuring" 2>/dev/null || true
+
+  incus_configure_device_passthrough
+  incus_wait_for_network
+  fix_gpu_gids
+  incus_fix_debian13_root_ownership
+  incus_customize_container
+  install_ssh_keys_into_ct
+  incus_setup_motd_pve_style
+  incus_run_install_script_with_recovery
+}
+
+create_lxc_container() { incus_create_lxc_container; }

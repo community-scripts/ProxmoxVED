@@ -204,191 +204,7 @@ incus_select_network() {
 }
 
 # ==============================================================================
-# SECTION 3: CONTAINER CREATION
-# ==============================================================================
-
-incus_base_settings() {
-  local final_disk="${var_disk:-4}" final_cpu="${var_cpu:-1}" final_ram="${var_ram:-1024}"
-  [[ -n "${APP_DEFAULT_DISK:-}" && "${APP_DEFAULT_DISK}" -gt "$final_disk" ]] && final_disk="${APP_DEFAULT_DISK}"
-  [[ -n "${APP_DEFAULT_CPU:-}" && "${APP_DEFAULT_CPU}" -gt "$final_cpu" ]] && final_cpu="${APP_DEFAULT_CPU}"
-  [[ -n "${APP_DEFAULT_RAM:-}" && "${APP_DEFAULT_RAM}" -gt "$final_ram" ]] && final_ram="${APP_DEFAULT_RAM}"
-  DISK_SIZE="${final_disk}"; CORE_COUNT="${final_cpu}"; RAM_SIZE="${final_ram}"
-  VERBOSE=${var_verbose:-"no"}
-  local requested_name="${var_hostname:-$NSAPP}"
-  requested_name=$(echo "${requested_name,,}" | tr -d ' ' | tr '_' '-')
-  CT_NAME=$(incus_get_next_name "$requested_name")
-  BRG=${var_brg:-""}; NET=${var_net:-"dhcp"}; IPV6_ADDR=${var_ip6:-"auto"}; GATE=${var_gateway:-""}; MAC=${var_mac:-""}
-  [[ -z "$BRG" ]] && BRG="$(incus_pick_default_network)"
-  VLAN_TAG=${var_vlan:-""}; MTU=${var_mtu:-""}
-  SSH=${var_ssh:-"no"}; SSH_AUTHORIZED_KEY=${var_ssh_authorized_key:-""}
-  ENABLE_NESTING=${var_nesting:-"1"}; ENABLE_FUSE=${var_fuse:-"no"}; ENABLE_TUN=${var_tun:-"no"}; ENABLE_GPU=${var_gpu:-"no"}; UNPRIVILEGED=${var_unprivileged:-"1"}
-  IMAGE_OS="${var_os:-debian}"; IMAGE_VERSION="${var_version:-13}"
-  TAGS="${var_tags:-}"
-  PROFILE="${var_profile:-default}"
-  STORAGE_POOL="${var_storage:-}"
-  [[ -z "$STORAGE_POOL" ]] && STORAGE_POOL=$(incus storage list -f csv,noheader 2>/dev/null | head -1 | cut -d, -f1)
-}
-
-incus_echo_config() {
-  echo -e "${BL}╔══════════════════════════════════════════════════════════════╗${CL}"
-  echo -e "${BL}║${CL}  ${BOLD}Incus Container Configuration${CL}"
-  echo -e "${BL}╠══════════════════════════════════════════════════════════════╣${CL}"
-  echo -e "${BL}║${CL}  ${CONTAINERID}Name: ${GN}${CT_NAME}${CL}"
-  echo -e "${BL}║${CL}  ${CONTAINERTYPE}Image: ${GN}${IMAGE_OS}-${IMAGE_VERSION}${CL}"
-  echo -e "${BL}║${CL}  ${CPUCORE}CPU: ${GN}${CORE_COUNT}${CL}   ${RAMSIZE}RAM: ${GN}${RAM_SIZE} MiB${CL}   ${DISKSIZE}Disk: ${GN}${DISK_SIZE} GB${CL}"
-  echo -e "${BL}║${CL}  ${BRIDGE}Network: ${GN}${BRG}${CL}   ${NETWORK}IP: ${GN}${NET}${CL}"
-  echo -e "${BL}║${CL}  Profile: ${GN}${PROFILE}${CL}   Privileged: ${GN}$([[ \"${UNPRIVILEGED}\" == \"1\" ]] && echo no || echo yes)${CL}"
-  [[ -n "${MAC}" || -n "${VLAN_TAG}" || -n "${MTU}" ]] && echo -e "${BL}║${CL}  MAC: ${GN}${MAC:-auto}${CL}   VLAN: ${GN}${VLAN_TAG:-none}${CL}   MTU: ${GN}${MTU:-default}${CL}"
-  [[ -n "${TAGS}" ]] && echo -e "${BL}║${CL}  Tags: ${GN}${TAGS}${CL}"
-  [[ "${BRG}" == "incusbr0" ]] && echo -e "${BL}║${CL}  ${YW}Hint: incusbr0 ist NAT-intern (oft nicht direkt aus LAN erreichbar).${CL}"
-  echo -e "${BL}╚══════════════════════════════════════════════════════════════╝${CL}"
-}
-
-incus_create_container() {
-  local image_name="images:${IMAGE_OS}/${IMAGE_VERSION}"
-  msg_info "Creating Incus container: ${CT_NAME}"
-  incus_log_section "Container Creation: ${CT_NAME}"
-  if ! incus network show "${BRG}" >/dev/null 2>&1; then
-    msg_warn "Configured network '${BRG}' not found, auto-selecting fallback"
-    BRG="$(incus_pick_default_network)"
-    msg_ok "Using network '${BRG}'"
-  fi
-  local launch_args=()
-  launch_args+=("--config" "limits.cpu=${CORE_COUNT}")
-  launch_args+=("--config" "limits.memory=${RAM_SIZE}MiB")
-  [[ -n "${PROFILE:-}" ]] && launch_args+=("--profile" "${PROFILE}")
-  launch_args+=("--network" "${BRG}")
-  [[ "$ENABLE_NESTING" == "1" ]] && launch_args+=("--config" "security.nesting=true")
-  if [[ "$UNPRIVILEGED" != "1" || "$ENABLE_FUSE" == "yes" || "$ENABLE_TUN" == "yes" ]]; then
-    launch_args+=("--config" "security.privileged=true")
-  fi
-  launch_args+=("--storage" "${STORAGE_POOL}")
-  launch_args+=("--device" "root,size=${DISK_SIZE}GiB")
-  incus launch "${image_name}" "${CT_NAME}" "${launch_args[@]}" >>"$INCUS_BUILD_LOG" 2>&1 || {
-    msg_error "Failed to create container ${CT_NAME}"; exit 1;
-  }
-  msg_ok "Created container ${CT_NAME}"
-  msg_info "Waiting for container to initialize"
-  sleep 3
-  local waited=0
-  while ! incus exec "${CT_NAME}" -- true &>/dev/null; do sleep 2; waited=$((waited + 2)); [[ "$waited" -ge 60 ]] && { msg_error "Container not ready"; exit 1; }; done
-  msg_ok "Container ${CT_NAME} is ready"
-
-  # Apply extended NIC options (closest mapping to Proxmox advanced network settings).
-  local net_reconfigure=0
-  if [[ -n "${MAC:-}" ]]; then
-    incus config device set "${CT_NAME}" eth0 hwaddr "${MAC}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply MAC (${MAC})"
-    net_reconfigure=1
-  fi
-  if [[ -n "${VLAN_TAG:-}" ]]; then
-    incus config device set "${CT_NAME}" eth0 vlan "${VLAN_TAG}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply VLAN (${VLAN_TAG})"
-    net_reconfigure=1
-  fi
-  if [[ -n "${MTU:-}" ]]; then
-    incus config device set "${CT_NAME}" eth0 mtu "${MTU}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply MTU (${MTU})"
-    net_reconfigure=1
-  fi
-  if [[ -n "${NET:-}" && "${NET}" != "dhcp" ]]; then
-    incus config device set "${CT_NAME}" eth0 ipv4.address "${NET}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply IPv4 (${NET})"
-    net_reconfigure=1
-  fi
-  if [[ -n "${IPV6_ADDR:-}" && "${IPV6_ADDR}" != "auto" ]]; then
-    incus config device set "${CT_NAME}" eth0 ipv6.address "${IPV6_ADDR}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply IPv6 (${IPV6_ADDR})"
-    net_reconfigure=1
-  fi
-  if [[ -n "${TAGS:-}" ]]; then
-    incus config set "${CT_NAME}" user.tags "${TAGS}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply tags"
-  fi
-
-  if [[ "$net_reconfigure" -eq 1 ]]; then
-    msg_info "Reconfiguring network settings"
-    incus restart "${CT_NAME}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Restart after network reconfiguration failed"
-    msg_ok "Network settings applied"
-  fi
-
-  local container_ip; container_ip=$(incus exec "${CT_NAME}" -- hostname -I 2>/dev/null | awk '{print $1}')
-  [[ -n "$container_ip" ]] && { msg_ok "Container IP: ${container_ip}"; export IP="$container_ip"; } || { msg_warn "IP unknown, DHCP may be in progress"; export IP="unknown"; }
-}
-
-incus_inject_ssh_keys() {
-  [[ "${SSH:-no}" != "yes" ]] && return 0
-  [[ -n "${SSH_AUTHORIZED_KEY:-}" ]] && {
-    msg_info "Installing SSH key"
-    incus exec "${CT_NAME}" -- bash -c "mkdir -p /root/.ssh && chmod 700 /root/.ssh && echo '${SSH_AUTHORIZED_KEY}' > /root/.ssh/authorized_keys && chmod 600 /root/.ssh/authorized_keys" &>/dev/null
-    msg_ok "SSH key installed"
-  }
-}
-
-incus_setup_motd() {
-  msg_info "Setting up MOTD"
-  local motd_file
-  motd_file=$(mktemp)
-  cat >"$motd_file" <<MOTDEOF
-#!/bin/bash
-echo ''
-echo '  🚀 Incus Container: ${CT_NAME}'
-echo "  🖥️  OS: \$(grep ^PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"')"
-echo "  📡 IP: \$(hostname -I | awk '{print \$1}')"
-echo ''
-MOTDEOF
-  incus file push "$motd_file" "${CT_NAME}/etc/profile.d/incus-motd.sh" >>"$INCUS_BUILD_LOG" 2>&1
-  incus exec "${CT_NAME}" -- chmod +x /etc/profile.d/incus-motd.sh >>"$INCUS_BUILD_LOG" 2>&1
-  rm -f "$motd_file"
-  msg_ok "MOTD configured"
-}
-
-incus_build_functions_content() {
-  if [[ "${var_os:-debian}" == "alpine" ]]; then
-    FUNCTIONS_FILE_PATH=$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/misc/alpine-install.func" 2>/dev/null || true)
-  else
-    FUNCTIONS_FILE_PATH=$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/misc/install.func" 2>/dev/null || true)
-  fi
-  [[ -z "$FUNCTIONS_FILE_PATH" ]] && { msg_error "Could not fetch install functions"; exit 1; }
-  export FUNCTIONS_FILE_PATH
-}
-
-incus_run_install_script() {
-  msg_info "Preparing installation"
-  incus_log_section "Application Installation: ${APP}"
-  incus_build_functions_content
-  msg_info "Pushing functions to container"
-  incus exec "${CT_NAME}" -- bash -c "cat > /tmp/incus-functions <<'INNEREOF'
-${FUNCTIONS_FILE_PATH}
-INNEREOF
-export FUNCTIONS_FILE_PATH=\$(cat /tmp/incus-functions)" >>"$INCUS_BUILD_LOG" 2>&1 || { msg_error "Failed to push functions"; exit 1; }
-  msg_ok "Functions pushed"
-  msg_info "Starting application installation"
-  incus exec "${CT_NAME}" -- bash -c "
-    export FUNCTIONS_FILE_PATH=\$(cat /tmp/incus-functions)
-    export DIAGNOSTICS='${DIAGNOSTICS:-yes}'
-    export RANDOM_UUID='${RANDOM_UUID}'
-    export EXECUTION_ID='${EXECUTION_ID}'
-    export SESSION_ID='${SESSION_ID}'
-    export VERBOSE='${VERBOSE:-no}'
-    export STD='$([ \"${VERBOSE:-no}\" = \"yes\" ] && echo \"\" || echo silent)'
-    export APP='${APP}'
-    export APPLICATION='${APP}'
-    export NSAPP='${NSAPP}'
-    export app='${NSAPP}'
-    export PASSWORD='${PW:-}'
-    export CTID='${CT_NAME}'
-    export CTTYPE='${CT_TYPE:-1}'
-    export PCT_OSTYPE='${var_os:-debian}'
-    export PCT_OSVERSION='${var_version:-13}'
-    export PCT_DISK_SIZE='${DISK_SIZE}'
-    export tz='${timezone:-UTC}'
-    export MODE='${METHOD:-default}'
-    export ENABLE_FUSE='${ENABLE_FUSE:-no}'
-    export ENABLE_TUN='${ENABLE_TUN:-no}'
-    export ENABLE_GPU='${ENABLE_GPU:-no}'
-    export IPV6_METHOD='${IPV6_METHOD:-auto}'
-    bash <(curl -fsSL '${INCUS_COMMUNITY_SCRIPTS_URL}/install/${var_install}.sh')
-  " 2>&1 | tee -a "$INCUS_BUILD_LOG" || { msg_error "Installation failed inside container"; exit 1; }
-  msg_ok "Installation completed"
-}
-
-# ==============================================================================
-# SECTION 4: UPDATE SUPPORT
+# SECTION 3: CONTAINER UTILITIES
 # ==============================================================================
 
 incus_check_container_storage() {
@@ -538,9 +354,9 @@ _incus_load_pve_build_ui() {
   local build_url="${INCUS_COMMUNITY_SCRIPTS_URL}/misc/build.func"
   if command -v curl >/dev/null 2>&1; then
     # shellcheck disable=SC1090
-    source <(curl -fsSL "$build_url" | sed -n '21,$p')
+    source <(curl -fsSL "$build_url" | sed -n '/^# __BUILD_UI_BODY__$/,$p')
   else
-    source <(wget -qO- "$build_url" | sed -n '21,$p')
+    source <(wget -qO- "$build_url" | sed -n '/^# __BUILD_UI_BODY__$/,$p')
   fi
 }
 
@@ -551,6 +367,8 @@ base_settings() {
   [[ -z "${var_brg:-}" ]] && var_brg="$(incus_pick_default_network)"
   _pve_base_settings "$@"
 }
+
+source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/misc/incus-backend.func")
 
 pve_check() { incus_check; }
 arch_check() { :; }
@@ -604,17 +422,23 @@ ensure_storage_selection_for_vars_file() {
 
 select_storage() {
   local purpose="${1:-container}"
-  local options=() pool
+  local options=() pool free_gb info
   while IFS= read -r pool; do
     [[ -z "$pool" ]] && continue
-    options+=("$pool" "Incus storage pool")
+    free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo "?")
+    info="Free: ~${free_gb}GB"
+    options+=("$pool" "Incus storage pool (${info})")
   done < <(incus storage list -f csv,noheader 2>/dev/null | cut -d, -f1)
   [[ ${#options[@]} -eq 0 ]] && return 1
   local selected
   selected=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "STORAGE POOL" --menu "Select storage for ${purpose}" 16 72 8 \
     "${options[@]}" 3>&1 1>&2 2>&3) || return 1
+  STORAGE_RESULT="$selected"
+  free_gb=$(incus_storage_pool_free_gb "$selected" 2>/dev/null || echo "?")
+  STORAGE_INFO="Free: ~${free_gb}GB"
   if [[ "$purpose" == "template" ]]; then
     TEMPLATE_STORAGE="$selected"
+    TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
   else
     CONTAINER_STORAGE="$selected"
     SD="--storage ${CONTAINER_STORAGE}"
@@ -622,8 +446,13 @@ select_storage() {
   return 0
 }
 
-validate_storage_space() { return 0; }
-check_storage_support() { return 0; }
+preflight_repo_access() {
+  if curl -fsSL -o /dev/null -m 10 "${INCUS_COMMUNITY_SCRIPTS_URL}/misc/build.func" 2>/dev/null; then
+    preflight_pass "Community scripts repository reachable"
+  else
+    preflight_warn "Could not reach community scripts repository"
+  fi
+}
 
 preflight_lxc_stack() {
   if command -v incus &>/dev/null && incus info &>/dev/null 2>&1; then
@@ -681,13 +510,55 @@ preflight_template_available() {
   preflight_pass "Image source images:${var_os:-debian}/${var_version:-13}"
 }
 
-create_lxc_container() { incus_create_container; }
+install_ssh_keys_into_ct() {
+  [[ "${SSH:-no}" != "yes" ]] && return 0
+  : "${SSH_KEYS_FILE:=}"
+  if [[ -z "$SSH_KEYS_FILE" || ! -s "$SSH_KEYS_FILE" ]] && [[ -n "${SSH_AUTHORIZED_KEY:-}" ]]; then
+    SSH_KEYS_FILE="$(mktemp)"
+    printf '%s\n' "$SSH_AUTHORIZED_KEY" >"$SSH_KEYS_FILE"
+  fi
+  if [[ -n "$SSH_KEYS_FILE" && -s "$SSH_KEYS_FILE" ]]; then
+    msg_info "Installing selected SSH keys into CT ${CTID}"
+    incus_ct_exec sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh' || {
+      msg_error "prepare /root/.ssh failed"
+      return 1
+    }
+    incus file push "$SSH_KEYS_FILE" "${CT_NAME}/root/.ssh/authorized_keys" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 ||
+      incus_ct_exec sh -c "cat > /root/.ssh/authorized_keys" <"$SSH_KEYS_FILE" || {
+      msg_error "write authorized_keys failed"
+      return 1
+    }
+    incus_ct_exec sh -c 'chmod 600 /root/.ssh/authorized_keys' || true
+    msg_ok "Installed SSH keys into CT ${CTID}"
+    return 0
+  fi
+  msg_warn "No SSH keys to install (skipping)."
+  return 0
+}
+
 destroy_lxc() { incus_delete_container "${1:-$CT_NAME}"; }
 check_container_storage() { incus_check_container_storage "$@"; }
 check_container_resources() { incus_check_container_resources "$@"; }
-ensure_log_on_host() { :; }
-api_exit_script() { :; }
-install_ssh_keys_into_ct() { incus_inject_ssh_keys; }
+
+ensure_log_on_host() {
+  [[ -z "${CT_NAME:-}" || -z "${SESSION_ID:-}" ]] && return 0
+  local remote_log="/root/.install-${SESSION_ID}.log"
+  local local_log="${BUILD_LOG:-$INCUS_BUILD_LOG}.install"
+  incus file pull "${CT_NAME}${remote_log}" "$local_log" 2>/dev/null || true
+}
+
+api_exit_script() {
+  local exit_code=$?
+  if [[ "$exit_code" -ne 0 ]]; then
+    post_update_to_api "failed" "$exit_code" 2>/dev/null || true
+    ensure_log_on_host 2>/dev/null || true
+    if [[ "${CONTAINER_INSTALLING:-}" == "true" && -n "${CT_NAME:-}" ]]; then
+      incus stop "$CT_NAME" 2>/dev/null || true
+    fi
+  elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
+    post_update_to_api "done" "0" 2>/dev/null || true
+  fi
+}
 
 header_info() {
   local app_name
@@ -734,11 +605,7 @@ start() {
 }
 
 build_container() {
-  _incus_sync_from_pve_settings
-  incus_create_container
-  incus_inject_ssh_keys
-  incus_setup_motd
-  incus_run_install_script
+  incus_build_container
 }
 
 description() {
@@ -750,3 +617,9 @@ description() {
 variables() {
   incus_variables
 }
+
+trap 'api_exit_script' EXIT
+trap 'local _ec=$?; if [[ $_ec -ne 0 ]]; then post_update_to_api "failed" "$_ec" 2>/dev/null || true; ensure_log_on_host 2>/dev/null || true; fi' ERR
+trap 'post_update_to_api "failed" "129" 2>/dev/null || true; [[ -n "${CT_NAME:-}" ]] && incus stop "$CT_NAME" 2>/dev/null || true; exit 129' SIGHUP
+trap 'post_update_to_api "failed" "130" 2>/dev/null || true; [[ -n "${CT_NAME:-}" ]] && incus stop "$CT_NAME" 2>/dev/null || true; exit 130' SIGINT
+trap 'post_update_to_api "failed" "143" 2>/dev/null || true; [[ -n "${CT_NAME:-}" ]] && incus stop "$CT_NAME" 2>/dev/null || true; exit 143' SIGTERM
