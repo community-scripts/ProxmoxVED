@@ -51,7 +51,6 @@ function update_script() {
 
     msg_info "Building Go Library"
     cd /opt/firecrawl/apps/api/sharedLibs/go-html-to-md
-    $STD go mod tidy
     $STD go build -o libhtml-to-markdown.so -buildmode=c-shared html-to-markdown.go
     msg_ok "Built Go Library"
 
