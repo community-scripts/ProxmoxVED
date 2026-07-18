@@ -68,9 +68,20 @@ check_storage_support() {
 validate_storage_space() {
   local pool="${1:-$CONTAINER_STORAGE}"
   local need_gb="${2:-${DISK_SIZE:-4}}"
+  local show_dialog="${3:-no}"
   local free_gb
-  free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo 0)
-  [[ -n "$free_gb" && "$free_gb" -ge "$need_gb" ]]
+  free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo "")
+  if [[ -z "$free_gb" ]]; then
+    [[ "$show_dialog" == "yes" ]] && whiptail --msgbox "⚠️  Warning: Could not determine free space on pool '${pool}'." 10 60 2>/dev/null || true
+    return 0
+  fi
+  if [[ "$free_gb" -lt "$need_gb" ]]; then
+    if [[ "$show_dialog" == "yes" ]]; then
+      whiptail --msgbox "⚠️  Warning: Not enough space on '${pool}'.\n\nRequired: ${need_gb}GB\nAvailable: ~${free_gb}GB" 12 60 2>/dev/null || true
+    fi
+    return 1
+  fi
+  return 0
 }
 
 _incus_prepare_install_exports() {

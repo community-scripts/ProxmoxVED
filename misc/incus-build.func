@@ -245,17 +245,64 @@ ensure_global_default_vars_file() {
   echo "$vf"
 }
 
+choose_and_set_storage_for_file() {
+  # Incus replacement for PVE pvesm-based helper (User Defaults / first default.vars).
+  local vf="$1" class="$2" key=""
+  case "$class" in
+  container) key="var_container_storage" ;;
+  template) key="var_template_storage" ;;
+  *)
+    msg_error "Unknown storage class: $class"
+    return 1
+    ;;
+  esac
+
+  local count
+  count=$(incus storage list -f csv,noheader 2>/dev/null | wc -l)
+  if [[ "$count" -le 0 ]]; then
+    msg_error "No Incus storage pools found"
+    return 1
+  fi
+
+  if [[ "$count" -eq 1 ]]; then
+    STORAGE_RESULT=$(incus storage list -f csv,noheader 2>/dev/null | head -1 | cut -d, -f1)
+    STORAGE_INFO=""
+    if [[ "$class" == "container" && -n "${DISK_SIZE:-}" ]]; then
+      validate_storage_space "$STORAGE_RESULT" "$DISK_SIZE" "yes" || true
+    fi
+  else
+    select_storage "$class" || return 1
+  fi
+
+  _write_storage_to_vars "$vf" "$key" "$STORAGE_RESULT"
+  if [[ "$class" == "container" ]]; then
+    export var_container_storage="$STORAGE_RESULT"
+    export CONTAINER_STORAGE="$STORAGE_RESULT"
+  else
+    export var_template_storage="$STORAGE_RESULT"
+    export TEMPLATE_STORAGE="$STORAGE_RESULT"
+  fi
+}
+
 ensure_storage_selection_for_vars_file() {
   local vf="${1:-/usr/local/community-scripts/default.vars}"
-  if [[ -z "${CONTAINER_STORAGE:-}" ]]; then
-    CONTAINER_STORAGE=$(incus storage list -f csv,noheader 2>/dev/null | head -1 | cut -d, -f1)
+  [[ -f "$vf" ]] || { mkdir -p "$(dirname "$vf")"; touch "$vf"; }
+
+  local tpl ct
+  tpl=$(grep -E '^var_template_storage=' "$vf" 2>/dev/null | cut -d= -f2-)
+  ct=$(grep -E '^var_container_storage=' "$vf" 2>/dev/null | cut -d= -f2-)
+
+  if [[ -n "$tpl" && -n "$ct" ]] && incus storage info "$ct" &>/dev/null; then
+    TEMPLATE_STORAGE="$tpl"
+    CONTAINER_STORAGE="$ct"
+    if [[ -n "${DISK_SIZE:-}" ]]; then
+      validate_storage_space "$ct" "$DISK_SIZE" "yes" || true
+    fi
+    return 0
   fi
-  TEMPLATE_STORAGE="${TEMPLATE_STORAGE:-$CONTAINER_STORAGE}"
-  if [[ -n "${CONTAINER_STORAGE:-}" && -f "$vf" ]]; then
-    grep -q '^var_container_storage=' "$vf" 2>/dev/null || echo "var_container_storage=${CONTAINER_STORAGE}" >>"$vf"
-    grep -q '^var_template_storage=' "$vf" 2>/dev/null || echo "var_template_storage=${TEMPLATE_STORAGE}" >>"$vf"
-  fi
-  return 0
+
+  choose_and_set_storage_for_file "$vf" template
+  choose_and_set_storage_for_file "$vf" container
 }
 
 select_storage() {
@@ -286,6 +333,15 @@ select_storage() {
     SD="--storage ${CONTAINER_STORAGE}"
   fi
   return 0
+}
+
+preflight_maxkeys() {
+  # Incus does not use the Proxmox unprivileged UID 100000 keyring accounting.
+  if [[ -r /proc/sys/kernel/keys/maxkeys ]]; then
+    preflight_pass "Kernel keyring interface available"
+  else
+    preflight_warn "Kernel keyring parameters not readable (non-blocking on Incus)"
+  fi
 }
 
 preflight_repo_access() {
