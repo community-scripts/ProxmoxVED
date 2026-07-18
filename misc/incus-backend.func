@@ -496,9 +496,16 @@ incus_detect_gpu_devices() {
     done
   fi
 
-  [[ ${#INTEL_GPUS[@]} -gt 0 ]] && msg_custom "🎮" "${BL}" "Detected Intel GPU (${#INTEL_GPUS[@]})"
-  [[ ${#AMD_GPUS[@]} -gt 0 ]] && msg_custom "🎮" "${RD}" "Detected AMD GPU (${#AMD_GPUS[@]})"
-  [[ ${#NVIDIA_GPUS[@]} -gt 0 ]] && msg_custom "🎮" "${GN}" "Detected NVIDIA GPU (${#NVIDIA_GPUS[@]})"
+  if [[ ${#INTEL_GPUS[@]} -gt 0 ]]; then
+    msg_custom "🎮" "${BL}" "Detected Intel GPU (${#INTEL_GPUS[@]})"
+  fi
+  if [[ ${#AMD_GPUS[@]} -gt 0 ]]; then
+    msg_custom "🎮" "${RD}" "Detected AMD GPU (${#AMD_GPUS[@]})"
+  fi
+  if [[ ${#NVIDIA_GPUS[@]} -gt 0 ]]; then
+    msg_custom "🎮" "${GN}" "Detected NVIDIA GPU (${#NVIDIA_GPUS[@]})"
+  fi
+  return 0
 }
 
 _incus_add_gpu_physical() {
@@ -527,9 +534,18 @@ incus_configure_device_passthrough() {
     incus_detect_gpu_devices
     local selected_gpu="" gpu_count=0
     local -a available_gpus=()
-    [[ ${#INTEL_GPUS[@]} -gt 0 ]] && { available_gpus+=("INTEL"); gpu_count=$((gpu_count + 1)); }
-    [[ ${#AMD_GPUS[@]} -gt 0 ]] && { available_gpus+=("AMD"); gpu_count=$((gpu_count + 1)); }
-    [[ ${#NVIDIA_GPUS[@]} -gt 0 || ${#NVIDIA_CHAR_DEVS[@]} -gt 0 ]] && { available_gpus+=("NVIDIA"); gpu_count=$((gpu_count + 1)); }
+    if [[ ${#INTEL_GPUS[@]} -gt 0 ]]; then
+      available_gpus+=("INTEL")
+      gpu_count=$((gpu_count + 1))
+    fi
+    if [[ ${#AMD_GPUS[@]} -gt 0 ]]; then
+      available_gpus+=("AMD")
+      gpu_count=$((gpu_count + 1))
+    fi
+    if [[ ${#NVIDIA_GPUS[@]} -gt 0 || ${#NVIDIA_CHAR_DEVS[@]} -gt 0 ]]; then
+      available_gpus+=("NVIDIA")
+      gpu_count=$((gpu_count + 1))
+    fi
 
     if [[ "$gpu_count" -gt 0 ]]; then
       selected_gpu="${available_gpus[0]}"
@@ -556,7 +572,10 @@ incus_configure_device_passthrough() {
         if [[ "$added" -eq 0 ]]; then
           _incus_add_gpu_physical "gpu0" "vendorid=8086" && added=1 || true
         fi
-        [[ "$added" -gt 0 ]] && export GPU_TYPE="INTEL" && msg_ok "Intel GPU passthrough configured (${added})"
+        if [[ "$added" -gt 0 ]]; then
+          export GPU_TYPE="INTEL"
+          msg_ok "Intel GPU passthrough configured (${added})"
+        fi
         ;;
       AMD)
         for sel in "${AMD_GPUS[@]}"; do
@@ -571,7 +590,10 @@ incus_configure_device_passthrough() {
         if [[ "$added" -eq 0 ]]; then
           _incus_add_gpu_physical "gpu0" "vendorid=1002" && added=1 || true
         fi
-        [[ "$added" -gt 0 ]] && export GPU_TYPE="AMD" && msg_ok "AMD GPU passthrough configured (${added})"
+        if [[ "$added" -gt 0 ]]; then
+          export GPU_TYPE="AMD"
+          msg_ok "AMD GPU passthrough configured (${added})"
+        fi
         ;;
       NVIDIA)
         for sel in "${NVIDIA_GPUS[@]}"; do
@@ -657,6 +679,7 @@ incus_configure_device_passthrough() {
     msg_custom "🔌" "${BL}" "Detected Coral TPU - configuring passthrough"
     _incus_soft incus config device add "${CT_NAME}" apex0 unix-char source=/dev/apex_0 path=/dev/apex_0 >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
   fi
+  return 0
 }
 
 incus_wait_for_network() {
