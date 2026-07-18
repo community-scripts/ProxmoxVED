@@ -26,6 +26,61 @@ _incus_device_set() {
   return 0
 }
 
+# Soft-fail helper: never trips set -e / ERR traps from intentional best-effort cmds.
+_incus_soft() {
+  "$@" || return 0
+}
+
+_incus_nic_supports_ip() {
+  # Docs: ipv4/ipv6.address on nic — supported for bridge, ovn, macvlan.
+  # physical / sriov: skip (host NIC ownership; keys often rejected).
+  case "${1:-}" in
+  bridge | ovn | macvlan) return 0 ;;
+  *) return 1 ;;
+  esac
+}
+
+_incus_resolve_launch_image() {
+  # Tries images:OS/VER (+ /cloud, codename alias, local cache). Sets INCUS_LAUNCH_IMAGE.
+  local os="${IMAGE_OS:-debian}" ver="${IMAGE_VERSION:-13}" alias=""
+  os="${os,,}"
+  alias="$(incus_get_image_alias "$os" "$ver" 2>/dev/null || true)"
+
+  local candidates=()
+  candidates+=("images:${os}/${ver}")
+  candidates+=("images:${os}/${ver}/cloud")
+  if [[ -n "$alias" && "$alias" != "$ver" ]]; then
+    candidates+=("images:${os}/${alias}")
+    candidates+=("images:${os}/${alias}/cloud")
+  fi
+  # Ubuntu often published as 24.04 even when UI stores "24"
+  if [[ "$os" == "ubuntu" && "$ver" =~ ^[0-9]+$ ]]; then
+    candidates+=("images:ubuntu/${ver}.04" "images:ubuntu/${ver}.04/cloud")
+  fi
+
+  local cand local_match
+  for cand in "${candidates[@]}"; do
+    if incus image info "$cand" &>/dev/null; then
+      INCUS_LAUNCH_IMAGE="$cand"
+      return 0
+    fi
+  done
+
+  # Local image fingerprint/alias match (already copied)
+  local_match=$(incus image list -f csv,noheader 2>/dev/null |
+    awk -F, -v os="$os" -v ver="$ver" '
+      tolower($0) ~ os && $0 ~ ver { print $1; exit }
+    ' || true)
+  if [[ -n "$local_match" ]] && incus image info "$local_match" &>/dev/null; then
+    INCUS_LAUNCH_IMAGE="$local_match"
+    return 0
+  fi
+
+  # Last resort: try remote launch of primary (incus may pull on demand)
+  INCUS_LAUNCH_IMAGE="images:${os}/${ver}"
+  return 1
+}
+
 _incus_parse_size_to_bytes() {
   # Accepts raw bytes or human values like 589.51GiB / 211MiB / 1.5TB
   local raw="${1:-}" val unit
@@ -135,7 +190,7 @@ validate_storage_space() {
   fi
   if [[ "$free_gb" -lt "$need_gb" ]]; then
     if [[ "$show_dialog" == "yes" ]]; then
-      whiptail --msgbox "⚠️  Warning: Not enough space on pool '${pool}'.\n\nRequired: ${need_gb}GB\nAvailable: ~${free_gb}GB\n\nThis is the Incus pool free space (incus storage info),\nnot necessarily your full host disk.\nDefault pools are often small loop devices." 14 70 2>/dev/null || true
+      whiptail --msgbox "⚠️  Warning: Not enough space on Incus pool '${pool}'.\n\nRequired: ${need_gb}GB\nPool free: ~${free_gb}GB\n\nThis is pool free space (incus storage info),\nNOT your full host disk. Default/loop pools are often small.\n\nGrow pool:  incus storage set ${pool} size=50GiB\nOr pick another pool in Advanced settings." 16 72 2>/dev/null || true
     fi
     return 1
   fi
@@ -180,7 +235,6 @@ _incus_prepare_install_exports() {
 }
 
 incus_create_lxc_container() {
-  local image_name="images:${IMAGE_OS}/${IMAGE_VERSION}"
   LOGFILE="${INCUS_BUILD_LOG}"
 
   [[ "${CT_NAME:-}" ]] || { msg_error "Container name not set"; exit 203; }
@@ -208,6 +262,16 @@ incus_create_lxc_container() {
     msg_warn "Network '${BRG}' not found, auto-selecting fallback"
     BRG="$(incus_pick_default_network)"
     msg_ok "Using network '${BRG}'"
+  fi
+
+  msg_info "Resolving container image"
+  local image_name=""
+  if _incus_resolve_launch_image; then
+    image_name="${INCUS_LAUNCH_IMAGE}"
+    msg_ok "Image ${BL}${image_name}${CL}"
+  else
+    image_name="${INCUS_LAUNCH_IMAGE:-images:${IMAGE_OS}/${IMAGE_VERSION}}"
+    msg_custom "ℹ️" "${YW}" "Image not cached yet — will try pull: ${image_name}"
   fi
 
   msg_info "Creating LXC Container"
@@ -245,19 +309,32 @@ incus_create_lxc_container() {
   } >>"$LOGFILE"
 
   if ! incus launch "${image_name}" "${CT_NAME}" "${launch_args[@]}" >>"$LOGFILE" 2>&1; then
-    msg_error "Failed to create container ${CT_NAME}"
-    echo -e "${YW}Last launch errors:${CL}"
-    tail -n 30 "$LOGFILE" 2>/dev/null | sed 's/^/  /' || true
-    echo -e "${YW}Log: ${BL}${LOGFILE}${CL}"
-    exit 1
+    # Retry alternate candidates once if primary pull failed
+    local retry_img="" launched=0
+    for retry_img in "images:${IMAGE_OS}/${IMAGE_VERSION}/cloud" \
+      "images:${IMAGE_OS}/$(incus_get_image_alias "${IMAGE_OS}" "${IMAGE_VERSION}" 2>/dev/null || true)" \
+      "images:${IMAGE_OS}/$(incus_get_image_alias "${IMAGE_OS}" "${IMAGE_VERSION}" 2>/dev/null || true)/cloud"; do
+      [[ -z "$retry_img" || "$retry_img" == "$image_name" || "$retry_img" == */ ]] && continue
+      msg_warn "Launch failed with ${image_name} — retrying ${retry_img}"
+      if incus launch "${retry_img}" "${CT_NAME}" "${launch_args[@]}" >>"$LOGFILE" 2>&1; then
+        image_name="$retry_img"
+        launched=1
+        break
+      fi
+    done
+    if [[ "$launched" -ne 1 ]]; then
+      msg_error "Failed to create container ${CT_NAME}"
+      echo -e "${YW}Last launch errors:${CL}"
+      tail -n 30 "$LOGFILE" 2>/dev/null | sed 's/^/  /' || true
+      echo -e "${YW}Log: ${BL}${LOGFILE}${CL}"
+      echo -e "${YW}Try manually:${CL} incus image copy images:${IMAGE_OS}/${IMAGE_VERSION} local: --alias ${IMAGE_OS}/${IMAGE_VERSION}"
+      exit 1
+    fi
   fi
 
   # Optional configs that some Incus versions reject at launch time.
   if [[ "${CT_TYPE:-1}" == "1" ]]; then
-    incus config set "${CT_NAME}" linux.sysctl.kernel.keys.maxkeys=2000 >>"$LOGFILE" 2>&1 || true
-  fi
-  if [[ -n "${HN:-}" && "${HN,,}" != "${CT_NAME,,}" ]]; then
-    incus config set "${CT_NAME}" "user.hostname=${HN}" >>"$LOGFILE" 2>&1 || true
+    _incus_soft incus config set "${CT_NAME}" linux.sysctl.kernel.keys.maxkeys=2000 >>"$LOGFILE" 2>&1
   fi
 
   msg_ok "LXC Container ${CT_NAME} was successfully created."
@@ -271,13 +348,12 @@ incus_create_lxc_container() {
   done
   msg_ok "Container ${CT_NAME} is ready"
 
-  # Physical/macvlan/sriov NICs do not accept ipv4/ipv6.address device keys.
+  incus_set_container_hostname
+
   local net_type="" net_reconfigure=0
   net_type=$(incus network show "${BRG}" 2>/dev/null | awk '/^type:/ {print $2; exit}')
   local nic_supports_ip=0
-  case "${net_type}" in
-  bridge | ovn) nic_supports_ip=1 ;;
-  esac
+  _incus_nic_supports_ip "$net_type" && nic_supports_ip=1
 
   if [[ -n "${MAC:-}" ]]; then
     _incus_device_set hwaddr "${MAC}" "Could not apply MAC (${MAC})" && net_reconfigure=1 || true
@@ -298,29 +374,62 @@ incus_create_lxc_container() {
     fi
     case "${IPV6_METHOD:-auto}" in
     auto | dhcp)
-      # Let the NIC/network default handle IPv6; explicit ipv6.address=auto breaks physical NICs.
+      # Leave unset — NIC/network default. Explicit ipv6.address=auto breaks some hosts.
       ;;
     static)
-      [[ -n "${IPV6_ADDR:-}" ]] && { _incus_device_set ipv6.address "${IPV6_ADDR}" || true; net_reconfigure=1; }
-      [[ -n "${IPV6_GATE:-}" ]] && { _incus_device_set ipv6.gateway "${IPV6_GATE}" || true; net_reconfigure=1; }
+      if [[ -n "${IPV6_ADDR:-}" && "${IPV6_ADDR}" != "auto" ]]; then
+        _incus_device_set ipv6.address "${IPV6_ADDR}" "Could not apply IPv6 (${IPV6_ADDR})" && net_reconfigure=1 || true
+      fi
+      [[ -n "${IPV6_GATE:-}" ]] && { _incus_device_set ipv6.gateway "${IPV6_GATE}" "Could not apply IPv6 gateway" && net_reconfigure=1 || true; }
       ;;
-    none)
-      _incus_device_set ipv6.address none || true
+    none | disable)
+      _incus_device_set ipv6.address none "Could not disable IPv6 on nic" || true
+      net_reconfigure=1
       ;;
     esac
   else
-    msg_info "Network '${BRG}' type=${net_type:-unknown} — skipping IP device options"
+    msg_info "Network '${BRG}' type=${net_type:-unknown} — skipping IP device options (use host DHCP/static on physical/sriov)"
+    if [[ -n "${NET:-}" && "${NET}" != "dhcp" ]]; then
+      msg_custom "ℹ️" "${YW}" "Static IPv4 ${NET} was requested but cannot be set as device key on ${net_type:-this} network"
+    fi
   fi
 
   if [[ -n "${TAGS:-}" ]]; then
-    incus config set "${CT_NAME}" "user.tags=${TAGS}" >>"$LOGFILE" 2>&1 || true
+    _incus_soft incus config set "${CT_NAME}" "user.tags=${TAGS}" >>"$LOGFILE" 2>&1
   fi
 
   if [[ "$net_reconfigure" -eq 1 ]]; then
     msg_info "Reconfiguring network settings"
-    incus restart "${CT_NAME}" >>"$LOGFILE" 2>&1 || msg_warn "Restart after network reconfiguration failed"
+    _incus_soft incus restart "${CT_NAME}" >>"$LOGFILE" 2>&1 || msg_warn "Restart after network reconfiguration failed"
     msg_ok "Network settings applied"
   fi
+}
+
+incus_set_container_hostname() {
+  local hn="${CT_NAME}"
+  [[ -n "${HN:-}" ]] && hn="${HN}"
+  hn=$(echo "$hn" | tr '[:upper:]' '[:lower:]' | tr -d ' ' | tr '_' '-')
+  [[ -z "$hn" ]] && return 0
+
+  msg_info "Setting hostname to ${hn}"
+  _incus_soft incus config set "${CT_NAME}" "user.hostname=${hn}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
+  # Prefer instance name for system hostname when UI used CT_ID as name
+  local sys_hn="${CT_NAME}"
+  _incus_soft incus_ct_exec bash -c "
+    echo '${sys_hn}' >/etc/hostname
+    hostname '${sys_hn}' 2>/dev/null || true
+    if command -v hostnamectl >/dev/null 2>&1; then
+      hostnamectl set-hostname '${sys_hn}' 2>/dev/null || true
+    fi
+    if [[ -f /etc/hosts ]]; then
+      if grep -qE '^127\\.0\\.1\\.1' /etc/hosts; then
+        sed -i 's/^127\\.0\\.1\\.1.*/127.0.1.1\\t${sys_hn}/' /etc/hosts
+      else
+        echo -e '127.0.1.1\\t${sys_hn}' >>/etc/hosts
+      fi
+    fi
+  " >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
+  msg_ok "Hostname set to ${sys_hn}"
 }
 
 incus_is_gpu_app() {
@@ -498,34 +607,84 @@ incus_configure_device_passthrough() {
     fi
   fi
 
+  # USB serial (privileged / optional bind) — mirrors PVE passthrough.func
+  if [[ "${CT_TYPE:-1}" == "0" || "${ENABLE_USB:-no}" == "yes" ]]; then
+    local usb_dev usb_idx=0
+    for usb_dev in /dev/ttyUSB0 /dev/ttyUSB1 /dev/ttyACM0; do
+      [[ -e "$usb_dev" ]] || continue
+      local usb_name="usbchar${usb_idx}"
+      if incus config device add "${CT_NAME}" "$usb_name" unix-char "source=${usb_dev}" "path=${usb_dev}" \
+        >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+        msg_ok "USB device ${usb_dev} attached as ${usb_name}"
+      else
+        msg_warn "Could not attach ${usb_dev} (need privileged CT or device permissions)"
+      fi
+      usb_idx=$((usb_idx + 1))
+    done
+  fi
+
+  # Optional extra disk: INCUS_EXTRA_DISK=/path/or/pool/volume INCUS_EXTRA_DISK_PATH=/mnt/data
+  if [[ -n "${INCUS_EXTRA_DISK:-${var_extra_disk:-}}" ]]; then
+    local edisk="${INCUS_EXTRA_DISK:-$var_extra_disk}"
+    local epath="${INCUS_EXTRA_DISK_PATH:-${var_extra_disk_path:-/mnt/extra}}"
+    msg_info "Adding extra disk device"
+    if incus config device add "${CT_NAME}" extradata disk "source=${edisk}" "path=${epath}" \
+      >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+      msg_ok "Extra disk mounted at ${epath}"
+    else
+      msg_warn "Could not add extra disk (source=${edisk})"
+    fi
+  fi
+
+  if [[ "${ENABLE_FUSE:-no}" == "yes" ]]; then
+    msg_custom "ℹ️" "${YW}" "FUSE enabled via privileged container (security.privileged=true)"
+  fi
+
   if [[ "${ENABLE_TUN:-no}" == "yes" ]]; then
-    incus config device add "${CT_NAME}" tun unix-char source=/dev/net/tun path=/dev/net/tun >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 ||
-      msg_warn "Could not add TUN device (privileged container may be required)"
+    if incus config device add "${CT_NAME}" tun unix-char source=/dev/net/tun path=/dev/net/tun \
+      >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+      msg_ok "TUN device attached"
+    else
+      msg_warn "Could not add TUN device"
+      echo -e "${TAB}${INFO} TUN/VPN usually needs a ${GN}privileged${CL} container (security.privileged=true)"
+      echo -e "${TAB}${INFO} Nesting/Docker apps: also enable nesting (security.nesting=true)."
+    fi
   fi
 
   if [[ -e /dev/apex_0 ]]; then
     msg_custom "🔌" "${BL}" "Detected Coral TPU - configuring passthrough"
-    incus config device add "${CT_NAME}" apex0 unix-char source=/dev/apex_0 path=/dev/apex_0 >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 || true
+    _incus_soft incus config device add "${CT_NAME}" apex0 unix-char source=/dev/apex_0 path=/dev/apex_0 >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
   fi
 }
 
 incus_wait_for_network() {
   [[ "${var_os:-debian}" == "alpine" ]] && return 0
   msg_info "Waiting for network in LXC container"
+
+  local net_type="" max_wait=40
+  net_type=$(incus network show "${BRG:-}" 2>/dev/null | awk '/^type:/ {print $2; exit}')
+  case "${net_type}" in
+  physical | macvlan | sriov) max_wait=90 ;;
+  esac
+
   local ip_in_lxc="" i
-  for i in {1..20}; do
+  for ((i = 1; i <= max_wait; i++)); do
     ip_in_lxc=$(incus_ct_exec ip -4 addr show dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
     [[ -z "$ip_in_lxc" ]] && ip_in_lxc=$(incus_ct_exec ip -6 addr show dev eth0 scope global 2>/dev/null | awk '/inet6 / {print $2}' | cut -d/ -f1 | head -n1)
-    [[ -n "$ip_in_lxc" ]] && break
+    [[ -z "$ip_in_lxc" ]] && ip_in_lxc=$(incus list "${CT_NAME}" -c4 -f csv 2>/dev/null | head -1 | awk '{print $1}' | cut -d/ -f1)
+    [[ -n "$ip_in_lxc" && "$ip_in_lxc" != "-" ]] && break
     sleep 1
   done
-  if [[ -z "$ip_in_lxc" ]]; then
-    msg_error "No IP assigned to ${CT_NAME} after 20s"
+
+  if [[ -z "$ip_in_lxc" || "$ip_in_lxc" == "-" ]]; then
+    msg_warn "No IP assigned to ${CT_NAME} after ${max_wait}s — continuing anyway"
     echo -e "${YW}Troubleshooting:${CL}"
     echo "  • Verify network ${BRG} exists and has connectivity"
-    echo "  • Check DHCP server (if using DHCP)"
+    echo "  • Check DHCP server (physical/macvlan often needs >20s)"
     echo "  • Verify static IP configuration"
-    exit 1
+    echo -e "${YW}Installation will continue; network-dependent steps may fail.${CL}"
+    export IP=""
+    return 0
   fi
 
   local ping_success=false retry
@@ -545,7 +704,7 @@ incus_wait_for_network() {
   else
     msg_ok "Network in LXC is reachable (ping)"
   fi
-  msg_ok "IPv4 set to ${ip_in_lxc}"
+  msg_ok "IP set to ${ip_in_lxc}"
   export IP="$ip_in_lxc"
 }
 
@@ -825,7 +984,10 @@ incus_run_install_script_with_recovery() {
 
   [[ -n "$error_explanation" ]] && echo -e "${TAB}${RD}Error: ${error_explanation}${CL}" && echo ""
   if [[ $install_exit_code -eq 10 ]]; then
-    echo -e "${TAB}${INFO} This error usually means the container needs ${GN}privileged${CL} mode or Docker/nesting support."
+    echo -e "${TAB}${INFO} Privileged / nesting / device hint:"
+    echo -e "${TAB}${INFO}  • Privileged: ${GN}security.privileged=true${CL} (TUN, FUSE, USB, Docker-in-LXC)"
+    echo -e "${TAB}${INFO}  • Nesting:     ${GN}security.nesting=true${CL} (Docker/Podman inside CT)"
+    echo -e "${TAB}${INFO}  • Re-run Advanced settings and enable the matching options."
     echo ""
   fi
 
