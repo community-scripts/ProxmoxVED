@@ -2326,6 +2326,9 @@ advanced_settings() {
   # Detect available bridges (do this once)
   local BRIDGES=""
   local BRIDGE_MENU_OPTIONS=()
+  if declare -f populate_advanced_bridge_menu &>/dev/null; then
+    populate_advanced_bridge_menu
+  else
   _detect_bridges() {
     IFACE_FILEPATH_LIST="/etc/network/interfaces"$'\n'$(find "/etc/network/interfaces.d/" -type f 2>/dev/null)
     BRIDGES=""
@@ -2361,6 +2364,7 @@ advanced_settings() {
     fi
   }
   _detect_bridges
+  fi
 
   # Main wizard loop
   while [ $STEP -le $MAX_STEP ]; do
@@ -2449,17 +2453,21 @@ advanced_settings() {
     # STEP 3: Container ID
     # ═══════════════════════════════════════════════════════════════════════════
     3)
+      local id_dialog_title="CONTAINER ID"
+      declare -f lxc_backend_uses_named_containers &>/dev/null && id_dialog_title="CONTAINER NAME"
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
-        --title "CONTAINER ID" \
+        --title "$id_dialog_title" \
         --ok-button "Next" --cancel-button "Back" \
-        --inputbox "\nSet Container ID" 10 58 "$_ct_id" \
+        --inputbox "\nSet ${id_dialog_title}" 10 58 "$_ct_id" \
         3>&1 1>&2 2>&3); then
         local input_id="${result:-$NEXTID}"
 
-        # Validate that ID is numeric
-        if ! [[ "$input_id" =~ ^[0-9]+$ ]]; then
-          whiptail --backtitle "Proxmox VE Helper Scripts" --title "Invalid ID" --msgbox "Container ID must be numeric." 8 58
-          continue
+        # Validate that ID is numeric (Proxmox) unless backend uses names (Incus)
+        if ! declare -f lxc_backend_uses_named_containers &>/dev/null; then
+          if ! [[ "$input_id" =~ ^[0-9]+$ ]]; then
+            whiptail --backtitle "Proxmox VE Helper Scripts" --title "Invalid ID" --msgbox "Container ID must be numeric." 8 58
+            continue
+          fi
         fi
 
         # Check if ID is already in use
@@ -3539,7 +3547,11 @@ install_script() {
     systemctl -q stop ping-instances.service
   fi
 
-  NEXTID=$(pvesh get /cluster/nextid)
+  if declare -f get_next_container_identifier &>/dev/null; then
+    NEXTID="$(get_next_container_identifier)"
+  else
+    NEXTID=$(pvesh get /cluster/nextid)
+  fi
 
   # Get timezone using timedatectl (Debian 13+ compatible)
   # Fallback to /etc/timezone for older systems
