@@ -737,7 +737,8 @@ msg_custom() {
   local msg="${3:-}"
   [[ -z "$msg" ]] && return
   stop_spinner
-  echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
+  # Align with CM/CROSS: TAB + icon + TAB + message (not a single leading space).
+  echo -e "${BFR:-}${TAB:-  }${symbol}${TAB:-  }${color}${msg}${CL:-\e[0m}"
   log_msg "$msg"
 }
 

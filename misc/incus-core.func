@@ -459,7 +459,8 @@ incus_msg_ok() {
   [[ -z "$msg" ]] && return
   incus_stop_spinner
   incus_clear_line
-  echo -e "$CM ${GN}${msg}${CL}"
+  # Match core.func: CM already includes TAB before/after the icon — no extra space.
+  echo -e "$CM${GN}${msg}${CL}"
   incus_log_msg "[OK] $msg"
   local sanitized_key
   sanitized_key=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
@@ -472,7 +473,7 @@ incus_msg_ok() {
 incus_msg_error() {
   incus_stop_spinner
   local msg="$1"
-  echo -e "${BFR:-}${CROSS:-✖️} ${RD}${msg}${CL}" >&2
+  echo -e "${BFR:-}${CROSS:-✖️}${RD}${msg}${CL}" >&2
   incus_log_msg "[ERROR] $msg"
 }
 
@@ -482,6 +483,7 @@ incus_msg_error() {
 incus_msg_warn() {
   incus_stop_spinner
   local msg="$1"
+  # Same layout as core.func msg_warn (INFO already includes TAB padding).
   echo -e "${BFR:-}${INFO:-ℹ️} ${YWB}${msg}${CL}" >&2
   incus_log_msg "[WARN] $msg"
 }
@@ -495,7 +497,8 @@ incus_msg_custom() {
   local msg="${3:-}"
   [[ -z "$msg" ]] && return
   incus_stop_spinner
-  echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
+  # Same indentation as CM/CROSS: TAB + icon + TAB + message
+  echo -e "${BFR:-}${TAB:-  }${symbol}${TAB:-  }${color}${msg}${CL:-\e[0m}"
   incus_log_msg "$msg"
 }
 
