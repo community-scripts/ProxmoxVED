@@ -3,52 +3,19 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
 # ==============================================================================
-# SOURCE-ORIGIN.FUNC — Auto-detect fork/branch/local checkout for script fetches
+# SOURCE-ORIGIN.FUNC — Git remote → COMMUNITY_SCRIPTS_URL helpers
 # ==============================================================================
-# Used by ct/*.sh bootstrap. Sets:
-#   COMMUNITY_SCRIPTS_DIR  → <repo>/misc when running from a local checkout
-#   COMMUNITY_SCRIPTS_URL  → raw base from git remote + branch (if unset)
-#   COMMUNITY_SCRIPTS_ROOT → repo root (when local)
+# Loaded by misc/build.func when running from a local checkout.
+# CT scripts do NOT source this directly — they use a one-liner to build.func.
 #
-# Explicit env overrides always win.
+# Explicit COMMUNITY_SCRIPTS_URL / COMMUNITY_SCRIPTS_DIR overrides always win.
 # ==============================================================================
 
 [[ -n "${_CS_SOURCE_ORIGIN_LOADED:-}" ]] && return
 _CS_SOURCE_ORIGIN_LOADED=1
 
-_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main"
-
-cs_detect_repo_root_from_script() {
-  local script_path="${1:-}"
-  local dir root
-  [[ -z "$script_path" || ! -f "$script_path" ]] && return 1
-  # Ignore process substitutions / pipes (/dev/fd/*, /proc/self/fd/*)
-  case "$script_path" in
-  /dev/fd/* | /proc/self/fd/* | /proc/*/fd/*) return 1 ;;
-  esac
-
-  dir="$(cd "$(dirname "$script_path")" >/dev/null 2>&1 && pwd)" || return 1
-
-  # ct/app.sh → repo root; also allow being called from misc/ or install/
-  if [[ -f "${dir}/../misc/build.func" ]]; then
-    root="$(cd "${dir}/.." >/dev/null 2>&1 && pwd)" || return 1
-    echo "$root"
-    return 0
-  fi
-  if [[ -f "${dir}/misc/build.func" ]]; then
-    echo "$dir"
-    return 0
-  fi
-  if [[ -f "${dir}/build.func" && "$(basename "$dir")" == "misc" ]]; then
-    root="$(cd "${dir}/.." >/dev/null 2>&1 && pwd)" || return 1
-    echo "$root"
-    return 0
-  fi
-  return 1
-}
-
 cs_git_remote_to_raw_base() {
-  # stdin/arg: git remote URL → stdout: raw content base (no trailing slash) or empty
+  # arg: git remote URL, branch → stdout: raw content base (no trailing slash)
   local remote="${1:-}" branch="${2:-main}"
   local owner repo host
 
@@ -103,102 +70,4 @@ cs_detect_origin_from_git() {
   [[ -z "$url" ]] && return 1
   echo "$url"
   return 0
-}
-
-cs_apply_local_origin() {
-  # Sets COMMUNITY_SCRIPTS_DIR / URL from a repo root (only if unset).
-  local root="${1:-}"
-  local url
-  [[ -z "$root" || ! -f "$root/misc/build.func" ]] && return 1
-
-  export COMMUNITY_SCRIPTS_ROOT="$root"
-  if [[ -z "${COMMUNITY_SCRIPTS_DIR:-}" ]]; then
-    export COMMUNITY_SCRIPTS_DIR="$root/misc"
-  fi
-
-  if [[ -z "${COMMUNITY_SCRIPTS_URL:-}" ]]; then
-    url="$(cs_detect_origin_from_git "$root" 2>/dev/null || true)"
-    if [[ -n "$url" ]]; then
-      export COMMUNITY_SCRIPTS_URL="$url"
-    fi
-  fi
-  return 0
-}
-
-cs_resolve_origin() {
-  # Resolve from CT script path / env. Safe to call multiple times.
-  local script_path="${1:-${BASH_SOURCE[1]:-${BASH_SOURCE[0]:-}}}"
-  local root=""
-
-  if [[ -n "${COMMUNITY_SCRIPTS_DIR:-}" && -f "${COMMUNITY_SCRIPTS_DIR}/build.func" ]]; then
-    root="$(cd "${COMMUNITY_SCRIPTS_DIR}/.." >/dev/null 2>&1 && pwd)" || true
-    [[ -n "$root" ]] && cs_apply_local_origin "$root"
-  elif root="$(cs_detect_repo_root_from_script "$script_path" 2>/dev/null)"; then
-    cs_apply_local_origin "$root"
-  fi
-
-  export COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-$_CS_DEFAULT_URL}"
-}
-
-# Fetch file contents: local COMMUNITY_SCRIPTS_DIR / repo root first, else curl.
-_cs_fetch_text() {
-  local rel="${1:?relative path e.g. misc/install.func}"
-  local name="${rel##*/}"
-  local dir="" file=""
-
-  # Prefer COMMUNITY_SCRIPTS_DIR for misc/* and install/* next to misc/
-  if [[ -n "${COMMUNITY_SCRIPTS_DIR:-}" ]]; then
-    if [[ "$rel" == misc/* ]]; then
-      file="${COMMUNITY_SCRIPTS_DIR}/${name}"
-    elif [[ "$rel" == install/* ]]; then
-      file="$(cd "${COMMUNITY_SCRIPTS_DIR}/.." >/dev/null 2>&1 && pwd)/${rel}"
-    elif [[ -f "${COMMUNITY_SCRIPTS_DIR}/${rel}" ]]; then
-      file="${COMMUNITY_SCRIPTS_DIR}/${rel}"
-    elif [[ -f "${COMMUNITY_SCRIPTS_DIR}/${name}" ]]; then
-      file="${COMMUNITY_SCRIPTS_DIR}/${name}"
-    fi
-  fi
-
-  if [[ -z "$file" && -n "${COMMUNITY_SCRIPTS_ROOT:-}" ]]; then
-    file="${COMMUNITY_SCRIPTS_ROOT}/${rel}"
-  fi
-
-  if [[ -n "$file" && -f "$file" ]]; then
-    cat "$file"
-    return 0
-  fi
-
-  local base="${COMMUNITY_SCRIPTS_URL:-$_CS_DEFAULT_URL}"
-  if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "${base}/${rel}"
-  else
-    wget -qO- "${base}/${rel}"
-  fi
-}
-
-cs_source_build() {
-  local caller_script="${BASH_SOURCE[1]:-${BASH_SOURCE[0]:-}}"
-  cs_resolve_origin "$caller_script"
-
-  local build_local=""
-  if [[ -n "${COMMUNITY_SCRIPTS_DIR:-}" && -f "${COMMUNITY_SCRIPTS_DIR}/build.func" ]]; then
-    build_local="${COMMUNITY_SCRIPTS_DIR}/build.func"
-  elif [[ -n "${COMMUNITY_SCRIPTS_ROOT:-}" && -f "${COMMUNITY_SCRIPTS_ROOT}/misc/build.func" ]]; then
-    build_local="${COMMUNITY_SCRIPTS_ROOT}/misc/build.func"
-  fi
-
-  if [[ -n "$build_local" ]]; then
-    # shellcheck disable=SC1090
-    source "$build_local"
-    return 0
-  fi
-
-  local base="${COMMUNITY_SCRIPTS_URL:-$_CS_DEFAULT_URL}"
-  if command -v curl >/dev/null 2>&1; then
-    # shellcheck disable=SC1090
-    source <(curl -fsSL "${base}/misc/build.func")
-  else
-    # shellcheck disable=SC1090
-    source <(wget -qO- "${base}/misc/build.func")
-  fi
 }
