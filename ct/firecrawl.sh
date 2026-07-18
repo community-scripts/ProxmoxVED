@@ -67,6 +67,7 @@ function update_script() {
     msg_ok "Built Go Library"
 
     msg_info "Building Firecrawl API"
+    source "$HOME/.cargo/env"
     cd /opt/firecrawl/apps/api
     $STD pnpm install --frozen-lockfile
     $STD pnpm build
