@@ -16,7 +16,9 @@ _INCUS_BUILD_FUNC_LOADED=1
 INCUS_COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
 
 # Mark update-mode when we are inside an Incus container (not the host daemon).
-if [[ "$(detect_lxc_platform 2>/dev/null || true)" == "incus-container" ]]; then
+if declare -f is_incus_container >/dev/null 2>&1 && is_incus_container; then
+  _INCUS_INSIDE_CONTAINER=1
+elif [[ -S /dev/incus/sock ]] || [[ -f /etc/profile.d/incus-motd.sh ]] || [[ -f /etc/profile.d/99-community-scripts-motd.sh ]]; then
   _INCUS_INSIDE_CONTAINER=1
 fi
 
@@ -443,12 +445,18 @@ header_info() {
 eval "$(declare -f start | sed '1s/start/_shared_start/')"
 start() {
   _incus_source "misc/tools.func"
-  if command -v incus &>/dev/null && [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]]; then
-    # Host create flow
+  # Ensure cleanup_lxc exists for update_script footer (tools.func may not define it).
+  if ! declare -f cleanup_lxc >/dev/null 2>&1; then
+    cleanup_lxc() {
+      $STD apt -y autoremove 2>/dev/null || true
+      $STD apt -y autoclean 2>/dev/null || true
+    }
+  fi
+  if [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]] && command -v incus &>/dev/null; then
     install_script || return 0
     return 0
   fi
-  # Inside container / update flow — use shared UI menu
+  # Inside container / update flow — shared silent/verbose update menu
   _shared_start "$@"
 }
 

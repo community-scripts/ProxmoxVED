@@ -45,3 +45,11 @@ is_incus_lxc_backend() {
   platform="$(detect_lxc_platform)"
   [[ "$platform" == "incus" || "$platform" == "incus-container" ]]
 }
+
+is_incus_host() {
+  [[ "$(detect_lxc_platform)" == "incus" ]]
+}
+
+is_incus_container() {
+  [[ "$(detect_lxc_platform)" == "incus-container" ]]
+}
