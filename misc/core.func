@@ -526,7 +526,7 @@ silent() {
   if [[ $rc -ne 0 ]]; then
     # Source explain_exit_code if needed
     if ! declare -f explain_exit_code >/dev/null 2>&1; then
-      source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/error_handler.func)
+      source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/error_handler.func")
     fi
 
     local explanation
@@ -809,8 +809,20 @@ exit_script() {
 get_header() {
   local app_name=$(echo "${APP,,}" | tr -d ' ')
   local app_type=${APP_TYPE:-ct} # Default to 'ct' if not set
-  local header_url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/${app_type}/headers/${app_name}"
+  local header_url="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/${app_type}/headers/${app_name}"
   local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
+  local repo_header=""
+
+  # Prefer header from local checkout when testing a fork/branch
+  if [[ -n "${COMMUNITY_SCRIPTS_ROOT:-}" && -f "${COMMUNITY_SCRIPTS_ROOT}/${app_type}/headers/${app_name}" ]]; then
+    repo_header="${COMMUNITY_SCRIPTS_ROOT}/${app_type}/headers/${app_name}"
+  elif [[ -n "${COMMUNITY_SCRIPTS_DIR:-}" && -f "$(cd "${COMMUNITY_SCRIPTS_DIR}/.." 2>/dev/null && pwd)/${app_type}/headers/${app_name}" ]]; then
+    repo_header="$(cd "${COMMUNITY_SCRIPTS_DIR}/.." && pwd)/${app_type}/headers/${app_name}"
+  fi
+  if [[ -n "$repo_header" && -s "$repo_header" ]]; then
+    cat "$repo_header" 2>/dev/null || true
+    return 0
+  fi
 
   mkdir -p "$(dirname "$local_header_path")"
 

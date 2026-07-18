@@ -199,9 +199,9 @@ validate_storage_space() {
 
 _incus_prepare_install_exports() {
   if [[ "${var_os:-debian}" == "alpine" ]]; then
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/misc/alpine-install.func")"
+    export FUNCTIONS_FILE_PATH="$(_cs_fetch_text misc/alpine-install.func)"
   else
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/misc/install.func")"
+    export FUNCTIONS_FILE_PATH="$(_cs_fetch_text misc/install.func)"
   fi
 
   export DIAGNOSTICS="${DIAGNOSTICS:-yes}"
@@ -859,7 +859,7 @@ INNEREOF" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 || { msg_error "Failed to push f
 
   msg_info "Starting application installation"
   local _install_script _run_env lxc_exit=0 install_exit_code=0
-  _install_script="$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/install/${var_install}.sh")"
+  _install_script="$(_cs_fetch_text "install/${var_install}.sh")"
   _run_env="$(_incus_build_install_env)"
   _run_env+=$'\nsource /dev/stdin <<<"$(cat /tmp/incus-functions)"'
 

@@ -103,9 +103,9 @@ build_container() {
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
   if [ "$var_os" == "alpine" ]; then
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/alpine-install.func")"
+    export FUNCTIONS_FILE_PATH="$(_cs_fetch_text misc/alpine-install.func)"
   else
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/install.func")"
+    export FUNCTIONS_FILE_PATH="$(_cs_fetch_text misc/install.func)"
   fi
 
   # Core exports for install.func
@@ -859,7 +859,7 @@ PROFILE
   trap - ERR         # Remove ERR trap completely
 
   local _install_script
-  _install_script="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/install/${var_install}.sh")"
+  _install_script="$(_cs_fetch_text "install/${var_install}.sh")"
   lxc-attach -n "$CTID" -- bash -c "$_install_script"
   local lxc_exit=$?
 
@@ -1115,7 +1115,7 @@ PROFILE
         if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
           echo -e "${TAB}${HOLD}${DGN}Setting up MOTD and SSH for debugging...${CL}"
           if pct exec "$CTID" -- bash -c "
-              source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/install.func")
+              source <(curl -fsSL \"${COMMUNITY_SCRIPTS_URL}/misc/install.func\")
               declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
             " >/dev/null 2>&1; then
             local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
@@ -1189,7 +1189,7 @@ PROFILE
           trap - ERR
           local _LXC_CAPTURE_LOG="/tmp/.install-capture-${SESSION_ID}.log"
           local _install_script
-          _install_script="$(curl -fsSL "https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh")"
+          _install_script="$(_cs_fetch_text "install/${var_install}.sh")"
           lxc-attach -n "$CTID" -- bash -c "$_install_script" 2>&1 | tee "$_LXC_CAPTURE_LOG"
           local apt_retry_exit=${PIPESTATUS[0]}
           set -Eeuo pipefail

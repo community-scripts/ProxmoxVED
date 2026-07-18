@@ -7,7 +7,62 @@
 [[ -n "${_LXC_BUILD_DISPATCHED:-}" ]] && return
 _LXC_BUILD_DISPATCHED=1
 
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+_CS_DEFAULT_URL="${_CS_DEFAULT_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+
+# If CT bootstrap already set DIR, keep it; otherwise derive from this file's location.
+if [[ -z "${COMMUNITY_SCRIPTS_DIR:-}" && -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
+  _cs_this_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+  if [[ -f "${_cs_this_dir}/build.func" || -f "${_cs_this_dir}/lxc-platform.func" ]]; then
+    export COMMUNITY_SCRIPTS_DIR="${_cs_this_dir}"
+    export COMMUNITY_SCRIPTS_ROOT="$(cd "${_cs_this_dir}/.." >/dev/null 2>&1 && pwd)"
+  fi
+  unset _cs_this_dir
+fi
+
+# Pull git-based URL when local checkout and URL not explicitly set.
+if [[ -z "${COMMUNITY_SCRIPTS_URL:-}" && -n "${COMMUNITY_SCRIPTS_ROOT:-}" && -d "${COMMUNITY_SCRIPTS_ROOT}/.git" ]] && command -v git >/dev/null 2>&1; then
+  if [[ -f "${COMMUNITY_SCRIPTS_DIR:-}/source-origin.func" ]]; then
+    # shellcheck disable=SC1090
+    source "${COMMUNITY_SCRIPTS_DIR}/source-origin.func"
+    _cs_url="$(cs_detect_origin_from_git "$COMMUNITY_SCRIPTS_ROOT" 2>/dev/null || true)"
+    [[ -n "${_cs_url:-}" ]] && export COMMUNITY_SCRIPTS_URL="$_cs_url"
+    unset _cs_url
+  fi
+fi
+
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-$_CS_DEFAULT_URL}"
+export COMMUNITY_SCRIPTS_URL
+
+# Fetch text: prefer local checkout, else curl/wget from COMMUNITY_SCRIPTS_URL.
+_cs_fetch_text() {
+  local rel="${1:?relative path e.g. misc/install.func}"
+  local name="${rel##*/}"
+  local file=""
+
+  if [[ -n "${COMMUNITY_SCRIPTS_DIR:-}" ]]; then
+    if [[ "$rel" == misc/* ]]; then
+      file="${COMMUNITY_SCRIPTS_DIR}/${name}"
+    elif [[ "$rel" == install/* ]]; then
+      file="$(cd "${COMMUNITY_SCRIPTS_DIR}/.." >/dev/null 2>&1 && pwd)/${rel}"
+    elif [[ -f "${COMMUNITY_SCRIPTS_DIR}/${name}" ]]; then
+      file="${COMMUNITY_SCRIPTS_DIR}/${name}"
+    fi
+  fi
+  if [[ -z "$file" && -n "${COMMUNITY_SCRIPTS_ROOT:-}" && -f "${COMMUNITY_SCRIPTS_ROOT}/${rel}" ]]; then
+    file="${COMMUNITY_SCRIPTS_ROOT}/${rel}"
+  fi
+  if [[ -n "$file" && -f "$file" ]]; then
+    cat "$file"
+    return 0
+  fi
+
+  local base="${COMMUNITY_SCRIPTS_URL:-$_CS_DEFAULT_URL}"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "${base}/${rel}"
+  else
+    wget -qO- "${base}/${rel}"
+  fi
+}
 
 _cs_source_func() {
   local rel="$1"

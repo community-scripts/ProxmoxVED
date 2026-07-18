@@ -20,12 +20,20 @@ Override (debug): `export LXC_PLATFORM=incus|pve|incus-container`
 
 ## Local development
 
-Point scripts at your checkout instead of GitHub:
+From a clone/fork, just run the CT script (origin is auto-detected):
+
+```bash
+bash ct/debian.sh
+```
+
+Optional overrides:
 
 ```bash
 export COMMUNITY_SCRIPTS_DIR=/path/to/ProxmoxVED/misc
-bash ct/debian.sh
+export COMMUNITY_SCRIPTS_URL=https://raw.githubusercontent.com/YOU/ProxmoxVED/your-branch
 ```
+
+See [Script origin (fork/branch)](source-origin.md).
 
 ## Non-root Incus users
 

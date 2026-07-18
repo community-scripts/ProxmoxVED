@@ -98,6 +98,7 @@ Topics include:
 * Unattended deployments
 * Environment-variable-based provisioning
 * [Incus host setup](guides/incus.md) (unified `ct/` scripts on Incus)
+* [Script origin (fork/branch)](guides/source-origin.md) (local checkout + remote `run.sh`)
 
 ➡️ [Open Configuration Guides](https://community-scripts.org/docs/guides/readme)
 
