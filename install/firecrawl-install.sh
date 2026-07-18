@@ -129,14 +129,6 @@ EOF
 chmod 600 /opt/firecrawl/.env
 msg_ok "Generated Configuration"
 
-msg_info "Patching Playwright Bind Address"
-if ! grep -q 'app.listen(port, () => {' /opt/firecrawl/apps/playwright-service-ts/api.ts; then
-  msg_error "Expected Playwright listen call not found"
-  exit 1
-fi
-sed -i 's|app.listen(port, () => {|app.listen(Number(port), "127.0.0.1", () => {|' /opt/firecrawl/apps/playwright-service-ts/api.ts
-msg_ok "Patched Playwright Bind Address"
-
 msg_info "Building Go Library"
 cd /opt/firecrawl/apps/api/sharedLibs/go-html-to-md
 $STD go build -o libhtml-to-markdown.so -buildmode=c-shared html-to-markdown.go
