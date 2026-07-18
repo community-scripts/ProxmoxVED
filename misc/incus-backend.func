@@ -327,82 +327,185 @@ incus_is_gpu_app() {
   [[ "${var_gpu:-no}" == "yes" || "${ENABLE_GPU:-no}" == "yes" ]]
 }
 
+# Populate INTEL_GPUS/AMD_GPUS/NVIDIA_GPUS as "pci=<addr>|id=<n>|vendorid=<id>" selectors
+# per https://linuxcontainers.org/incus/docs/main/reference/devices_gpu/
 incus_detect_gpu_devices() {
-  INTEL_DEVICES=()
-  AMD_DEVICES=()
-  NVIDIA_DEVICES=()
-  local pci_vga_info
-  pci_vga_info=$(lspci -nn 2>/dev/null | grep -E "VGA|Display|3D" || true)
-  if echo "$pci_vga_info" | grep -q "\[8086:"; then
-    msg_custom "🎮" "${BL}" "Detected Intel GPU"
-    [[ -d /dev/dri ]] && for d in /dev/dri/renderD* /dev/dri/card*; do [[ -e "$d" ]] && INTEL_DEVICES+=("$d"); done
+  INTEL_GPUS=()
+  AMD_GPUS=()
+  NVIDIA_GPUS=()
+  NVIDIA_CHAR_DEVS=()
+
+  local line pci vendor
+  # Prefer domain:bus:slot.func from lspci -D
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    pci=$(awk '{print $1}' <<<"$line")
+    [[ "$pci" =~ ^[0-9a-fA-F]+:[0-9a-fA-F]+:[0-9a-fA-F]+\.[0-9a-fA-F]+$ ]] || continue
+    if grep -q '\[8086:' <<<"$line"; then
+      INTEL_GPUS+=("pci=${pci}")
+    elif grep -qE '\[1002:|\[1022:' <<<"$line"; then
+      AMD_GPUS+=("pci=${pci}")
+    elif grep -q '\[10de:' <<<"$line"; then
+      NVIDIA_GPUS+=("pci=${pci}")
+    fi
+  done < <(lspci -nn -D 2>/dev/null | grep -E 'VGA|Display|3D' || true)
+
+  # DRM sysfs fallback (useful on ARM / non-PCI GPUs)
+  if [[ ${#INTEL_GPUS[@]} -eq 0 && ${#AMD_GPUS[@]} -eq 0 && ${#NVIDIA_GPUS[@]} -eq 0 && -d /sys/class/drm ]]; then
+    local card base drm_id vendor_hex
+    for card in /sys/class/drm/card[0-9]*; do
+      base=$(basename "$card")
+      [[ "$base" == *-* ]] && continue
+      drm_id="${base#card}"
+      vendor_hex=$(cat "$card/device/vendor" 2>/dev/null || true)
+      pci=$(basename "$(readlink -f "$card/device" 2>/dev/null)" 2>/dev/null || true)
+      local sel=""
+      if [[ -n "$pci" && "$pci" =~ ^[0-9a-fA-F]+:[0-9a-fA-F]+:[0-9a-fA-F]+\.[0-9a-fA-F]+$ ]]; then
+        sel="pci=${pci}"
+      elif [[ -n "$drm_id" ]]; then
+        sel="id=${drm_id}"
+      fi
+      [[ -z "$sel" ]] && continue
+      case "$vendor_hex" in
+      0x8086) INTEL_GPUS+=("$sel") ;;
+      0x1002 | 0x1022) AMD_GPUS+=("$sel") ;;
+      0x10de) NVIDIA_GPUS+=("$sel") ;;
+      esac
+    done
   fi
-  if echo "$pci_vga_info" | grep -qE "\[1002:|\[1022:"; then
-    msg_custom "🎮" "${RD}" "Detected AMD GPU"
-    [[ ${#INTEL_DEVICES[@]} -eq 0 && -d /dev/dri ]] && for d in /dev/dri/renderD* /dev/dri/card*; do [[ -e "$d" ]] && AMD_DEVICES+=("$d"); done
+
+  # NVIDIA char devices as optional extra (driver nodes inside CT)
+  local d
+  for d in /dev/nvidia*; do
+    [[ -c "$d" ]] && NVIDIA_CHAR_DEVS+=("$d")
+  done
+  if [[ -d /dev/nvidia-caps ]]; then
+    for d in /dev/nvidia-caps/*; do
+      [[ -c "$d" ]] && NVIDIA_CHAR_DEVS+=("$d")
+    done
   fi
-  if echo "$pci_vga_info" | grep -q "\[10de:"; then
-    msg_custom "🎮" "${GN}" "Detected NVIDIA GPU"
-    for d in /dev/nvidia*; do [[ -c "$d" ]] && NVIDIA_DEVICES+=("$d"); done
-    [[ -d /dev/nvidia-caps ]] && for d in /dev/nvidia-caps/*; do [[ -c "$d" ]] && NVIDIA_DEVICES+=("$d"); done
+
+  [[ ${#INTEL_GPUS[@]} -gt 0 ]] && msg_custom "🎮" "${BL}" "Detected Intel GPU (${#INTEL_GPUS[@]})"
+  [[ ${#AMD_GPUS[@]} -gt 0 ]] && msg_custom "🎮" "${RD}" "Detected AMD GPU (${#AMD_GPUS[@]})"
+  [[ ${#NVIDIA_GPUS[@]} -gt 0 ]] && msg_custom "🎮" "${GN}" "Detected NVIDIA GPU (${#NVIDIA_GPUS[@]})"
+}
+
+_incus_add_gpu_physical() {
+  # $1 device name, $2 selector like pci=0000:00:02.0 or id=0 or vendorid=8086
+  local dev_name="$1" selector="$2"
+  local -a args=(gpu "gputype=physical")
+  args+=("$selector")
+
+  local video_gid
+  video_gid=$(getent group video 2>/dev/null | cut -d: -f3 || true)
+  [[ -n "$video_gid" ]] && args+=("gid=${video_gid}")
+
+  if incus config device add "${CT_NAME}" "$dev_name" "${args[@]}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+    return 0
   fi
+  # Retry without gid (some hosts reject host GIDs for unprivileged CTs)
+  args=(gpu "gputype=physical" "$selector")
+  if incus config device add "${CT_NAME}" "$dev_name" "${args[@]}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+    return 0
+  fi
+  return 1
 }
 
 incus_configure_device_passthrough() {
   if incus_is_gpu_app; then
     incus_detect_gpu_devices
-    local dev_idx=0 dev selected_gpu="" gpu_count=0
+    local selected_gpu="" gpu_count=0
     local -a available_gpus=()
-    [[ ${#INTEL_DEVICES[@]} -gt 0 ]] && { available_gpus+=("INTEL"); gpu_count=$((gpu_count + 1)); }
-    [[ ${#AMD_DEVICES[@]} -gt 0 ]] && { available_gpus+=("AMD"); gpu_count=$((gpu_count + 1)); }
-    [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]] && { available_gpus+=("NVIDIA"); gpu_count=$((gpu_count + 1)); }
+    [[ ${#INTEL_GPUS[@]} -gt 0 ]] && { available_gpus+=("INTEL"); gpu_count=$((gpu_count + 1)); }
+    [[ ${#AMD_GPUS[@]} -gt 0 ]] && { available_gpus+=("AMD"); gpu_count=$((gpu_count + 1)); }
+    [[ ${#NVIDIA_GPUS[@]} -gt 0 || ${#NVIDIA_CHAR_DEVS[@]} -gt 0 ]] && { available_gpus+=("NVIDIA"); gpu_count=$((gpu_count + 1)); }
 
     if [[ "$gpu_count" -gt 0 ]]; then
       selected_gpu="${available_gpus[0]}"
-      [[ "$gpu_count" -gt 1 ]] && selected_gpu=$(prompt_select "Which GPU type to passthrough?" 1 60 "${available_gpus[@]}")
+      if [[ "$gpu_count" -gt 1 ]]; then
+        if declare -f prompt_select >/dev/null 2>&1; then
+          selected_gpu=$(prompt_select "Which GPU type to passthrough?" 1 60 "${available_gpus[@]}")
+        fi
+      fi
       selected_gpu="${selected_gpu^^}"
+
+      local sel added=0 failed=0 idx=0
       case "$selected_gpu" in
-      INTEL) dev_idx=0; for dev in "${INTEL_DEVICES[@]}"; do
-          incus config device add "${CT_NAME}" "gpu${dev_idx}" gpu gputype=physical device="${dev}" >>"$LOGFILE" 2>&1 ||
-            incus config device add "${CT_NAME}" "gpu${dev_idx}" unix-char source="${dev}" path="${dev}" >>"$LOGFILE" 2>&1 || true
-          dev_idx=$((dev_idx + 1))
+      INTEL)
+        for sel in "${INTEL_GPUS[@]}"; do
+          if _incus_add_gpu_physical "gpu${idx}" "$sel"; then
+            added=$((added + 1))
+          else
+            failed=$((failed + 1))
+            msg_warn "Could not add Intel GPU (${sel})"
+          fi
+          idx=$((idx + 1))
         done
-        export GPU_TYPE="INTEL"
-        msg_ok "Intel GPU passthrough configured (${#INTEL_DEVICES[@]} devices)"
+        # Vendor fallback if PCI/id adds failed entirely
+        if [[ "$added" -eq 0 ]]; then
+          _incus_add_gpu_physical "gpu0" "vendorid=8086" && added=1 || true
+        fi
+        [[ "$added" -gt 0 ]] && export GPU_TYPE="INTEL" && msg_ok "Intel GPU passthrough configured (${added})"
         ;;
-      AMD) dev_idx=0; for dev in "${AMD_DEVICES[@]}"; do
-          incus config device add "${CT_NAME}" "gpu${dev_idx}" gpu gputype=physical device="${dev}" >>"$LOGFILE" 2>&1 ||
-            incus config device add "${CT_NAME}" "gpu${dev_idx}" unix-char source="${dev}" path="${dev}" >>"$LOGFILE" 2>&1 || true
-          dev_idx=$((dev_idx + 1))
+      AMD)
+        for sel in "${AMD_GPUS[@]}"; do
+          if _incus_add_gpu_physical "gpu${idx}" "$sel"; then
+            added=$((added + 1))
+          else
+            failed=$((failed + 1))
+            msg_warn "Could not add AMD GPU (${sel})"
+          fi
+          idx=$((idx + 1))
         done
-        export GPU_TYPE="AMD"
-        msg_ok "AMD GPU passthrough configured (${#AMD_DEVICES[@]} devices)"
+        if [[ "$added" -eq 0 ]]; then
+          _incus_add_gpu_physical "gpu0" "vendorid=1002" && added=1 || true
+        fi
+        [[ "$added" -gt 0 ]] && export GPU_TYPE="AMD" && msg_ok "AMD GPU passthrough configured (${added})"
         ;;
-      NVIDIA) dev_idx=0; for dev in "${NVIDIA_DEVICES[@]}"; do
-          incus config device add "${CT_NAME}" "nvidia${dev_idx}" unix-char source="${dev}" path="${dev}" >>"$LOGFILE" 2>&1 || true
-          dev_idx=$((dev_idx + 1))
+      NVIDIA)
+        for sel in "${NVIDIA_GPUS[@]}"; do
+          if _incus_add_gpu_physical "gpu${idx}" "$sel"; then
+            added=$((added + 1))
+          else
+            failed=$((failed + 1))
+            msg_warn "Could not add NVIDIA GPU (${sel})"
+          fi
+          idx=$((idx + 1))
         done
-        export GPU_TYPE="NVIDIA"
-        msg_ok "NVIDIA GPU passthrough configured (${#NVIDIA_DEVICES[@]} devices)"
+        if [[ "$added" -eq 0 ]]; then
+          _incus_add_gpu_physical "gpu0" "vendorid=10de" && added=1 || true
+        fi
+        # Optional NVIDIA char nodes (driver interface)
+        local ndev nidx=0
+        for ndev in "${NVIDIA_CHAR_DEVS[@]}"; do
+          local nname
+          nname=$(basename "$ndev" | tr -c 'A-Za-z0-9' '_')
+          incus config device add "${CT_NAME}" "nvidia_${nname}_${nidx}" unix-char "source=${ndev}" "path=${ndev}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 || true
+          nidx=$((nidx + 1))
+        done
+        if [[ "$added" -gt 0 || "$nidx" -gt 0 ]]; then
+          export GPU_TYPE="NVIDIA"
+          msg_ok "NVIDIA GPU passthrough configured (gpu=${added}, char=${nidx})"
+        fi
         ;;
       esac
+
+      if [[ -z "${GPU_TYPE:-}" ]]; then
+        msg_warn "GPU passthrough requested but no device could be attached (check permissions / incus info --resources)"
+      fi
     else
-      msg_custom "ℹ️" "${YW}" "No GPU devices found for passthrough"
+      msg_custom "ℹ️" "${YW}" "No GPU devices found for passthrough (lspci/DRM empty)"
     fi
   fi
 
   if [[ "${ENABLE_TUN:-no}" == "yes" ]]; then
-    incus config device add "${CT_NAME}" tun unix-char source=/dev/net/tun path=/dev/net/tun >>"$LOGFILE" 2>&1 ||
+    incus config device add "${CT_NAME}" tun unix-char source=/dev/net/tun path=/dev/net/tun >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 ||
       msg_warn "Could not add TUN device (privileged container may be required)"
-  fi
-
-  if [[ "${CT_TYPE:-1}" == "0" ]]; then
-    msg_info "Privileged container — USB serial passthrough available if needed"
   fi
 
   if [[ -e /dev/apex_0 ]]; then
     msg_custom "🔌" "${BL}" "Detected Coral TPU - configuring passthrough"
-    incus config device add "${CT_NAME}" apex0 unix-char source=/dev/apex_0 path=/dev/apex_0 >>"$LOGFILE" 2>&1 || true
+    incus config device add "${CT_NAME}" apex0 unix-char source=/dev/apex_0 path=/dev/apex_0 >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 || true
   fi
 }
 
@@ -458,8 +561,17 @@ fix_gpu_gids() {
   render_gid=$(incus_ct_exec getent group render 2>/dev/null | cut -d: -f3)
   [[ -z "$video_gid" ]] && video_gid="44"
   [[ -z "$render_gid" ]] && render_gid="104"
-  if [[ "${CT_TYPE:-1}" == "0" && -d /dev/dri ]]; then
-    incus_ct_exec bash -c "
+
+  # Incus gpu devices support gid= (container ownership) — docs: devices_gpu
+  local dev_name
+  while IFS= read -r dev_name; do
+    [[ -z "$dev_name" || "$dev_name" != gpu* ]] && continue
+    incus config device set "${CT_NAME}" "$dev_name" "gid=${video_gid}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 || true
+  done < <(incus config device list "${CT_NAME}" 2>/dev/null || true)
+
+  # Best-effort permissions inside the CT when /dev/dri is visible
+  incus_ct_exec bash -c "
+    if [[ -d /dev/dri ]]; then
       for dev in /dev/dri/*; do
         [[ -e \"\$dev\" ]] || continue
         case \"\$dev\" in
@@ -468,8 +580,8 @@ fix_gpu_gids() {
         esac
         chmod 660 \"\$dev\" 2>/dev/null || true
       done
-    " &>/dev/null || true
-  fi
+    fi
+  " &>/dev/null || true
   msg_ok "GPU passthrough configured (video:${video_gid}, render:${render_gid})"
 }
 
