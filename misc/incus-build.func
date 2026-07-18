@@ -66,11 +66,21 @@ incus_variables() {
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
   SESSION_ID="${RANDOM_UUID:0:8}"
   EXECUTION_ID="${EXECUTION_ID:-$RANDOM_UUID}"
-  INCUS_BUILD_LOG="/tmp/incus-create-${SESSION_ID}.log"
-  INCUS_INSTALL_LOG="/tmp/incus-install-${SESSION_ID}.log"
+  local _log_dir
+  _log_dir="$(community_scripts_dir)/logs"
+  mkdir -p "$_log_dir" 2>/dev/null || _log_dir="/tmp"
+  INCUS_BUILD_LOG="${_log_dir}/incus-create-${SESSION_ID}.log"
+  INCUS_INSTALL_LOG="${_log_dir}/incus-install-${SESSION_ID}.log"
   BUILD_LOG="$INCUS_BUILD_LOG"
-  combined_log="/tmp/incus-install-${SESSION_ID}-combined.log"
+  combined_log="${_log_dir}/incus-install-${SESSION_ID}-combined.log"
   _INCUS_HOST_LOGFILE="$INCUS_BUILD_LOG"
+  touch "$INCUS_BUILD_LOG" 2>/dev/null || {
+    INCUS_BUILD_LOG="/tmp/incus-create-${SESSION_ID}.log"
+    INCUS_INSTALL_LOG="/tmp/incus-install-${SESSION_ID}.log"
+    BUILD_LOG="$INCUS_BUILD_LOG"
+    combined_log="/tmp/incus-install-${SESSION_ID}-combined.log"
+    _INCUS_HOST_LOGFILE="$INCUS_BUILD_LOG"
+  }
   CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
   if command -v incus &>/dev/null; then
     PVEVERSION="Incus $(incus version 2>/dev/null | awk 'NR==1 {for (i=3;i<=NF;i++) printf "%s%s", (i>3?" ":""), $i; print ""}' | sed 's/^[[:space:]]*//')"
@@ -165,7 +175,23 @@ _incus_sync_from_pve_settings() {
   CTID="$CT_NAME"
   UNPRIVILEGED="${CT_TYPE:-1}"
   IMAGE_OS="${var_os:-debian}"
+  IMAGE_OS="${IMAGE_OS,,}"
   IMAGE_VERSION="${var_version:-13}"
+  # Normalize common UI shortcuts for image aliases
+  case "$IMAGE_OS" in
+  ubuntu)
+    case "$IMAGE_VERSION" in
+    22) IMAGE_VERSION="22.04" ;;
+    24) IMAGE_VERSION="24.04" ;;
+    26) IMAGE_VERSION="26.04" ;;
+    esac
+    ;;
+  alpine)
+    case "$IMAGE_VERSION" in
+    latest | edge) IMAGE_VERSION="3.21" ;;
+    esac
+    ;;
+  esac
   PROFILE="${var_profile:-default}"
   STORAGE_POOL="${CONTAINER_STORAGE:-${STORAGE_POOL:-}}"
   if [[ -z "$STORAGE_POOL" ]]; then
@@ -191,13 +217,17 @@ _incus_sync_from_pve_settings() {
 
   case "${IPV6_METHOD:-auto}" in
   auto | dhcp) IPV6_ADDR="auto" ;;
-  static) IPV6_ADDR="${IPV6_ADDR:-auto}" ;;
-  none) IPV6_ADDR="none" ;;
+  static) IPV6_ADDR="${IPV6_ADDR:-}" ;;
+  none | disable) IPV6_ADDR="none"; IPV6_METHOD="none" ;;
   esac
 }
 
 # Shared Proxmox UI (menus / wizard / validators / install_script / start)
 _incus_source "misc/build-ui.func"
+
+# Keep UI update checks under stable names before any later tools.func reload.
+eval "$(declare -f check_container_storage | sed '1s/check_container_storage/_shared_check_container_storage/')"
+eval "$(declare -f check_container_resources | sed '1s/check_container_resources/_shared_check_container_resources/')"
 
 eval "$(declare -f base_settings | sed '1s/base_settings/_pve_base_settings/')"
 base_settings() {
@@ -212,10 +242,21 @@ _incus_source "misc/incus-backend.func"
 # SECTION 4: PLATFORM OVERRIDES
 # ==============================================================================
 
-pve_check() { incus_check; }
+pve_check() {
+  # Host install needs a working Incus daemon; guest update mode does not.
+  if [[ -n "${_INCUS_INSIDE_CONTAINER:-}" ]]; then
+    return 0
+  fi
+  incus_check
+}
 arch_check() { :; }
 arm64_notice() { :; }
 ssh_check() { :; }
+
+# Guest update: allow non-root root_check without requiring host `incus` CLI.
+if [[ -n "${_INCUS_INSIDE_CONTAINER:-}" ]]; then
+  root_check() { return 0; }
+fi
 
 validate_container_id() {
   local id="${1:-}"
@@ -318,8 +359,9 @@ choose_and_set_storage_for_file() {
 }
 
 ensure_storage_selection_for_vars_file() {
-  local vf="${1:-/usr/local/community-scripts/default.vars}"
-  [[ -f "$vf" ]] || { mkdir -p "$(dirname "$vf")"; touch "$vf"; }
+  local vf="${1:-}"
+  [[ -z "$vf" ]] && vf="$(community_scripts_dir)/default.vars"
+  [[ -f "$vf" ]] || { mkdir -p "$(dirname "$vf")" 2>/dev/null || true; touch "$vf" 2>/dev/null || true; }
 
   local tpl ct
   tpl=$(grep -E '^var_template_storage=' "$vf" 2>/dev/null | cut -d= -f2-)
@@ -344,20 +386,21 @@ select_storage() {
   while IFS= read -r pool; do
     [[ -z "$pool" ]] && continue
     free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo "?")
-    info="Free: ~${free_gb}GB"
-    options+=("$pool" "Incus storage pool (${info})")
+    info="pool free ~${free_gb}GB (not full host disk)"
+    options+=("$pool" "${info}")
   done < <(incus storage list -f csv,noheader 2>/dev/null | cut -d, -f1)
   [[ ${#options[@]} -eq 0 ]] && return 1
 
   if [[ ${#options[@]} -eq 2 ]]; then
     STORAGE_RESULT="${options[0]}"
   else
-    STORAGE_RESULT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "STORAGE POOL" --menu "Select storage for ${purpose}" 16 72 8 \
+    STORAGE_RESULT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "INCUS STORAGE POOL" \
+      --menu "Select Incus pool for ${purpose}\n(Shows pool free space, not host disk)" 18 76 8 \
       "${options[@]}" 3>&1 1>&2 2>&3) || return 1
   fi
 
   free_gb=$(incus_storage_pool_free_gb "$STORAGE_RESULT" 2>/dev/null || echo "?")
-  STORAGE_INFO="Free: ~${free_gb}GB"
+  STORAGE_INFO="Pool free: ~${free_gb}GB"
   if [[ "$purpose" == "template" ]]; then
     TEMPLATE_STORAGE="$STORAGE_RESULT"
     TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
@@ -430,9 +473,9 @@ api_exit_script() {
   local exit_code=$?
   if [[ "$exit_code" -ne 0 ]]; then
     post_update_to_api "failed" "$exit_code" 2>/dev/null || true
-    ensure_log_on_host 2>/dev/null || true
-    if [[ "${CONTAINER_INSTALLING:-}" == "true" && -n "${CT_NAME:-}" ]]; then
-      incus stop "$CT_NAME" --force 2>/dev/null || true
+    [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]] && ensure_log_on_host 2>/dev/null || true
+    if [[ -z "${_INCUS_INSIDE_CONTAINER:-}" && "${CONTAINER_INSTALLING:-}" == "true" && -n "${CT_NAME:-}" ]]; then
+      command -v incus &>/dev/null && incus stop "$CT_NAME" --force 2>/dev/null || true
     fi
   elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
     post_update_to_api "done" "0" 2>/dev/null || true
@@ -466,6 +509,12 @@ start() {
       $STD apt -y autoclean 2>/dev/null || true
     }
   fi
+  # Re-bind build-ui update checks (80% disk / var_ram) after tools.func load.
+  if declare -f _shared_check_container_storage >/dev/null 2>&1; then
+    check_container_storage() { _shared_check_container_storage "$@"; }
+    check_container_resources() { _shared_check_container_resources "$@"; }
+  fi
+
   if [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]] && command -v incus &>/dev/null; then
     install_script || return 0
     return 0
@@ -499,13 +548,16 @@ _incus_on_err() {
   local _ec=$?
   [[ $_ec -eq 0 ]] && return 0
   post_update_to_api "failed" "$_ec" 2>/dev/null || true
-  ensure_log_on_host 2>/dev/null || true
+  [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]] && ensure_log_on_host 2>/dev/null || true
 }
 
 _incus_on_signal() {
   local sig="$1" code="$2"
   post_update_to_api "failed" "$code" 2>/dev/null || true
-  [[ -n "${CT_NAME:-}" ]] && incus stop "$CT_NAME" --force 2>/dev/null || true
+  # Only stop instances from the Incus host — never inside a guest update run.
+  if [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]] && command -v incus &>/dev/null && [[ -n "${CT_NAME:-}" ]]; then
+    incus stop "$CT_NAME" --force 2>/dev/null || true
+  fi
   exit "$code"
 }
 

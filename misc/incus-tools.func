@@ -112,8 +112,17 @@ update_motd_ip() {
 }
 
 setup_hwaccel() {
-  incus_msg_warn "Hardware acceleration setup is limited in Incus containers"
-  incus_msg_warn "Use host/device passthrough where applicable (Incus devices)"
+  # GPU/device passthrough is applied at create time (incus config device add gpu …).
+  # Inside the CT we only verify visibility and permissions.
+  if [[ -d /dev/dri ]] && compgen -G '/dev/dri/*' &>/dev/null; then
+    msg_ok "Hardware acceleration devices present under /dev/dri"
+    return 0
+  fi
+  if [[ "${ENABLE_GPU:-no}" == "yes" || "${var_gpu:-no}" == "yes" ]]; then
+    msg_warn "GPU was requested but /dev/dri is empty — recreate CT with GPU passthrough on the Incus host"
+  else
+    msg_custom "ℹ️" "${YW}" "No /dev/dri in this CT (passthrough is configured on the host at create time)"
+  fi
 }
 
 verb_ip6() {
@@ -283,20 +292,9 @@ cleanup_lxc() {
   rm -f /tmp/incus-funcs.sh 2>/dev/null || true
 }
 
-check_container_storage() {
-  local required_mb="${1:-500}" available_mb
-  available_mb=$(df -m / | awk 'NR==2 {print $4}')
-  [[ "$available_mb" -lt "$required_mb" ]] && {
-    msg_error "Insufficient storage: ${available_mb}MB < ${required_mb}MB"
-    exit 1
-  }
-}
-
-check_container_resources() {
-  local available_ram
-  available_ram=$(free -m | awk 'NR==2 {print $7}')
-  [[ "$available_ram" -lt 256 ]] && msg_warn "Low memory: ${available_ram}MB"
-}
+# check_container_storage / check_container_resources:
+# Intentionally NOT overridden here — build-ui.func provides the interactive
+# update-path checks (80% disk / var_ram). See incus-build.func start().
 
 header_info() {
   local app_name
@@ -308,7 +306,7 @@ header_info() {
     header_content=$(get_header "$app_name" 2>/dev/null || true)
   fi
 
-  clear
+  clear 2>/dev/null || true
   if [[ -n "$header_content" ]]; then
     echo "$header_content"
   else

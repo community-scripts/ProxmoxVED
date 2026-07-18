@@ -148,7 +148,7 @@ incus_validate_storage_space() {
     # Match PVE behavior: warn, do not hard-abort (pool/dir drivers can still grow).
     msg_warn "Pool '${pool}' reports ~${free_gb}GB free, container wants ${need_gb}GB"
     msg_custom "ℹ️" "${YW}" "Source: incus storage info '${pool}' (pool free space, not full host disk)"
-    msg_custom "ℹ️" "${YW}" "Check with: incus storage info ${pool}   /   incus storage list"
+    msg_custom "ℹ️" "${YW}" "Grow: incus storage set ${pool} size=50GiB   |   Or pick another pool"
     return 0
   fi
   msg_ok "Storage space validated (${pool}: ~${free_gb}GB free)"
@@ -400,7 +400,9 @@ incus_create_lxc_container() {
 
   if [[ "$net_reconfigure" -eq 1 ]]; then
     msg_info "Reconfiguring network settings"
-    _incus_soft incus restart "${CT_NAME}" >>"$LOGFILE" 2>&1 || msg_warn "Restart after network reconfiguration failed"
+    if ! incus restart "${CT_NAME}" >>"$LOGFILE" 2>&1; then
+      msg_warn "Restart after network reconfiguration failed"
+    fi
     msg_ok "Network settings applied"
   fi
 }
@@ -725,7 +727,7 @@ fix_gpu_gids() {
   local dev_name
   while IFS= read -r dev_name; do
     [[ -z "$dev_name" || "$dev_name" != gpu* ]] && continue
-    incus config device set "${CT_NAME}" "$dev_name" "gid=${video_gid}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 || true
+    _incus_soft incus config device set "${CT_NAME}" "$dev_name" "gid=${video_gid}" "mode=0660" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
   done < <(incus config device list "${CT_NAME}" 2>/dev/null || true)
 
   # Best-effort permissions inside the CT when /dev/dri is visible
@@ -763,10 +765,12 @@ incus_customize_container() {
 
   if [[ "${var_os:-debian}" == "alpine" ]]; then
     sleep 2
-    incus_ct_exec /bin/sh -c 'cat <<EOF >/etc/apk/repositories
-http://dl-cdn.alpinelinux.org/alpine/latest-stable/main
-http://dl-cdn.alpinelinux.org/alpine/latest-stable/community
-EOF'
+    local alpine_rel="v${IMAGE_VERSION:-${var_version:-3.21}}"
+    [[ "$alpine_rel" != v3.* ]] && alpine_rel="latest-stable"
+    incus_ct_exec /bin/sh -c "cat <<EOF >/etc/apk/repositories
+http://dl-cdn.alpinelinux.org/alpine/${alpine_rel}/main
+http://dl-cdn.alpinelinux.org/alpine/${alpine_rel}/community
+EOF"
     incus_ct_exec ash -c "apk add bash newt curl openssh nano mc ncurses jq >/dev/null" || msg_warn "Alpine base package install had issues"
   elif [[ "${var_os:-debian}" =~ ^(debian|ubuntu|devuan)$ ]]; then
     sleep 2
