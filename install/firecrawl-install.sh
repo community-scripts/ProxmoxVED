@@ -35,7 +35,10 @@ fetch_and_deploy_gh_release "firecrawl" "firecrawl/firecrawl" "tarball" "latest"
 
 # Firecrawl pins its FoundationDB client version in the API Dockerfile; FDB debs name arm64 as aarch64.
 FDB_VERSION="$(awk -F= '/^ARG FDB_VERSION=/{print $2; exit}' /opt/firecrawl/apps/api/Dockerfile)"
-FDB_VERSION="${FDB_VERSION:-7.3.63}"
+if [[ -z "$FDB_VERSION" ]]; then
+  msg_error "FDB_VERSION pin not found in upstream Dockerfile"
+  exit 1
+fi
 FDB_ARCH="$(get_system_arch)"
 [[ "$FDB_ARCH" == "arm64" ]] && FDB_ARCH="aarch64"
 fetch_and_deploy_gh_release "foundationdb-clients" "apple/foundationdb" "binary" "$FDB_VERSION" "/opt/foundationdb-clients" "foundationdb-clients_${FDB_VERSION}-1_${FDB_ARCH}.deb"
