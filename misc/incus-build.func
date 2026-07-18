@@ -487,9 +487,12 @@ api_exit_script() {
 header_info() {
   local app_name header_content=""
   app_name=$(echo "${APP,,}" | tr -d ' ')
-  header_content=$(get_header "$app_name" 2>/dev/null || true)
-  clear
+  if declare -f get_header >/dev/null 2>&1; then
+    header_content=$(get_header "$app_name" 2>/dev/null || true)
+  fi
+  clear 2>/dev/null || true
   [[ -n "$header_content" ]] && echo "$header_content"
+  return 0
 }
 
 # ==============================================================================
@@ -537,8 +540,22 @@ variables() {
 # Do NOT override check_container_storage/resources — shared UI versions are
 # correct for update_script() inside containers (80% disk / var_ram checks).
 
+_incus_on_err() {
+  local _ec=$?
+  [[ $_ec -eq 0 ]] && return 0
+  post_update_to_api "failed" "$_ec" 2>/dev/null || true
+  ensure_log_on_host 2>/dev/null || true
+}
+
+_incus_on_signal() {
+  local sig="$1" code="$2"
+  post_update_to_api "failed" "$code" 2>/dev/null || true
+  [[ -n "${CT_NAME:-}" ]] && incus stop "$CT_NAME" --force 2>/dev/null || true
+  exit "$code"
+}
+
 trap 'api_exit_script' EXIT
-trap 'local _ec=$?; if [[ $_ec -ne 0 ]]; then post_update_to_api "failed" "$_ec" 2>/dev/null || true; ensure_log_on_host 2>/dev/null || true; fi' ERR
-trap 'post_update_to_api "failed" "129" 2>/dev/null || true; [[ -n "${CT_NAME:-}" ]] && incus stop "$CT_NAME" --force 2>/dev/null || true; exit 129' SIGHUP
-trap 'post_update_to_api "failed" "130" 2>/dev/null || true; [[ -n "${CT_NAME:-}" ]] && incus stop "$CT_NAME" --force 2>/dev/null || true; exit 130' SIGINT
-trap 'post_update_to_api "failed" "143" 2>/dev/null || true; [[ -n "${CT_NAME:-}" ]] && incus stop "$CT_NAME" --force 2>/dev/null || true; exit 143' SIGTERM
+trap '_incus_on_err' ERR
+trap '_incus_on_signal SIGHUP 129' SIGHUP
+trap '_incus_on_signal SIGINT 130' SIGINT
+trap '_incus_on_signal SIGTERM 143' SIGTERM
