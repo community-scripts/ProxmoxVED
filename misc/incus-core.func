@@ -816,27 +816,27 @@ incus_get_image_alias() {
   case "$os" in
   debian)
     case "$version" in
-    12) echo "bookworm" ;;
-    13) echo "trixie" ;;
+    12 | bookworm) echo "bookworm" ;;
+    13 | trixie) echo "trixie" ;;
     *) echo "trixie" ;;
     esac
     ;;
   ubuntu)
     case "$version" in
-    22.04 | 22) echo "jammy" ;;
-    24.04 | 24) echo "noble" ;;
-    26.04 | 26) echo "plucky" ;;
+    22.04 | 22 | jammy) echo "jammy" ;;
+    24.04 | 24 | noble) echo "noble" ;;
+    26.04 | 26 | plucky | resolute) echo "plucky" ;;
     *) echo "noble" ;;
     esac
     ;;
   alpine)
     case "$version" in
-    3.20 | 3.21 | 3.22 | 3.23) echo "${version}" ;;
+    3.19 | 3.20 | 3.21 | 3.22 | 3.23) echo "${version}" ;;
     *) echo "3.21" ;;
     esac
     ;;
   *)
-    echo "trixie"
+    echo "${version}"
     ;;
   esac
 }

@@ -97,6 +97,7 @@ Topics include:
 * Storage and network configuration
 * Unattended deployments
 * Environment-variable-based provisioning
+* [Incus host setup](guides/incus.md) (unified `ct/` scripts on Incus)
 
 ➡️ [Open Configuration Guides](https://community-scripts.org/docs/guides/readme)
 
