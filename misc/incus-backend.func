@@ -465,22 +465,23 @@ MOTDEOF
   msg_ok "MOTD configured"
 }
 
-incus_run_install_script_with_recovery() {
-  msg_info "Preparing installation"
-  incus_log_section "Application Installation: ${APP}"
+_incus_push_functions_and_run_install() {
+  # Sets INCUS_LAST_INSTALL_EXIT (do not capture stdout — msg_* writes there).
+  INCUS_LAST_INSTALL_EXIT=0
   msg_info "Pushing functions to container"
   incus_ct_exec bash -c "cat > /tmp/incus-functions <<'INNEREOF'
 ${FUNCTIONS_FILE_PATH}
 INNEREOF" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 || { msg_error "Failed to push functions"; exit 1; }
   msg_ok "Functions pushed"
 
-  declare -f start_install_timer &>/dev/null && start_install_timer || true
-  post_progress_to_api "installing" 2>/dev/null || true
-  CONTAINER_INSTALLING=true
-  export CONTAINER_INSTALLING
+  if [[ "${DNS_RETRY_OVERRIDE:-}" == "true" ]]; then
+    msg_info "Applying DNS override inside LXC"
+    incus_ct_exec bash -c "echo -e 'nameserver 8.8.8.8\nnameserver 1.1.1.1' >/etc/resolv.conf" || true
+    msg_ok "DNS override applied"
+  fi
 
   msg_info "Starting application installation"
-  local _install_script _run_env install_exit_code=0 lxc_exit=0
+  local _install_script _run_env lxc_exit=0 install_exit_code=0
   _install_script="$(curl -fsSL "${INCUS_COMMUNITY_SCRIPTS_URL}/install/${var_install}.sh")"
   _run_env="$(_incus_build_install_env)"
   _run_env+=$'\nsource /dev/stdin <<<"$(cat /tmp/incus-functions)"'
@@ -500,14 +501,238 @@ ${_install_script}" 2>&1 | tee -a "${LOGFILE:-$INCUS_BUILD_LOG}" || lxc_exit=$?
     fi
   fi
   [[ "$install_exit_code" -eq 0 && "$lxc_exit" -ne 0 ]] && install_exit_code=$lxc_exit
+  INCUS_LAST_INSTALL_EXIT=$install_exit_code
+}
 
-  if [[ "$install_exit_code" -ne 0 ]]; then
-    msg_error "Installation failed in container ${CT_NAME} (exit code: ${install_exit_code})"
-    post_update_to_api "failed" "$install_exit_code" 2>/dev/null || true
+_incus_build_combined_log() {
+  combined_log="${combined_log:-/tmp/incus-install-${SESSION_ID}-combined.log}"
+  {
+    echo "================================================================================"
+    echo "COMBINED INSTALLATION LOG - ${APP:-LXC}"
+    echo "Container: ${CT_NAME}"
+    echo "Session ID: ${SESSION_ID}"
+    echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "================================================================================"
+    echo ""
+  } >"$combined_log"
+
+  if [[ -f "${BUILD_LOG:-$INCUS_BUILD_LOG}" ]]; then
+    {
+      echo "================================================================================"
+      echo "PHASE 1: CONTAINER CREATION (Host)"
+      echo "================================================================================"
+      cat "${BUILD_LOG:-$INCUS_BUILD_LOG}"
+      echo ""
+    } >>"$combined_log"
+  fi
+
+  local temp_install_log="/tmp/.install-temp-${SESSION_ID}.log"
+  if incus file pull "${CT_NAME}/root/.install-${SESSION_ID}.log" "$temp_install_log" 2>/dev/null; then
+    {
+      echo "================================================================================"
+      echo "PHASE 2: APPLICATION INSTALLATION (Container)"
+      echo "================================================================================"
+      cat "$temp_install_log"
+      echo ""
+    } >>"$combined_log"
+    rm -f "$temp_install_log"
+  fi
+
+  echo -e "${GN}✔${CL} Installation log: ${BL}${combined_log}${CL}"
+  INSTALL_LOG="$combined_log"
+  export INSTALL_LOG
+}
+
+incus_run_install_script_with_recovery() {
+  msg_info "Preparing installation"
+  incus_log_section "Application Installation: ${APP}"
+
+  declare -f start_install_timer &>/dev/null && start_install_timer || true
+  post_progress_to_api "installing" 2>/dev/null || true
+  CONTAINER_INSTALLING=true
+  export CONTAINER_INSTALLING
+
+  _incus_push_functions_and_run_install
+  local install_exit_code="${INCUS_LAST_INSTALL_EXIT:-1}"
+
+  if [[ "$install_exit_code" -eq 0 ]]; then
+    msg_ok "Installation completed"
+    CONTAINER_INSTALLING=false
+    return 0
+  fi
+
+  msg_error "Installation failed in container ${CT_NAME} (exit code: ${install_exit_code})"
+  _incus_build_combined_log
+  post_update_to_api "failed" "$install_exit_code" 2>/dev/null || true
+
+  if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
+    msg_dev "Keep mode active - container ${CT_NAME} preserved"
+    CONTAINER_INSTALLING=false
+    return 0
+  elif [[ "${DEV_MODE_BREAKPOINT:-false}" == "true" ]]; then
+    msg_dev "Breakpoint mode - opening shell in container ${CT_NAME}"
+    echo -e "${YW}Type 'exit' to return to host${CL}"
+    incus exec "${CT_NAME}" -- bash || true
+    echo ""
+    echo -en "${YW}Container ${CT_NAME} still running. Remove now? (y/N): ${CL}"
+    if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
+      incus_delete_container "${CT_NAME}"
+    else
+      msg_dev "Container ${CT_NAME} kept for debugging"
+    fi
     exit "$install_exit_code"
   fi
-  msg_ok "Installation completed"
-  CONTAINER_INSTALLING=false
+
+  echo ""
+  local is_oom=false is_network_issue=false is_apt_issue=false is_cmd_not_found=false
+  local error_explanation=""
+  declare -f explain_exit_code >/dev/null 2>&1 && error_explanation="$(explain_exit_code "$install_exit_code")"
+
+  [[ $install_exit_code -eq 134 || $install_exit_code -eq 137 || $install_exit_code -eq 243 ]] && is_oom=true
+  case "$install_exit_code" in
+  100 | 101 | 102) is_apt_issue=true ;;
+  255)
+    [[ -f "$combined_log" ]] && grep -qiE 'dpkg|apt-get|broken packages|unmet dependencies' "$combined_log" && is_apt_issue=true
+    ;;
+  esac
+  [[ $install_exit_code -eq 127 ]] && is_cmd_not_found=true
+  case "$install_exit_code" in
+  6 | 7 | 22 | 28 | 35 | 52 | 56 | 57 | 75 | 78) is_network_issue=true ;;
+  100)
+    [[ -f "$combined_log" ]] && grep -qiE 'Failed to fetch|Could not resolve|Network is unreachable' "$combined_log" && is_network_issue=true
+    ;;
+  esac
+  if [[ $install_exit_code -eq 1 && -f "$combined_log" ]]; then
+    grep -qiE 'E: Unable to|broken packages|unmet dependencies|dpkg --configure' "$combined_log" && is_apt_issue=true
+    grep -qiE 'Cannot allocate memory|Out of memory|oom-killer|JavaScript heap' "$combined_log" && is_oom=true
+    grep -qiE 'Could not resolve|DNS|Network is unreachable|Failed to fetch' "$combined_log" && is_network_issue=true
+    grep -qiE ': command not found' "$combined_log" && is_cmd_not_found=true
+  fi
+
+  [[ -n "$error_explanation" ]] && echo -e "${TAB}${RD}Error: ${error_explanation}${CL}" && echo ""
+  if [[ $install_exit_code -eq 10 ]]; then
+    echo -e "${TAB}${INFO} This error usually means the container needs ${GN}privileged${CL} mode or Docker/nesting support."
+    echo ""
+  fi
+
+  echo -e "${YW}What would you like to do?${CL}"
+  echo ""
+  echo -e "  ${GN}1)${CL} Remove container and exit"
+  echo -e "  ${GN}2)${CL} Keep container for debugging"
+  echo -e "  ${GN}3)${CL} Retry with verbose mode (full rebuild)"
+
+  local next_option=4 APT_OPTION="" OOM_OPTION="" DNS_OPTION=""
+  if [[ "$is_apt_issue" == true ]]; then
+    if [[ "${var_os:-}" == "alpine" ]]; then
+      echo -e "  ${GN}${next_option})${CL} Repair APK state and re-run install (in-place)"
+    else
+      echo -e "  ${GN}${next_option})${CL} Repair APT/DPKG state and re-run install (in-place)"
+    fi
+    APT_OPTION=$next_option
+    next_option=$((next_option + 1))
+  fi
+  if [[ "$is_oom" == true ]]; then
+    local recovery_attempt="${RECOVERY_ATTEMPT:-0}"
+    if [[ $recovery_attempt -lt 2 ]]; then
+      echo -e "  ${GN}${next_option})${CL} Retry with more resources (RAM: ${RAM_SIZE}→$((RAM_SIZE * 2)) MiB, CPU: ${CORE_COUNT}→$((CORE_COUNT * 2)) cores)"
+      OOM_OPTION=$next_option
+      next_option=$((next_option + 1))
+    fi
+  fi
+  if [[ "$is_network_issue" == true ]]; then
+    echo -e "  ${GN}${next_option})${CL} Retry with DNS override in LXC (8.8.8.8 / 1.1.1.1)"
+    DNS_OPTION=$next_option
+    next_option=$((next_option + 1))
+  fi
+
+  local max_option=$((next_option - 1))
+  echo ""
+  echo -en "${YW}Select option [1-${max_option}] (default: 1, auto-remove in 60s): ${CL}"
+  if read -t 60 -r response; then
+    case "${response:-1}" in
+    1)
+      echo -e "\n${TAB}${HOLD}${YW}Removing container ${CT_NAME}${CL}"
+      incus_delete_container "${CT_NAME}"
+      ;;
+    2)
+      echo -e "\n${TAB}${YW}Container ${CT_NAME} kept for debugging${CL}"
+      echo -e "${TAB}${INFO} Access: ${GN}incus exec ${CT_NAME} -- bash${CL}"
+      exit "$install_exit_code"
+      ;;
+    3)
+      echo -e "\n${TAB}${HOLD}${YW}Removing container ${CT_NAME} for rebuild...${CL}"
+      incus_delete_container "${CT_NAME}"
+      local old_name="$CT_NAME"
+      CT_NAME="$(get_valid_container_id "$CT_NAME")"
+      CTID="$CT_NAME"
+      export CT_NAME CTID VERBOSE=yes var_verbose=yes
+      echo -e "${YW}Rebuilding: ${old_name} → ${CT_NAME} (verbose)${CL}"
+      msg_info "Restarting installation..."
+      build_container
+      return $?
+      ;;
+    *)
+      local handled=false
+      if [[ -n "${APT_OPTION}" && "${response}" == "${APT_OPTION}" ]]; then
+        handled=true
+        if [[ "${var_os:-}" == "alpine" ]]; then
+          echo -e "\n${TAB}${HOLD}${YW}Repairing APK state...${CL}"
+          incus_ct_exec ash -c "apk fix 2>/dev/null || true; apk update 2>/dev/null || true" || true
+        else
+          echo -e "\n${TAB}${HOLD}${YW}Repairing APT/DPKG state...${CL}"
+          incus_ct_exec bash -c "DEBIAN_FRONTEND=noninteractive dpkg --configure -a 2>/dev/null || true; apt-get -f install -y 2>/dev/null || true; apt-get update 2>/dev/null || true" || true
+        fi
+        export VERBOSE=yes var_verbose=yes
+        msg_info "Re-running installation script..."
+        _incus_push_functions_and_run_install
+        install_exit_code="${INCUS_LAST_INSTALL_EXIT:-1}"
+        if [[ "$install_exit_code" -eq 0 ]]; then
+          msg_ok "Installation completed successfully after package repair!"
+          post_update_to_api "done" "0" "force" 2>/dev/null || true
+          CONTAINER_INSTALLING=false
+          return 0
+        fi
+        msg_error "Installation still failed after repair (exit code: ${install_exit_code})"
+      fi
+      if [[ -n "${OOM_OPTION}" && "${response}" == "${OOM_OPTION}" ]]; then
+        handled=true
+        incus_delete_container "${CT_NAME}"
+        local old_ram="$RAM_SIZE" old_cpu="$CORE_COUNT"
+        CT_NAME="$(get_valid_container_id "$CT_NAME")"
+        CTID="$CT_NAME"
+        RAM_SIZE=$((RAM_SIZE * 2))
+        CORE_COUNT=$((CORE_COUNT * 2))
+        export CT_NAME CTID RAM_SIZE CORE_COUNT var_ram="$RAM_SIZE" var_cpu="$CORE_COUNT"
+        export VERBOSE=yes var_verbose=yes RECOVERY_ATTEMPT=$((${RECOVERY_ATTEMPT:-0} + 1))
+        echo -e "${YW}Rebuilding with more resources: RAM ${old_ram}→${RAM_SIZE}, CPU ${old_cpu}→${CORE_COUNT}${CL}"
+        build_container
+        return $?
+      fi
+      if [[ -n "${DNS_OPTION}" && "${response}" == "${DNS_OPTION}" ]]; then
+        handled=true
+        incus_delete_container "${CT_NAME}"
+        CT_NAME="$(get_valid_container_id "$CT_NAME")"
+        CTID="$CT_NAME"
+        export CT_NAME CTID DNS_RETRY_OVERRIDE=true VERBOSE=yes var_verbose=yes
+        echo -e "${YW}Rebuilding with DNS override${CL}"
+        build_container
+        return $?
+      fi
+      if [[ "$handled" == false ]]; then
+        echo -e "\n${TAB}${YW}Invalid option. Container ${CT_NAME} kept.${CL}"
+        exit "$install_exit_code"
+      fi
+      ;;
+    esac
+  else
+    echo ""
+    msg_info "No response - removing container ${CT_NAME}"
+    incus_delete_container "${CT_NAME}"
+    msg_ok "Container ${CT_NAME} removed"
+  fi
+
+  post_update_to_api "failed" "$install_exit_code" "force" 2>/dev/null || true
+  exit "$install_exit_code"
 }
 
 _incus_build_install_env() {
