@@ -31,11 +31,13 @@ setup_go
 RUST_PROFILE="minimal" setup_rust
 PG_VERSION="17" PG_MODULES="cron" setup_postgresql
 
-FDB_VERSION="7.3.63"
-FDB_ARCH="$(dpkg --print-architecture)"
-if [[ "$FDB_ARCH" == "arm64" ]]; then
-  FDB_ARCH="aarch64"
-fi
+fetch_and_deploy_gh_release "firecrawl" "firecrawl/firecrawl" "tarball" "latest" "/opt/firecrawl"
+
+# Firecrawl pins its FoundationDB client version in the API Dockerfile; FDB debs name arm64 as aarch64.
+FDB_VERSION="$(awk -F= '/^ARG FDB_VERSION=/{print $2; exit}' /opt/firecrawl/apps/api/Dockerfile)"
+FDB_VERSION="${FDB_VERSION:-7.3.63}"
+FDB_ARCH="$(get_system_arch)"
+[[ "$FDB_ARCH" == "arm64" ]] && FDB_ARCH="aarch64"
 fetch_and_deploy_gh_release "foundationdb-clients" "apple/foundationdb" "binary" "$FDB_VERSION" "/opt/foundationdb-clients" "foundationdb-clients_${FDB_VERSION}-1_${FDB_ARCH}.deb"
 
 PG_DB_NAME="firecrawl" PG_DB_USER="firecrawl" PG_DB_EXTENSIONS="pgcrypto,pg_cron" PG_DB_CREDS_FILE="/dev/null" setup_postgresql_db
@@ -57,8 +59,6 @@ $STD rabbitmqctl set_permissions -p / firecrawl ".*" ".*" ".*"
 msg_ok "Configured RabbitMQ"
 
 systemctl enable -q --now redis-server
-
-fetch_and_deploy_gh_release "firecrawl" "firecrawl/firecrawl" "tarball" "latest" "/opt/firecrawl"
 
 msg_info "Importing NuQ Schema"
 $STD runuser -u postgres -- psql -d firecrawl -f /opt/firecrawl/apps/nuq-postgres/nuq.sql

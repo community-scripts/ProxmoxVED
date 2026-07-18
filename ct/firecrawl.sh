@@ -41,6 +41,14 @@ function update_script() {
 
     restore_backup
 
+    # Firecrawl pins its FoundationDB client version in the API Dockerfile; FDB debs name arm64 as aarch64.
+    FDB_VERSION="$(awk -F= '/^ARG FDB_VERSION=/{print $2; exit}' /opt/firecrawl/apps/api/Dockerfile)"
+    if [[ -n "$FDB_VERSION" ]] && [[ "$(dpkg-query -W -f='${Version}' foundationdb-clients 2>/dev/null)" != "${FDB_VERSION}-"* ]]; then
+      FDB_ARCH="$(get_system_arch)"
+      [[ "$FDB_ARCH" == "arm64" ]] && FDB_ARCH="aarch64"
+      fetch_and_deploy_gh_release "foundationdb-clients" "apple/foundationdb" "binary" "$FDB_VERSION" "/opt/foundationdb-clients" "foundationdb-clients_${FDB_VERSION}-1_${FDB_ARCH}.deb"
+    fi
+
     msg_info "Patching Playwright Bind Address"
     if ! grep -q 'app.listen(port, () => {' /opt/firecrawl/apps/playwright-service-ts/api.ts; then
       msg_error "Expected Playwright listen call not found"
