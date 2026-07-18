@@ -3119,7 +3119,7 @@ install_script() {
         msg_error "Failed to apply default.vars"
         exit 1
       }
-      defaults_target="/usr/local/community-scripts/default.vars"
+      defaults_target="$(declare -f community_scripts_dir >/dev/null 2>&1 && community_scripts_dir || echo /usr/local/community-scripts)/default.vars"
       break
       ;;
     "$APPDEFAULTS_OPTION" | appdefaults | APPDEFAULTS)
@@ -3169,12 +3169,13 @@ install_script() {
 }
 
 edit_default_storage() {
-  local vf="/usr/local/community-scripts/default.vars"
+  local vf
+  vf="$(declare -f community_scripts_dir >/dev/null 2>&1 && community_scripts_dir || echo /usr/local/community-scripts)/default.vars"
 
   # Ensure file exists
   if [[ ! -f "$vf" ]]; then
-    mkdir -p "$(dirname "$vf")"
-    touch "$vf"
+    mkdir -p "$(dirname "$vf")" 2>/dev/null || true
+    touch "$vf" 2>/dev/null || true
   fi
 
   # Let ensure_storage_selection_for_vars_file handle everything
@@ -3205,7 +3206,7 @@ settings_menu() {
 
     case "$choice" in
     1) diagnostics_menu ;;
-    2) nano /usr/local/community-scripts/default.vars ;;
+    2) nano "$(declare -f community_scripts_dir >/dev/null 2>&1 && community_scripts_dir || echo /usr/local/community-scripts)/default.vars" ;;
     3) dev_mode_menu ;;
     4)
       if [ -f "$(get_app_defaults_path)" ]; then
