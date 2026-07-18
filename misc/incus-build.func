@@ -144,6 +144,54 @@ incus_delete_container() {
   msg_ok "Deleted ${name}"
 }
 
+# PVE-parity: after create-phase / configure failures, offer delete (60s auto-remove).
+# Install-script failures already use incus_run_install_script_with_recovery.
+incus_offer_orphan_cleanup() {
+  [[ -n "${_INCUS_INSIDE_CONTAINER:-}" ]] && return 0
+  [[ "${INCUS_ORPHAN_HANDLED:-}" == "1" ]] && return 0
+  [[ "${INCUS_CT_CREATED:-}" != "1" ]] && return 0
+  [[ "${INCUS_BUILD_OK:-}" == "1" ]] && return 0
+  [[ -z "${CT_NAME:-}" ]] && return 0
+  command -v incus &>/dev/null || return 0
+  declare -f incus_container_exists >/dev/null 2>&1 || return 0
+  incus_container_exists "${CT_NAME}" || return 0
+  [[ "${DEV_MODE_KEEP:-false}" == "true" ]] && return 0
+
+  INCUS_ORPHAN_HANDLED=1
+  export INCUS_ORPHAN_HANDLED
+
+  # Avoid nested ERR noise while prompting / deleting
+  set +e
+  trap - ERR
+
+  echo ""
+  msg_warn "Incomplete container ${CT_NAME} left behind (create/configure failed)"
+  echo -e "${YW}What would you like to do?${CL}"
+  echo ""
+  echo -e "  ${GN}1)${CL} Remove container and exit"
+  echo -e "  ${GN}2)${CL} Keep container for debugging"
+  echo ""
+  echo -en "${YW}Select option [1-2] (default: 1, auto-remove in 60s): ${CL}"
+  if read -t 60 -r response </dev/tty 2>/dev/null || read -t 60 -r response; then
+    case "${response:-1}" in
+    2)
+      echo -e "\n${TAB}${YW}Container ${CT_NAME} kept for debugging${CL}"
+      echo -e "${TAB}${INFO} Access: ${GN}incus exec ${CT_NAME} -- bash${CL}"
+      echo -e "${TAB}${INFO} Remove later: ${GN}incus delete ${CT_NAME} --force${CL}"
+      ;;
+    *)
+      echo -e "\n${TAB}${HOLD}${YW}Removing container ${CT_NAME}${CL}"
+      incus_delete_container "${CT_NAME}"
+      ;;
+    esac
+  else
+    echo ""
+    msg_info "No response - removing container ${CT_NAME}"
+    incus_delete_container "${CT_NAME}"
+    msg_ok "Container ${CT_NAME} removed"
+  fi
+}
+
 # ==============================================================================
 # SECTION 3: SHARED UI + BACKEND
 # ==============================================================================
@@ -477,6 +525,10 @@ api_exit_script() {
     if [[ -z "${_INCUS_INSIDE_CONTAINER:-}" && "${CONTAINER_INSTALLING:-}" == "true" && -n "${CT_NAME:-}" ]]; then
       command -v incus &>/dev/null && incus stop "$CT_NAME" --force 2>/dev/null || true
     fi
+    # Create/configure aborts (before install recovery menu): offer delete like PVE 60s prompt
+    if declare -f incus_offer_orphan_cleanup >/dev/null 2>&1; then
+      incus_offer_orphan_cleanup
+    fi
   elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
     post_update_to_api "done" "0" 2>/dev/null || true
   fi
@@ -554,7 +606,8 @@ _incus_on_err() {
 _incus_on_signal() {
   local sig="$1" code="$2"
   post_update_to_api "failed" "$code" 2>/dev/null || true
-  # Only stop instances from the Incus host — never inside a guest update run.
+  # Only touch instances from the Incus host — never inside a guest update run.
+  # EXIT trap (api_exit_script) offers 60s orphan cleanup / delete.
   if [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]] && command -v incus &>/dev/null && [[ -n "${CT_NAME:-}" ]]; then
     incus stop "$CT_NAME" --force 2>/dev/null || true
   fi

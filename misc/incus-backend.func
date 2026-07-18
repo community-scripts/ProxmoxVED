@@ -332,6 +332,13 @@ incus_create_lxc_container() {
     fi
   fi
 
+  # Track for orphan cleanup on mid-create / mid-configure failures (EXIT trap).
+  # Reset handled/ok so a rebuild after install-recovery can prompt again if needed.
+  INCUS_CT_CREATED=1
+  INCUS_ORPHAN_HANDLED=0
+  INCUS_BUILD_OK=0
+  export INCUS_CT_CREATED INCUS_ORPHAN_HANDLED INCUS_BUILD_OK CT_NAME CTID
+
   # Optional configs that some Incus versions reject at launch time.
   if [[ "${CT_TYPE:-1}" == "1" ]]; then
     _incus_soft incus config set "${CT_NAME}" linux.sysctl.kernel.keys.maxkeys=2000 >>"$LOGFILE" 2>&1
@@ -958,12 +965,17 @@ incus_run_install_script_with_recovery() {
   if [[ "$install_exit_code" -eq 0 ]]; then
     msg_ok "Installation completed"
     CONTAINER_INSTALLING=false
+    INCUS_BUILD_OK=1
+    export INCUS_BUILD_OK
     return 0
   fi
 
   msg_error "Installation failed in container ${CT_NAME} (exit code: ${install_exit_code})"
   _incus_build_combined_log
   post_update_to_api "failed" "$install_exit_code" 2>/dev/null || true
+  # This menu owns cleanup — EXIT trap must not prompt again.
+  INCUS_ORPHAN_HANDLED=1
+  export INCUS_ORPHAN_HANDLED
 
   if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
     msg_dev "Keep mode active - container ${CT_NAME} preserved"
@@ -1093,6 +1105,8 @@ incus_run_install_script_with_recovery() {
           msg_ok "Installation completed successfully after package repair!"
           post_update_to_api "done" "0" "force" 2>/dev/null || true
           CONTAINER_INSTALLING=false
+          INCUS_BUILD_OK=1
+          export INCUS_BUILD_OK
           return 0
         fi
         msg_error "Installation still failed after repair (exit code: ${install_exit_code})"
