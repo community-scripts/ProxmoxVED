@@ -76,12 +76,15 @@ incus_validate_storage_space() {
   local free_gb
   free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo "")
   if [[ -z "$free_gb" ]]; then
-    msg_warn "Could not determine free space on pool '${pool}'"
+    msg_warn "Could not determine free space on pool '${pool}' (continuing)"
     return 0
   fi
   if [[ "$free_gb" -lt "$need_gb" ]]; then
-    msg_error "Not enough space on '${pool}'. Required: ${need_gb}GB, Available: ~${free_gb}GB"
-    exit 214
+    # Match PVE behavior: warn, do not hard-abort (pool/dir drivers can still grow).
+    msg_warn "Pool '${pool}' reports ~${free_gb}GB free, container wants ${need_gb}GB"
+    msg_custom "ℹ️" "${YW}" "Source: incus storage info '${pool}' (pool free space, not full host disk)"
+    msg_custom "ℹ️" "${YW}" "Check with: incus storage info ${pool}   /   incus storage list"
+    return 0
   fi
   msg_ok "Storage space validated (${pool}: ~${free_gb}GB free)"
 }
@@ -117,12 +120,12 @@ validate_storage_space() {
   local free_gb
   free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo "")
   if [[ -z "$free_gb" ]]; then
-    [[ "$show_dialog" == "yes" ]] && whiptail --msgbox "⚠️  Warning: Could not determine free space on pool '${pool}'." 10 60 2>/dev/null || true
+    [[ "$show_dialog" == "yes" ]] && whiptail --msgbox "⚠️  Warning: Could not determine free space on pool '${pool}'.\n\n(Checked via: incus storage info ${pool})" 12 64 2>/dev/null || true
     return 0
   fi
   if [[ "$free_gb" -lt "$need_gb" ]]; then
     if [[ "$show_dialog" == "yes" ]]; then
-      whiptail --msgbox "⚠️  Warning: Not enough space on '${pool}'.\n\nRequired: ${need_gb}GB\nAvailable: ~${free_gb}GB" 12 60 2>/dev/null || true
+      whiptail --msgbox "⚠️  Warning: Not enough space on pool '${pool}'.\n\nRequired: ${need_gb}GB\nAvailable: ~${free_gb}GB\n\nThis is the Incus pool free space (incus storage info),\nnot necessarily your full host disk.\nDefault pools are often small loop devices." 14 70 2>/dev/null || true
     fi
     return 1
   fi
