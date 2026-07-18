@@ -1,0 +1,40 @@
+{
+    "name": "Storage-Share-Helper",
+    "slug": "storage-share-helper",
+    "categories": [
+        1
+    ],
+    "date_created": "2026-07-18",
+    "type": "pve",
+    "updateable": false,
+    "privileged": false,
+    "interface_port": null,
+    "documentation": "https://community-scripts.org/docs/tools/pve/storage-share-helper",
+    "website": "https://community-scripts.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/storage-share-helper.webp",
+    "description": "Interactive Proxmox VE storage management utility for testing and configuring SMB/CIFS, NFS and iSCSI storage, managing LXC bind mountpoints, and creating optional SMB or NFS shares directly on the Proxmox host.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "tools/pve/storage-share-helper.sh",
+            "config_path": "",
+            "resources": {
+                "cpu": null,
+                "ram": null,
+                "hdd": null,
+                "os": null,
+                "version": "PVE 8.x / 9.x"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Visit for full guide with all vars our docs: `https://community-scripts.org/docs/tools/pve/storage-share-helper`",
+            "type": "info"
+        }
+    ]
+}
