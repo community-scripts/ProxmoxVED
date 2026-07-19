@@ -1,0 +1,50 @@
+{
+  "name": "MailFlow",
+  "slug": "mailflow",
+  "categories": [2],
+  "date_created": "2026-07-19",
+  "type": "ct",
+  "updateable": true,
+  "privileged": true,
+  "interface_port": 443,
+  "documentation": "https://mailflow.sh/",
+  "website": "https://mailflow.sh/",
+  "logo": "https://mailflow.sh/favicon.ico",
+  "description": "MailFlow is a modern, self-hosted email management and routing platform. Native installation with Node.js, PostgreSQL, and Redis — no Docker required. Full-featured webmail with IMAP/SMTP support, unified inbox, advanced filtering, and more.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/mailflow.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "MailFlow listens on HTTPS (port 443) using a self-signed certificate. Accept the browser security warning on first access.",
+      "type": "info"
+    },
+    {
+      "text": "Native installation with Node.js 20, PostgreSQL 16, and Redis — no Docker overhead.",
+      "type": "info"
+    },
+    {
+      "text": "All secrets (SESSION_SECRET, DB_PASSWORD, ENCRYPTION_KEY) are auto-generated on first install and stored in /opt/mailflow/.env.",
+      "type": "info"
+    },
+    {
+      "text": "The backend runs via systemd service. Update with: cd /opt/mailflow && git pull && cd frontend && npm ci && npm run build && cd ../backend && npm ci --omit=dev && systemctl restart mailflow",
+      "type": "info"
+    }
+  ]
+}
+
