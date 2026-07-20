@@ -737,15 +737,20 @@ telemetry_collect_sysinfo() {
 
   TM_ARCH="$(dpkg --print-architecture 2>/dev/null || uname -m || echo unknown)"
 
+  # Virtualization platform: pve (Proxmox VE) or incus.
+  # Containers inherit TELEMETRY_PLATFORM from the host environment.
+  TM_PLATFORM="${TELEMETRY_PLATFORM:-}"
   TM_PVE_VERSION=""
   if command -v pveversion &>/dev/null; then
     TM_PVE_VERSION=$(pveversion 2>/dev/null | awk -F'[/ ]' '{print $2}') || true
+    TM_PLATFORM="${TM_PLATFORM:-pve}"
   elif command -v incus &>/dev/null; then
     TM_PVE_VERSION="incus-$(incus version 2>/dev/null | head -1 | awk '{print $NF}')" || true
+    TM_PLATFORM="${TM_PLATFORM:-incus}"
   fi
 
   _TM_SYSINFO_DONE=true
-  export TM_ARCH TM_PVE_VERSION _TM_SYSINFO_DONE
+  export TM_ARCH TM_PVE_VERSION TM_PLATFORM _TM_SYSINFO_DONE
 }
 
 # ==============================================================================
@@ -833,6 +838,7 @@ _tm_payload() {
     "gpu_passthrough": "${GPU_PASSTHROUGH:-unknown}",
     "ram_speed": "${RAM_SPEED:-}",
     "arch": "${TM_ARCH:-}",
+    "platform": "${TM_PLATFORM:-}",
     "has_arm": ${HAS_ARM:-false},
     "repo_source": "${REPO_SOURCE}",
     "repo_slug": "${REPO_SLUG:-}"

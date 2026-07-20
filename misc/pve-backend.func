@@ -117,6 +117,8 @@ build_container() {
   # host's detection instead of re-detecting from its own cmdline)
   export REPO_SOURCE="${REPO_SOURCE:-}"
   export REPO_SLUG="${REPO_SLUG:-}"
+  # Virtualization platform for telemetry (container has no pveversion)
+  export TELEMETRY_PLATFORM="pve"
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
   export tz="$timezone"

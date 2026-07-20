@@ -1195,6 +1195,7 @@ export COMMUNITY_SCRIPTS_URL='${INCUS_COMMUNITY_SCRIPTS_URL}'
 export INSTALL_LOG='/root/.install-${SESSION_ID}.log'
 export REPO_SOURCE='${REPO_SOURCE:-}'
 export REPO_SLUG='${REPO_SLUG:-}'
+export TELEMETRY_PLATFORM='incus'
 EOF
 }
 
