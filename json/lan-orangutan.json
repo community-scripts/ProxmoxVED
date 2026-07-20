@@ -1,0 +1,50 @@
+{
+    "name": "LAN-Orangutan",
+    "slug": "lan-orangutan",
+    "categories": [
+        4
+    ],
+    "date_created": "2026-07-20",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": 291,
+    "documentation": "https://github.com/291-Group/LAN-Orangutan/tree/main/docs",
+    "website": "https://github.com/291-Group/LAN-Orangutan",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/lan-orangutan.webp",
+    "config_path": "/etc/lan-orangutan/config.ini",
+    "description": "LAN Orangutan is a lightweight, self-hosted network scanner for homelabs. It discovers devices via nmap, supports persistent device labeling, grouping and notes, multiple networks and Tailscale peers, and provides a web dashboard plus a full CLI with JSON/CSV export.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/lan-orangutan.sh",
+            "config_path": "/etc/lan-orangutan/config.ini",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 2,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "The web interface has no built-in authentication. Do not expose it outside your LAN without a reverse proxy providing authentication.",
+            "type": "warning"
+        },
+        {
+            "text": "In an unprivileged container, MAC address and vendor detection via nmap ARP scans may be limited. Recreate with var_unprivileged=0 for full discovery capabilities.",
+            "type": "warning"
+        },
+        {
+            "text": "Device data is stored in /var/lib/lan-orangutan. The CLI is available inside the container via the orangutan command.",
+            "type": "info"
+        }
+    ]
+}
