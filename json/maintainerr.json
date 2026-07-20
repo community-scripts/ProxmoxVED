@@ -1,0 +1,42 @@
+{
+  "name": "Maintainerr",
+  "slug": "maintainerr",
+  "categories": [
+    13,
+    14
+  ],
+  "date_created": "2026-06-24",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 6246,
+  "documentation": "https://docs.maintainerr.info",
+  "website": "https://maintainerr.info",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/maintainerr.webp",
+  "description": "Maintainerr automates media-library cleanup by building rule-based collections of unwatched or unrequested titles, applying a grace period, then removing them from Plex/Jellyfin/Emby and the connected Radarr, Sonarr and Seerr apps.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/maintainerr.sh",
+      "config_path": "/opt/data",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Complete the setup wizard via the web interface on first access, then connect Maintainerr to your media servers (Plex/Jellyfin/Emby) and to Radarr/Sonarr/Seerr.",
+      "type": "info"
+    }
+  ]
+}
