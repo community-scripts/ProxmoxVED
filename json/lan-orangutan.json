@@ -39,10 +39,6 @@
             "type": "warning"
         },
         {
-            "text": "In an unprivileged container, MAC address and vendor detection via nmap ARP scans may be limited. Recreate with var_unprivileged=0 for full discovery capabilities.",
-            "type": "warning"
-        },
-        {
             "text": "Device data is stored in /var/lib/lan-orangutan. The CLI is available inside the container via the orangutan command.",
             "type": "info"
         }
