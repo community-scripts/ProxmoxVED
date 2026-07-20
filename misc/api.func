@@ -1006,6 +1006,7 @@ post_update_to_api() {
   elif [[ "$pb_status" == "aborted" ]]; then
     # Short context line only - no log dump for user aborts
     error_raw="exit_code=${exit_code} | $(explain_exit_code "$exit_code")"
+    ERROR_CATEGORY_OVERRIDE="${ERROR_CATEGORY_OVERRIDE:-user_aborted}"
   fi
 
   local payload
