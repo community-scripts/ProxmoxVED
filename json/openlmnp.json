@@ -1,0 +1,43 @@
+{
+  "name": "OpenLMNP",
+  "slug": "openlmnp",
+  "categories": [23],
+  "date_created": "2026-07-20",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 80,
+  "documentation": "https://github.com/manganate006/openlmnp#readme",
+  "website": "https://github.com/manganate006/openlmnp",
+  "logo": "https://raw.githubusercontent.com/manganate006/openlmnp/main/public/favicon.ico",
+  "description": "Open-source French rental accounting software (LMNP) for Airbnb hosts. Manage properties, incomes, expenses, depreciation, and generate tax returns (liasse fiscale).",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/openlmnp.sh",
+      "config_path": "/opt/openlmnp/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Admin account and a random password are generated during installation and saved to /opt/openlmnp/admin_credentials.txt inside the container. Change the password after first login.",
+      "type": "warning"
+    },
+    {
+      "text": "Data is stored in SQLite at /opt/openlmnp/database/database.sqlite. Back up this file regularly.",
+      "type": "info"
+    }
+  ]
+}
