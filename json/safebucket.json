@@ -1,0 +1,49 @@
+{
+  "name": "Safebucket",
+  "slug": "safebucket",
+  "categories": [
+    11
+  ],
+  "date_created": "2026-06-21",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 8080,
+  "documentation": "https://docs.safebucket.io",
+  "website": "https://github.com/safebucket/safebucket",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/safebucket.webp",
+  "description": "Open-source file sharing where files bypass the server via presigned URLs to a local Garage (S3-compatible) object store.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/safebucket.sh",
+      "config_path": "/opt/safebucket/config.yaml",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin@safebucket.io",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Admin password is generated at install and stored in /opt/safebucket/config.yaml",
+      "type": "warning"
+    },
+    {
+      "text": "Garage S3 API on port 3900 must remain reachable from clients for uploads/downloads to work",
+      "type": "info"
+    },
+    {
+      "text": "The container IP is baked into config.yaml and the bucket CORS policy at install. If the IP changes, update api_url, web_url and allowed_origins in config.yaml plus the bucket CORS origin, then restart the service.",
+      "type": "warning"
+    }
+  ]
+}
