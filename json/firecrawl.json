@@ -1,0 +1,48 @@
+{
+  "name": "Firecrawl",
+  "slug": "firecrawl",
+  "categories": [20],
+  "date_created": "2026-07-15",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 3002,
+  "documentation": "https://docs.firecrawl.dev/",
+  "website": "https://www.firecrawl.dev/",
+  "logo": "https://raw.githubusercontent.com/firecrawl/firecrawl/main/img/firecrawl_logo.png",
+  "config_path": "/opt/firecrawl/.env",
+  "description": "API service that turns websites into clean data for AI applications, scraping, crawling, and extraction workflows.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/firecrawl.sh",
+      "config_path": "/opt/firecrawl/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 30,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Firecrawl's API is unauthenticated by default. Expose port 3002 only to trusted clients or protect it with external access controls.",
+      "type": "warning"
+    },
+    {
+      "text": "The installer configures nftables to allow inbound SSH on port 22 and Firecrawl API access on port 3002 only. Adjust /etc/nftables.conf if your deployment requires different inbound access.",
+      "type": "info"
+    },
+    {
+      "text": "AI provider credentials are optional and can be added later in /opt/firecrawl/.env.",
+      "type": "info"
+    }
+  ]
+}
