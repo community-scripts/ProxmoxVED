@@ -12,7 +12,7 @@
     "interface_port": 291,
     "documentation": "https://github.com/291-Group/LAN-Orangutan/tree/main/docs",
     "website": "https://github.com/291-Group/LAN-Orangutan",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/lan-orangutan.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/291-Group/LAN-Orangutan@main/web/assets/orangutan.svg",
     "config_path": "/etc/lan-orangutan/config.ini",
     "description": "LAN Orangutan is a lightweight, self-hosted network scanner for homelabs. It discovers devices via nmap, supports persistent device labeling, grouping and notes, multiple networks and Tailscale peers, and provides a web dashboard plus a full CLI with JSON/CSV export.",
     "install_methods": [
