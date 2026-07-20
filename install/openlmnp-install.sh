@@ -75,7 +75,7 @@ $STD php artisan optimize
 msg_ok "Configured OpenLMNP"
 
 msg_info "Securing Admin Account"
-ADMIN_PASS="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)"
+ADMIN_PASS="$(openssl rand -hex 12)"
 # Replace the seeded demo password with a random one (password is cast as 'hashed')
 $STD php artisan tinker --execute="\$u = \App\Models\User::query()->orderBy('id')->first(); if (\$u) { \$u->password = '${ADMIN_PASS}'; \$u->save(); }"
 {
