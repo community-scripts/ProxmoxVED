@@ -494,10 +494,12 @@ log_section() {
 # silent()
 #
 # - Executes command with output redirected to active log file
-# - On error: displays last 20 lines of log and exits with original exit code
-
+# - On error: displays the FAILING COMMAND'S OWN output (not just the last 20
+#   log lines) and exits with original exit code
+# - Records the log byte offset before running so the exact output segment of
+#   the failing command can be extracted and written to "<logfile>.errinfo"
+#   for telemetry (the host builds the error trace from this file)
 # - Temporarily disables error trap to capture exit code correctly
-# - Sources explain_exit_code() for detailed error messages
 # ------------------------------------------------------------------------------
 silent() {
   local cmd="$*"
@@ -517,6 +519,12 @@ silent() {
   set +Eeuo pipefail
   trap - ERR
 
+  # Byte offset BEFORE the command runs - everything the log grows by is
+  # exactly this command's output
+  local start_bytes=0
+  [[ -f "$logfile" ]] && start_bytes=$(stat -c%s "$logfile" 2>/dev/null || echo 0)
+  [[ ! "$start_bytes" =~ ^[0-9]+$ ]] && start_bytes=0
+
   "$@" >>"$logfile" 2>&1
   local rc=$?
 
@@ -533,19 +541,48 @@ silent() {
     explanation="$(explain_exit_code "$rc")"
 
     # Capture failure location ("where") for telemetry. silent() exits directly
-    # (the EXIT trap reports the failure), so set these before exiting so
-    # build_error_string / _send_abort_telemetry can include the command + line.
+    # (the EXIT trap reports the failure), so set these before exiting.
     FAILED_COMMAND="$cmd"
     FAILED_LINE="$caller_line"
     export FAILED_COMMAND FAILED_LINE
+
+    # ── Structured error capture (.errinfo) ──
+    # Extract exactly THIS command's output (from the recorded byte offset),
+    # strip ANSI/progress noise, keep the last 60 lines. This file is the
+    # primary source for the telemetry error trace - self-contained, no
+    # api.func dependency (containers don't source api.func).
+    local errinfo="${logfile}.errinfo"
+    local flat_cmd
+    flat_cmd=$(printf '%s' "$cmd" | tr '\n' ' ' | head -c 300)
+    {
+      echo "EXIT_CODE=${rc}"
+      echo "LINE=${caller_line}"
+      echo "COMMAND=${flat_cmd}"
+      echo "--- OUTPUT ---"
+      if [[ -s "$logfile" ]]; then
+        local segment
+        segment=$(tail -c +"$((start_bytes + 1))" "$logfile" 2>/dev/null |
+          sed 's/\r$//' |
+          sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' |
+          grep -avE '^(Get:|Hit:|Ign:|Fetched |Reading package lists|Reading state information|Building dependency tree|Selecting previously|Preparing to unpack|Unpacking |Processing triggers for|\(Reading database|[0-9]+%[[:space:]]*\[)' |
+          grep -avE '^[[:space:]]*$' |
+          tail -n 60)
+        # If the noise filter swallowed everything, fall back to the raw tail
+        if [[ -z "$segment" ]]; then
+          segment=$(tail -c +"$((start_bytes + 1))" "$logfile" 2>/dev/null |
+            sed 's/\r$//' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | tail -n 60)
+        fi
+        printf '%s' "$segment" | head -c 10240
+      fi
+    } >"$errinfo" 2>/dev/null || true
 
     printf "\e[?25h"
     msg_error "in line ${caller_line}: exit code ${rc} (${explanation})"
     msg_custom "→" "${YWB}" "${cmd}"
 
     if [[ -s "$logfile" ]]; then
-      echo -e "\n${TAB}--- Last 20 lines of log ---"
-      tail -n 20 "$logfile"
+      echo -e "\n${TAB}--- Output of the failing command (last 20 lines) ---"
+      tail -c +"$((start_bytes + 1))" "$logfile" 2>/dev/null | tail -n 20
       echo -e "${TAB}-----------------------------------"
       echo -e "${TAB}📋 Full log: ${logfile}\n"
     fi

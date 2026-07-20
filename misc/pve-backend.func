@@ -113,6 +113,10 @@ build_container() {
   export RANDOM_UUID="$RANDOM_UUID"
   export EXECUTION_ID="$EXECUTION_ID"
   export SESSION_ID="$SESSION_ID"
+  # Repo attribution for container-side progress pings (container inherits the
+  # host's detection instead of re-detecting from its own cmdline)
+  export REPO_SOURCE="${REPO_SOURCE:-}"
+  export REPO_SLUG="${REPO_SLUG:-}"
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
   export tz="$timezone"
@@ -938,7 +942,19 @@ PROFILE
       export INSTALL_LOG
     fi
 
-    # Report failure to telemetry API (after logs are on the host)
+    # Pull the structured error capture (.errinfo) from the container.
+    # This contains EXACTLY the output of the command that failed (written by
+    # silent()/error_handler inside the container) and is the primary source
+    # for the telemetry error trace.
+    if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
+      local host_errinfo="/tmp/.errinfo-${SESSION_ID}"
+      if timeout 8 pct pull "$CTID" "/root/.install-${SESSION_ID}.log.errinfo" "$host_errinfo" 2>/dev/null && [[ -s "$host_errinfo" ]]; then
+        TELEMETRY_ERRINFO="$host_errinfo"
+        export TELEMETRY_ERRINFO
+      fi
+    fi
+
+    # Report failure to telemetry API (after logs + errinfo are on the host)
     post_update_to_api "failed" "$install_exit_code"
 
     # Dev mode: Keep container or open breakpoint shell
@@ -1145,6 +1161,8 @@ PROFILE
         echo -e "  Verbose: ${GN}enabled${CL}"
         echo ""
         msg_info "Restarting installation..."
+        # New telemetry execution for the retry (previous one keeps its "failed")
+        telemetry_new_attempt
         # Re-run build_container
         build_container
         return $?
@@ -1183,6 +1201,10 @@ PROFILE
           echo -e "  Verbose: ${GN}enabled${CL}"
           echo ""
           msg_info "Re-running installation script..."
+
+          # New telemetry execution for the in-place retry
+          telemetry_new_attempt
+          post_to_api
 
           # Re-run install script in existing container (don't destroy/recreate)
           set +Eeuo pipefail
@@ -1249,6 +1271,7 @@ PROFILE
           echo ""
           msg_info "Restarting installation..."
 
+          telemetry_new_attempt
           build_container
           return $?
         fi
@@ -1273,6 +1296,7 @@ PROFILE
           echo -e "  Verbose: ${GN}enabled${CL}"
           echo ""
           msg_info "Restarting installation..."
+          telemetry_new_attempt
           build_container
           return $?
         fi
@@ -2492,6 +2516,14 @@ ensure_log_on_host() {
         rm -f "$temp_log"
       fi
     fi
+    # Also pull the structured error capture for the telemetry error trace
+    if [[ -z "${TELEMETRY_ERRINFO:-}" || ! -s "${TELEMETRY_ERRINFO:-}" ]]; then
+      local host_errinfo="/tmp/.errinfo-${SESSION_ID}"
+      if timeout 8 pct pull "$CTID" "/root/.install-${SESSION_ID}.log.errinfo" "$host_errinfo" 2>/dev/null && [[ -s "$host_errinfo" ]]; then
+        TELEMETRY_ERRINFO="$host_errinfo"
+        export TELEMETRY_ERRINFO
+      fi
+    fi
     if [[ -s "$host_combined" ]]; then
       INSTALL_LOG="$host_combined"
     fi
@@ -2526,9 +2558,10 @@ api_exit_script() {
       pct stop "$CTID" 2>/dev/null || true
     fi
   elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
-    # Script exited with 0 but never sent a completion status
-    # exit_code=0 is never an error — report as success
-    post_update_to_api "done" "0"
+    # Script exited with 0 but never sent a completion status: the user backed
+    # out somewhere (whiptail cancel etc.). Report as aborted - NOT success
+    # (the install never finished) and NOT failed (nothing actually broke).
+    post_update_to_api "aborted" "0"
   fi
 }
 
