@@ -3764,9 +3764,6 @@ fetch_and_deploy_gh_release() {
     }
 
     mkdir -p "$target"
-    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
-      rm -rf "${target:?}/"*
-    fi
 
     tar --no-same-owner -xzf "$tmpdir/$filename" -C "$tmpdir" || {
       msg_error "Failed to extract tarball"
@@ -3775,6 +3772,12 @@ fetch_and_deploy_gh_release() {
     }
     local unpack_dir
     unpack_dir=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -n1)
+
+    # CLEAN_INSTALL wipe must happen only after successful extraction, so a
+    # corrupt download never destroys the existing deployment
+    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+      rm -rf "${target:?}/"*
+    fi
 
     shopt -s dotglob nullglob
     cp -r "$unpack_dir"/* "$target/"
@@ -3944,9 +3947,6 @@ fetch_and_deploy_gh_release() {
     local unpack_tmp
     unpack_tmp=$(mktemp -d)
     mkdir -p "$target"
-    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
-      rm -rf "${target:?}/"*
-    fi
 
     if [[ "$filename" == *.zip ]]; then
       ensure_dependencies unzip
@@ -3976,6 +3976,10 @@ fetch_and_deploy_gh_release() {
       inner_dir="$top_entries"
       shopt -s dotglob nullglob
       if compgen -G "$inner_dir/*" >/dev/null; then
+        # Wipe only now that a valid extracted payload exists to replace it
+        if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+          rm -rf "${target:?}/"*
+        fi
         cp -r "$inner_dir"/* "$target/" || {
           msg_error "Failed to copy contents from $inner_dir to $target"
           rm -rf "$tmpdir" "$unpack_tmp"
@@ -3991,6 +3995,10 @@ fetch_and_deploy_gh_release() {
       # Copy all contents
       shopt -s dotglob nullglob
       if compgen -G "$unpack_tmp/*" >/dev/null; then
+        # Wipe only now that a valid extracted payload exists to replace it
+        if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+          rm -rf "${target:?}/"*
+        fi
         cp -r "$unpack_tmp"/* "$target/" || {
           msg_error "Failed to copy contents to $target"
           rm -rf "$tmpdir" "$unpack_tmp"
@@ -4056,10 +4064,18 @@ fetch_and_deploy_gh_release() {
     local target_file="$app"
     [[ "$use_filename" == "true" ]] && target_file="$filename"
 
-    curl_download "$target/$target_file" "$asset_url" || {
+    # Download to tmpdir first so a failed transfer never clobbers the
+    # existing binary in $target
+    curl_download "$tmpdir/$target_file" "$asset_url" || {
       msg_error "Download failed: $asset_url"
       rm -rf "$tmpdir"
       return 250
+    }
+
+    mv -f "$tmpdir/$target_file" "$target/$target_file" || {
+      msg_error "Failed to install $target_file into $target"
+      rm -rf "$tmpdir"
+      return 252
     }
 
     if [[ "$target_file" != *.jar && -f "$target/$target_file" ]]; then
