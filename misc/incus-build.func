@@ -530,7 +530,8 @@ api_exit_script() {
       incus_offer_orphan_cleanup
     fi
   elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
-    post_update_to_api "done" "0" 2>/dev/null || true
+    # Clean exit without completion = user backed out → aborted, not success
+    post_update_to_api "aborted" "0" 2>/dev/null || true
   fi
 }
 

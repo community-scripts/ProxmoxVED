@@ -858,6 +858,11 @@ PROFILE
   # Start timer for duration tracking
   start_install_timer
 
+  # Mark install phase so signal handlers stop the orphaned container
+  # (SIGINT/SIGHUP during lxc-attach would otherwise leave it running)
+  CONTAINER_INSTALLING=true
+  export CONTAINER_INSTALLING
+
   # Disable error trap - container errors are handled internally via flag file
   set +Eeuo pipefail # Disable ALL error handling temporarily
   trap - ERR         # Remove ERR trap completely
@@ -869,6 +874,9 @@ PROFILE
 
   set -Eeuo pipefail       # Re-enable error handling
   trap 'error_handler' ERR # Restore ERR trap
+
+  CONTAINER_INSTALLING=false
+  export CONTAINER_INSTALLING
 
   # Check for error flag file in container (more reliable than lxc-attach exit code)
   local install_exit_code=0

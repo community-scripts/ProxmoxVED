@@ -945,6 +945,14 @@ _incus_build_combined_log() {
     rm -f "$temp_install_log"
   fi
 
+  # Pull the structured error capture (.errinfo) - primary source for the
+  # telemetry error trace (exact output of the failing command)
+  local host_errinfo="/tmp/.errinfo-${SESSION_ID}"
+  if incus file pull "${CT_NAME}/root/.install-${SESSION_ID}.log.errinfo" "$host_errinfo" 2>/dev/null && [[ -s "$host_errinfo" ]]; then
+    TELEMETRY_ERRINFO="$host_errinfo"
+    export TELEMETRY_ERRINFO
+  fi
+
   echo -e "${GN}✔${CL} Installation log: ${BL}${combined_log}${CL}"
   INSTALL_LOG="$combined_log"
   export INSTALL_LOG
@@ -1083,6 +1091,7 @@ incus_run_install_script_with_recovery() {
       export CT_NAME CTID VERBOSE=yes var_verbose=yes
       echo -e "${YW}Rebuilding: ${old_name} → ${CT_NAME} (verbose)${CL}"
       msg_info "Restarting installation..."
+      declare -f telemetry_new_attempt &>/dev/null && telemetry_new_attempt
       build_container
       return $?
       ;;
@@ -1099,6 +1108,9 @@ incus_run_install_script_with_recovery() {
         fi
         export VERBOSE=yes var_verbose=yes
         msg_info "Re-running installation script..."
+        # New telemetry execution for the in-place retry
+        declare -f telemetry_new_attempt &>/dev/null && telemetry_new_attempt
+        declare -f post_to_api &>/dev/null && post_to_api 2>/dev/null || true
         _incus_push_functions_and_run_install
         install_exit_code="${INCUS_LAST_INSTALL_EXIT:-1}"
         if [[ "$install_exit_code" -eq 0 ]]; then
@@ -1122,6 +1134,7 @@ incus_run_install_script_with_recovery() {
         export CT_NAME CTID RAM_SIZE CORE_COUNT var_ram="$RAM_SIZE" var_cpu="$CORE_COUNT"
         export VERBOSE=yes var_verbose=yes RECOVERY_ATTEMPT=$((${RECOVERY_ATTEMPT:-0} + 1))
         echo -e "${YW}Rebuilding with more resources: RAM ${old_ram}→${RAM_SIZE}, CPU ${old_cpu}→${CORE_COUNT}${CL}"
+        declare -f telemetry_new_attempt &>/dev/null && telemetry_new_attempt
         build_container
         return $?
       fi
@@ -1132,6 +1145,7 @@ incus_run_install_script_with_recovery() {
         CTID="$CT_NAME"
         export CT_NAME CTID DNS_RETRY_OVERRIDE=true VERBOSE=yes var_verbose=yes
         echo -e "${YW}Rebuilding with DNS override${CL}"
+        declare -f telemetry_new_attempt &>/dev/null && telemetry_new_attempt
         build_container
         return $?
       fi
@@ -1178,6 +1192,9 @@ export ENABLE_TUN='${ENABLE_TUN:-no}'
 export ENABLE_GPU='${ENABLE_GPU:-no}'
 export IPV6_METHOD='${IPV6_METHOD:-auto}'
 export COMMUNITY_SCRIPTS_URL='${INCUS_COMMUNITY_SCRIPTS_URL}'
+export INSTALL_LOG='/root/.install-${SESSION_ID}.log'
+export REPO_SOURCE='${REPO_SOURCE:-}'
+export REPO_SLUG='${REPO_SLUG:-}'
 EOF
 }
 
