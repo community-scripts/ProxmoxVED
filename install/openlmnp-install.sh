@@ -94,6 +94,7 @@ chmod 640 /opt/openlmnp/.env
 chmod 600 /opt/openlmnp/admin_credentials.txt
 
 msg_info "Configuring Nginx"
+$STD apt install -y nginx
 cat <<'EOF' >/etc/nginx/sites-available/openlmnp
 server {
     listen 80;
@@ -135,7 +136,6 @@ server {
 }
 EOF
 
-$STD apt install -y nginx
 ln -sf /etc/nginx/sites-available/openlmnp /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 $STD systemctl reload nginx
