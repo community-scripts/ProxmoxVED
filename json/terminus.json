@@ -1,0 +1,53 @@
+{
+  "name": "Terminus",
+  "slug": "terminus",
+  "categories": [
+    16
+  ],
+  "date_created": "2026-06-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 2300,
+  "documentation": "https://github.com/usetrmnl/terminus#readme",
+  "website": "https://trmnl.com",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/trmnl.webp",
+  "description": "Terminus is a Ruby/Hanami web server for managing TRMNL e-paper display devices on your own local network, providing a privacy-first BYOS alternative to the hosted Core server.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/terminus.sh",
+      "config_path": "/opt/terminus/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The first user to register is automatically granted verified status and full system access.",
+      "type": "info"
+    },
+    {
+      "text": "Requires at least 2GB RAM for optimal performance with Ruby/Hanami application.",
+      "type": "info"
+    },
+    {
+      "text": "First install compiles Ruby 4.0 from source and may take 10-20 minutes. Do not close the console.",
+      "type": "info"
+    },
+    {
+      "text": "Uses GitHub tags for version detection (no GitHub releases published by upstream).",
+      "type": "info"
+    }
+  ]
+}
