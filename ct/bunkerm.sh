@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -36,29 +36,51 @@ function update_script() {
     msg_ok "Stopped Services"
 
     create_backup /etc/bunkerm/bunkerm.env \
-                  /var/lib/mosquitto/dynamic-security.json
+      /var/lib/mosquitto/dynamic-security.json
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "bunkerm" "bunkeriot/BunkerM" "tarball"
 
     msg_info "Rebuilding Frontend"
     cd /opt/bunkerm/frontend
     export NODE_OPTIONS="--max-old-space-size=4096"
-    NODE_ENV=development $STD npm ci
-    AUTH_SECRET="build-time-placeholder" NEXT_TELEMETRY_DISABLED=1 $STD npm run build
+    $STD npm install
+    $STD npm install --no-save tailwindcss@3 autoprefixer tailwindcss-animate
+    if [[ -f postcss.config.js ]] && grep -q 'module\.exports' postcss.config.js; then
+      mv postcss.config.js postcss.config.cjs
+    fi
+    $STD npm run build
     unset NODE_OPTIONS
-    mkdir -p /nextjs
-    cp -r /opt/bunkerm/frontend/.next/standalone/. /nextjs/
-    cp -r /opt/bunkerm/frontend/.next/static /nextjs/.next/static
-    cp -r /opt/bunkerm/frontend/public /nextjs/public
+    rm -rf /usr/share/nginx/html /frontend
+    mkdir -p /usr/share/nginx/html
+    cp -r /opt/bunkerm/frontend/dist/. /usr/share/nginx/html/
+    cp -r /opt/bunkerm/frontend /frontend
+    rm -rf /frontend/node_modules
+    cd /frontend/src/auth
+    $STD npm install
     msg_ok "Rebuilt Frontend"
 
     msg_info "Updating Backend"
     mkdir -p /app
     cp -r /opt/bunkerm/backend/app/. /app/
     touch /app/monitor/__init__.py
+    cp /opt/bunkerm/nginx.conf /etc/nginx/nginx.conf
+    cp /opt/bunkerm/default.conf /etc/nginx/conf.d/default.conf
+    sed -i 's/^user nginx;$/user www-data;/' /etc/nginx/nginx.conf
+    cp /opt/bunkerm/backend/supervisord.conf /etc/supervisor/conf.d/bunkerm.conf
     msg_ok "Updated Backend"
 
     restore_backup
+    source /etc/bunkerm/bunkerm.env
+    cat <<EOF >/usr/share/nginx/html/config.js
+window.__runtime_config__ = {
+  API_URL: "http://${HOST_ADDRESS}:2000/api/monitor",
+  DYNSEC_API_URL: "http://${HOST_ADDRESS}:2000/api/dynsec",
+  AWS_BRIDGE_API_URL: "http://${HOST_ADDRESS}:2000/api/aws-bridge",
+  MONITOR_API_URL: "http://${HOST_ADDRESS}:2000/api/monitor",
+  EVENT_API_URL: "http://${HOST_ADDRESS}:2000/api/event",
+  host: "${HOST_ADDRESS}"
+};
+EOF
 
     msg_info "Starting Services"
     systemctl start bunkerm
@@ -74,6 +96,6 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URLs:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:2000${CL} (Web UI)"
-echo -e "${TAB}${GATEWAY}${BGN}mqtt://${IP}:1900${CL} (MQTT Broker)"
+echo -e "${INFO}${YW}Access it using the following URLs:${CL}"
+echo -e "${GATEWAY}${BGN}http://${IP}:2000${CL} (Web UI)"
+echo -e "${GATEWAY}${BGN}mqtt://${IP}:1900${CL} (MQTT Broker)"

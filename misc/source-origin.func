@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Copyright (c) 2021-2026 community-scripts ORG
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+
+# ==============================================================================
+# SOURCE-ORIGIN.FUNC — Git remote → COMMUNITY_SCRIPTS_URL helpers
+# ==============================================================================
+# Loaded by misc/build.func when running from a local checkout.
+# CT scripts do NOT source this directly — they use a one-liner to build.func.
+#
+# Explicit COMMUNITY_SCRIPTS_URL / COMMUNITY_SCRIPTS_DIR overrides always win.
+# ==============================================================================
+
+[[ -n "${_CS_SOURCE_ORIGIN_LOADED:-}" ]] && return
+_CS_SOURCE_ORIGIN_LOADED=1
+
+cs_git_remote_to_raw_base() {
+  # arg: git remote URL, branch → stdout: raw content base (no trailing slash)
+  local remote="${1:-}" branch="${2:-main}"
+  local owner repo host
+
+  [[ -z "$remote" ]] && return 1
+  remote="${remote%.git}"
+
+  # git@github.com:owner/repo  |  https://github.com/owner/repo
+  if [[ "$remote" =~ git@github\.com:([^/]+)/([^/]+)$ ]] ||
+    [[ "$remote" =~ https?://github\.com/([^/]+)/([^/]+)$ ]] ||
+    [[ "$remote" =~ ssh://git@github\.com/([^/]+)/([^/]+)$ ]]; then
+    owner="${BASH_REMATCH[1]}"
+    repo="${BASH_REMATCH[2]}"
+    echo "https://raw.githubusercontent.com/${owner}/${repo}/${branch}"
+    return 0
+  fi
+
+  # Gitea: https://git.community-scripts.org/owner/repo
+  # raw:   https://git.community-scripts.org/owner/repo/raw/branch/<branch>
+  if [[ "$remote" =~ https?://([^/]+)/([^/]+)/([^/]+)$ ]]; then
+    host="${BASH_REMATCH[1]}"
+    owner="${BASH_REMATCH[2]}"
+    repo="${BASH_REMATCH[3]}"
+    case "$host" in
+    git.community-scripts.org | gitea.* | *.gitea.*)
+      echo "https://${host}/${owner}/${repo}/raw/branch/${branch}"
+      return 0
+      ;;
+    esac
+  fi
+
+  return 1
+}
+
+cs_detect_origin_from_git() {
+  local root="${1:-}"
+  local remote branch ref url
+  [[ -z "$root" || ! -d "$root" ]] && return 1
+  command -v git >/dev/null 2>&1 || return 1
+  [[ -d "$root/.git" || -f "$root/.git" ]] || return 1
+
+  remote="$(git -C "$root" remote get-url origin 2>/dev/null || true)"
+  [[ -z "$remote" ]] && return 1
+
+  branch="$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)"
+  if [[ "$branch" == "HEAD" ]]; then
+    ref="$(git -C "$root" rev-parse --short HEAD 2>/dev/null || true)"
+    [[ -n "$ref" ]] && branch="$ref"
+  fi
+  [[ -z "$branch" ]] && branch="main"
+
+  url="$(cs_git_remote_to_raw_base "$remote" "$branch" 2>/dev/null || true)"
+  [[ -z "$url" ]] && return 1
+  echo "$url"
+  return 0
+}

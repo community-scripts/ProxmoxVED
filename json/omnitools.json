@@ -1,0 +1,44 @@
+{
+  "name": "OmniTools",
+  "slug": "omnitools",
+  "categories": [
+    0
+  ],
+  "date_created": "2026-07-16",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 80,
+  "documentation": "https://github.com/iib0011/omni-tools#self-hostrun",
+  "website": "https://omnitools.app",
+  "logo": "https://cdn.jsdelivr.net/gh/iib0011/omni-tools@main/src/assets/logo.png",
+  "description": "OmniTools is a self-hosted collection of browser-based tools for working with PDFs, images, video, audio, text, data, dates, mathematics, and other everyday file and conversion tasks.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/omnitools.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Files are processed locally in the user's browser and are not uploaded to the OmniTools LXC.",
+      "type": "info"
+    },
+    {
+      "text": "OmniTools is served as a static web application through Nginx on port 80.",
+      "type": "info"
+    }
+  ]
+}

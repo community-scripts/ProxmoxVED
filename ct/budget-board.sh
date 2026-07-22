@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func")
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: Slaviša Arežina (tremor021)
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://github.com/teelur/budget-board
+
+APP="Budget-Board"
+var_tags="${var_tags:-finance;budget;money}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-8}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-13}"
+var_unprivileged="${var_unprivileged:-1}"
+
+header_info "$APP"
+variables
+color
+catch_errors
+
+function update_script() {
+  header_info
+  check_container_storage
+  check_container_resources
+
+  if [[ ! -d /opt/budget-board ]]; then
+    msg_error "No ${APP} Installation Found!"
+    exit
+  fi
+
+  if check_for_gh_release "budget-board" "teelur/budget-board"; then
+    msg_info "Stopping Service"
+    systemctl stop budget-board
+    msg_ok "Stopped Service"
+
+    msg_info "Backing up Data"
+    cp -r /opt/budget-board/budget-board.env /opt/budget-board.env.bak
+    msg_ok "Backed up Data"
+
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "budget-board" "teelur/budget-board" "tarball"
+
+    msg_info "Restoring Configuration"
+    cp -r /opt/budget-board.env.bak /opt/budget-board/budget-board.env
+    rm -f /opt/budget-board.env.bak
+    msg_ok "Restored Configuration"
+
+    msg_info "Rebuilding Backend"
+    cd /opt/budget-board/server
+    $STD dotnet restore "BudgetBoard.WebAPI/BudgetBoard.WebAPI.csproj"
+    export configuration=Release
+    $STD dotnet publish "BudgetBoard.WebAPI/BudgetBoard.WebAPI.csproj" -c $configuration -o /opt/budget-board/publish /p:UseAppHost=false --no-restore
+    msg_ok "Rebuilt Backend"
+
+    msg_info "Rebuilding Frontend"
+    cd /opt/budget-board/client
+    export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+    $STD yarn install
+    $STD yarn run build
+    cp -r dist/. /var/www/html/
+    msg_ok "Rebuilt Frontend"
+
+    msg_info "Starting Service"
+    systemctl start budget-board
+    msg_ok "Started Service"
+    msg_ok "Updated successfully!"
+  fi
+  exit
+}
+
+start
+build_container
+description
+
+msg_ok "Completed Successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW}Access it using the following URL:${CL}"
+echo -e "${GATEWAY}${BGN}http://${IP}:6253${CL}"

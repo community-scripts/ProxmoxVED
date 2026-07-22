@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: ProxmoxVED Community
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -45,6 +45,8 @@ function update_script() {
     source "$HOME/.cargo/env"
     $STD rustup target add wasm32-unknown-unknown
     cd /opt/aliasvault/core
+    # Strip year-hardcoded test step from per-package build.sh (upstream bug)
+    find /opt/aliasvault/core -name build.sh -exec sed -i 's/npm run test &&[[:space:]]*//g' {} +
     $STD bash build-and-distribute.sh --browser
     msg_ok "Built Core Libraries"
 
@@ -54,11 +56,9 @@ function update_script() {
       /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
     cp /opt/aliasvault/core/rust/dist/wasm/aliasvault_core.js \
       /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
-    mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/{identity-generator,password-generator,vault}
+    mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/{identity-generator,vault}
     cp -r /opt/aliasvault/core/typescript/identity-generator/dist/. \
       /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/identity-generator/
-    cp -r /opt/aliasvault/core/typescript/password-generator/dist/. \
-      /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/password-generator/
     cp -r /opt/aliasvault/core/vault/dist/. \
       /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/vault/
     msg_ok "Copied Core Artifacts"
@@ -100,7 +100,7 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://${IP}${CL}"
-echo -e "${INFO}${YW} Admin Panel:${CL} ${TAB}${GATEWAY}${BGN}https://${IP}/admin${CL}"
+echo -e "${INFO}${YW}Access it using the following URL:${CL}"
+echo -e "${GATEWAY}${BGN}https://${IP}${CL}"
+echo -e "${INFO}${YW} Admin Panel:${CL} ${GATEWAY}${BGN}https://${IP}/admin${CL}"
 echo -e "${INFO}${YW} Admin credentials were shown in the installation output above.${CL}"

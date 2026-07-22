@@ -1,0 +1,46 @@
+{
+    "name": "Mailpit",
+    "slug": "mailpit",
+    "categories": [
+        20
+    ],
+    "date_created": "2026-07-16",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": 8025,
+    "documentation": "https://mailpit.axllent.org/docs/",
+    "website": "https://mailpit.axllent.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/mailpit.webp",
+    "config_path": "/opt/mailpit/.env",
+    "description": "Mailpit is a fast, lightweight email testing tool that captures SMTP messages and provides a web UI and API for viewing and testing them.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/mailpit.sh",
+            "config_path": "/opt/mailpit/.env",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 2,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Mailpit captures email for testing; configure applications to use SMTP on port 1025. Do not expose the web UI or SMTP port to untrusted networks without adding authentication and TLS.",
+            "type": "warning"
+        },
+        {
+            "text": "Captured messages are stored persistently in /opt/mailpit/data/mailpit.db and Mailpit keeps the newest 500 messages by default.",
+            "type": "info"
+        }
+    ]
+}

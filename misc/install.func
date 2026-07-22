@@ -200,6 +200,11 @@ _bootstrap() {
   # Configurable base URL for development — override with COMMUNITY_SCRIPTS_URL
   COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
 
+  # Mark container context BEFORE error handling starts: error_handler/on_exit
+  # must write local failure artifacts instead of talking to the telemetry API
+  # (the host is the single telemetry reporter).
+  export TELEMETRY_CONTEXT="container"
+
   # Source core functions
   source <($_fetch "$COMMUNITY_SCRIPTS_URL/misc/core.func")
   source <($_fetch "$COMMUNITY_SCRIPTS_URL/misc/error_handler.func")
@@ -238,9 +243,12 @@ post_progress_to_api() {
 
   local progress_status="${1:-configuring}"
 
+  # Progress pings are the ONLY telemetry a container sends (terminal statuses
+  # are reported by the host). Include execution_id + repo attribution
+  # (exported by the host) so the server can correlate and filter these rows.
   curl -fsS -m 5 -X POST "https://telemetry.community-scripts.org/telemetry" \
     -H "Content-Type: application/json" \
-    -d "{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"lxc\",\"nsapp\":\"${app:-unknown}\",\"status\":\"${progress_status}\"}" &>/dev/null || true
+    -d "{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"lxc\",\"nsapp\":\"${app:-unknown}\",\"status\":\"${progress_status}\",\"platform\":\"${TELEMETRY_PLATFORM:-}\",\"repo_source\":\"${REPO_SOURCE:-}\",\"repo_slug\":\"${REPO_SLUG:-}\"}" &>/dev/null || true
 }
 
 # ==============================================================================
@@ -1424,7 +1432,7 @@ EOF
   # Create update script
   # Use var_os for OS-based containers, otherwise use app name
   local update_script_name="${var_os:-$app}"
-  echo "bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/${update_script_name}.sh)\"" >/usr/bin/update
+  echo "bash -c \"\$(curl -fsSL ${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/ct/${update_script_name}.sh)\"" >/usr/bin/update
   chmod +x /usr/bin/update
 
   # Inject SSH authorized keys if provided

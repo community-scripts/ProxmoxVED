@@ -13,14 +13,11 @@ setting_up_container
 network_check
 update_os
 
-setup_mysql
-
-MYSQL_DB_NAME="fleet" MYSQL_DB_USER="fleet" setup_mysql_db
-
 msg_info "Installing Dependencies"
-$STD apt install -y redis-server
+$STD apt install -y redis-server mysql-server
 msg_ok "Installed Dependencies"
 
+MYSQL_DB_NAME="fleet" MYSQL_DB_USER="fleet" setup_mysql_db
 fetch_and_deploy_gh_release "fleet" "fleetdm/fleet" "prebuild" "latest" "/opt/fleet" "fleet_v*_linux.tar.gz"
 
 msg_info "Configuring Application"

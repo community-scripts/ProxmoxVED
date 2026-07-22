@@ -1,0 +1,45 @@
+{
+    "name": "JDownloader",
+    "slug": "jdownloader",
+    "categories": [
+        11
+    ],
+    "date_created": "2026-07-14",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": false,
+    "interface_port": 3129,
+    "documentation": "https://jdownloader.org/knowledge/wiki/setup",
+    "website": "https://jdownloader.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/jdownloader.webp",
+    "description": "JDownloader is a free, open-source download management tool that simplifies downloading files from one-click hosting sites. It runs headless on servers and is managed remotely via the MyJDownloader cloud web interface at my.jdownloader.org.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/jdownloader.sh",
+            "config_path": "/opt/jdownloader/cfg",
+            "resources": {
+                "cpu": 2,
+                "ram": 1024,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "MyJDownloader cloud access is disabled by default. To enable it, edit /opt/jdownloader/cfg/org.jdownloader.api.myjdownloader.MyJDownloaderSettings.json, replace the placeholder email/password with your my.jdownloader.org credentials, set autoconnectenabledv2 to true, and restart the service.",
+            "type": "info"
+        },
+        {
+            "text": "JDownloader self-updates automatically on every restart. The 'Update' button in the UI simply restarts the service to trigger this process.",
+            "type": "info"
+        }
+    ]
+}

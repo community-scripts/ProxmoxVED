@@ -21,9 +21,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 PHP_VERSION="8.5" PHP_FPM="YES" setup_php
-
 setup_composer
-
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 
 fetch_and_deploy_gh_release "slink" "andrii-kryvoviaz/slink" "tarball"
@@ -54,7 +52,11 @@ sed -i "s|sqlite:////app/var/data|sqlite:////opt/slink/services/api/var/data|g" 
 export APP_ENV=prod
 mkdir -p /opt/slink/services/api/var/data
 mkdir -p /opt/slink/services/api/config/jwt
-$STD composer install --no-dev --optimize-autoloader --no-interaction
+composer config repositories.icewind-streams vcs https://github.com/icewind1991/Streams
+for i in 1 2 3 4 5; do
+  COMPOSER_PROCESS_TIMEOUT=900 $STD composer install --no-dev --optimize-autoloader --no-interaction && break
+  sleep 20
+done
 mkdir -p /opt/slink/{data,images}
 sed -i "s|'/services/api/|'/opt/slink/services/api/|" config/migrations/event_store.yaml
 $STD php bin/console lexik:jwt:generate-keypair --overwrite --no-interaction

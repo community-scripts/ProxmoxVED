@@ -1,0 +1,842 @@
+#!/usr/bin/env bash
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: MickLesk
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+
+# ==============================================================================
+# INCUS-CORE.FUNC - CORE UTILITIES FOR INCUS CONTAINER MANAGEMENT
+# ==============================================================================
+#
+# This file provides core utility functions for Incus container management
+# including colors, formatting, validation checks, message output, and
+# execution helpers - adapted from Proxmox LXC patterns for Incus.
+#
+# Key differences from Proxmox LXC (core.func):
+#   - Incus CLI instead of pct/pvesm
+#   - incus profiles instead of CT templates
+#   - incus storage pools instead of Proxmox storage
+#   - incus networks instead of vmbr bridges
+#   - No pveam (uses incus image copy/list)
+#
+# Usage:
+#   source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/incus-core.func)
+#   load_incus_functions
+#
+# ==============================================================================
+
+[[ -n "${_INCUS_CORE_FUNC_LOADED:-}" ]] && return
+_INCUS_CORE_FUNC_LOADED=1
+
+INCUS_COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+
+# Load upstream misc/core.func for full helper parity (prompt_*, dev-mode, etc.).
+# Incus-specific behavior is provided through incus_* functions and aliases below.
+if [[ -z "${_CORE_FUNC_LOADED:-}" ]]; then
+  source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/misc/core.func")
+fi
+
+# ==============================================================================
+# SECTION 1: INITIALIZATION & SETUP
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# load_incus_functions()
+#
+# - Initializes all core utility groups (colors, formatting, icons, defaults)
+# - Ensures functions are loaded only once via __INCUS_FUNCTIONS_LOADED flag
+# - Must be called at start of any Incus script
+# ------------------------------------------------------------------------------
+load_incus_functions() {
+  [[ -n "${__INCUS_FUNCTIONS_LOADED:-}" ]] && return
+  __INCUS_FUNCTIONS_LOADED=1
+  incus_color
+  incus_formatting
+  incus_icons
+  incus_default_vars
+  incus_set_std_mode
+}
+
+# ------------------------------------------------------------------------------
+# incus_color()
+#
+# - Sets ANSI color codes for styled terminal output
+# - Variables: YW (yellow), YWB (yellow bright), BL (blue), RD (red)
+#             GN (green), DGN (dark green), BGN (background green), CL (clear)
+# ------------------------------------------------------------------------------
+incus_color() {
+  YW=$(echo "\033[33m")
+  YWB=$'\e[93m'
+  BL=$(echo "\033[36m")
+  RD=$(echo "\033[01;31m")
+  BGN=$(echo "\033[4;92m")
+  GN=$(echo "\033[1;92m")
+  DGN=$(echo "\033[32m")
+  CL=$(echo "\033[m")
+}
+
+# ------------------------------------------------------------------------------
+# incus_color_spinner()
+#
+# - Sets ANSI color codes specifically for spinner animation
+# ------------------------------------------------------------------------------
+incus_color_spinner() {
+  CS_YW=$'\033[33m'
+  CS_YWB=$'\033[93m'
+  CS_CL=$'\033[m'
+}
+
+# ------------------------------------------------------------------------------
+# incus_formatting()
+#
+# - Defines formatting helpers for terminal output
+# ------------------------------------------------------------------------------
+incus_formatting() {
+  BFR="\\r\\033[K"
+  BOLD=$(echo "\033[1m")
+  HOLD=" "
+  TAB="  "
+  TAB3="      "
+}
+
+# ------------------------------------------------------------------------------
+# incus_icons()
+#
+# - Sets symbolic emoji icons used throughout user feedback
+# ------------------------------------------------------------------------------
+incus_icons() {
+  CM="${TAB}✔️${TAB}"
+  CROSS="${TAB}✖️${TAB}"
+  DNSOK="✔️ "
+  DNSFAIL="${TAB}✖️${TAB}"
+  INFO="${TAB}💡${TAB}${CL}"
+  OS="${TAB}🖥️${TAB}${CL}"
+  OSVERSION="${TAB}🌟${TAB}${CL}"
+  CONTAINERTYPE="${TAB}📦${TAB}${CL}"
+  DISKSIZE="${TAB}💾${TAB}${CL}"
+  CPUCORE="${TAB}🧠${TAB}${CL}"
+  RAMSIZE="${TAB}🛠️${TAB}${CL}"
+  SEARCH="${TAB}🔍${TAB}${CL}"
+  VERBOSE_CROPPED="🔍${TAB}"
+  VERIFYPW="${TAB}🔐${TAB}${CL}"
+  CONTAINERID="${TAB}🆔${TAB}${CL}"
+  HOSTNAME="${TAB}🏠${TAB}${CL}"
+  BRIDGE="${TAB}🌉${TAB}${CL}"
+  NETWORK="${TAB}📡${TAB}${CL}"
+  GATEWAY="${TAB}🌐${TAB}${CL}"
+  ICON_DISABLEIPV6="${TAB}🚫${TAB}${CL}"
+  DEFAULT="${TAB}⚙️${TAB}${CL}"
+  MACADDRESS="${TAB}🔗${TAB}${CL}"
+  VLANTAG="${TAB}🏷️${TAB}${CL}"
+  ROOTSSH="${TAB}🔑${TAB}${CL}"
+  CREATING="${TAB}🚀${TAB}${CL}"
+  ADVANCED="${TAB}🧩${TAB}${CL}"
+  FUSE="${TAB}🗂️${TAB}${CL}"
+  GPU="${TAB}🎮${TAB}${CL}"
+  HOURGLASS="${TAB}⏳${TAB}"
+}
+
+# ------------------------------------------------------------------------------
+# incus_default_vars()
+#
+# - Sets default retry and wait variables used for system actions
+# ------------------------------------------------------------------------------
+incus_default_vars() {
+  RETRY_NUM=10
+  RETRY_EVERY=3
+  i=$RETRY_NUM
+}
+
+# ------------------------------------------------------------------------------
+# incus_set_std_mode()
+#
+# - Sets default verbose mode for script and OS execution
+# - If VERBOSE=yes: STD="" (show all output)
+# - If VERBOSE=no: STD="silent" (suppress output via silent() wrapper)
+# ------------------------------------------------------------------------------
+incus_set_std_mode() {
+  if [ "${VERBOSE:-no}" = "yes" ]; then
+    STD=""
+  else
+    STD="silent"
+  fi
+
+  # Enable bash tracing if trace mode active
+  if [[ "${DEV_MODE_TRACE:-false}" == "true" ]]; then
+    set -x
+    export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+  fi
+}
+
+# ==============================================================================
+# SECTION 2: VALIDATION CHECKS (Incus-specific)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# incus_shell_check()
+#
+# - Verifies that the script is running under Bash shell
+# ------------------------------------------------------------------------------
+incus_shell_check() {
+  if [[ "$(ps -p $$ -o comm=)" != "bash" ]]; then
+    clear
+    incus_msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
+    echo -e "\nExiting..."
+    sleep 2
+    exit
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# incus_root_check()
+#
+# - Verifies script is running with root privileges
+# ------------------------------------------------------------------------------
+incus_root_check() {
+  # Incus can be used by non-root users in the 'incus-admin' group
+  if incus info &>/dev/null; then
+    return 0
+  fi
+
+  # Fallback: root always works
+  if [[ "$(id -u)" -eq 0 ]]; then
+    return 0
+  fi
+
+  clear
+  incus_msg_error "Cannot access Incus. Either:"
+  incus_msg_error "  - Run as root (sudo), or"
+  incus_msg_error "  - Add your user to the incus-admin group: sudo usermod -aG incus-admin \$USER"
+  echo -e "\nExiting..."
+  sleep 2
+  exit
+}
+
+# ------------------------------------------------------------------------------
+# incus_check()
+#
+# - Validates that Incus is installed and accessible
+# - Checks incus daemon is running
+# - Exits with error message if Incus is not available
+# ------------------------------------------------------------------------------
+incus_check() {
+  if ! command -v incus &>/dev/null; then
+    incus_msg_error "Incus is not installed on this system."
+    incus_msg_error "Install Incus first: https://linuxcontainers.org/incus/docs/main/installing/"
+    exit 1
+  fi
+
+  # Check if incus daemon is accessible
+  if ! incus info &>/dev/null; then
+    incus_msg_error "Incus daemon is not running or not accessible."
+    incus_msg_error "Run: systemctl start incus"
+    exit 1
+  fi
+
+  # Check if we have any storage pools
+  local pool_count
+  pool_count=$(incus storage list -f csv,noheader 2>/dev/null | wc -l)
+  if [[ "$pool_count" -eq 0 ]]; then
+    incus_msg_error "No Incus storage pools found."
+    incus_msg_error "Create one with: incus storage create default dir"
+    exit 1
+  fi
+}
+
+# Incus handles cross-architecture natively (e.g. x86 host running ARM containers).
+# No arch_check needed - removed from Incus scripts.
+
+# ==============================================================================
+# SECTION 3: EXECUTION HELPERS
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# get_active_incus_logfile()
+#
+# - Returns the appropriate log file based on execution context
+# ------------------------------------------------------------------------------
+get_active_incus_logfile() {
+  if [[ -n "${_INCUS_HOST_LOGFILE:-}" ]]; then
+    echo "$_INCUS_HOST_LOGFILE"
+  elif [[ -n "${INCUS_INSTALL_LOG:-}" ]]; then
+    echo "$INCUS_INSTALL_LOG"
+  elif [[ -n "${INCUS_BUILD_LOG:-}" ]]; then
+    echo "$INCUS_BUILD_LOG"
+  else
+    echo "/tmp/incus-build-$(date +%Y%m%d_%H%M%S).log"
+  fi
+}
+
+INCUS_SILENT_LOGFILE="$(get_active_incus_logfile)"
+
+# ------------------------------------------------------------------------------
+# incus_strip_ansi()
+#
+# - Removes ANSI escape sequences from input text
+# ------------------------------------------------------------------------------
+incus_strip_ansi() {
+  if [[ $# -gt 0 ]]; then
+    echo -e "$*" | sed 's/\x1b\[[0-9;]*m//g; s/\x1b\[[0-9;]*[a-zA-Z]//g'
+  else
+    sed 's/\x1b\[[0-9;]*m//g; s/\x1b\[[0-9;]*[a-zA-Z]//g'
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# incus_log_msg()
+#
+# - Writes message to active log file without ANSI codes
+# - Adds timestamp prefix for log correlation
+# ------------------------------------------------------------------------------
+incus_log_msg() {
+  local msg="$*"
+  local logfile
+  logfile="$(get_active_incus_logfile)"
+
+  [[ -z "$msg" ]] && return
+  [[ -z "$logfile" ]] && return
+
+  mkdir -p "$(dirname "$logfile")" 2>/dev/null || true
+
+  local clean_msg
+  clean_msg=$(incus_strip_ansi "$msg")
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $clean_msg" >>"$logfile"
+}
+
+# ------------------------------------------------------------------------------
+# incus_log_section()
+#
+# - Writes a section header to the log file
+# ------------------------------------------------------------------------------
+incus_log_section() {
+  local section="$1"
+  local logfile
+  logfile="$(get_active_incus_logfile)"
+
+  [[ -z "$logfile" ]] && return
+  mkdir -p "$(dirname "$logfile")" 2>/dev/null || true
+
+  {
+    echo ""
+    echo "================================================================================"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $section"
+    echo "================================================================================"
+  } >>"$logfile"
+}
+
+# ------------------------------------------------------------------------------
+# incus_silent()
+#
+# - Executes command with output redirected to active log file
+# - On error: displays last 20 lines of log and exits with original exit code
+# ------------------------------------------------------------------------------
+incus_silent() {
+  local cmd="$*"
+  local caller_line="${BASH_LINENO[0]:-unknown}"
+  local logfile="$(get_active_incus_logfile)"
+
+  if [[ "${DEV_MODE_DRYRUN:-false}" == "true" ]]; then
+    if declare -f incus_msg_custom >/dev/null 2>&1; then
+      incus_msg_custom "🔍" "${BL}" "[DRYRUN] $cmd"
+    else
+      echo "[DRYRUN] $cmd" >&2
+    fi
+    return 0
+  fi
+
+  set +Eeuo pipefail
+  trap - ERR
+
+  "$@" >>"$logfile" 2>&1
+  local rc=$?
+
+  set -Eeuo pipefail
+  trap 'incus_error_handler' ERR
+
+  if [[ $rc -ne 0 ]]; then
+    printf "\e[?25h"
+    incus_msg_error "in line ${caller_line}: exit code ${rc}"
+    incus_msg_custom "→" "${YWB}" "${cmd}"
+
+    if [[ -s "$logfile" ]]; then
+      echo -e "\n${TAB}--- Last 20 lines of log ---"
+      tail -n 20 "$logfile"
+      echo -e "${TAB}-----------------------------------"
+      echo -e "${TAB}📋 Full log: ${logfile}\n"
+    fi
+
+    exit "$rc"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# incus_spinner() / incus_stop_spinner()
+#
+# - Animated spinner for long-running operations
+# ------------------------------------------------------------------------------
+incus_spinner() {
+  hash -r 2>/dev/null || true
+  local chars=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+  local msg="${SPINNER_MSG:-Processing...}"
+  local i=0
+  while true; do
+    local index=$((i++ % ${#chars[@]}))
+    printf "\r\033[2K%s %b" "${CS_YWB}${chars[$index]}${CS_CL}" "${CS_YWB}${msg}${CS_CL}"
+    sleep 0.1 2>/dev/null || command sleep 0.1 2>/dev/null || break
+  done
+}
+
+incus_clear_line() {
+  tput cr 2>/dev/null || echo -en "\r"
+  tput el 2>/dev/null || echo -en "\033[K"
+}
+
+incus_stop_spinner() {
+  local pid="${SPINNER_PID:-}"
+  [[ -z "$pid" && -f /tmp/.incus_spinner.pid ]] && pid=$(</tmp/.incus_spinner.pid)
+
+  if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+    if kill "$pid" 2>/dev/null; then
+      sleep 0.05
+      kill -9 "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+    fi
+    rm -f /tmp/.incus_spinner.pid
+  fi
+
+  unset SPINNER_PID SPINNER_MSG
+  stty sane 2>/dev/null || true
+}
+
+# ==============================================================================
+# SECTION 4: MESSAGE OUTPUT (Incus-prefixed for namespace safety)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# incus_msg_info()
+#
+# - Displays informational message with spinner animation
+# ------------------------------------------------------------------------------
+incus_msg_info() {
+  local msg="$1"
+  [[ -z "$msg" ]] && return
+
+  if ! declare -p INCUS_MSG_INFO_SHOWN &>/dev/null || ! declare -A INCUS_MSG_INFO_SHOWN &>/dev/null; then
+    declare -gA INCUS_MSG_INFO_SHOWN=()
+  fi
+  local sanitized_key
+  sanitized_key=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
+  [[ -n "${INCUS_MSG_INFO_SHOWN["$sanitized_key"]+x}" ]] && return
+  INCUS_MSG_INFO_SHOWN["$sanitized_key"]=1
+
+  incus_log_msg "[INFO] $msg"
+
+  incus_stop_spinner
+  SPINNER_MSG="$msg"
+
+  if incus_is_verbose_mode; then
+    local HOURGLASS="${TAB}⏳${TAB}"
+    printf "\r\e[2K%s %b" "$HOURGLASS" "${YW}${msg}${CL}" >&2
+
+    if [[ "${DEV_MODE_PAUSE:-false}" == "true" ]]; then
+      echo -en "\n${YWB}[PAUSE]${CL} Press Enter to continue..." >&2
+      read -r
+    fi
+    return
+  fi
+
+  incus_color_spinner
+  incus_spinner &
+  SPINNER_PID=$!
+  echo "$SPINNER_PID" >/tmp/.incus_spinner.pid
+  disown "$SPINNER_PID" 2>/dev/null || true
+}
+
+# ------------------------------------------------------------------------------
+# incus_msg_ok()
+# ------------------------------------------------------------------------------
+incus_msg_ok() {
+  local msg="$1"
+  [[ -z "$msg" ]] && return
+  incus_stop_spinner
+  incus_clear_line
+  # Match core.func: CM already includes TAB before/after the icon — no extra space.
+  echo -e "$CM${GN}${msg}${CL}"
+  incus_log_msg "[OK] $msg"
+  local sanitized_key
+  sanitized_key=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
+  unset 'INCUS_MSG_INFO_SHOWN['"$sanitized_key"']' 2>/dev/null || true
+}
+
+# ------------------------------------------------------------------------------
+# incus_msg_error()
+# ------------------------------------------------------------------------------
+incus_msg_error() {
+  incus_stop_spinner
+  local msg="$1"
+  echo -e "${BFR:-}${CROSS:-✖️}${RD}${msg}${CL}" >&2
+  incus_log_msg "[ERROR] $msg"
+}
+
+# ------------------------------------------------------------------------------
+# incus_msg_warn()
+# ------------------------------------------------------------------------------
+incus_msg_warn() {
+  incus_stop_spinner
+  local msg="$1"
+  # Same layout as core.func msg_warn (INFO already includes TAB padding).
+  echo -e "${BFR:-}${INFO:-ℹ️} ${YWB}${msg}${CL}" >&2
+  incus_log_msg "[WARN] $msg"
+}
+
+# ------------------------------------------------------------------------------
+# incus_msg_custom()
+# ------------------------------------------------------------------------------
+incus_msg_custom() {
+  local symbol="${1:-"[*]"}"
+  local color="${2:-"\e[36m"}"
+  local msg="${3:-}"
+  [[ -z "$msg" ]] && return
+  incus_stop_spinner
+  # Same indentation as CM/CROSS: TAB + icon + TAB + message
+  echo -e "${BFR:-}${TAB:-  }${symbol}${TAB:-  }${color}${msg}${CL:-\e[0m}"
+  incus_log_msg "$msg"
+}
+
+# ------------------------------------------------------------------------------
+# incus_msg_debug()
+# ------------------------------------------------------------------------------
+incus_msg_debug() {
+  if [[ "${var_full_verbose:-0}" == "1" ]]; then
+    [[ "${var_verbose:-0}" != "1" ]] && var_verbose=1
+    echo -e "${YWB}[$(date '+%F %T')] [DEBUG]${CL} $*"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# incus_msg_dev()
+# ------------------------------------------------------------------------------
+incus_msg_dev() {
+  if [[ -n "${dev_mode:-}" ]]; then
+    echo -e "${SEARCH}${BOLD}${DGN}🔧 [DEV]${CL} $*"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# incus_is_verbose_mode()
+# ------------------------------------------------------------------------------
+incus_is_verbose_mode() {
+  local verbose="${VERBOSE:-${var_verbose:-no}}"
+  [[ "$verbose" != "no" || ! -t 2 ]]
+}
+
+# ------------------------------------------------------------------------------
+# incus_is_unattended()
+# ------------------------------------------------------------------------------
+incus_is_unattended() {
+  local mode="${MODE:-${mode:-}}"
+  mode="${mode,,}"
+
+  case "$mode" in
+  default | 1 | mydefaults | userdefaults | 3 | appdefaults | 4)
+    return 0
+    ;;
+  advanced | 2)
+    # On Incus host: advanced remains interactive.
+    # Inside container install phase (incus command unavailable): unattended.
+    if command -v incus >/dev/null 2>&1; then
+      return 1
+    fi
+    return 0
+    ;;
+  esac
+
+  [[ "${PHS_SILENT:-0}" == "1" ]] && return 0
+  [[ "${var_unattended:-}" =~ ^(yes|true|1)$ ]] && return 0
+  [[ "${UNATTENDED:-}" =~ ^(yes|true|1)$ ]] && return 0
+  [[ ! -t 0 ]] && return 0
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+# incus_fatal()
+# ------------------------------------------------------------------------------
+incus_fatal() {
+  incus_msg_error "$1"
+  kill -INT $$
+}
+
+# ==============================================================================
+# SECTION 5: INCUS-SPECIFIC UTILITIES
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# incus_get_storage_pools()
+#
+# - Returns list of available Incus storage pools
+# ------------------------------------------------------------------------------
+incus_get_storage_pools() {
+  incus storage list -f csv,noheader 2>/dev/null | cut -d, -f1
+}
+
+# ------------------------------------------------------------------------------
+# incus_get_networks()
+#
+# - Returns list of available Incus networks
+# ------------------------------------------------------------------------------
+incus_get_networks() {
+  incus network list -f csv,noheader 2>/dev/null | grep -v '^lo$' | cut -d, -f1
+}
+
+# ------------------------------------------------------------------------------
+# incus_get_profiles()
+#
+# - Returns list of available Incus profiles
+# ------------------------------------------------------------------------------
+incus_get_profiles() {
+  incus profile list -f csv,noheader 2>/dev/null | cut -d, -f1
+}
+
+# ------------------------------------------------------------------------------
+# incus_get_images()
+#
+# - Returns list of locally cached Incus images
+# ------------------------------------------------------------------------------
+incus_get_images() {
+  incus image list -f csv,noheader 2>/dev/null | cut -d, -f1,2
+}
+
+# ------------------------------------------------------------------------------
+# incus_get_os_info()
+#
+# - Returns OS info from /etc/os-release
+# - Usage: incus_get_os_info id|codename|version
+# ------------------------------------------------------------------------------
+incus_get_os_info() {
+  local field="$1"
+  case "$field" in
+  id)
+    . /etc/os-release 2>/dev/null && echo "${ID:-debian}"
+    ;;
+  codename)
+    . /etc/os-release 2>/dev/null && echo "${VERSION_CODENAME:-bookworm}"
+    ;;
+  version)
+    . /etc/os-release 2>/dev/null && echo "${VERSION_ID:-12}"
+    ;;
+  *)
+    echo ""
+    ;;
+  esac
+}
+
+# ------------------------------------------------------------------------------
+# incus_get_ip()
+#
+# - Returns current container IP
+# ------------------------------------------------------------------------------
+incus_get_ip() {
+  local ip=""
+  # Try IPv4 first
+  ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n1)
+  # Fallback to IPv6
+  if [[ -z "$ip" ]]; then
+    ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E ':' | head -n1)
+  fi
+  [[ -z "$ip" ]] && ip="Unknown"
+  echo "$ip"
+}
+
+# ------------------------------------------------------------------------------
+# incus_ensure_profile_loaded()
+#
+# - Sources /etc/profile.d/*.sh scripts if not already loaded
+# - Fixes PATH issues when running via incus exec (non-login shells)
+# ------------------------------------------------------------------------------
+incus_ensure_profile_loaded() {
+  [[ -n "${_INCUS_PROFILE_LOADED:-}" ]] && return
+  command -v incusd &>/dev/null && return
+
+  if [[ -d /etc/profile.d ]]; then
+    for script in /etc/profile.d/*.sh; do
+      [[ -r "$script" ]] && source "$script"
+    done
+  fi
+
+  if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+    export PATH="/usr/local/bin:$PATH"
+  fi
+
+  export _INCUS_PROFILE_LOADED=1
+}
+
+# ==============================================================================
+# SECTION 6: ERROR HANDLER (minimal)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# incus_error_handler()
+#
+# - Basic error trap for Incus scripts
+# ------------------------------------------------------------------------------
+incus_error_handler() {
+  local exit_code=$?
+  local line_no=${1:-${BASH_LINENO[0]:-unknown}}
+  incus_msg_error "Unexpected error at line $line_no (exit code: $exit_code)"
+  incus_msg_custom "→" "${YWB}" "Check log: $(get_active_incus_logfile)"
+  exit "$exit_code"
+}
+
+# ------------------------------------------------------------------------------
+# incus_catch_errors()
+#
+# - Set up error trapping for Incus scripts
+# ------------------------------------------------------------------------------
+incus_catch_errors() {
+  set -Eeuo pipefail
+  trap 'incus_error_handler ${LINENO}' ERR
+}
+
+# ==============================================================================
+# SECTION 7: COMPATIBILITY ALIASES
+# ==============================================================================
+#
+# These aliases allow existing install scripts to use msg_info/msg_ok/etc
+# without modification, by mapping them to incus_* equivalents when running
+# in Incus context.
+#
+# Usage in Incus install scripts:
+#   source /dev/stdin <<< "$INCUS_FUNCTIONS"
+#   # After this, msg_info/msg_ok/etc all work as normal
+# ==============================================================================
+
+incus_install_compat_aliases() {
+  # Map standard function names to Incus variants
+  # Using eval to create function aliases
+  eval 'msg_info() { incus_msg_info "$@"; }'
+  eval 'msg_ok() { incus_msg_ok "$@"; }'
+  eval 'msg_error() { incus_msg_error "$@"; }'
+  eval 'msg_warn() { incus_msg_warn "$@"; }'
+  eval 'msg_custom() { incus_msg_custom "$@"; }'
+  eval 'msg_debug() { incus_msg_debug "$@"; }'
+  eval 'msg_dev() { incus_msg_dev "$@"; }'
+  eval 'silent() { incus_silent "$@"; }'
+  eval 'log_msg() { incus_log_msg "$@"; }'
+  eval 'get_active_logfile() { get_active_incus_logfile; }'
+  eval 'ensure_profile_loaded() { incus_ensure_profile_loaded; }'
+  eval 'catch_errors() { incus_catch_errors; }'
+  eval 'error_handler() { incus_error_handler "$@"; }'
+  eval 'fatal() { incus_fatal "$@"; }'
+  eval 'color() { incus_color; }'
+  eval 'is_verbose_mode() { incus_is_verbose_mode; }'
+  eval 'set_std_mode() { incus_set_std_mode; }'
+  eval 'formatting() { incus_formatting; }'
+  eval 'icons() { incus_icons; }'
+  eval 'default_vars() { incus_default_vars; }'
+  eval 'color_spinner() { incus_color_spinner; }'
+  eval 'strip_ansi() { incus_strip_ansi "$@"; }'
+  eval 'log_section() { incus_log_section "$@"; }'
+  eval 'spinner() { incus_spinner; }'
+  eval 'clear_line() { incus_clear_line; }'
+  eval 'stop_spinner() { incus_stop_spinner; }'
+  eval 'shell_check() { incus_shell_check; }'
+  eval 'root_check() { incus_root_check; }'
+  eval 'check() { incus_check; }'
+  eval 'pve_check() { incus_check; }'
+  eval 'load_functions() { load_incus_functions; }'
+  eval 'is_unattended() { incus_is_unattended; }'
+  eval 'get_storage_pools() { incus_get_storage_pools; }'
+  eval 'get_networks() { incus_get_networks; }'
+  eval 'get_profiles() { incus_get_profiles; }'
+  eval 'get_images() { incus_get_images; }'
+  eval 'get_os_info() { incus_get_os_info "$@"; }'
+  eval 'get_ip() { incus_get_ip; }'
+  eval 'on_hup_keepalive() { :; }'
+}
+
+# ==============================================================================
+# SECTION 8: NETWORK & CONTAINER UTILITIES
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# incus_container_exists()
+#
+# - Checks if an Incus container exists
+# - Returns 0 if exists, 1 otherwise
+# ------------------------------------------------------------------------------
+incus_container_exists() {
+  local name="$1"
+  incus info "$name" &>/dev/null && return 0 || return 1
+}
+
+# ------------------------------------------------------------------------------
+# incus_container_running()
+#
+# - Checks if an Incus container is running
+# - Returns 0 if running, 1 otherwise
+# ------------------------------------------------------------------------------
+incus_container_running() {
+  local name="$1"
+  local status
+  status=$(incus info "$name" 2>/dev/null | awk '/^Status:/ {print $2}') || true
+  [[ "$status" == "Running" ]]
+}
+
+# ------------------------------------------------------------------------------
+# incus_get_next_name()
+#
+# - Generates next available container name from base name
+# - Format: <appname>-<increment>
+# ------------------------------------------------------------------------------
+incus_get_next_name() {
+  local base="${1:-incus-ct}"
+  local counter=0
+  local name="${base}"
+
+  while incus_container_exists "$name"; do
+    counter=$((counter + 1))
+    name="${base}-${counter}"
+  done
+
+  echo "$name"
+}
+
+# ------------------------------------------------------------------------------
+# incus_get_image_alias()
+#
+# - Maps var_os + var_version to incus image alias
+# - Example: debian/13 -> "Debian 13 (trixie)"
+# ------------------------------------------------------------------------------
+incus_get_image_alias() {
+  local os="${1:-debian}"
+  local version="${2:-13}"
+
+  # Convert to lowercase
+  os="${os,,}"
+
+  case "$os" in
+  debian)
+    case "$version" in
+    12 | bookworm) echo "bookworm" ;;
+    13 | trixie) echo "trixie" ;;
+    *) echo "trixie" ;;
+    esac
+    ;;
+  ubuntu)
+    case "$version" in
+    22.04 | 22 | jammy) echo "jammy" ;;
+    24.04 | 24 | noble) echo "noble" ;;
+    26.04 | 26 | plucky | resolute) echo "plucky" ;;
+    *) echo "noble" ;;
+    esac
+    ;;
+  alpine)
+    case "$version" in
+    3.19 | 3.20 | 3.21 | 3.22 | 3.23) echo "${version}" ;;
+    *) echo "3.21" ;;
+    esac
+    ;;
+  *)
+    echo "${version}"
+    ;;
+  esac
+}

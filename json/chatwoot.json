@@ -1,0 +1,54 @@
+{
+    "name": "Chatwoot",
+    "slug": "chatwoot",
+    "categories": [
+        22
+    ],
+    "date_created": "2026-07-16",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": false,
+    "interface_port": 3000,
+    "documentation": "https://developers.chatwoot.com/self-hosted/",
+    "website": "https://www.chatwoot.com/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/chatwoot.webp",
+    "config_path": "/opt/chatwoot/.env",
+    "description": "Chatwoot is an open-source omnichannel customer-support platform for live chat, email, social media and messaging conversations.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/chatwoot.sh",
+            "config_path": "/opt/chatwoot/.env",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 16,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Create the first account at http://IP:3000 after the services have started.",
+            "type": "info"
+        },
+        {
+            "text": "Set FRONTEND_URL to a public HTTPS domain and configure SMTP before using Chatwoot in production.",
+            "type": "warning"
+        },
+        {
+            "text": "Attachments are stored in /opt/chatwoot/storage. Include it and the PostgreSQL database in regular container backups.",
+            "type": "warning"
+        },
+        {
+            "text": "Chatwoot compiles Ruby dependencies and frontend assets during installation; allow several minutes for setup.",
+            "type": "info"
+        }
+    ]
+}

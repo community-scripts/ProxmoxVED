@@ -1,0 +1,1224 @@
+#!/usr/bin/env bash
+# Copyright (c) 2021-2026 community-scripts ORG
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/main/LICENSE
+
+# ==============================================================================
+# INCUS-BACKEND.FUNC - FULL PARITY BACKEND FOR INCUS CONTAINER CREATION
+# ==============================================================================
+# Mirrors misc/build.func build_container / create_lxc_container flow for Incus.
+# Requires incus-build.func hooks and UI functions to be loaded first.
+# ==============================================================================
+
+[[ -n "${_INCUS_BACKEND_LOADED:-}" ]] && return
+_INCUS_BACKEND_LOADED=1
+
+incus_ct_exec() {
+  incus exec "${CT_NAME}" -- "$@"
+}
+
+_incus_device_set() {
+  # usage: _incus_device_set <key> <value> [warn-msg]
+  local key="$1" val="$2" warn="${3:-}"
+  if ! incus config device set "${CT_NAME}" eth0 "${key}=${val}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+    [[ -n "$warn" ]] && msg_warn "$warn"
+    return 1
+  fi
+  return 0
+}
+
+# Soft-fail helper: never trips set -e / ERR traps from intentional best-effort cmds.
+_incus_soft() {
+  "$@" || return 0
+}
+
+_incus_nic_supports_ip() {
+  # Docs: ipv4/ipv6.address on nic — supported for bridge, ovn, macvlan.
+  # physical / sriov: skip (host NIC ownership; keys often rejected).
+  case "${1:-}" in
+  bridge | ovn | macvlan) return 0 ;;
+  *) return 1 ;;
+  esac
+}
+
+_incus_resolve_launch_image() {
+  # Tries images:OS/VER (+ /cloud, codename alias, local cache). Sets INCUS_LAUNCH_IMAGE.
+  local os="${IMAGE_OS:-debian}" ver="${IMAGE_VERSION:-13}" alias=""
+  os="${os,,}"
+  alias="$(incus_get_image_alias "$os" "$ver" 2>/dev/null || true)"
+
+  local candidates=()
+  candidates+=("images:${os}/${ver}")
+  candidates+=("images:${os}/${ver}/cloud")
+  if [[ -n "$alias" && "$alias" != "$ver" ]]; then
+    candidates+=("images:${os}/${alias}")
+    candidates+=("images:${os}/${alias}/cloud")
+  fi
+  # Ubuntu often published as 24.04 even when UI stores "24"
+  if [[ "$os" == "ubuntu" && "$ver" =~ ^[0-9]+$ ]]; then
+    candidates+=("images:ubuntu/${ver}.04" "images:ubuntu/${ver}.04/cloud")
+  fi
+
+  local cand local_match
+  for cand in "${candidates[@]}"; do
+    if incus image info "$cand" &>/dev/null; then
+      INCUS_LAUNCH_IMAGE="$cand"
+      return 0
+    fi
+  done
+
+  # Local image fingerprint/alias match (already copied)
+  local_match=$(incus image list -f csv,noheader 2>/dev/null |
+    awk -F, -v os="$os" -v ver="$ver" '
+      tolower($0) ~ os && $0 ~ ver { print $1; exit }
+    ' || true)
+  if [[ -n "$local_match" ]] && incus image info "$local_match" &>/dev/null; then
+    INCUS_LAUNCH_IMAGE="$local_match"
+    return 0
+  fi
+
+  # Last resort: try remote launch of primary (incus may pull on demand)
+  INCUS_LAUNCH_IMAGE="images:${os}/${ver}"
+  return 1
+}
+
+_incus_parse_size_to_bytes() {
+  # Accepts raw bytes or human values like 589.51GiB / 211MiB / 1.5TB
+  local raw="${1:-}" val unit
+  raw="${raw// /}"
+  [[ -z "$raw" ]] && return 1
+  if [[ "$raw" =~ ^[0-9]+$ ]]; then
+    echo "$raw"
+    return 0
+  fi
+  val=$(echo "$raw" | sed -E 's/[^0-9.].*$//')
+  unit=$(echo "$raw" | sed -E 's/^[0-9.]+//' | tr '[:lower:]' '[:upper:]')
+  [[ -z "$val" ]] && return 1
+  case "$unit" in
+  B | "") echo "$(awk -v v="$val" 'BEGIN{printf "%d", v}')" ;;
+  KB | KIB | K) echo "$(awk -v v="$val" 'BEGIN{printf "%d", v*1024}')" ;;
+  MB | MIB | M) echo "$(awk -v v="$val" 'BEGIN{printf "%d", v*1024*1024}')" ;;
+  GB | GIB | G) echo "$(awk -v v="$val" 'BEGIN{printf "%d", v*1024*1024*1024}')" ;;
+  TB | TIB | T) echo "$(awk -v v="$val" 'BEGIN{printf "%d", v*1024*1024*1024*1024}')" ;;
+  *) return 1 ;;
+  esac
+}
+
+incus_storage_pool_free_gb() {
+  local pool="${1:-}"
+  local info free_bytes total_bytes used_bytes free_raw total_raw used_raw
+
+  # Prefer machine-readable bytes when available (Incus --bytes).
+  info=$(incus storage info --bytes "$pool" 2>/dev/null || true)
+  free_raw=$(echo "$info" | awk -F': *' '/space free:/ {print $2; exit}')
+  if [[ -n "$free_raw" ]]; then
+    free_bytes="$(_incus_parse_size_to_bytes "$free_raw" 2>/dev/null || true)"
+  fi
+
+  # Older/human output often has only "space used" + "total space" (no free line).
+  if [[ -z "${free_bytes:-}" ]]; then
+    info=$(incus storage info "$pool" 2>/dev/null || true)
+    free_raw=$(echo "$info" | awk -F': *' '/space free:/ {print $2; exit}')
+    total_raw=$(echo "$info" | awk -F': *' '/total space:/ {print $2; exit}')
+    used_raw=$(echo "$info" | awk -F': *' '/space used:/ {print $2; exit}')
+    if [[ -n "$free_raw" ]]; then
+      free_bytes="$(_incus_parse_size_to_bytes "$free_raw" 2>/dev/null || true)"
+    elif [[ -n "$total_raw" && -n "$used_raw" ]]; then
+      total_bytes="$(_incus_parse_size_to_bytes "$total_raw" 2>/dev/null || true)"
+      used_bytes="$(_incus_parse_size_to_bytes "$used_raw" 2>/dev/null || true)"
+      if [[ -n "${total_bytes:-}" && -n "${used_bytes:-}" && "$total_bytes" -ge "$used_bytes" ]]; then
+        free_bytes=$((total_bytes - used_bytes))
+      fi
+    fi
+  fi
+
+  [[ -z "${free_bytes:-}" || "$free_bytes" -le 0 ]] && return 1
+  echo $((free_bytes / 1024 / 1024 / 1024))
+}
+
+incus_validate_storage_space() {
+  local pool="${1:-$CONTAINER_STORAGE}"
+  local need_gb="${2:-${DISK_SIZE:-4}}"
+  local free_gb
+  free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo "")
+  if [[ -z "$free_gb" ]]; then
+    msg_warn "Could not determine free space on pool '${pool}' (continuing)"
+    return 0
+  fi
+  if [[ "$free_gb" -lt "$need_gb" ]]; then
+    # Match PVE behavior: warn, do not hard-abort (pool/dir drivers can still grow).
+    msg_warn "Pool '${pool}' reports ~${free_gb}GB free, container wants ${need_gb}GB"
+    msg_custom "ℹ️" "${YW}" "Source: incus storage info '${pool}' (pool free space, not full host disk)"
+    msg_custom "ℹ️" "${YW}" "Grow: incus storage set ${pool} size=50GiB   |   Or pick another pool"
+    return 0
+  fi
+  msg_ok "Storage space validated (${pool}: ~${free_gb}GB free)"
+}
+
+resolve_storage_preselect() {
+  local _class="${1:-container}"
+  local preselect="${2:-}"
+  [[ -z "$preselect" ]] && return 1
+  incus storage info "$preselect" &>/dev/null || return 1
+  STORAGE_RESULT="$preselect"
+  local free_gb
+  free_gb=$(incus_storage_pool_free_gb "$preselect" 2>/dev/null || echo "?")
+  STORAGE_INFO="Free: ~${free_gb}GB"
+  return 0
+}
+
+check_storage_support() {
+  local _content="${1:-rootdir}"
+  case "$_content" in
+  vztmpl | template)
+    getent hosts images.linuxcontainers.org &>/dev/null
+    ;;
+  *)
+    [[ "$(incus storage list -f csv,noheader 2>/dev/null | wc -l)" -gt 0 ]]
+    ;;
+  esac
+}
+
+validate_storage_space() {
+  local pool="${1:-$CONTAINER_STORAGE}"
+  local need_gb="${2:-${DISK_SIZE:-4}}"
+  local show_dialog="${3:-no}"
+  local free_gb
+  free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo "")
+  if [[ -z "$free_gb" ]]; then
+    [[ "$show_dialog" == "yes" ]] && whiptail --msgbox "⚠️  Warning: Could not determine free space on pool '${pool}'.\n\n(Checked via: incus storage info ${pool})" 12 64 2>/dev/null || true
+    return 0
+  fi
+  if [[ "$free_gb" -lt "$need_gb" ]]; then
+    if [[ "$show_dialog" == "yes" ]]; then
+      whiptail --msgbox "⚠️  Warning: Not enough space on Incus pool '${pool}'.\n\nRequired: ${need_gb}GB\nPool free: ~${free_gb}GB\n\nThis is pool free space (incus storage info),\nNOT your full host disk. Default/loop pools are often small.\n\nGrow pool:  incus storage set ${pool} size=50GiB\nOr pick another pool in Advanced settings." 16 72 2>/dev/null || true
+    fi
+    return 1
+  fi
+  return 0
+}
+
+_incus_prepare_install_exports() {
+  if [[ "${var_os:-debian}" == "alpine" ]]; then
+    export FUNCTIONS_FILE_PATH="$(_cs_fetch_text misc/alpine-install.func)"
+  else
+    export FUNCTIONS_FILE_PATH="$(_cs_fetch_text misc/install.func)"
+  fi
+
+  export DIAGNOSTICS="${DIAGNOSTICS:-yes}"
+  export RANDOM_UUID="${RANDOM_UUID}"
+  export EXECUTION_ID="${EXECUTION_ID}"
+  export SESSION_ID="${SESSION_ID}"
+  export CACHER="${APT_CACHER:-}"
+  export CACHER_IP="${APT_CACHER_IP:-}"
+  export tz="${timezone:-UTC}"
+  export APPLICATION="$APP"
+  export app="$NSAPP"
+  export PASSWORD="$PW"
+  export VERBOSE="${VERBOSE:-no}"
+  export SSH_ROOT="${SSH:-no}"
+  export SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY:-}"
+  export CTID="$CT_NAME"
+  export CTTYPE="${CT_TYPE:-1}"
+  export ENABLE_FUSE="${ENABLE_FUSE:-no}"
+  export ENABLE_TUN="${ENABLE_TUN:-no}"
+  export PCT_OSTYPE="${var_os:-debian}"
+  export PCT_OSVERSION="${var_version:-13}"
+  export PCT_DISK_SIZE="${DISK_SIZE}"
+  export IPV6_METHOD="${IPV6_METHOD:-auto}"
+  export ENABLE_GPU="${ENABLE_GPU:-no}"
+  export APPLICATION_VERSION="${var_appversion:-}"
+  export BUILD_LOG="${BUILD_LOG:-$INCUS_BUILD_LOG}"
+  export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
+  export COMMUNITY_SCRIPTS_URL="${INCUS_COMMUNITY_SCRIPTS_URL}"
+  export MODE="${METHOD:-default}"
+  _HOST_LOGFILE="${BUILD_LOG:-$INCUS_BUILD_LOG}"
+}
+
+incus_create_lxc_container() {
+  LOGFILE="${INCUS_BUILD_LOG}"
+
+  [[ "${CT_NAME:-}" ]] || { msg_error "Container name not set"; exit 203; }
+
+  post_to_api 2>/dev/null || true
+  post_progress_to_api "validation" 2>/dev/null || true
+
+  check_storage_support "rootdir" || { msg_error "No Incus storage pools found"; exit 1; }
+
+  if resolve_storage_preselect container "${CONTAINER_STORAGE:-}"; then
+    STORAGE_POOL="$STORAGE_RESULT"
+    msg_ok "Storage ${BL}${STORAGE_POOL}${CL} (${STORAGE_INFO}) [Container]"
+  elif [[ -z "${CONTAINER_STORAGE:-}" ]]; then
+    select_storage container && STORAGE_POOL="$CONTAINER_STORAGE"
+    msg_ok "Storage ${BL}${STORAGE_POOL}${CL} [Container]"
+  else
+    STORAGE_POOL="${CONTAINER_STORAGE}"
+  fi
+
+  msg_info "Validating storage '${STORAGE_POOL}'"
+  incus storage info "$STORAGE_POOL" &>/dev/null || { msg_error "Storage pool '${STORAGE_POOL}' invalid"; exit 213; }
+  msg_ok "Storage '${STORAGE_POOL}' validated"
+
+  if ! incus network show "${BRG}" >/dev/null 2>&1; then
+    msg_warn "Network '${BRG}' not found, auto-selecting fallback"
+    BRG="$(incus_pick_default_network)"
+    msg_ok "Using network '${BRG}'"
+  fi
+
+  msg_info "Resolving container image"
+  local image_name=""
+  if _incus_resolve_launch_image; then
+    image_name="${INCUS_LAUNCH_IMAGE}"
+    msg_ok "Image ${BL}${image_name}${CL}"
+  else
+    image_name="${INCUS_LAUNCH_IMAGE:-images:${IMAGE_OS}/${IMAGE_VERSION}}"
+    msg_custom "ℹ️" "${YW}" "Image not cached yet — will try pull: ${image_name}"
+  fi
+
+  msg_info "Creating LXC Container"
+  incus_log_section "Container Creation: ${CT_NAME}"
+
+  local launch_args=()
+  launch_args+=("--config" "limits.cpu=${CORE_COUNT}")
+  launch_args+=("--config" "limits.memory=${RAM_SIZE}MiB")
+  launch_args+=("--config" "boot.autostart=true")
+  [[ -n "${PROFILE:-}" && "${PROFILE}" != "default" ]] && launch_args+=("--profile" "${PROFILE}")
+  launch_args+=("--network" "${BRG}")
+
+  [[ "${ENABLE_NESTING:-1}" == "1" ]] && launch_args+=("--config" "security.nesting=true")
+
+  if [[ "${CT_TYPE:-1}" != "1" || "${ENABLE_FUSE:-no}" == "yes" || "${ENABLE_TUN:-no}" == "yes" ]]; then
+    launch_args+=("--config" "security.privileged=true")
+  fi
+
+  launch_args+=("--storage" "${STORAGE_POOL}")
+  launch_args+=("--device" "root,size=${DISK_SIZE}GiB")
+
+  # Prefer a unique name if the chosen one already exists.
+  if incus_container_exists "${CT_NAME}"; then
+    local alt
+    alt="$(incus_get_next_name "${CT_NAME}")"
+    msg_warn "Instance '${CT_NAME}' already exists — using '${alt}'"
+    CT_NAME="$alt"
+    CTID="$CT_NAME"
+  fi
+
+  {
+    echo "=== incus launch ${image_name} ${CT_NAME} ==="
+    echo "args: ${launch_args[*]}"
+    echo "user: $(id -un) uid=$(id -u)"
+  } >>"$LOGFILE"
+
+  if ! incus launch "${image_name}" "${CT_NAME}" "${launch_args[@]}" >>"$LOGFILE" 2>&1; then
+    # Retry alternate candidates once if primary pull failed
+    local retry_img="" launched=0
+    for retry_img in "images:${IMAGE_OS}/${IMAGE_VERSION}/cloud" \
+      "images:${IMAGE_OS}/$(incus_get_image_alias "${IMAGE_OS}" "${IMAGE_VERSION}" 2>/dev/null || true)" \
+      "images:${IMAGE_OS}/$(incus_get_image_alias "${IMAGE_OS}" "${IMAGE_VERSION}" 2>/dev/null || true)/cloud"; do
+      [[ -z "$retry_img" || "$retry_img" == "$image_name" || "$retry_img" == */ ]] && continue
+      msg_warn "Launch failed with ${image_name} — retrying ${retry_img}"
+      if incus launch "${retry_img}" "${CT_NAME}" "${launch_args[@]}" >>"$LOGFILE" 2>&1; then
+        image_name="$retry_img"
+        launched=1
+        break
+      fi
+    done
+    if [[ "$launched" -ne 1 ]]; then
+      msg_error "Failed to create container ${CT_NAME}"
+      echo -e "${YW}Last launch errors:${CL}"
+      tail -n 30 "$LOGFILE" 2>/dev/null | sed 's/^/  /' || true
+      echo -e "${YW}Log: ${BL}${LOGFILE}${CL}"
+      echo -e "${YW}Try manually:${CL} incus image copy images:${IMAGE_OS}/${IMAGE_VERSION} local: --alias ${IMAGE_OS}/${IMAGE_VERSION}"
+      exit 1
+    fi
+  fi
+
+  # Track for orphan cleanup on mid-create / mid-configure failures (EXIT trap).
+  # Reset handled/ok so a rebuild after install-recovery can prompt again if needed.
+  INCUS_CT_CREATED=1
+  INCUS_ORPHAN_HANDLED=0
+  INCUS_BUILD_OK=0
+  export INCUS_CT_CREATED INCUS_ORPHAN_HANDLED INCUS_BUILD_OK CT_NAME CTID
+
+  # Optional configs that some Incus versions reject at launch time.
+  if [[ "${CT_TYPE:-1}" == "1" ]]; then
+    _incus_soft incus config set "${CT_NAME}" linux.sysctl.kernel.keys.maxkeys=2000 >>"$LOGFILE" 2>&1
+  fi
+
+  msg_ok "LXC Container ${CT_NAME} was successfully created."
+
+  msg_info "Waiting for container to initialize"
+  local waited=0
+  while ! incus_ct_exec true &>/dev/null; do
+    sleep 2
+    waited=$((waited + 2))
+    [[ "$waited" -ge 60 ]] && { msg_error "Container not ready"; exit 1; }
+  done
+  msg_ok "Container ${CT_NAME} is ready"
+
+  incus_set_container_hostname
+
+  local net_type="" net_reconfigure=0
+  net_type=$(incus network show "${BRG}" 2>/dev/null | awk '/^type:/ {print $2; exit}')
+  local nic_supports_ip=0
+  _incus_nic_supports_ip "$net_type" && nic_supports_ip=1
+
+  if [[ -n "${MAC:-}" ]]; then
+    _incus_device_set hwaddr "${MAC}" "Could not apply MAC (${MAC})" && net_reconfigure=1 || true
+  fi
+  if [[ -n "${VLAN_TAG:-}" ]]; then
+    _incus_device_set vlan "${VLAN_TAG}" "Could not apply VLAN (${VLAN_TAG})" && net_reconfigure=1 || true
+  fi
+  if [[ -n "${MTU:-}" ]]; then
+    _incus_device_set mtu "${MTU}" "Could not apply MTU (${MTU})" && net_reconfigure=1 || true
+  fi
+
+  if [[ "$nic_supports_ip" -eq 1 ]]; then
+    if [[ -n "${NET:-}" && "${NET}" != "dhcp" ]]; then
+      _incus_device_set ipv4.address "${NET}" "Could not apply IPv4 (${NET})" && net_reconfigure=1 || true
+    fi
+    if [[ -n "${GATE:-}" ]]; then
+      _incus_device_set ipv4.gateway "${GATE}" "Could not apply gateway (${GATE})" && net_reconfigure=1 || true
+    fi
+    case "${IPV6_METHOD:-auto}" in
+    auto | dhcp)
+      # Leave unset — NIC/network default. Explicit ipv6.address=auto breaks some hosts.
+      ;;
+    static)
+      if [[ -n "${IPV6_ADDR:-}" && "${IPV6_ADDR}" != "auto" ]]; then
+        _incus_device_set ipv6.address "${IPV6_ADDR}" "Could not apply IPv6 (${IPV6_ADDR})" && net_reconfigure=1 || true
+      fi
+      [[ -n "${IPV6_GATE:-}" ]] && { _incus_device_set ipv6.gateway "${IPV6_GATE}" "Could not apply IPv6 gateway" && net_reconfigure=1 || true; }
+      ;;
+    none | disable)
+      _incus_device_set ipv6.address none "Could not disable IPv6 on nic" || true
+      net_reconfigure=1
+      ;;
+    esac
+  else
+    msg_info "Network '${BRG}' type=${net_type:-unknown} — skipping IP device options (use host DHCP/static on physical/sriov)"
+    if [[ -n "${NET:-}" && "${NET}" != "dhcp" ]]; then
+      msg_custom "ℹ️" "${YW}" "Static IPv4 ${NET} was requested but cannot be set as device key on ${net_type:-this} network"
+    fi
+  fi
+
+  if [[ -n "${TAGS:-}" ]]; then
+    _incus_soft incus config set "${CT_NAME}" "user.tags=${TAGS}" >>"$LOGFILE" 2>&1
+  fi
+
+  if [[ "$net_reconfigure" -eq 1 ]]; then
+    msg_info "Reconfiguring network settings"
+    if ! incus restart "${CT_NAME}" >>"$LOGFILE" 2>&1; then
+      msg_warn "Restart after network reconfiguration failed"
+    fi
+    msg_ok "Network settings applied"
+  fi
+}
+
+incus_set_container_hostname() {
+  local hn="${CT_NAME}"
+  [[ -n "${HN:-}" ]] && hn="${HN}"
+  hn=$(echo "$hn" | tr '[:upper:]' '[:lower:]' | tr -d ' ' | tr '_' '-')
+  [[ -z "$hn" ]] && return 0
+
+  msg_info "Setting hostname to ${hn}"
+  _incus_soft incus config set "${CT_NAME}" "user.hostname=${hn}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
+  # Prefer instance name for system hostname when UI used CT_ID as name
+  local sys_hn="${CT_NAME}"
+  _incus_soft incus_ct_exec bash -c "
+    echo '${sys_hn}' >/etc/hostname
+    hostname '${sys_hn}' 2>/dev/null || true
+    if command -v hostnamectl >/dev/null 2>&1; then
+      hostnamectl set-hostname '${sys_hn}' 2>/dev/null || true
+    fi
+    if [[ -f /etc/hosts ]]; then
+      if grep -qE '^127\\.0\\.1\\.1' /etc/hosts; then
+        sed -i 's/^127\\.0\\.1\\.1.*/127.0.1.1\\t${sys_hn}/' /etc/hosts
+      else
+        echo -e '127.0.1.1\\t${sys_hn}' >>/etc/hosts
+      fi
+    fi
+  " >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
+  msg_ok "Hostname set to ${sys_hn}"
+}
+
+incus_is_gpu_app() {
+  [[ "${var_gpu:-no}" == "yes" || "${ENABLE_GPU:-no}" == "yes" ]]
+}
+
+# Populate INTEL_GPUS/AMD_GPUS/NVIDIA_GPUS as "pci=<addr>|id=<n>|vendorid=<id>" selectors
+# per https://linuxcontainers.org/incus/docs/main/reference/devices_gpu/
+incus_detect_gpu_devices() {
+  INTEL_GPUS=()
+  AMD_GPUS=()
+  NVIDIA_GPUS=()
+  NVIDIA_CHAR_DEVS=()
+
+  local line pci vendor
+  # Prefer domain:bus:slot.func from lspci -D
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    pci=$(awk '{print $1}' <<<"$line")
+    [[ "$pci" =~ ^[0-9a-fA-F]+:[0-9a-fA-F]+:[0-9a-fA-F]+\.[0-9a-fA-F]+$ ]] || continue
+    if grep -q '\[8086:' <<<"$line"; then
+      INTEL_GPUS+=("pci=${pci}")
+    elif grep -qE '\[1002:|\[1022:' <<<"$line"; then
+      AMD_GPUS+=("pci=${pci}")
+    elif grep -q '\[10de:' <<<"$line"; then
+      NVIDIA_GPUS+=("pci=${pci}")
+    fi
+  done < <(lspci -nn -D 2>/dev/null | grep -E 'VGA|Display|3D' || true)
+
+  # DRM sysfs fallback (useful on ARM / non-PCI GPUs)
+  if [[ ${#INTEL_GPUS[@]} -eq 0 && ${#AMD_GPUS[@]} -eq 0 && ${#NVIDIA_GPUS[@]} -eq 0 && -d /sys/class/drm ]]; then
+    local card base drm_id vendor_hex
+    for card in /sys/class/drm/card[0-9]*; do
+      base=$(basename "$card")
+      [[ "$base" == *-* ]] && continue
+      drm_id="${base#card}"
+      vendor_hex=$(cat "$card/device/vendor" 2>/dev/null || true)
+      pci=$(basename "$(readlink -f "$card/device" 2>/dev/null)" 2>/dev/null || true)
+      local sel=""
+      if [[ -n "$pci" && "$pci" =~ ^[0-9a-fA-F]+:[0-9a-fA-F]+:[0-9a-fA-F]+\.[0-9a-fA-F]+$ ]]; then
+        sel="pci=${pci}"
+      elif [[ -n "$drm_id" ]]; then
+        sel="id=${drm_id}"
+      fi
+      [[ -z "$sel" ]] && continue
+      case "$vendor_hex" in
+      0x8086) INTEL_GPUS+=("$sel") ;;
+      0x1002 | 0x1022) AMD_GPUS+=("$sel") ;;
+      0x10de) NVIDIA_GPUS+=("$sel") ;;
+      esac
+    done
+  fi
+
+  # NVIDIA char devices as optional extra (driver nodes inside CT)
+  local d
+  for d in /dev/nvidia*; do
+    [[ -c "$d" ]] && NVIDIA_CHAR_DEVS+=("$d")
+  done
+  if [[ -d /dev/nvidia-caps ]]; then
+    for d in /dev/nvidia-caps/*; do
+      [[ -c "$d" ]] && NVIDIA_CHAR_DEVS+=("$d")
+    done
+  fi
+
+  if [[ ${#INTEL_GPUS[@]} -gt 0 ]]; then
+    msg_custom "🎮" "${BL}" "Detected Intel GPU (${#INTEL_GPUS[@]})"
+  fi
+  if [[ ${#AMD_GPUS[@]} -gt 0 ]]; then
+    msg_custom "🎮" "${RD}" "Detected AMD GPU (${#AMD_GPUS[@]})"
+  fi
+  if [[ ${#NVIDIA_GPUS[@]} -gt 0 ]]; then
+    msg_custom "🎮" "${GN}" "Detected NVIDIA GPU (${#NVIDIA_GPUS[@]})"
+  fi
+  return 0
+}
+
+_incus_add_gpu_physical() {
+  # $1 device name, $2 selector like pci=0000:00:02.0 or id=0 or vendorid=8086
+  local dev_name="$1" selector="$2"
+  local -a args=(gpu "gputype=physical")
+  args+=("$selector")
+
+  local video_gid
+  video_gid=$(getent group video 2>/dev/null | cut -d: -f3 || true)
+  [[ -n "$video_gid" ]] && args+=("gid=${video_gid}")
+
+  if incus config device add "${CT_NAME}" "$dev_name" "${args[@]}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+    return 0
+  fi
+  # Retry without gid (some hosts reject host GIDs for unprivileged CTs)
+  args=(gpu "gputype=physical" "$selector")
+  if incus config device add "${CT_NAME}" "$dev_name" "${args[@]}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+incus_configure_device_passthrough() {
+  if incus_is_gpu_app; then
+    incus_detect_gpu_devices
+    local selected_gpu="" gpu_count=0
+    local -a available_gpus=()
+    if [[ ${#INTEL_GPUS[@]} -gt 0 ]]; then
+      available_gpus+=("INTEL")
+      gpu_count=$((gpu_count + 1))
+    fi
+    if [[ ${#AMD_GPUS[@]} -gt 0 ]]; then
+      available_gpus+=("AMD")
+      gpu_count=$((gpu_count + 1))
+    fi
+    if [[ ${#NVIDIA_GPUS[@]} -gt 0 || ${#NVIDIA_CHAR_DEVS[@]} -gt 0 ]]; then
+      available_gpus+=("NVIDIA")
+      gpu_count=$((gpu_count + 1))
+    fi
+
+    if [[ "$gpu_count" -gt 0 ]]; then
+      selected_gpu="${available_gpus[0]}"
+      if [[ "$gpu_count" -gt 1 ]]; then
+        if declare -f prompt_select >/dev/null 2>&1; then
+          selected_gpu=$(prompt_select "Which GPU type to passthrough?" 1 60 "${available_gpus[@]}")
+        fi
+      fi
+      selected_gpu="${selected_gpu^^}"
+
+      local sel added=0 failed=0 idx=0
+      case "$selected_gpu" in
+      INTEL)
+        for sel in "${INTEL_GPUS[@]}"; do
+          if _incus_add_gpu_physical "gpu${idx}" "$sel"; then
+            added=$((added + 1))
+          else
+            failed=$((failed + 1))
+            msg_warn "Could not add Intel GPU (${sel})"
+          fi
+          idx=$((idx + 1))
+        done
+        # Vendor fallback if PCI/id adds failed entirely
+        if [[ "$added" -eq 0 ]]; then
+          _incus_add_gpu_physical "gpu0" "vendorid=8086" && added=1 || true
+        fi
+        if [[ "$added" -gt 0 ]]; then
+          export GPU_TYPE="INTEL"
+          msg_ok "Intel GPU passthrough configured (${added})"
+        fi
+        ;;
+      AMD)
+        for sel in "${AMD_GPUS[@]}"; do
+          if _incus_add_gpu_physical "gpu${idx}" "$sel"; then
+            added=$((added + 1))
+          else
+            failed=$((failed + 1))
+            msg_warn "Could not add AMD GPU (${sel})"
+          fi
+          idx=$((idx + 1))
+        done
+        if [[ "$added" -eq 0 ]]; then
+          _incus_add_gpu_physical "gpu0" "vendorid=1002" && added=1 || true
+        fi
+        if [[ "$added" -gt 0 ]]; then
+          export GPU_TYPE="AMD"
+          msg_ok "AMD GPU passthrough configured (${added})"
+        fi
+        ;;
+      NVIDIA)
+        for sel in "${NVIDIA_GPUS[@]}"; do
+          if _incus_add_gpu_physical "gpu${idx}" "$sel"; then
+            added=$((added + 1))
+          else
+            failed=$((failed + 1))
+            msg_warn "Could not add NVIDIA GPU (${sel})"
+          fi
+          idx=$((idx + 1))
+        done
+        if [[ "$added" -eq 0 ]]; then
+          _incus_add_gpu_physical "gpu0" "vendorid=10de" && added=1 || true
+        fi
+        # Optional NVIDIA char nodes (driver interface)
+        local ndev nidx=0
+        for ndev in "${NVIDIA_CHAR_DEVS[@]}"; do
+          local nname
+          nname=$(basename "$ndev" | tr -c 'A-Za-z0-9' '_')
+          incus config device add "${CT_NAME}" "nvidia_${nname}_${nidx}" unix-char "source=${ndev}" "path=${ndev}" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 || true
+          nidx=$((nidx + 1))
+        done
+        if [[ "$added" -gt 0 || "$nidx" -gt 0 ]]; then
+          export GPU_TYPE="NVIDIA"
+          msg_ok "NVIDIA GPU passthrough configured (gpu=${added}, char=${nidx})"
+        fi
+        ;;
+      esac
+
+      if [[ -z "${GPU_TYPE:-}" ]]; then
+        msg_warn "GPU passthrough requested but no device could be attached (check permissions / incus info --resources)"
+      fi
+    else
+      msg_custom "ℹ️" "${YW}" "No GPU devices found for passthrough (lspci/DRM empty)"
+    fi
+  fi
+
+  # USB serial (privileged / optional bind) — mirrors PVE passthrough.func
+  if [[ "${CT_TYPE:-1}" == "0" || "${ENABLE_USB:-no}" == "yes" ]]; then
+    local usb_dev usb_idx=0
+    for usb_dev in /dev/ttyUSB0 /dev/ttyUSB1 /dev/ttyACM0; do
+      [[ -e "$usb_dev" ]] || continue
+      local usb_name="usbchar${usb_idx}"
+      if incus config device add "${CT_NAME}" "$usb_name" unix-char "source=${usb_dev}" "path=${usb_dev}" \
+        >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+        msg_ok "USB device ${usb_dev} attached as ${usb_name}"
+      else
+        msg_warn "Could not attach ${usb_dev} (need privileged CT or device permissions)"
+      fi
+      usb_idx=$((usb_idx + 1))
+    done
+  fi
+
+  # Optional extra disk: INCUS_EXTRA_DISK=/path/or/pool/volume INCUS_EXTRA_DISK_PATH=/mnt/data
+  if [[ -n "${INCUS_EXTRA_DISK:-${var_extra_disk:-}}" ]]; then
+    local edisk="${INCUS_EXTRA_DISK:-$var_extra_disk}"
+    local epath="${INCUS_EXTRA_DISK_PATH:-${var_extra_disk_path:-/mnt/extra}}"
+    msg_info "Adding extra disk device"
+    if incus config device add "${CT_NAME}" extradata disk "source=${edisk}" "path=${epath}" \
+      >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+      msg_ok "Extra disk mounted at ${epath}"
+    else
+      msg_warn "Could not add extra disk (source=${edisk})"
+    fi
+  fi
+
+  if [[ "${ENABLE_FUSE:-no}" == "yes" ]]; then
+    msg_custom "ℹ️" "${YW}" "FUSE enabled via privileged container (security.privileged=true)"
+  fi
+
+  if [[ "${ENABLE_TUN:-no}" == "yes" ]]; then
+    if incus config device add "${CT_NAME}" tun unix-char source=/dev/net/tun path=/dev/net/tun \
+      >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1; then
+      msg_ok "TUN device attached"
+    else
+      msg_warn "Could not add TUN device"
+      echo -e "${TAB}${INFO} TUN/VPN usually needs a ${GN}privileged${CL} container (security.privileged=true)"
+      echo -e "${TAB}${INFO} Nesting/Docker apps: also enable nesting (security.nesting=true)."
+    fi
+  fi
+
+  if [[ -e /dev/apex_0 ]]; then
+    msg_custom "🔌" "${BL}" "Detected Coral TPU - configuring passthrough"
+    _incus_soft incus config device add "${CT_NAME}" apex0 unix-char source=/dev/apex_0 path=/dev/apex_0 >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
+  fi
+  return 0
+}
+
+incus_wait_for_network() {
+  [[ "${var_os:-debian}" == "alpine" ]] && return 0
+  msg_info "Waiting for network in LXC container"
+
+  local net_type="" max_wait=40
+  net_type=$(incus network show "${BRG:-}" 2>/dev/null | awk '/^type:/ {print $2; exit}')
+  case "${net_type}" in
+  physical | macvlan | sriov) max_wait=90 ;;
+  esac
+
+  local ip_in_lxc="" i
+  for ((i = 1; i <= max_wait; i++)); do
+    ip_in_lxc=$(incus_ct_exec ip -4 addr show dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
+    [[ -z "$ip_in_lxc" ]] && ip_in_lxc=$(incus_ct_exec ip -6 addr show dev eth0 scope global 2>/dev/null | awk '/inet6 / {print $2}' | cut -d/ -f1 | head -n1)
+    [[ -z "$ip_in_lxc" ]] && ip_in_lxc=$(incus list "${CT_NAME}" -c4 -f csv 2>/dev/null | head -1 | awk '{print $1}' | cut -d/ -f1)
+    [[ -n "$ip_in_lxc" && "$ip_in_lxc" != "-" ]] && break
+    sleep 1
+  done
+
+  if [[ -z "$ip_in_lxc" || "$ip_in_lxc" == "-" ]]; then
+    msg_warn "No IP assigned to ${CT_NAME} after ${max_wait}s — continuing anyway"
+    echo -e "${YW}Troubleshooting:${CL}"
+    echo "  • Verify network ${BRG} exists and has connectivity"
+    echo "  • Check DHCP server (physical/macvlan often needs >20s)"
+    echo "  • Verify static IP configuration"
+    echo -e "${YW}Installation will continue; network-dependent steps may fail.${CL}"
+    export IP=""
+    return 0
+  fi
+
+  local ping_success=false retry
+  for retry in {1..3}; do
+    if incus_ct_exec ping -c 1 -W 2 1.1.1.1 &>/dev/null ||
+      incus_ct_exec ping -c 1 -W 2 8.8.8.8 &>/dev/null ||
+      incus_ct_exec ping6 -c 1 -W 2 2606:4700:4700::1111 &>/dev/null; then
+      ping_success=true
+      break
+    fi
+    sleep 2
+  done
+
+  if [[ "$ping_success" == "false" ]]; then
+    msg_warn "Network configured (IP: $ip_in_lxc) but connectivity test failed"
+    echo -e "${YW}Container may have limited internet access. Installation will continue...${CL}"
+  else
+    msg_ok "Network in LXC is reachable (ping)"
+  fi
+  msg_ok "IP set to ${ip_in_lxc}"
+  export IP="$ip_in_lxc"
+}
+
+fix_gpu_gids() {
+  [[ -z "${GPU_TYPE:-}" ]] && return 0
+  msg_info "Detecting and setting correct GPU group IDs"
+  local video_gid render_gid
+  video_gid=$(incus_ct_exec getent group video 2>/dev/null | cut -d: -f3)
+  render_gid=$(incus_ct_exec getent group render 2>/dev/null | cut -d: -f3)
+  [[ -z "$video_gid" ]] && incus_ct_exec groupadd -r video 2>/dev/null || true
+  [[ -z "$render_gid" ]] && incus_ct_exec groupadd -r render 2>/dev/null || true
+  video_gid=$(incus_ct_exec getent group video 2>/dev/null | cut -d: -f3)
+  render_gid=$(incus_ct_exec getent group render 2>/dev/null | cut -d: -f3)
+  [[ -z "$video_gid" ]] && video_gid="44"
+  [[ -z "$render_gid" ]] && render_gid="104"
+
+  # Incus gpu devices support gid= (container ownership) — docs: devices_gpu
+  local dev_name
+  while IFS= read -r dev_name; do
+    [[ -z "$dev_name" || "$dev_name" != gpu* ]] && continue
+    _incus_soft incus config device set "${CT_NAME}" "$dev_name" "gid=${video_gid}" "mode=0660" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
+  done < <(incus config device list "${CT_NAME}" 2>/dev/null || true)
+
+  # Best-effort permissions inside the CT when /dev/dri is visible
+  incus_ct_exec bash -c "
+    if [[ -d /dev/dri ]]; then
+      for dev in /dev/dri/*; do
+        [[ -e \"\$dev\" ]] || continue
+        case \"\$dev\" in
+          *renderD*) chgrp ${render_gid} \"\$dev\" 2>/dev/null || true ;;
+          *) chgrp ${video_gid} \"\$dev\" 2>/dev/null || true ;;
+        esac
+        chmod 660 \"\$dev\" 2>/dev/null || true
+      done
+    fi
+  " &>/dev/null || true
+  msg_ok "GPU passthrough configured (video:${video_gid}, render:${render_gid})"
+}
+
+incus_fix_debian13_root_ownership() {
+  [[ "${var_os:-}" == "debian" && "${var_version:-}" == "13" ]] || return 0
+  incus_ct_exec chown root:root / 2>/dev/null || true
+}
+
+incus_set_root_password() {
+  [[ -z "${PW:-}" ]] && return 0
+  local pw_raw="${PW#--password }"
+  [[ -z "$pw_raw" ]] && return 0
+  msg_info "Setting root password"
+  incus_ct_exec bash -c "echo 'root:${pw_raw}' | chpasswd" &>/dev/null && msg_ok "Set root password" || msg_warn "Could not set root password"
+}
+
+incus_customize_container() {
+  msg_info "Customizing LXC Container"
+  ARCH="$(dpkg --print-architecture 2>/dev/null || uname -m)"
+
+  if [[ "${var_os:-debian}" == "alpine" ]]; then
+    sleep 2
+    local alpine_rel="v${IMAGE_VERSION:-${var_version:-3.21}}"
+    [[ "$alpine_rel" != v3.* ]] && alpine_rel="latest-stable"
+    incus_ct_exec /bin/sh -c "cat <<EOF >/etc/apk/repositories
+http://dl-cdn.alpinelinux.org/alpine/${alpine_rel}/main
+http://dl-cdn.alpinelinux.org/alpine/${alpine_rel}/community
+EOF"
+    incus_ct_exec ash -c "apk add bash newt curl openssh nano mc ncurses jq >/dev/null" || msg_warn "Alpine base package install had issues"
+  elif [[ "${var_os:-debian}" =~ ^(debian|ubuntu|devuan)$ ]]; then
+    sleep 2
+    local _ct_env='export LC_ALL=C.UTF-8 LANG=C.UTF-8 DEBIAN_FRONTEND=noninteractive;'
+    [[ "${var_os}" == "devuan" ]] && incus_ct_exec bash -c "${_ct_env} apt-get update >/dev/null && apt-get install -y locales >/dev/null" || true
+
+    local tz_val="${timezone:-UTC}"
+    [[ -z "$tz_val" ]] && tz_val=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "UTC")
+    [[ "$tz_val" == Etc/* ]] && tz_val="UTC"
+    timezone="$tz_val"
+    if incus_ct_exec test -e "/usr/share/zoneinfo/$tz_val"; then
+      incus_ct_exec bash -c "${_ct_env} ln -sf \"/usr/share/zoneinfo/$tz_val\" /etc/localtime && echo \"$tz_val\" >/etc/timezone || true"
+    fi
+
+    local _base_pkgs="sudo curl mc gnupg2 jq"
+    [[ "$ARCH" == "arm64" ]] && _base_pkgs+=" openssh-server wget gcc"
+
+    if ! incus_ct_exec bash -c "${_ct_env} getent hosts deb.debian.org >/dev/null 2>&1 && getent hosts archive.ubuntu.com >/dev/null 2>&1"; then
+      msg_warn "APT repository DNS resolution failed in container, injecting public DNS servers"
+      incus_ct_exec bash -c "echo -e 'nameserver 8.8.8.8\nnameserver 1.1.1.1' >/etc/resolv.conf"
+    fi
+
+    incus_ct_exec bash -c "${_ct_env} apt-get update >/dev/null 2>&1 && apt-get install -y ${_base_pkgs} >/dev/null 2>&1" || {
+      msg_warn "apt-get update failed, trying alternate mirrors..."
+      msg_custom "ℹ️" "${YW}" "Probing alternate mirrors (this can take 1-2 minutes on network issues)"
+      incus_ct_exec env APT_BASE="$_base_pkgs" bash -c '
+        DISTRO=$(. /etc/os-release 2>/dev/null && echo "$ID" || echo "debian")
+        if [ "$DISTRO" = "ubuntu" ]; then
+          MIRRORS="de.archive.ubuntu.com fr.archive.ubuntu.com archive.ubuntu.com mirrors.edge.kernel.org"
+        else
+          MIRRORS="ftp.de.debian.org ftp.fr.debian.org ftp.nl.debian.org debian.mirror.lrz.de mirror.init7.net"
+        fi
+        echo "Acquire::By-Hash \"no\";" >/etc/apt/apt.conf.d/99no-by-hash
+        for m in $MIRRORS; do
+          sed -i "s|URIs: http[s]*://[^/]*/|URIs: http://${m}/|g; s|deb http[s]*://[^/]*/|deb http://${m}/|g" /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+          sed -i "s|deb http[s]*://[^/]*/|deb http://${m}/|g" /etc/apt/sources.list 2>/dev/null || true
+          rm -rf /var/lib/apt/lists/*
+          apt-get update >/dev/null 2>&1 && apt-get install -y $APT_BASE >/dev/null 2>&1 && exit 0
+        done
+        exit 1
+      ' || { msg_error "apt-get base packages installation failed"; exit 100; }
+    }
+  else
+    sleep 2
+    incus_ct_exec bash -c "command -v curl >/dev/null 2>&1 || (command -v dnf >/dev/null 2>&1 && dnf install -y curl >/dev/null 2>&1) || (command -v zypper >/dev/null 2>&1 && zypper -n install curl >/dev/null 2>&1) || (command -v pacman >/dev/null 2>&1 && pacman -Sy --noconfirm curl >/dev/null 2>&1)" || true
+  fi
+
+  incus_set_root_password
+  msg_ok "Customized LXC Container"
+}
+
+incus_setup_motd_pve_style() {
+  msg_info "Setting up MOTD"
+  local motd_file
+  motd_file=$(mktemp)
+  cat >"$motd_file" <<MOTDEOF
+#!/bin/bash
+# Community Scripts MOTD
+if [[ -f /etc/os-release ]]; then . /etc/os-release; fi
+echo ''
+echo '  🚀 ${APP} LXC'
+echo "  🖥️  OS: \${PRETTY_NAME:-Linux}"
+echo "  📡 IP: \$(hostname -I 2>/dev/null | awk '{print \$1}')"
+echo ''
+MOTDEOF
+  incus file push "$motd_file" "${CT_NAME}/etc/profile.d/99-community-scripts-motd.sh" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
+  incus_ct_exec chmod +x /etc/profile.d/99-community-scripts-motd.sh >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1
+  rm -f "$motd_file"
+  msg_ok "MOTD configured"
+}
+
+_incus_push_functions_and_run_install() {
+  # Sets INCUS_LAST_INSTALL_EXIT (do not capture stdout — msg_* writes there).
+  INCUS_LAST_INSTALL_EXIT=0
+  msg_info "Pushing functions to container"
+  incus_ct_exec bash -c "cat > /tmp/incus-functions <<'INNEREOF'
+${FUNCTIONS_FILE_PATH}
+INNEREOF" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 || { msg_error "Failed to push functions"; exit 1; }
+  msg_ok "Functions pushed"
+
+  if [[ "${DNS_RETRY_OVERRIDE:-}" == "true" ]]; then
+    msg_info "Applying DNS override inside LXC"
+    incus_ct_exec bash -c "echo -e 'nameserver 8.8.8.8\nnameserver 1.1.1.1' >/etc/resolv.conf" || true
+    msg_ok "DNS override applied"
+  fi
+
+  msg_info "Starting application installation"
+  local _install_script _run_env lxc_exit=0 install_exit_code=0
+  _install_script="$(_cs_fetch_text "install/${var_install}.sh")"
+  _run_env="$(_incus_build_install_env)"
+  _run_env+=$'\nsource /dev/stdin <<<"$(cat /tmp/incus-functions)"'
+
+  set +Eeuo pipefail
+  trap - ERR
+  incus_ct_exec bash -c "${_run_env}
+${_install_script}" 2>&1 | tee -a "${LOGFILE:-$INCUS_BUILD_LOG}" || lxc_exit=$?
+  set -Eeuo pipefail
+  declare -f error_handler &>/dev/null && trap 'error_handler' ERR || true
+
+  if [[ -n "${SESSION_ID:-}" ]]; then
+    local error_flag="/root/.install-${SESSION_ID}.failed"
+    if incus_ct_exec test -f "$error_flag" 2>/dev/null; then
+      install_exit_code=$(incus_ct_exec cat "$error_flag" 2>/dev/null || echo "1")
+      incus_ct_exec rm -f "$error_flag" 2>/dev/null || true
+    fi
+  fi
+  [[ "$install_exit_code" -eq 0 && "$lxc_exit" -ne 0 ]] && install_exit_code=$lxc_exit
+  INCUS_LAST_INSTALL_EXIT=$install_exit_code
+}
+
+_incus_build_combined_log() {
+  combined_log="${combined_log:-/tmp/incus-install-${SESSION_ID}-combined.log}"
+  {
+    echo "================================================================================"
+    echo "COMBINED INSTALLATION LOG - ${APP:-LXC}"
+    echo "Container: ${CT_NAME}"
+    echo "Session ID: ${SESSION_ID}"
+    echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "================================================================================"
+    echo ""
+  } >"$combined_log"
+
+  if [[ -f "${BUILD_LOG:-$INCUS_BUILD_LOG}" ]]; then
+    {
+      echo "================================================================================"
+      echo "PHASE 1: CONTAINER CREATION (Host)"
+      echo "================================================================================"
+      cat "${BUILD_LOG:-$INCUS_BUILD_LOG}"
+      echo ""
+    } >>"$combined_log"
+  fi
+
+  local temp_install_log="/tmp/.install-temp-${SESSION_ID}.log"
+  if incus file pull "${CT_NAME}/root/.install-${SESSION_ID}.log" "$temp_install_log" 2>/dev/null; then
+    {
+      echo "================================================================================"
+      echo "PHASE 2: APPLICATION INSTALLATION (Container)"
+      echo "================================================================================"
+      cat "$temp_install_log"
+      echo ""
+    } >>"$combined_log"
+    rm -f "$temp_install_log"
+  fi
+
+  # Pull the structured error capture (.errinfo) - primary source for the
+  # telemetry error trace (exact output of the failing command)
+  local host_errinfo="/tmp/.errinfo-${SESSION_ID}"
+  if incus file pull "${CT_NAME}/root/.install-${SESSION_ID}.log.errinfo" "$host_errinfo" 2>/dev/null && [[ -s "$host_errinfo" ]]; then
+    TELEMETRY_ERRINFO="$host_errinfo"
+    export TELEMETRY_ERRINFO
+  fi
+
+  echo -e "${GN}✔${CL} Installation log: ${BL}${combined_log}${CL}"
+  INSTALL_LOG="$combined_log"
+  export INSTALL_LOG
+}
+
+incus_run_install_script_with_recovery() {
+  msg_info "Preparing installation"
+  incus_log_section "Application Installation: ${APP}"
+
+  declare -f start_install_timer &>/dev/null && start_install_timer || true
+  post_progress_to_api "installing" 2>/dev/null || true
+  CONTAINER_INSTALLING=true
+  export CONTAINER_INSTALLING
+
+  _incus_push_functions_and_run_install
+  local install_exit_code="${INCUS_LAST_INSTALL_EXIT:-1}"
+
+  if [[ "$install_exit_code" -eq 0 ]]; then
+    msg_ok "Installation completed"
+    CONTAINER_INSTALLING=false
+    INCUS_BUILD_OK=1
+    export INCUS_BUILD_OK
+    return 0
+  fi
+
+  msg_error "Installation failed in container ${CT_NAME} (exit code: ${install_exit_code})"
+  _incus_build_combined_log
+  post_update_to_api "failed" "$install_exit_code" 2>/dev/null || true
+  # This menu owns cleanup — EXIT trap must not prompt again.
+  INCUS_ORPHAN_HANDLED=1
+  export INCUS_ORPHAN_HANDLED
+
+  if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
+    msg_dev "Keep mode active - container ${CT_NAME} preserved"
+    CONTAINER_INSTALLING=false
+    return 0
+  elif [[ "${DEV_MODE_BREAKPOINT:-false}" == "true" ]]; then
+    msg_dev "Breakpoint mode - opening shell in container ${CT_NAME}"
+    echo -e "${YW}Type 'exit' to return to host${CL}"
+    incus exec "${CT_NAME}" -- bash || true
+    echo ""
+    echo -en "${YW}Container ${CT_NAME} still running. Remove now? (y/N): ${CL}"
+    if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
+      incus_delete_container "${CT_NAME}"
+    else
+      msg_dev "Container ${CT_NAME} kept for debugging"
+    fi
+    exit "$install_exit_code"
+  fi
+
+  echo ""
+  local is_oom=false is_network_issue=false is_apt_issue=false is_cmd_not_found=false
+  local error_explanation=""
+  declare -f explain_exit_code >/dev/null 2>&1 && error_explanation="$(explain_exit_code "$install_exit_code")"
+
+  [[ $install_exit_code -eq 134 || $install_exit_code -eq 137 || $install_exit_code -eq 243 ]] && is_oom=true
+  case "$install_exit_code" in
+  100 | 101 | 102) is_apt_issue=true ;;
+  255)
+    [[ -f "$combined_log" ]] && grep -qiE 'dpkg|apt-get|broken packages|unmet dependencies' "$combined_log" && is_apt_issue=true
+    ;;
+  esac
+  [[ $install_exit_code -eq 127 ]] && is_cmd_not_found=true
+  case "$install_exit_code" in
+  6 | 7 | 22 | 28 | 35 | 52 | 56 | 57 | 75 | 78) is_network_issue=true ;;
+  100)
+    [[ -f "$combined_log" ]] && grep -qiE 'Failed to fetch|Could not resolve|Network is unreachable' "$combined_log" && is_network_issue=true
+    ;;
+  esac
+  if [[ $install_exit_code -eq 1 && -f "$combined_log" ]]; then
+    grep -qiE 'E: Unable to|broken packages|unmet dependencies|dpkg --configure' "$combined_log" && is_apt_issue=true
+    grep -qiE 'Cannot allocate memory|Out of memory|oom-killer|JavaScript heap' "$combined_log" && is_oom=true
+    grep -qiE 'Could not resolve|DNS|Network is unreachable|Failed to fetch' "$combined_log" && is_network_issue=true
+    grep -qiE ': command not found' "$combined_log" && is_cmd_not_found=true
+  fi
+
+  [[ -n "$error_explanation" ]] && echo -e "${TAB}${RD}Error: ${error_explanation}${CL}" && echo ""
+  if [[ $install_exit_code -eq 10 ]]; then
+    echo -e "${TAB}${INFO} Privileged / nesting / device hint:"
+    echo -e "${TAB}${INFO}  • Privileged: ${GN}security.privileged=true${CL} (TUN, FUSE, USB, Docker-in-LXC)"
+    echo -e "${TAB}${INFO}  • Nesting:     ${GN}security.nesting=true${CL} (Docker/Podman inside CT)"
+    echo -e "${TAB}${INFO}  • Re-run Advanced settings and enable the matching options."
+    echo ""
+  fi
+
+  echo -e "${YW}What would you like to do?${CL}"
+  echo ""
+  echo -e "  ${GN}1)${CL} Remove container and exit"
+  echo -e "  ${GN}2)${CL} Keep container for debugging"
+  echo -e "  ${GN}3)${CL} Retry with verbose mode (full rebuild)"
+
+  local next_option=4 APT_OPTION="" OOM_OPTION="" DNS_OPTION=""
+  if [[ "$is_apt_issue" == true ]]; then
+    if [[ "${var_os:-}" == "alpine" ]]; then
+      echo -e "  ${GN}${next_option})${CL} Repair APK state and re-run install (in-place)"
+    else
+      echo -e "  ${GN}${next_option})${CL} Repair APT/DPKG state and re-run install (in-place)"
+    fi
+    APT_OPTION=$next_option
+    next_option=$((next_option + 1))
+  fi
+  if [[ "$is_oom" == true ]]; then
+    local recovery_attempt="${RECOVERY_ATTEMPT:-0}"
+    if [[ $recovery_attempt -lt 2 ]]; then
+      echo -e "  ${GN}${next_option})${CL} Retry with more resources (RAM: ${RAM_SIZE}→$((RAM_SIZE * 2)) MiB, CPU: ${CORE_COUNT}→$((CORE_COUNT * 2)) cores)"
+      OOM_OPTION=$next_option
+      next_option=$((next_option + 1))
+    fi
+  fi
+  if [[ "$is_network_issue" == true ]]; then
+    echo -e "  ${GN}${next_option})${CL} Retry with DNS override in LXC (8.8.8.8 / 1.1.1.1)"
+    DNS_OPTION=$next_option
+    next_option=$((next_option + 1))
+  fi
+
+  local max_option=$((next_option - 1))
+  echo ""
+  echo -en "${YW}Select option [1-${max_option}] (default: 1, auto-remove in 60s): ${CL}"
+  if read -t 60 -r response; then
+    case "${response:-1}" in
+    1)
+      echo -e "\n${TAB}${HOLD}${YW}Removing container ${CT_NAME}${CL}"
+      incus_delete_container "${CT_NAME}"
+      ;;
+    2)
+      echo -e "\n${TAB}${YW}Container ${CT_NAME} kept for debugging${CL}"
+      echo -e "${TAB}${INFO} Access: ${GN}incus exec ${CT_NAME} -- bash${CL}"
+      exit "$install_exit_code"
+      ;;
+    3)
+      echo -e "\n${TAB}${HOLD}${YW}Removing container ${CT_NAME} for rebuild...${CL}"
+      incus_delete_container "${CT_NAME}"
+      local old_name="$CT_NAME"
+      CT_NAME="$(get_valid_container_id "$CT_NAME")"
+      CTID="$CT_NAME"
+      export CT_NAME CTID VERBOSE=yes var_verbose=yes
+      echo -e "${YW}Rebuilding: ${old_name} → ${CT_NAME} (verbose)${CL}"
+      msg_info "Restarting installation..."
+      declare -f telemetry_new_attempt &>/dev/null && telemetry_new_attempt
+      build_container
+      return $?
+      ;;
+    *)
+      local handled=false
+      if [[ -n "${APT_OPTION}" && "${response}" == "${APT_OPTION}" ]]; then
+        handled=true
+        if [[ "${var_os:-}" == "alpine" ]]; then
+          echo -e "\n${TAB}${HOLD}${YW}Repairing APK state...${CL}"
+          incus_ct_exec ash -c "apk fix 2>/dev/null || true; apk update 2>/dev/null || true" || true
+        else
+          echo -e "\n${TAB}${HOLD}${YW}Repairing APT/DPKG state...${CL}"
+          incus_ct_exec bash -c "DEBIAN_FRONTEND=noninteractive dpkg --configure -a 2>/dev/null || true; apt-get -f install -y 2>/dev/null || true; apt-get update 2>/dev/null || true" || true
+        fi
+        export VERBOSE=yes var_verbose=yes
+        msg_info "Re-running installation script..."
+        # New telemetry execution for the in-place retry
+        declare -f telemetry_new_attempt &>/dev/null && telemetry_new_attempt
+        declare -f post_to_api &>/dev/null && post_to_api 2>/dev/null || true
+        _incus_push_functions_and_run_install
+        install_exit_code="${INCUS_LAST_INSTALL_EXIT:-1}"
+        if [[ "$install_exit_code" -eq 0 ]]; then
+          msg_ok "Installation completed successfully after package repair!"
+          post_update_to_api "done" "0" "force" 2>/dev/null || true
+          CONTAINER_INSTALLING=false
+          INCUS_BUILD_OK=1
+          export INCUS_BUILD_OK
+          return 0
+        fi
+        msg_error "Installation still failed after repair (exit code: ${install_exit_code})"
+      fi
+      if [[ -n "${OOM_OPTION}" && "${response}" == "${OOM_OPTION}" ]]; then
+        handled=true
+        incus_delete_container "${CT_NAME}"
+        local old_ram="$RAM_SIZE" old_cpu="$CORE_COUNT"
+        CT_NAME="$(get_valid_container_id "$CT_NAME")"
+        CTID="$CT_NAME"
+        RAM_SIZE=$((RAM_SIZE * 2))
+        CORE_COUNT=$((CORE_COUNT * 2))
+        export CT_NAME CTID RAM_SIZE CORE_COUNT var_ram="$RAM_SIZE" var_cpu="$CORE_COUNT"
+        export VERBOSE=yes var_verbose=yes RECOVERY_ATTEMPT=$((${RECOVERY_ATTEMPT:-0} + 1))
+        echo -e "${YW}Rebuilding with more resources: RAM ${old_ram}→${RAM_SIZE}, CPU ${old_cpu}→${CORE_COUNT}${CL}"
+        declare -f telemetry_new_attempt &>/dev/null && telemetry_new_attempt
+        build_container
+        return $?
+      fi
+      if [[ -n "${DNS_OPTION}" && "${response}" == "${DNS_OPTION}" ]]; then
+        handled=true
+        incus_delete_container "${CT_NAME}"
+        CT_NAME="$(get_valid_container_id "$CT_NAME")"
+        CTID="$CT_NAME"
+        export CT_NAME CTID DNS_RETRY_OVERRIDE=true VERBOSE=yes var_verbose=yes
+        echo -e "${YW}Rebuilding with DNS override${CL}"
+        declare -f telemetry_new_attempt &>/dev/null && telemetry_new_attempt
+        build_container
+        return $?
+      fi
+      if [[ "$handled" == false ]]; then
+        echo -e "\n${TAB}${YW}Invalid option. Container ${CT_NAME} kept.${CL}"
+        exit "$install_exit_code"
+      fi
+      ;;
+    esac
+  else
+    echo ""
+    msg_info "No response - removing container ${CT_NAME}"
+    incus_delete_container "${CT_NAME}"
+    msg_ok "Container ${CT_NAME} removed"
+  fi
+
+  post_update_to_api "failed" "$install_exit_code" "force" 2>/dev/null || true
+  exit "$install_exit_code"
+}
+
+_incus_build_install_env() {
+  cat <<EOF
+export FUNCTIONS_FILE_PATH=\$(cat /tmp/incus-functions)
+export DIAGNOSTICS='${DIAGNOSTICS:-yes}'
+export RANDOM_UUID='${RANDOM_UUID}'
+export EXECUTION_ID='${EXECUTION_ID}'
+export SESSION_ID='${SESSION_ID}'
+export VERBOSE='${VERBOSE:-no}'
+export STD='$([ "${VERBOSE:-no}" = "yes" ] && echo "" || echo silent)'
+export APP='${APP}'
+export APPLICATION='${APP}'
+export NSAPP='${NSAPP}'
+export app='${NSAPP}'
+export PASSWORD='${PW:-}'
+export CTID='${CT_NAME}'
+export CTTYPE='${CT_TYPE:-1}'
+export PCT_OSTYPE='${var_os:-debian}'
+export PCT_OSVERSION='${var_version:-13}'
+export PCT_DISK_SIZE='${DISK_SIZE}'
+export tz='${timezone:-UTC}'
+export MODE='${METHOD:-default}'
+export ENABLE_FUSE='${ENABLE_FUSE:-no}'
+export ENABLE_TUN='${ENABLE_TUN:-no}'
+export ENABLE_GPU='${ENABLE_GPU:-no}'
+export IPV6_METHOD='${IPV6_METHOD:-auto}'
+export COMMUNITY_SCRIPTS_URL='${INCUS_COMMUNITY_SCRIPTS_URL}'
+export INSTALL_LOG='/root/.install-${SESSION_ID}.log'
+export REPO_SOURCE='${REPO_SOURCE:-}'
+export REPO_SLUG='${REPO_SLUG:-}'
+export TELEMETRY_PLATFORM='incus'
+EOF
+}
+
+incus_build_container() {
+  _incus_sync_from_pve_settings
+  _incus_prepare_install_exports
+
+  if [[ -n "${CONTAINER_STORAGE:-$STORAGE_POOL}" ]]; then
+    msg_info "Validating storage space"
+    incus_validate_storage_space "${CONTAINER_STORAGE:-$STORAGE_POOL}" "${DISK_SIZE}" || true
+  fi
+
+  incus_create_lxc_container
+  post_progress_to_api "configuring" 2>/dev/null || true
+
+  incus_configure_device_passthrough
+  incus_wait_for_network
+  fix_gpu_gids
+  incus_fix_debian13_root_ownership
+  incus_customize_container
+  install_ssh_keys_into_ct
+  incus_setup_motd_pve_style
+  incus_run_install_script_with_recovery
+}
+
+create_lxc_container() { incus_create_lxc_container; }

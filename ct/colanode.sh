@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -70,9 +70,9 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URLs:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:4000${CL} (Web UI)"
+echo -e "${INFO}${YW}Access it using the following URLs:${CL}"
+echo -e "${GATEWAY}${BGN}https://${IP}:4000${CL} (Web UI)"
 echo -e "${INFO}${YW} Before using: import the self-signed cert into your browser:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:4000/colanode.crt${CL}"
+echo -e "${GATEWAY}${BGN}https://${IP}:4000/colanode.crt${CL}"
 echo -e "${INFO}${YW} Server URL to use inside the app:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:4000/config${CL}"
+echo -e "${GATEWAY}${BGN}https://${IP}:4000/config${CL}"

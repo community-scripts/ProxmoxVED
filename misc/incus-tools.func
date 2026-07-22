@@ -1,0 +1,325 @@
+#!/usr/bin/env bash
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: MickLesk
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+
+# ==============================================================================
+# INCUS-TOOLS.FUNC - INCUS COMPATIBILITY + 1:1 MISC TOOLS PARITY
+# ==============================================================================
+#
+# Strategy:
+# 1) Load Incus core + aliases
+# 2) Import upstream misc/tools.func for full helper/tool surface
+# 3) Override only Incus-specific behavior where required
+#
+# ==============================================================================
+
+[[ -n "${_INCUS_TOOLS_FUNC_LOADED:-}" ]] && return
+_INCUS_TOOLS_FUNC_LOADED=1
+
+INCUS_COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+
+# Load Incus core first so msg_*/silent/catch_errors aliases are available.
+if [[ -z "${_INCUS_CORE_FUNC_LOADED:-}" ]]; then
+  source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/misc/incus-core.func")
+  load_incus_functions
+  incus_install_compat_aliases
+fi
+
+# Import upstream misc tools for maximum function parity.
+# Keep this before Incus overrides so Incus implementations win by re-definition.
+if [[ -z "${_INCUS_IMPORTED_MISC_TOOLS:-}" ]]; then
+  source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/misc/tools.func")
+  _INCUS_IMPORTED_MISC_TOOLS=1
+fi
+
+# ==============================================================================
+# INCUS-SPECIFIC OVERRIDES
+# ==============================================================================
+
+# OS detection globals (matching install.func expectations)
+OS_TYPE=""
+OS_FAMILY=""
+OS_VERSION=""
+PKG_MANAGER=""
+INIT_SYSTEM=""
+
+detect_os() {
+  if [[ -f /etc/os-release ]]; then
+    . /etc/os-release 2>/dev/null
+    OS_TYPE="${ID:-unknown}"
+    OS_TYPE="${OS_TYPE,,}"
+    OS_VERSION="${VERSION_ID:-unknown}"
+  elif [[ -f /etc/alpine-release ]]; then
+    OS_TYPE="alpine"
+    OS_VERSION=$(cat /etc/alpine-release)
+  else
+    OS_TYPE="unknown"
+    OS_VERSION="unknown"
+  fi
+
+  case "$OS_TYPE" in
+  debian | ubuntu | devuan) OS_FAMILY="debian"; PKG_MANAGER="apt" ;;
+  alpine) OS_FAMILY="alpine"; PKG_MANAGER="apk" ;;
+  fedora | rocky | rockylinux | alma | almalinux | centos | rhel | openeuler) OS_FAMILY="rhel"; PKG_MANAGER="dnf" ;;
+  opensuse* | sles) OS_TYPE="opensuse"; OS_FAMILY="suse"; PKG_MANAGER="zypper" ;;
+  arch | archlinux) OS_TYPE="arch"; OS_FAMILY="arch"; PKG_MANAGER="pacman" ;;
+  gentoo) OS_FAMILY="gentoo"; PKG_MANAGER="emerge" ;;
+  *) OS_FAMILY="unknown"; PKG_MANAGER="apt" ;;
+  esac
+
+  if command -v systemctl &>/dev/null && [[ -d /run/systemd/system ]]; then
+    INIT_SYSTEM="systemd"
+  elif command -v rc-service &>/dev/null || [[ -d /etc/init.d && -f /sbin/openrc ]]; then
+    INIT_SYSTEM="openrc"
+  else
+    INIT_SYSTEM="systemd"
+  fi
+}
+
+get_os_info() {
+  local field="$1"
+  case "$field" in
+  id) . /etc/os-release 2>/dev/null && echo "${ID:-debian}" ;;
+  codename) . /etc/os-release 2>/dev/null && echo "${VERSION_CODENAME:-bookworm}" ;;
+  version) . /etc/os-release 2>/dev/null && echo "${VERSION_ID:-12}" ;;
+  *) echo "" ;;
+  esac
+}
+
+get_lxc_ip() {
+  local ip=""
+  if command -v hostname &>/dev/null; then
+    ip=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
+  fi
+  if [[ -z "$ip" ]] && command -v ip &>/dev/null; then
+    ip=$(ip -4 addr show scope global 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | head -1)
+  fi
+  echo "$ip"
+}
+
+get_ip() { get_lxc_ip; }
+get_current_ip() { get_lxc_ip; }
+
+update_motd_ip() {
+  local motd_file="/etc/motd"
+  if [[ -f "$motd_file" ]]; then
+    sed -i '/IP Address:/d' "$motd_file" 2>/dev/null || true
+    local ip
+    ip=$(get_lxc_ip)
+    echo -e "${TAB}${NETWORK}${YW} IP Address: ${GN}${ip}${CL}" >>"$motd_file"
+  fi
+}
+
+setup_hwaccel() {
+  # GPU/device passthrough is applied at create time (incus config device add gpu …).
+  # Inside the CT we only verify visibility and permissions.
+  if [[ -d /dev/dri ]] && compgen -G '/dev/dri/*' &>/dev/null; then
+    msg_ok "Hardware acceleration devices present under /dev/dri"
+    return 0
+  fi
+  if [[ "${ENABLE_GPU:-no}" == "yes" || "${var_gpu:-no}" == "yes" ]]; then
+    msg_warn "GPU was requested but /dev/dri is empty — recreate CT with GPU passthrough on the Incus host"
+  else
+    msg_custom "ℹ️" "${YW}" "No /dev/dri in this CT (passthrough is configured on the host at create time)"
+  fi
+}
+
+verb_ip6() {
+  set_std_mode 2>/dev/null || true
+  if [[ "${IPV6_METHOD:-}" == "disable" ]]; then
+    msg_info "Disabling IPv6 (this may affect some services)"
+    mkdir -p /etc/sysctl.d
+    cat >/etc/sysctl.d/99-disable-ipv6.conf <<EOF
+# Disable IPv6 (set by community-scripts)
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+EOF
+    $STD sysctl -p /etc/sysctl.d/99-disable-ipv6.conf 2>/dev/null || true
+    msg_ok "Disabled IPv6"
+  fi
+}
+
+setting_up_container() {
+  msg_info "Setting up Container OS"
+
+  if [[ "$(stat -c '%U' / 2>/dev/null)" != "root" ]]; then
+    (chown root:root / 2>/dev/null) || true
+  fi
+
+  local i
+  for ((i = ${RETRY_NUM:-10}; i > 0; i--)); do
+    if [[ -n "$(get_lxc_ip)" ]]; then
+      break
+    fi
+    echo 1>&2 -en "${CROSS}${RD} No Network! "
+    sleep "${RETRY_EVERY:-3}"
+  done
+
+  if [[ -z "$(get_lxc_ip)" ]]; then
+    echo 1>&2 -e "\n${CROSS}${RD} No Network After ${RETRY_NUM:-10} Tries${CL}"
+    echo -e "${NETWORK}Check Network Settings"
+    exit 1
+  fi
+
+  _bootstrap
+
+  rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
+
+  if [[ "$PKG_MANAGER" == "apt" || -z "$PKG_MANAGER" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+    export LANGUAGE=C.UTF-8
+    grep -qxF 'LC_ALL=C.UTF-8' /etc/environment 2>/dev/null || echo -e 'LC_ALL=C.UTF-8\nLANG=C.UTF-8' >>/etc/environment
+  fi
+
+  systemctl disable -q --now systemd-networkd-wait-online.service 2>/dev/null || true
+  msg_ok "Set up Container OS"
+  msg_ok "Network Connected: ${BL}$(get_lxc_ip)"
+}
+
+network_check() {
+  if [[ -z "$(get_lxc_ip)" ]]; then
+    msg_error "No network connectivity"
+    exit 1
+  fi
+}
+
+update_os() {
+  msg_info "Updating Container OS"
+  $STD apt update
+  $STD apt upgrade -y
+  msg_ok "Updated Container OS"
+}
+
+# install.func parity (safe Incus subset)
+pkg_update() { $STD apt update; }
+pkg_upgrade() { $STD apt upgrade -y; }
+pkg_install() { $STD apt install -y "$@"; }
+pkg_remove() { $STD apt remove -y "$@"; }
+pkg_clean() {
+  $STD apt -y autoremove 2>/dev/null || true
+  $STD apt -y autoclean 2>/dev/null || true
+  $STD apt -y clean 2>/dev/null || true
+}
+
+svc_enable() { systemctl enable -q "$@"; }
+svc_disable() { systemctl disable -q "$@"; }
+svc_start() { systemctl start "$@"; }
+svc_stop() { systemctl stop "$@"; }
+svc_restart() { systemctl restart "$@"; }
+svc_status() { systemctl status "$@"; }
+svc_reload_daemon() { systemctl daemon-reload; }
+
+validate_tz() {
+  local tz="${1:-}"
+  [[ -z "$tz" ]] && return 1
+  [[ -f "/usr/share/zoneinfo/$tz" ]]
+}
+
+set_timezone() {
+  local tz="${1:-${CT_TIMEZONE:-}}"
+  [[ -z "$tz" || "$tz" == "host" ]] && return 0
+  validate_tz "$tz" || { msg_warn "Invalid timezone: $tz"; return 1; }
+  timedatectl set-timezone "$tz" 2>/dev/null || ln -sf "/usr/share/zoneinfo/$tz" /etc/localtime
+}
+
+os_info() {
+  echo "OS Type:      $OS_TYPE"
+  echo "OS Family:    $OS_FAMILY"
+  echo "OS Version:   $OS_VERSION"
+  echo "Pkg Manager:  $PKG_MANAGER"
+  echo "Init System:  $INIT_SYSTEM"
+}
+
+# Kept for install.func API compatibility.
+_bootstrap() {
+  if [[ "${PKG_MANAGER:-apt}" == "apt" ]]; then
+    local need_bootstrap=0
+    command -v sudo >/dev/null 2>&1 || need_bootstrap=1
+    command -v curl >/dev/null 2>&1 || need_bootstrap=1
+    command -v mc >/dev/null 2>&1 || need_bootstrap=1
+    command -v gpg >/dev/null 2>&1 || need_bootstrap=1
+    command -v jq >/dev/null 2>&1 || need_bootstrap=1
+
+    local base_pkgs=(sudo curl mc gnupg2 jq)
+    local ct_arch
+    ct_arch="$(dpkg --print-architecture 2>/dev/null || true)"
+    if [[ "$ct_arch" == "arm64" ]]; then
+      base_pkgs+=(openssh-server wget gcc)
+    fi
+
+    if [[ "$need_bootstrap" -eq 1 ]]; then
+      msg_info "Installing Base Dependencies"
+      $STD apt update
+      $STD apt install -y "${base_pkgs[@]}"
+      msg_ok "Installed Base Dependencies"
+    fi
+  fi
+}
+
+post_progress_to_api() { :; }
+
+motd_ssh() {
+  local ip
+  ip=$(get_lxc_ip)
+  cat <<EOF >/etc/motd
+  🚀 Incus Container: $(hostname)
+  🖥️  OS: $(grep ^PRETTY_NAME /etc/os-release 2>/dev/null | cut -d= -f2 | tr -d '"')
+  📡 IP Address: ${ip}
+EOF
+  update_motd_ip 2>/dev/null || true
+}
+
+customize() {
+  cat <<'EOF' >/etc/profile.d/incus-aliases.sh
+alias ll='ls -la'
+alias la='ls -A'
+alias l='ls -CF'
+alias ..='cd ..'
+alias update='apt update && apt upgrade -y'
+alias cleanup='apt autoremove -y && apt autoclean'
+EOF
+  [[ -n "${CT_TIMEZONE:-}" && "$CT_TIMEZONE" != "host" ]] && timedatectl set-timezone "$CT_TIMEZONE" 2>/dev/null || true
+}
+
+cleanup_lxc() {
+  $STD apt -y autoremove 2>/dev/null || true
+  $STD apt -y autoclean 2>/dev/null || true
+  rm -f /tmp/incus-functions 2>/dev/null || true
+  rm -f /tmp/incus-funcs.sh 2>/dev/null || true
+}
+
+# check_container_storage / check_container_resources:
+# Intentionally NOT overridden here — build-ui.func provides the interactive
+# update-path checks (80% disk / var_ram). See incus-build.func start().
+
+header_info() {
+  local app_name
+  local header_content=""
+  app_name=$(echo "${APP,,}" | tr -d ' ')
+  APP_TYPE="${APP_TYPE:-ct}"
+
+  if declare -f get_header >/dev/null 2>&1; then
+    header_content=$(get_header "$app_name" 2>/dev/null || true)
+  fi
+
+  clear 2>/dev/null || true
+  if [[ -n "$header_content" ]]; then
+    echo "$header_content"
+  else
+    echo -e "${INCUS_HEADER:-Incus :: ${APP:-Container}}"
+  fi
+}
+
+detect_os
+if [[ -z "${APPLICATION:-}" && -n "${APP:-}" ]]; then
+  APPLICATION="$APP"
+fi
+if [[ -z "${app:-}" && -n "${NSAPP:-}" ]]; then
+  app="$NSAPP"
+fi
+LOCAL_IP=$(get_lxc_ip 2>/dev/null || echo "unknown")
+: "${STD:=silent}"

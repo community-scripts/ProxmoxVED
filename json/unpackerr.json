@@ -1,0 +1,46 @@
+{
+    "name": "Unpackerr",
+    "slug": "unpackerr",
+    "categories": [
+        11
+    ],
+    "date_created": "2026-07-16",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": null,
+    "documentation": "https://unpackerr.zip/",
+    "website": "https://unpackerr.zip/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/unpackerr.webp",
+    "config_path": "/etc/unpackerr/unpackerr.conf",
+    "description": "Unpackerr is a daemon that extracts completed archives for Sonarr, Radarr, Lidarr, Readarr and watched folders.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/unpackerr.sh",
+            "config_path": "/etc/unpackerr/unpackerr.conf",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 2,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Configure at least one Sonarr, Radarr, Lidarr, Readarr or folder watch section in /etc/unpackerr/unpackerr.conf before Unpackerr can process archives.",
+            "type": "info"
+        },
+        {
+            "text": "Mount or otherwise make the same download paths available to Unpackerr and your download client or *arr applications.",
+            "type": "warning"
+        }
+    ]
+}

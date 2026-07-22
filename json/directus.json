@@ -1,0 +1,54 @@
+{
+  "name": "Directus",
+  "slug": "directus",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-07-16",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8055,
+  "documentation": "https://directus.com/docs/",
+  "website": "https://directus.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/directus.webp",
+  "config_path": "/opt/directus/.env",
+  "description": "Directus is a data platform that provides instant REST and GraphQL APIs plus a visual data studio for SQL databases.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/directus.sh",
+      "config_path": "/opt/directus/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin@community-scripts.org",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The generated initial administrator password is in /opt/directus/.env.",
+      "type": "info"
+    },
+    {
+      "text": "Set PUBLIC_URL in /opt/directus/.env to your public HTTPS URL before configuring OAuth, email links or external integrations.",
+      "type": "warning"
+    },
+    {
+      "text": "Uploaded files are stored in /opt/directus/uploads. Include that directory and the PostgreSQL database in regular container backups.",
+      "type": "warning"
+    },
+    {
+      "text": "Review Directus release breaking changes before updating production instances.",
+      "type": "warning"
+    }
+  ]
+}

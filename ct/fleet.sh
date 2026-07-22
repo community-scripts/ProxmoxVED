@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -10,8 +10,8 @@ var_tags="${var_tags:-monitoring;device-management;security}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
-var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_os="${var_os:-ubuntu}"
+var_version="${var_version:-24.04}"
 var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
@@ -57,7 +57,7 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
+echo -e "${INFO}${YW}Access it using the following URL:${CL}"
+echo -e "${GATEWAY}${BGN}http://${IP}:8080${CL}"
 echo -e "${INFO}${YW} Admin Email:${CL} ${BGN}admin@fleet.local${CL}"
 echo -e "${INFO}${YW} Admin Password:${CL} ${BGN}Check inside the container: cat /opt/fleet/.env${CL}"

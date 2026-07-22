@@ -30,7 +30,7 @@ Follow [here](https://community-scripts.org/docs) to see our Documentations.
 
 Join the discussion, contribute code, or report issues:
 
-- **Discord**: [Join the Proxmox Helper Scripts Discord server](https://discord.gg/N9dsd6RT)
+- **Discord**: [Join the Proxmox Helper Scripts Discord server](https://discord.gg/3AnUqsXnmK)
 - **GitHub Issues**: [Report bugs or request features](https://github.com/community-scripts/ProxmoxVED/issues)
 
 ## 📜 License

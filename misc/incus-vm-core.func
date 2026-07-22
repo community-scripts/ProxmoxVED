@@ -1,0 +1,300 @@
+#!/usr/bin/env bash
+# Copyright (c) 2021-2026 community-scripts ORG
+# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
+
+[[ -n "${_INCUS_VM_CORE_LOADED:-}" ]] && return
+_INCUS_VM_CORE_LOADED=1
+
+INCUS_COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+
+source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/misc/incus-core.func")
+load_incus_functions
+incus_install_compat_aliases
+
+load_incus_vm_functions() {
+  [[ -n "${__INCUS_VM_FUNCTIONS_LOADED:-}" ]] && return
+  __INCUS_VM_FUNCTIONS_LOADED=1
+  color
+  formatting
+  icons
+  default_vars
+  set_std_mode
+}
+
+load_functions() { load_incus_vm_functions; }
+
+header_info() {
+  local app_name
+  local header_content=""
+  app_name=$(echo "${APP,,}" | tr -d ' ')
+  APP_TYPE="${APP_TYPE:-vm}"
+  if declare -f get_header >/dev/null 2>&1; then
+    header_content=$(get_header "$app_name" 2>/dev/null || true)
+  fi
+  clear
+  if [[ -n "$header_content" ]]; then
+    echo "$header_content"
+  else
+    echo -e "${INCUS_HEADER:-Incus VM :: ${APP:-Virtual Machine}}"
+  fi
+}
+
+check_root() { incus_root_check; }
+pve_check() { incus_check; }
+
+arch_check() {
+  local arch
+  arch="$(dpkg --print-architecture 2>/dev/null || echo unknown)"
+  [[ "$arch" == "amd64" || "$arch" == "arm64" ]] || fatal "Unsupported architecture: $arch"
+}
+
+ssh_check() { :; }
+
+exit_script() {
+  clear
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+  exit
+}
+
+sanitize_vm_hostname() {
+  local hostname="${1,,}"
+  hostname=$(echo "$hostname" | tr -cs 'a-z0-9-' '-' | sed 's/^-//;s/-$//')
+  echo "${hostname:0:63}"
+}
+
+vm_confirm_new_vm() {
+  local _title="${1:-New VM}"
+  local message="${2:-Create new VM?}"
+  prompt_confirm "$message" "y" 60
+}
+
+vm_choose_settings_mode() {
+  prompt_confirm "Use Default Settings? (No = Advanced)" "y" 60
+}
+
+vm_confirm_advanced_settings() {
+  local message="${1:-Ready to create VM?}"
+  prompt_confirm "$message" "y" 120
+}
+
+vm_apply_machine_type() {
+  MACHINE_TYPE="${1:-q35}"
+  MACHINE=""
+  FORMAT=""
+}
+
+vm_machine_type_label() {
+  case "${1:-q35}" in
+  q35) echo "Q35 (Modern)" ;;
+  *) echo "$1" ;;
+  esac
+}
+
+vm_prompt_machine_type() {
+  local default_machine="${1:-q35}"
+  local choice
+  choice=$(prompt_select "Machine Type" "1" 60 "q35" "default") || exit_script
+  vm_apply_machine_type "${choice:-$default_machine}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$(vm_machine_type_label "$MACHINE_TYPE")${CL}"
+}
+
+vm_prompt_cloud_init() {
+  local default_user="${1:-ubuntu}"
+  if prompt_confirm "Enable Cloud-Init?" "n" 60; then
+    USE_CLOUD_INIT="yes"
+    CLOUDINIT_USER=$(prompt_input "Cloud-Init user" "$default_user" 60)
+    CLOUDINIT_NETWORK_MODE=$(prompt_select "Cloud-Init network mode" "1" 60 "dhcp" "static")
+    if [[ "$CLOUDINIT_NETWORK_MODE" == "static" ]]; then
+      CLOUDINIT_IP=$(prompt_input "Static IP/CIDR (e.g. 10.0.0.10/24)" "" 60)
+      CLOUDINIT_GW=$(prompt_input "Gateway IPv4" "" 60)
+      CLOUDINIT_DNS=$(prompt_input "DNS servers (space separated)" "1.1.1.1 8.8.8.8" 60)
+    fi
+  else
+    USE_CLOUD_INIT="no"
+  fi
+  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
+}
+
+get_valid_nextid() {
+  local try_id=100
+  while incus info "vm-${try_id}" >/dev/null 2>&1; do
+    try_id=$((try_id + 1))
+  done
+  echo "$try_id"
+}
+
+vm_prompt_vmid() {
+  local default_vmid="${1:-$(get_valid_nextid)}"
+  VMID=$(prompt_input "Set Virtual Machine numeric ID" "$default_vmid" 60)
+  [[ "$VMID" =~ ^[0-9]+$ ]] || VMID="$default_vmid"
+  echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
+}
+
+vm_prompt_disk_size() {
+  local default_size="${1:-8G}"
+  local size
+  size=$(prompt_input "Set Disk Size in GiB (e.g., 10, 20 or 20G)" "$default_size" 60)
+  size="${size// /}"
+  if [[ "$size" =~ ^[0-9]+$ ]]; then size="${size}G"; fi
+  [[ "$size" =~ ^[0-9]+G$ ]] || size="$default_size"
+  DISK_SIZE="$size"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
+}
+
+vm_prompt_disk_cache() {
+  DISK_CACHE=""
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
+}
+
+vm_prompt_hostname() {
+  local default_hostname="${1:-vm}"
+  local in
+  in=$(prompt_input "Set Hostname" "$default_hostname" 60)
+  HN=$(sanitize_vm_hostname "${in:-$default_hostname}")
+  echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
+}
+
+vm_prompt_cpu_model() {
+  local default_model="${1:-host}"
+  CPU_TYPE=$(prompt_select "CPU Model" "2" 60 "kvm64" "host")
+  [[ -z "${CPU_TYPE:-}" ]] && CPU_TYPE="$default_model"
+  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}${CPU_TYPE}${CL}"
+}
+
+vm_prompt_cpu_cores() {
+  local default_cores="${1:-2}"
+  CORE_COUNT=$(prompt_input "Allocate CPU Cores" "$default_cores" 60)
+  [[ "$CORE_COUNT" =~ ^[1-9][0-9]*$ ]] || CORE_COUNT="$default_cores"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+}
+
+vm_prompt_ram() {
+  local default_ram="${1:-2048}"
+  RAM_SIZE=$(prompt_input "Allocate RAM in MiB" "$default_ram" 60)
+  [[ "$RAM_SIZE" =~ ^[1-9][0-9]*$ ]] || RAM_SIZE="$default_ram"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
+}
+
+vm_prompt_bridge() {
+  local default_bridge="${1:-incusbr0}"
+  BRG=$(prompt_input "Set Network Bridge" "$default_bridge" 60)
+  [[ -z "${BRG:-}" ]] && BRG="$default_bridge"
+  echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
+}
+
+vm_prompt_mac() {
+  local default_mac="${1:-}"
+  MAC=$(prompt_input "Set MAC Address (empty=auto)" "$default_mac" 60)
+  echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC:-auto}${CL}"
+}
+
+vm_prompt_vlan() {
+  VLAN=$(prompt_input "Set VLAN Tag (empty=none)" "${VLAN:-}" 60)
+  echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}${VLAN:-Default}${CL}"
+}
+
+vm_prompt_mtu() {
+  MTU=$(prompt_input "Set Interface MTU (empty=default)" "${MTU:-}" 60)
+  echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}${MTU:-Default}${CL}"
+}
+
+vm_prompt_start_vm() {
+  local default_start="${1:-yes}"
+  if prompt_confirm "Start VM when completed?" "$([[ "$default_start" == "yes" ]] && echo y || echo n)" 60; then
+    START_VM="yes"
+  else
+    START_VM="no"
+  fi
+  echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
+}
+
+vm_select_storage() {
+  local default_name="${1:-vm}"
+  local pools
+  pools=$(incus_get_storage_pools | sed '/^\s*$/d')
+  if [[ -z "$pools" ]]; then
+    fatal "No Incus storage pools available"
+  fi
+  local first
+  first=$(echo "$pools" | head -1)
+  local selected="$first"
+  while IFS= read -r p; do
+    [[ -z "$p" ]] && continue
+    if prompt_confirm "Use storage pool '$p'?" "$([[ "$p" == "$first" ]] && echo y || echo n)" 15; then
+      selected="$p"
+      break
+    fi
+  done <<<"$pools"
+  STORAGE="$selected"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Storage: ${BGN}${STORAGE}${CL}"
+}
+
+vm_define_disk_references() { :; }
+vm_apply_storage_layout() { :; }
+check_hostname_conflict() { :; }
+set_description() { :; }
+cleanup_vmid() { :; }
+cleanup() { :; }
+
+post_to_api_vm() { :; }
+post_update_to_api() { :; }
+
+incus_vm_create() {
+  local image="${1:-images:ubuntu/26.04}"
+  local vm_name="${2:-$HN}"
+  local disk_size="${3:-7G}"
+
+  msg_info "Creating VM ${vm_name}"
+  local disk_gib="${disk_size%G}"
+  local args=()
+  args+=("--vm")
+  args+=("--config" "limits.cpu=${CORE_COUNT:-2}")
+  args+=("--config" "limits.memory=${RAM_SIZE:-2048}MiB")
+  args+=("--network" "${BRG:-incusbr0}")
+  args+=("--storage" "${STORAGE:-default}")
+  args+=("--device" "root,size=${disk_gib}GiB")
+
+  incus launch "$image" "$vm_name" "${args[@]}" >/dev/null
+
+  [[ -n "${MAC:-}" ]] && incus config device set "$vm_name" eth0 hwaddr "$MAC" >/dev/null 2>&1 || true
+  [[ -n "${VLAN:-}" ]] && incus config device set "$vm_name" eth0 vlan "$VLAN" >/dev/null 2>&1 || true
+  [[ -n "${MTU:-}" ]] && incus config device set "$vm_name" eth0 mtu "$MTU" >/dev/null 2>&1 || true
+
+  if [[ "${USE_CLOUD_INIT:-no}" == "yes" ]]; then
+    local cloud_user="${CLOUDINIT_USER:-ubuntu}"
+    local dns="${CLOUDINIT_DNS:-1.1.1.1 8.8.8.8}"
+    local user_data
+    user_data=$(cat <<EOF
+#cloud-config
+hostname: ${HN}
+manage_etc_hosts: true
+users:
+  - name: ${cloud_user}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+EOF
+)
+    incus config set "$vm_name" cloud-init.user-data "$user_data" >/dev/null
+    if [[ "${CLOUDINIT_NETWORK_MODE:-dhcp}" == "static" && -n "${CLOUDINIT_IP:-}" && -n "${CLOUDINIT_GW:-}" ]]; then
+      local net_data
+      net_data=$(cat <<EOF
+version: 2
+ethernets:
+  eth0:
+    dhcp4: false
+    addresses: [${CLOUDINIT_IP}]
+    gateway4: ${CLOUDINIT_GW}
+    nameservers:
+      addresses: [${dns// /, }]
+EOF
+)
+      incus config set "$vm_name" cloud-init.network-config "$net_data" >/dev/null
+    fi
+    incus config device add "$vm_name" cloudinit disk source=cloud-init:config >/dev/null 2>&1 || true
+  fi
+
+  if [[ "${START_VM:-yes}" == "no" ]]; then
+    incus stop "$vm_name" --force >/dev/null 2>&1 || true
+  fi
+  msg_ok "Created VM ${vm_name}"
+}

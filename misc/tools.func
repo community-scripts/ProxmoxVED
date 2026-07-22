@@ -209,59 +209,48 @@ download_gpg_key() {
   local url="$1"
   local output="$2"
   local mode="${3:-auto}" # auto, dearmor, or binary
-  local retries="${CURL_RETRIES:-3}"
-  local timeout="${CURL_TIMEOUT:-30}"
   local temp_key
   temp_key=$(mktemp)
 
   mkdir -p "$(dirname "$output")"
 
-  local attempt=1
-  while [[ $attempt -le $retries ]]; do
-    debug_log "GPG key download attempt $attempt/$retries: $url"
+  # Download to temp file using curl_with_retry
+  if ! curl_with_retry "$url" "$temp_key"; then
+    rm -f "$temp_key"
+    debug_log "GPG key download FAILED: $url"
+    return 7
+  fi
 
-    # Download to temp file first
-    if ! curl -fsSL --connect-timeout 10 --max-time "$timeout" -o "$temp_key" "$url" 2>/dev/null; then
-      debug_log "GPG key download attempt $attempt failed, waiting ${attempt}s..."
-      sleep "$attempt"
-      ((attempt++))
-      continue
-    fi
-
-    # Auto-detect key format if mode is auto
-    if [[ "$mode" == "auto" ]]; then
-      if file "$temp_key" 2>/dev/null | grep -qi "pgp\\|gpg\\|public key"; then
-        mode="binary"
-      elif grep -q "BEGIN PGP" "$temp_key" 2>/dev/null; then
-        mode="dearmor"
-      else
-        # Try to detect by extension
-        [[ "$url" == *.asc || "$url" == *.txt ]] && mode="dearmor" || mode="binary"
-      fi
-    fi
-
-    # Process based on mode
-    if [[ "$mode" == "dearmor" ]]; then
-      if gpg --dearmor --yes -o "$output" <"$temp_key" 2>/dev/null && [[ -s "$output" ]]; then
-        rm -f "$temp_key"
-        debug_log "GPG key installed (dearmored): $output"
-        return 0
-      fi
+  # Auto-detect key format if mode is auto
+  if [[ "$mode" == "auto" ]]; then
+    if file "$temp_key" 2>/dev/null | grep -qi "pgp\\|gpg\\|public key"; then
+      mode="binary"
+    elif grep -q "BEGIN PGP" "$temp_key" 2>/dev/null; then
+      mode="dearmor"
     else
-      if mv "$temp_key" "$output" 2>/dev/null; then
-        chmod 644 "$output"
-        debug_log "GPG key installed: $output"
-        return 0
-      fi
+      # Try to detect by extension
+      [[ "$url" == *.asc || "$url" == *.txt ]] && mode="dearmor" || mode="binary"
     fi
+  fi
 
-    debug_log "GPG key processing attempt $attempt failed"
-    sleep "$attempt"
-    ((attempt++))
-  done
+  # Process based on mode
+  if [[ "$mode" == "dearmor" ]]; then
+    if gpg --dearmor --yes -o "$output" <"$temp_key" 2>/dev/null && [[ -s "$output" ]]; then
+      rm -f "$temp_key"
+      chmod 644 "$output"
+      debug_log "GPG key installed (dearmored): $output"
+      return 0
+    fi
+  else
+    if mv "$temp_key" "$output" 2>/dev/null; then
+      chmod 644 "$output"
+      debug_log "GPG key installed: $output"
+      return 0
+    fi
+  fi
 
   rm -f "$temp_key"
-  debug_log "GPG key download FAILED after $retries attempts: $url"
+  debug_log "GPG key processing FAILED: $url"
   return 7
 }
 
@@ -529,8 +518,26 @@ upgrade_packages_with_retry() {
 
 # ------------------------------------------------------------------------------
 # Check if tool is already installed and optionally verify exact version
-# Returns: 0 if installed (with optional version match), 1 if not installed
-# Usage: is_tool_installed "mariadb" "11.4" || echo "Not installed"
+#
+# Usage:
+#   # Check if tool is installed (any version)
+#   if version=$(is_tool_installed "nodejs"); then
+#     echo "Node.js $version is installed"
+#   fi
+#
+#   # Check if a specific version is installed
+#   if version=$(is_tool_installed "mariadb" "11.4"); then
+#     echo "MariaDB 11.4 is installed"
+#   fi
+#
+# Returns: 0 if installed (installed_version echoed to stdout)
+#          1 if not installed (nothing on stdout)
+#          2 if installed but version mismatch (installed_version echoed to stdout)
+#
+# Note: Always check the exit code, NOT stdout alone!
+#       - return 0 + version on stdout = installed (with optional version match)
+#       - return 2 + version on stdout = installed but version mismatch
+#       - return 1 + nothing on stdout = not installed
 # ------------------------------------------------------------------------------
 is_tool_installed() {
   local tool_name="$1"
@@ -590,17 +597,20 @@ is_tool_installed() {
     ;;
   esac
 
+  # Not installed
   if [[ -z "$installed_version" ]]; then
-    return 1 # Not installed
+    return 1
   fi
 
+  # Installed but version doesn't match (if a specific version was requested)
   if [[ -n "$required_version" && "$installed_version" != "$required_version" ]]; then
     echo "$installed_version"
-    return 1 # Version mismatch
+    return 2
   fi
 
+  # Installed (and version matches, if specified)
   echo "$installed_version"
-  return 0 # Installed and version matches (if specified)
+  return 0
 }
 
 # ------------------------------------------------------------------------------
@@ -912,6 +922,42 @@ Suites: $distro_codename-pgdg
 Components: main
 Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/postgresql.gpg
+EOF
+    return 0
+    ;;
+
+  mysql)
+    if [[ -z "$repo_url" || -z "$gpg_key_url" ]]; then
+      msg_error "MySQL repository requires repo_url and gpg_key_url"
+      return 65
+    fi
+
+    cleanup_old_repo_files "mysql"
+
+    if ! download_gpg_key "$gpg_key_url" "/etc/apt/keyrings/mysql.gpg" "dearmor"; then
+      msg_error "Failed to import MySQL GPG key"
+      return 7
+    fi
+    chmod 644 "/etc/apt/keyrings/mysql.gpg"
+
+    local distro_codename
+    distro_codename=$(get_os_info codename)
+    suite=$(get_fallback_suite "$distro_id" "$distro_codename" "$repo_url")
+
+    # Map version to MySQL apt component name
+    local component
+    case "$version" in
+    8.4*) component="mysql-8.4-lts" ;;
+    *) component="mysql-${version}" ;;
+    esac
+
+    cat <<EOF >/etc/apt/sources.list.d/mysql.sources
+Types: deb
+URIs: ${repo_url}
+Suites: ${suite}
+Components: ${component}
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/mysql.gpg
 EOF
     return 0
     ;;
@@ -5979,7 +6025,6 @@ _setup_gpu_permissions() {
 #   - Requires: build-essential, libtool, libjpeg-dev, libpng-dev, etc.
 # ------------------------------------------------------------------------------
 setup_imagemagick() {
-  local TMP_DIR=$(mktemp -d)
   local BINARY_PATH="/usr/local/bin/magick"
 
   # Get currently installed version
@@ -6010,51 +6055,39 @@ setup_imagemagick() {
     pkg-config \
     ghostscript
 
-  if ! CURL_TIMEOUT=180 curl_with_retry "https://imagemagick.org/archive/ImageMagick.tar.gz" "$TMP_DIR/ImageMagick.tar.gz"; then
-    msg_error "Failed to download ImageMagick"
-    msg_error "Hint: Check connectivity to imagemagick.org/archive"
-    rm -rf "$TMP_DIR"
+  # Fetch and deploy source tarball from GitHub Releases
+  fetch_and_deploy_gh_release "imagemagick" "ImageMagick/ImageMagick" "tarball" || {
+    msg_error "Failed to download ImageMagick source from GitHub"
+    msg_error "Hint: Check connectivity to github.com/ImageMagick/ImageMagick"
     return 250
-  fi
-
-  tar -xzf "$TMP_DIR/ImageMagick.tar.gz" -C "$TMP_DIR" || {
-    msg_error "Failed to extract ImageMagick"
-    rm -rf "$TMP_DIR"
-    return 251
   }
 
-  cd "$TMP_DIR"/ImageMagick-* || {
-    msg_error "Source extraction failed"
-    rm -rf "$TMP_DIR"
+  cd /opt/imagemagick || {
+    msg_error "Failed to enter ImageMagick source directory"
     return 251
   }
 
   $STD ./configure --disable-static || {
     msg_error "ImageMagick configure failed"
-    rm -rf "$TMP_DIR"
     return 150
   }
   $STD make -j"$(nproc)" || {
     msg_error "ImageMagick compilation failed"
-    rm -rf "$TMP_DIR"
     return 150
   }
   $STD make install || {
     msg_error "ImageMagick installation failed"
-    rm -rf "$TMP_DIR"
     return 150
   }
   $STD ldconfig /usr/local/lib
 
   if [[ ! -x "$BINARY_PATH" ]]; then
     msg_error "ImageMagick installation failed"
-    rm -rf "$TMP_DIR"
     return 150
   fi
 
   local FINAL_VERSION
   FINAL_VERSION=$("$BINARY_PATH" -version | awk '/^Version/ {print $3}')
-  rm -rf "$TMP_DIR"
   cache_installed_version "imagemagick" "$FINAL_VERSION"
   ensure_usr_local_bin_persist
 
@@ -7000,6 +7033,18 @@ setup_mongodb() {
   mkdir -p /var/lib/mongodb
   chown -R mongodb:mongodb /var/lib/mongodb
 
+  local KERNEL_VERSION MONGO_MAJOR
+  KERNEL_VERSION=$(uname -r | cut -d- -f1)
+  MONGO_MAJOR="${MONGO_VERSION%%.*}"
+  if ((MONGO_MAJOR >= 8)) && [[ "$(printf '%s\n' "6.19" "$KERNEL_VERSION" | sort -V | head -n1)" == "6.19" ]]; then
+    mkdir -p /etc/systemd/system/mongod.service.d
+    cat <<EOF >/etc/systemd/system/mongod.service.d/rseq.conf
+[Service]
+Environment=GLIBC_TUNABLES=glibc.pthread.rseq=1
+EOF
+    systemctl daemon-reload
+  fi
+
   $STD systemctl enable mongod || {
     msg_warn "Failed to enable mongod service"
   }
@@ -7251,9 +7296,33 @@ EOF
 #   NODE_MODULE    - Comma-separated list of global modules (e.g. "yarn,@vue/cli@5.0.0")
 # ------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------
+# Installs Node.js and optional global modules.
+#
+# Description:
+#   - Installs specified Node.js version using NodeSource APT repo
+#   - Optionally installs or updates global npm modules
+#
+# Variables:
+#   NODE_VERSION          - Node.js version to install (default: 24 LTS)
+#   NODE_MODULE           - Comma-separated global modules (e.g. "yarn,corepack,pnpm@10")
+#   NODE_COREPACK_ENABLE  - Run corepack enable after install (default: 1 when corepack is used)
+# ------------------------------------------------------------------------------
+
 setup_nodejs() {
   local NODE_VERSION="${NODE_VERSION:-24}"
   local NODE_MODULE="${NODE_MODULE:-}"
+  local NODE_COREPACK_ENABLE="${NODE_COREPACK_ENABLE:-1}"
+  local node_major="${NODE_VERSION%%.*}"
+  local wants_corepack=0
+  local node_setup_ok_msg=""
+
+  # Corepack must run fully non-interactive. Without this it prints
+  # "Corepack is about to download X. Do you want to continue? [Y/n]" and blocks
+  # the whole install waiting for keyboard input - both here and in the calling
+  # script's later `corepack prepare` / `corepack <pm>` calls, which run in this
+  # same shell and inherit the export.
+  export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
   # ALWAYS clean up legacy installations first (nvm, etc.) to prevent conflicts
   cleanup_legacy_install "nodejs"
@@ -7280,18 +7349,17 @@ setup_nodejs() {
     # Upgrade to the latest minor/patch release from NodeSource
     $STD apt-get install -y --only-upgrade nodejs 2>/dev/null || true
 
-    # Pin npm to 11.11.0 to work around Node.js 22.22.2 regression (nodejs/node#62425)
-    $STD npm install -g npm@11.11.0 2>/dev/null || true
-
     cache_installed_version "nodejs" "$NODE_VERSION"
     msg_ok "Update Node.js $NODE_VERSION"
   else
     # Scenario 2: Different version installed - clean upgrade
     if [[ -n "$CURRENT_NODE_VERSION" && "$CURRENT_NODE_VERSION" != "$NODE_VERSION" ]]; then
       msg_info "Upgrade Node.js from $CURRENT_NODE_VERSION to $NODE_VERSION"
+      node_setup_ok_msg="Upgrade Node.js to $NODE_VERSION"
       remove_old_tool_version "nodejs"
     else
       msg_info "Setup Node.js $NODE_VERSION"
+      node_setup_ok_msg="Setup Node.js $NODE_VERSION"
     fi
 
     # Remove ALL Debian nodejs packages BEFORE adding NodeSource repo
@@ -7300,6 +7368,7 @@ setup_nodejs() {
       $STD apt purge -y nodejs nodejs-doc libnode* node-* 2>/dev/null || true
       $STD apt autoremove -y 2>/dev/null || true
       $STD apt clean 2>/dev/null || true
+      msg_ok "Removed Debian-packaged Node.js"
     fi
 
     # Remove any APT pinning (not needed)
@@ -7345,17 +7414,19 @@ setup_nodejs() {
       return 127
     fi
 
-    # Pin npm to 11.11.0 to work around Node.js 22.22.2 regression (nodejs/node#62425)
-    local NPM_VERSION
-    NPM_VERSION=$(npm -v 2>/dev/null || echo "0")
-    if [[ "$NPM_VERSION" != "0" ]]; then
-      $STD npm install -g npm@11.11.0 2>/dev/null || {
-        msg_warn "Failed to update npm to 11.11.0 (continuing with bundled npm $NPM_VERSION)"
-      }
-    fi
-
     cache_installed_version "nodejs" "$NODE_VERSION"
-    msg_ok "Setup Node.js $NODE_VERSION"
+    msg_ok "$node_setup_ok_msg"
+  fi
+
+  # Node 22.22.2 bundles npm 10.9.7 which cannot self-upgrade (nodejs/node#62425)
+  if [[ "$NODE_VERSION" == "22" && "$(npm -v 2>/dev/null)" == "10.9.7" ]]; then
+    msg_info "Updating npm (Node 22 regression fix)"
+    $STD npm install -g npm@10.9.8 2>/dev/null || true
+    if $STD npm install -g npm@latest 2>/dev/null; then
+      msg_ok "Updated npm ($(npm -v))"
+    else
+      msg_warn "npm update failed on Node 22.22.2"
+    fi
   fi
 
   # Set a safe default heap limit for Node.js builds if not explicitly provided.
@@ -7400,18 +7471,55 @@ setup_nodejs() {
   }
 
   # Install global Node modules
-  if [[ -n "$NODE_MODULE" ]]; then
+  if [[ -n "$NODE_MODULE" ]] || ((node_major >= 25)); then
+    if ((node_major >= 25)) && [[ ",${NODE_MODULE}," != *",corepack,"* ]] && [[ "$NODE_MODULE" != corepack* ]]; then
+      NODE_MODULE="${NODE_MODULE:+$NODE_MODULE,}corepack"
+    fi
+
     IFS=',' read -ra MODULES <<<"$NODE_MODULE"
 
-    # Pin pnpm to v10 to avoid breaking changes from newer major versions
+    local corepack_spec="corepack@latest"
     for i in "${!MODULES[@]}"; do
-      if [[ "${MODULES[$i]}" =~ ^pnpm(@.*)?$ ]]; then
+      if [[ "${MODULES[$i]}" == "corepack" || "${MODULES[$i]}" == corepack@* ]]; then
+        wants_corepack=1
+        [[ "${MODULES[$i]}" == corepack@* ]] && corepack_spec="${MODULES[$i]}"
+      fi
+      if [[ "${MODULES[$i]}" == "pnpm" ]]; then
         MODULES[$i]="pnpm@^10"
       fi
     done
 
+    # When corepack is requested, install and enable it FIRST. The corepack npm
+    # package owns the global yarn/pnpm/pnpx/yarnpkg bin shims, so a second
+    # `npm install -g yarn`/`pnpm` collides on /usr/bin/<tool> (EEXIST). With
+    # corepack ready we provision those package managers THROUGH corepack instead.
+    local corepack_ready=0
+    if ((wants_corepack)); then
+      msg_info "Installing corepack"
+      if $STD npm install -g "$corepack_spec" 2>/dev/null ||
+        $STD npm install -g --force "$corepack_spec" 2>/dev/null; then
+        msg_ok "Installed corepack"
+      else
+        msg_warn "Failed to install corepack"
+      fi
+      if [[ "$NODE_COREPACK_ENABLE" == "1" ]] && command -v corepack >/dev/null 2>&1; then
+        msg_info "Enabling corepack"
+        if $STD corepack enable 2>/dev/null; then
+          corepack_ready=1
+          msg_ok "Enabled corepack"
+        else
+          msg_warn "corepack enable failed"
+        fi
+      fi
+    fi
+
     local failed_modules=0
     for mod in "${MODULES[@]}"; do
+      # corepack itself is already handled above
+      if [[ "$mod" == "corepack" || "$mod" == corepack@* ]]; then
+        continue
+      fi
+
       local MODULE_NAME MODULE_REQ_VERSION MODULE_INSTALLED_VERSION
       if [[ "$mod" == @*/*@* ]]; then
         # Scoped package with version, e.g. @vue/cli-service@latest
@@ -7427,38 +7535,78 @@ setup_nodejs() {
         MODULE_REQ_VERSION="latest"
       fi
 
+      # Provision pnpm/yarn through corepack when it is active, so we never fight
+      # corepack over the /usr/bin/{yarn,pnpm} shim locations it owns.
+      if ((corepack_ready)) && [[ "$MODULE_NAME" == "pnpm" || "$MODULE_NAME" == "yarn" ]]; then
+        local corepack_pkg="$MODULE_NAME"
+        [[ "$MODULE_REQ_VERSION" != "latest" ]] && corepack_pkg="${MODULE_NAME}@${MODULE_REQ_VERSION}"
+        msg_info "Provisioning $MODULE_NAME via corepack"
+        if $STD corepack prepare "$corepack_pkg" --activate 2>/dev/null || command -v "$MODULE_NAME" >/dev/null 2>&1; then
+          msg_ok "Provisioned $MODULE_NAME via corepack"
+        else
+          msg_warn "Failed to provision $MODULE_NAME via corepack"
+          ((failed_modules++)) || true
+        fi
+        continue
+      fi
+
+      # For the npm-global path, drop any corepack-provided shim first so the
+      # bin link can be created without an EEXIST collision.
+      if [[ "$MODULE_NAME" == "pnpm" || "$MODULE_NAME" == "yarn" || "$MODULE_NAME" == "yarnpkg" ]]; then
+        rm -f /usr/bin/"$MODULE_NAME" /usr/local/bin/"$MODULE_NAME" 2>/dev/null || true
+      fi
+
       # Check if the module is already installed
       if $STD npm list -g --depth=0 "$MODULE_NAME" 2>&1 | grep -q "$MODULE_NAME@"; then
         MODULE_INSTALLED_VERSION="$(npm list -g --depth=0 "$MODULE_NAME" 2>&1 | grep "$MODULE_NAME@" | awk -F@ '{print $2}' 2>/dev/null | tr -d '[:space:]' || echo '')"
         if [[ "$MODULE_REQ_VERSION" != "latest" && "$MODULE_REQ_VERSION" != "$MODULE_INSTALLED_VERSION" ]]; then
-          msg_info "Updating $MODULE_NAME from v$MODULE_INSTALLED_VERSION to v$MODULE_REQ_VERSION"
-          if ! $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}" 2>/dev/null; then
+          msg_info "Updating $MODULE_NAME to v$MODULE_REQ_VERSION"
+          # Retry with --force to overwrite corepack-provided shims (pnpm/yarn), which now
+          # ship with recent corepack and cause EEXIST on /usr/bin/<tool>
+          if $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}" 2>/dev/null ||
+            $STD npm install -g --force "${MODULE_NAME}@${MODULE_REQ_VERSION}" 2>/dev/null; then
+            msg_ok "Updated $MODULE_NAME"
+          else
             msg_warn "Failed to update $MODULE_NAME to version $MODULE_REQ_VERSION"
             ((failed_modules++)) || true
-            continue
           fi
         elif [[ "$MODULE_REQ_VERSION" == "latest" ]]; then
           msg_info "Updating $MODULE_NAME to latest version"
-          if ! $STD npm install -g "${MODULE_NAME}@latest" 2>/dev/null; then
+          if $STD npm install -g "${MODULE_NAME}@latest" 2>/dev/null ||
+            $STD npm install -g --force "${MODULE_NAME}@latest" 2>/dev/null; then
+            msg_ok "Updated $MODULE_NAME"
+          else
             msg_warn "Failed to update $MODULE_NAME to latest version"
             ((failed_modules++)) || true
-            continue
           fi
         fi
       else
         msg_info "Installing $MODULE_NAME@$MODULE_REQ_VERSION"
-        if ! $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}" 2>/dev/null; then
+        # Retry with --force to overwrite corepack-provided shims (pnpm/yarn), which now
+        # ship with recent corepack and cause EEXIST on /usr/bin/<tool>
+        if $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}" 2>/dev/null ||
+          $STD npm install -g --force "${MODULE_NAME}@${MODULE_REQ_VERSION}" 2>/dev/null; then
+          msg_ok "Installed $MODULE_NAME"
+        else
           msg_warn "Failed to install $MODULE_NAME@$MODULE_REQ_VERSION"
           ((failed_modules++)) || true
-          continue
         fi
       fi
     done
-    if [[ $failed_modules -eq 0 ]]; then
-      msg_ok "Installed Node.js modules: $NODE_MODULE"
-    else
-      msg_warn "Installed Node.js modules with $failed_modules failure(s): $NODE_MODULE"
+    if ((failed_modules > 0)); then
+      msg_warn "$failed_modules Node.js module(s) failed: $NODE_MODULE"
     fi
+  fi
+
+  # pnpm v10+ blocks dependency build scripts by default. Do NOT force
+  # `dangerouslyAllowAllBuilds` globally: pnpm implements that flag as an empty
+  # `neverBuiltDependencies`, which then clashes with any project that ships its
+  # own `onlyBuiltDependencies` (every create-t3-app based app, e.g. Split Pro)
+  # and aborts with ERR_PNPM_CONFIG_CONFLICT_BUILT_DEPENDENCIES. Instead relax the
+  # strict check so an unapproved build is a warning, not a fatal error; scripts
+  # that truly need every build script executed enable that themselves.
+  if command -v pnpm >/dev/null 2>&1; then
+    pnpm config set --global strictDepBuilds false >/dev/null 2>&1 || true
   fi
 }
 
@@ -8168,7 +8316,25 @@ setup_ruby() {
   local RBENV_DIR="$HOME/.rbenv"
   local RBENV_BIN="$RBENV_DIR/bin/rbenv"
   local PROFILE_FILE="$HOME/.profile"
+  local BASH_PROFILE_FILE="$HOME/.bash_profile"
+  local BASHRC_FILE="$HOME/.bashrc"
   local TMP_DIR=$(mktemp -d)
+
+  if ! grep -q 'rbenv init' "$PROFILE_FILE" 2>/dev/null; then
+    cat <<'EOF' >>"$PROFILE_FILE"
+export PATH="$HOME/.rbenv/bin:$PATH"
+eval "$(rbenv init -)"
+EOF
+  fi
+  if ! grep -q '.rbenv/shims' "$PROFILE_FILE" 2>/dev/null; then
+    echo 'export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"' >>"$PROFILE_FILE"
+  fi
+  if [[ -f "$BASH_PROFILE_FILE" ]] && ! grep -q '.rbenv/shims' "$BASH_PROFILE_FILE"; then
+    echo 'export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"' >>"$BASH_PROFILE_FILE"
+  fi
+  if [[ -f "$BASHRC_FILE" ]] && ! grep -q '.rbenv/shims' "$BASHRC_FILE"; then
+    echo 'export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"' >>"$BASHRC_FILE"
+  fi
 
   # Get currently installed Ruby version
   local CURRENT_RUBY_VERSION=""
@@ -8267,11 +8433,6 @@ setup_ruby() {
       return 150
     }
 
-    # Setup profile
-    if ! grep -q 'rbenv init' "$PROFILE_FILE" 2>/dev/null; then
-      echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >>"$PROFILE_FILE"
-      echo 'eval "$(rbenv init -)"' >>"$PROFILE_FILE"
-    fi
   fi
 
   # Install ruby-build plugin
@@ -8902,10 +9063,12 @@ EOF
 # ------------------------------------------------------------------------------
 # Get latest GitLab release version.
 # Usage: get_latest_gitlab_release "owner/repo" [strip_v]
+# Set GITLAB_URL to use a self-hosted GitLab instance.
 # ------------------------------------------------------------------------------
 get_latest_gitlab_release() {
   local repo="$1"
   local strip_v="${2:-true}"
+  local gitlab_url="${GITLAB_URL:-https://gitlab.com}"
 
   local repo_encoded
   repo_encoded=$(printf '%s' "$repo" | sed 's|/|%2F|g')
@@ -8920,7 +9083,7 @@ get_latest_gitlab_release() {
   http_code=$(curl --connect-timeout 10 --max-time 30 -sSL \
     -w "%{http_code}" -o "$temp_file" \
     "${header[@]}" \
-    "https://gitlab.com/api/v4/projects/$repo_encoded/releases?per_page=1&order_by=released_at&sort=desc" 2>/dev/null) || true
+    "$gitlab_url/api/v4/projects/$repo_encoded/releases?per_page=1&order_by=released_at&sort=desc" 2>/dev/null) || true
 
   if [[ "$http_code" != "200" ]]; then
     rm -f "$temp_file"
@@ -8971,12 +9134,16 @@ check_for_gl_release() {
   local pin_reason="${4:-}"        # optional reason shown to user
   local app_lc="${app,,}"
   local current_file="$HOME/.${app_lc}"
+  local gitlab_url="${GITLAB_URL:-https://gitlab.com}"
+  local gitlab_host="${gitlab_url#https://}"
+  gitlab_host="${gitlab_host#http://}"
+  gitlab_host="${gitlab_host%%/*}"
 
   msg_info "Checking for update: ${app}"
 
   # DNS check
-  if ! getent hosts gitlab.com >/dev/null 2>&1; then
-    msg_error "Network error: cannot resolve gitlab.com"
+  if ! getent hosts "$gitlab_host" >/dev/null 2>&1; then
+    msg_error "Network error: cannot resolve ${gitlab_host}"
     return 6
   fi
 
@@ -8995,7 +9162,7 @@ check_for_gl_release() {
     local pinned_encoded="${pinned_version_in//\//%2F}"
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o /tmp/gl_check.json \
       "${header[@]}" \
-      "https://gitlab.com/api/v4/projects/$repo_encoded/releases/$pinned_encoded" 2>/dev/null) || true
+      "$gitlab_url/api/v4/projects/$repo_encoded/releases/$pinned_encoded" 2>/dev/null) || true
     if [[ "$http_code" == "200" ]] && [[ -s /tmp/gl_check.json ]]; then
       releases_json="[$(</tmp/gl_check.json)]"
     fi
@@ -9006,7 +9173,7 @@ check_for_gl_release() {
   if [[ -z "$releases_json" ]]; then
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o /tmp/gl_check.json \
       "${header[@]}" \
-      "https://gitlab.com/api/v4/projects/$repo_encoded/releases?per_page=100&order_by=released_at&sort=desc" 2>/dev/null) || true
+      "$gitlab_url/api/v4/projects/$repo_encoded/releases?per_page=100&order_by=released_at&sort=desc" 2>/dev/null) || true
 
     if [[ "$http_code" == "200" ]] && [[ -s /tmp/gl_check.json ]]; then
       releases_json=$(</tmp/gl_check.json)
@@ -9030,7 +9197,7 @@ check_for_gl_release() {
       return 22
     elif [[ "$http_code" == "000" || -z "$http_code" ]]; then
       msg_error "GitLab API connection failed (no response)."
-      msg_error "Check your network/DNS: curl -sSL https://gitlab.com/api/v4/version"
+      msg_error "Check your network/DNS: curl -sSL ${gitlab_url}/api/v4/version"
       rm -f /tmp/gl_check.json
       return 7
     else
@@ -9238,6 +9405,7 @@ fetch_and_deploy_gl_release() {
   local version="${var_appversion:-${4:-latest}}"
   local target="${5:-/opt/$app}"
   local asset_pattern="${6:-}"
+  local gitlab_url="${GITLAB_URL:-https://gitlab.com}"
 
   if [[ -z "$app" ]]; then
     app="${repo##*/}"
@@ -9261,7 +9429,7 @@ fetch_and_deploy_gl_release() {
   local repo_encoded
   repo_encoded=$(printf '%s' "$repo" | sed 's|/|%2F|g')
 
-  local api_base="https://gitlab.com/api/v4/projects/$repo_encoded/releases"
+  local api_base="$gitlab_url/api/v4/projects/$repo_encoded/releases"
   local api_url
   if [[ "$version" != "latest" ]]; then
     api_url="$api_base/$version"
@@ -9308,7 +9476,7 @@ fetch_and_deploy_gl_release() {
       msg_error "  export GITLAB_TOKEN=\"glpat-your_token_here\""
     elif [[ "$http_code" == "000" || -z "$http_code" ]]; then
       msg_error "GitLab API connection failed (no response)."
-      msg_error "Check your network/DNS: curl -sSL https://gitlab.com/api/v4/version"
+      msg_error "Check your network/DNS: curl -sSL ${gitlab_url}/api/v4/version"
     else
       msg_error "Failed to fetch release metadata (HTTP $http_code)"
     fi
@@ -9354,7 +9522,7 @@ fetch_and_deploy_gl_release() {
 
   ### Tarball Mode ###
   if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
-    local direct_tarball_url="https://gitlab.com/$repo/-/archive/$tag_name/${app_lc}-${version_safe}.tar.gz"
+    local direct_tarball_url="$gitlab_url/$repo/-/archive/$tag_name/${app_lc}-${version_safe}.tar.gz"
     filename="${app_lc}-${version_safe}.tar.gz"
 
     curl $download_timeout -fsSL "${header[@]}" -o "$tmpdir/$filename" "$direct_tarball_url" || {
@@ -9418,7 +9586,7 @@ fetch_and_deploy_gl_release() {
 
     if [[ -z "$url_match" ]]; then
       local fallback_json
-      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "https://gitlab.com" "binary" "$asset_pattern" "$tag_name"); then
+      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "$gitlab_url" "binary" "$asset_pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // empty')
         [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
@@ -9494,7 +9662,7 @@ fetch_and_deploy_gl_release() {
 
     if [[ -z "$asset_url" ]]; then
       local fallback_json
-      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "https://gitlab.com" "prebuild" "$pattern" "$tag_name"); then
+      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "$gitlab_url" "prebuild" "$pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // empty')
         [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
@@ -9605,7 +9773,7 @@ fetch_and_deploy_gl_release() {
 
     if [[ -z "$asset_url" ]]; then
       local fallback_json
-      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "https://gitlab.com" "singlefile" "$pattern" "$tag_name"); then
+      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "$gitlab_url" "singlefile" "$pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // empty')
         [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"

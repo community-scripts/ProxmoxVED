@@ -51,6 +51,10 @@ msg_info "Building Core Libraries (Patience)"
 source "$HOME/.cargo/env"
 $STD rustup target add wasm32-unknown-unknown
 cd /opt/aliasvault/core
+# Upstream ships year-hardcoded tests (AgeRangeConverter) that fail after 2025-12-31
+# and abort the build via `set -e` + `npm run test && npm run build`. Strip the
+# test step from per-package build.sh so the actual build always runs.
+find /opt/aliasvault/core -name build.sh -exec sed -i 's/npm run test &&[[:space:]]*//g' {} +
 $STD bash build-and-distribute.sh --browser
 msg_ok "Built Core Libraries"
 
@@ -60,11 +64,9 @@ cp /opt/aliasvault/core/rust/dist/wasm/aliasvault_core_bg.wasm \
   /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
 cp /opt/aliasvault/core/rust/dist/wasm/aliasvault_core.js \
   /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
-mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/{identity-generator,password-generator,vault}
+mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/{identity-generator,vault}
 cp -r /opt/aliasvault/core/typescript/identity-generator/dist/. \
   /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/identity-generator/
-cp -r /opt/aliasvault/core/typescript/password-generator/dist/. \
-  /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/password-generator/
 cp -r /opt/aliasvault/core/vault/dist/. \
   /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/vault/
 msg_ok "Copied Core Artifacts"

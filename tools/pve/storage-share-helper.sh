@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: GitHub Copilot
+# Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
 set -eEuo pipefail
@@ -277,7 +276,7 @@ find_next_mp_slot() {
 
   used=$(pct config "$ctid" | awk -F: '/^mp[0-9]+:/ {gsub("mp", "", $1); print $1}')
   for i in $(seq 0 255); do
-    if ! grep -qx "$i" <<< "$used"; then
+    if ! grep -qx "$i" <<<"$used"; then
       echo "$i"
       return
     fi
@@ -382,7 +381,10 @@ host_create_samba_share() {
   chown -R root:sambashare "$share_path"
   chmod 2775 "$share_path"
 
-  if ! (echo "$user_pass"; echo "$user_pass") | smbpasswd -s -a "$user_name" >/dev/null 2>&1; then
+  if ! (
+    echo "$user_pass"
+    echo "$user_pass"
+  ) | smbpasswd -s -a "$user_name" >/dev/null 2>&1; then
     msg_error "Failed to set Samba password for ${user_name}"
     pause
     return

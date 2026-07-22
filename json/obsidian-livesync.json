@@ -1,0 +1,50 @@
+{
+    "name": "Obsidian LiveSync",
+    "slug": "obsidian-livesync",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-07-16",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": false,
+    "interface_port": 5984,
+    "documentation": "https://github.com/vrtmrz/obsidian-livesync/blob/main/docs/setup_own_server.md",
+    "website": "https://github.com/vrtmrz/obsidian-livesync",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/obsidian.webp",
+    "config_path": "/opt/obsidian-livesync/.env",
+    "description": "A CouchDB server configured for synchronising Obsidian vaults with the Self-hosted LiveSync plugin.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/obsidian-livesync.sh",
+            "config_path": "/opt/obsidian-livesync/.env",
+            "resources": {
+                "cpu": 1,
+                "ram": 1024,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Install the Self-hosted LiveSync plugin in Obsidian. The GitHub release ZIP is a client plugin, not server software.",
+            "type": "info"
+        },
+        {
+            "text": "Connection details are stored in /opt/obsidian-livesync/.env. Use HTTPS through a reverse proxy for mobile Obsidian clients.",
+            "type": "warning"
+        },
+        {
+            "text": "Enable end-to-end encryption and path obfuscation in the plugin before synchronising sensitive notes.",
+            "type": "info"
+        }
+    ]
+}

@@ -1,0 +1,50 @@
+{
+    "name": "Docspell",
+    "slug": "docspell",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-07-16",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": 7880,
+    "documentation": "https://docspell.org/docs/",
+    "website": "https://docspell.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/docspell.webp",
+    "config_path": "/etc/docspell-restserver/docspell-server.conf",
+    "description": "Docspell is a document management system that organizes, processes, OCRs and indexes documents from scanners, email and file uploads.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/docspell.sh",
+            "config_path": "/etc/docspell-restserver/docspell-server.conf",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 16,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Create the first account at http://IP:7880. For the initial local signup, use the same value for the collective and username.",
+            "type": "info"
+        },
+        {
+            "text": "Signup is open by default. Configure a reverse proxy with TLS and change the signup mode before exposing Docspell to the internet.",
+            "type": "warning"
+        },
+        {
+            "text": "Documents and metadata are stored in PostgreSQL. Back up the Docspell database before upgrades and include it in regular container backups.",
+            "type": "warning"
+        }
+    ]
+}

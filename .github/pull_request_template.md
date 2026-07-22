@@ -38,10 +38,23 @@ Link: #
 
 ## 🔍 Code & Security Review  (**X** in brackets) 
 
-- [ ] **Follows `Code_Audit.md` & `CONTRIBUTING.md` guidelines**  
+- [ ] **Follows `CODE-AUDIT.md` & `CONTRIBUTING.md` guidelines**  
 - [ ] **Uses correct script structure (`AppName.sh`, `AppName-install.sh`, `AppName.json`)**  
 - [ ] **No hardcoded credentials**  
+- [ ] **No Docker / Docker Compose** – The application is installed bare-metal; Docker is not used.
+- [ ] **No git pull** – Updates use `fetch_and_deploy_gh_release`, `fetch_and_deploy_codeberg_release`, `fetch_and_deploy_gl_release`, or `fetch_and_deploy_from_url` instead of `git pull`.
 
+---
+
+## 🤖 AI Assistance (**X** in brackets)
+
+> If you used an AI tool (GitHub Copilot, Claude, ChatGPT, etc.) to write or generate any scripts in this PR, you **must** confirm compliance below.  
+> Select exactly one option.
+
+- [ ] **No AI used** – Scripts were written without AI assistance.
+- [ ] **AI was used** – I confirm the scripts were built using [`AGENTS.md`](https://github.com/community-scripts/ProxmoxVED/blob/main/AGENTS.md) and [`.github/agents/pve-script-creator.agent.md`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/agents/pve-script-creator.agent.md) as guidance, and the output has been reviewed and corrected to match those guidelines.
+
+---
 
 ## 📋 Additional Information (optional)  
 <!-- Add any extra context, screenshots, or references. -->  

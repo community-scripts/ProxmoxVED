@@ -1,0 +1,50 @@
+{
+  "name": "Anki Sync Server",
+  "slug": "anki-sync-server",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-07-16",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8080,
+  "documentation": "https://docs.ankiweb.net/sync-server.html",
+  "website": "https://apps.ankiweb.net/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/anki-sync-server.webp",
+  "config_path": "/opt/anki-sync-server/.env",
+  "description": "The official self-hosted sync server for Anki flashcards, suitable for individual and family use.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/anki-sync-server.sh",
+      "config_path": "/opt/anki-sync-server/.env",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "anki",
+    "password": "Generated during installation"
+  },
+  "notes": [
+    {
+      "text": "The generated username and password are stored in /opt/anki-sync-server/.env. Add additional SYNC_USER variables there for more users, then restart the service.",
+      "type": "info"
+    },
+    {
+      "text": "The server uses unencrypted HTTP. Restrict access to a trusted local network or place a VPN or HTTPS reverse proxy in front of it before exposing it publicly.",
+      "type": "warning"
+    },
+    {
+      "text": "Keep the server version aligned with your Anki clients, as newer clients can require a newer sync protocol.",
+      "type": "warning"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+    "name": "Hister",
+    "slug": "hister",
+    "categories": [
+        20
+    ],
+    "date_created": "2026-07-06",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": 4433,
+    "documentation": "https://hister.org/docs",
+    "website": "https://hister.org",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/hister.webp",
+    "config_path": "/etc/hister/config.yaml",
+    "description": "Hister is a privacy-focused personal search engine that indexes the websites you visit via a browser extension. It stores your browsing history locally with full-text search, advanced query language, and optional semantic search.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/hister.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Install the Hister browser extension (Chrome or Firefox) and set the server URL to http://YOUR_IP:4433.",
+            "type": "info"
+        },
+        {
+            "text": "Search index and data are stored in /opt/hister/data. Disk usage grows as more pages are indexed.",
+            "type": "info"
+        }
+    ]
+}

@@ -1,0 +1,61 @@
+{
+    "name": "Mastodon",
+    "slug": "mastodon",
+    "categories": [
+        0
+    ],
+    "date_created": "2026-07-06",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": 80,
+    "documentation": "https://docs.joinmastodon.org",
+    "website": "https://joinmastodon.org",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/mastodon.webp",
+    "config_path": "/opt/mastodon/.env.production",
+    "description": "Mastodon is a decentralized, open-source social network (ActivityPub/Fediverse). Self-host your own instance to publish short posts, follow people across the Fediverse, and federate with thousands of other servers.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/mastodon.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": "auto-generated"
+    },
+    "notes": [
+        {
+            "text": "Installation compiles Ruby 4.0.5 and ffmpeg from source — this takes 15–30 minutes.",
+            "type": "info"
+        },
+        {
+            "text": "Admin credentials (email + password) are saved to ~/mastodon.creds.",
+            "type": "info"
+        },
+        {
+            "text": "This installation uses the container IP and HTTP, so it is suitable only for LAN or testing. LOCAL_DOMAIN must not be changed after initial setup; reinstall with a public domain and TLS before enabling federation.",
+            "type": "warning"
+        },
+        {
+            "text": "SMTP is not configured by default. Set SMTP_SERVER, SMTP_LOGIN, and SMTP_PASSWORD in .env.production for email notifications.",
+            "type": "info"
+        },
+        {
+            "text": "New account registrations require Owner approval by default.",
+            "type": "info"
+        },
+        {
+            "text": "Media uploads are stored in /opt/mastodon/public/system. Increase disk size if you expect heavy media usage.",
+            "type": "info"
+        }
+    ]
+}

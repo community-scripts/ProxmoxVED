@@ -1,0 +1,622 @@
+#!/usr/bin/env bash
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: MickLesk
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+
+# ==============================================================================
+# INCUS-BUILD.FUNC - INCUS ENTRY + HOOKS OVER SHARED BUILD UI
+# ==============================================================================
+# Loaded automatically by misc/build.func on Incus hosts and Incus containers.
+# CT scripts always source misc/build.func — no separate Incus/ct copies needed.
+# ==============================================================================
+
+[[ -n "${_INCUS_BUILD_FUNC_LOADED:-}" ]] && return
+_INCUS_BUILD_FUNC_LOADED=1
+
+INCUS_COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+
+# Mark update-mode when we are inside an Incus container (not the host daemon).
+if declare -f is_incus_container >/dev/null 2>&1 && is_incus_container; then
+  _INCUS_INSIDE_CONTAINER=1
+elif [[ -S /dev/incus/sock ]] || [[ -f /etc/profile.d/incus-motd.sh ]] || [[ -f /etc/profile.d/99-community-scripts-motd.sh ]]; then
+  _INCUS_INSIDE_CONTAINER=1
+fi
+
+# Prefer dispatcher helper when available (local COMMUNITY_SCRIPTS_DIR or curl).
+_incus_source() {
+  local rel="$1"
+  if declare -f _cs_source_func >/dev/null 2>&1; then
+    _cs_source_func "$rel"
+    return
+  fi
+  if command -v curl >/dev/null 2>&1; then
+    # shellcheck disable=SC1090
+    source <(curl -fsSL "$INCUS_COMMUNITY_SCRIPTS_URL/$rel")
+  else
+    # shellcheck disable=SC1090
+    source <(wget -qO- "$INCUS_COMMUNITY_SCRIPTS_URL/$rel")
+  fi
+}
+
+# --- LOAD incus-core.func ---
+if [[ -z "${_INCUS_CORE_FUNC_LOADED:-}" ]]; then
+  _incus_source "misc/incus-core.func"
+  load_incus_functions
+  incus_catch_errors
+fi
+
+# --- LOAD incus-tools.func (compat aliases for host messaging) ---
+if [[ -z "${_INCUS_TOOLS_FUNC_LOADED:-}" ]]; then
+  _incus_source "misc/incus-tools.func"
+  incus_install_compat_aliases
+fi
+
+# ==============================================================================
+# SECTION 1: INITIALIZATION
+# ==============================================================================
+
+incus_variables() {
+  NSAPP=$(echo "${APP,,}" | tr -d ' ')
+  var_install="${NSAPP}-install"
+  INTEGER='^[0-9]+([.][0-9]+)?$'
+  HOST_NAME=$(hostname)
+  PVEHOST_NAME="$HOST_NAME"
+  DIAGNOSTICS="yes"
+  METHOD="default"
+  RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
+  SESSION_ID="${RANDOM_UUID:0:8}"
+  EXECUTION_ID="${EXECUTION_ID:-$RANDOM_UUID}"
+  local _log_dir
+  _log_dir="$(community_scripts_dir)/logs"
+  mkdir -p "$_log_dir" 2>/dev/null || _log_dir="/tmp"
+  INCUS_BUILD_LOG="${_log_dir}/incus-create-${SESSION_ID}.log"
+  INCUS_INSTALL_LOG="${_log_dir}/incus-install-${SESSION_ID}.log"
+  BUILD_LOG="$INCUS_BUILD_LOG"
+  combined_log="${_log_dir}/incus-install-${SESSION_ID}-combined.log"
+  _INCUS_HOST_LOGFILE="$INCUS_BUILD_LOG"
+  touch "$INCUS_BUILD_LOG" 2>/dev/null || {
+    INCUS_BUILD_LOG="/tmp/incus-create-${SESSION_ID}.log"
+    INCUS_INSTALL_LOG="/tmp/incus-install-${SESSION_ID}.log"
+    BUILD_LOG="$INCUS_BUILD_LOG"
+    combined_log="/tmp/incus-install-${SESSION_ID}-combined.log"
+    _INCUS_HOST_LOGFILE="$INCUS_BUILD_LOG"
+  }
+  CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
+  if command -v incus &>/dev/null; then
+    PVEVERSION="Incus $(incus version 2>/dev/null | awk 'NR==1 {for (i=3;i<=NF;i++) printf "%s%s", (i>3?" ":""), $i; print ""}' | sed 's/^[[:space:]]*//')"
+  else
+    PVEVERSION="Incus"
+  fi
+  KERNEL_VERSION=$(uname -r)
+  if [[ -n "${var_cpu:-}" && "${var_cpu}" =~ ^[0-9]+$ ]]; then export APP_DEFAULT_CPU="${var_cpu}"; fi
+  if [[ -n "${var_ram:-}" && "${var_ram}" =~ ^[0-9]+$ ]]; then export APP_DEFAULT_RAM="${var_ram}"; fi
+  if [[ -n "${var_disk:-}" && "${var_disk}" =~ ^[0-9]+$ ]]; then export APP_DEFAULT_DISK="${var_disk}"; fi
+  declare -f parse_dev_mode &>/dev/null && parse_dev_mode || true
+}
+
+# ==============================================================================
+# SECTION 2: NETWORK HELPERS
+# ==============================================================================
+
+incus_pick_default_network() {
+  local nets
+  nets=$(incus network list -f csv,noheader 2>/dev/null | cut -d, -f1 | sed '/^\s*$/d' | grep -v '^lo$' || true)
+  [[ -z "$nets" ]] && { echo "incusbr0"; return; }
+
+  local n cfg
+  while IFS= read -r n; do
+    [[ -z "$n" || "$n" == "incusbr0" ]] && continue
+    cfg=$(incus network show "$n" 2>/dev/null || true)
+    if echo "$cfg" | grep -qE '^type:\s*(physical|macvlan|sriov)$'; then
+      echo "$n"
+      return
+    fi
+  done <<<"$nets"
+
+  while IFS= read -r n; do
+    [[ -z "$n" || "$n" == "incusbr0" ]] && continue
+    cfg=$(incus network show "$n" 2>/dev/null || true)
+    if echo "$cfg" | grep -q '^type:\s*bridge$' &&
+      ! echo "$cfg" | grep -qE 'ipv4\.nat:\s*"true"|ipv6\.nat:\s*"true"'; then
+      echo "$n"
+      return
+    fi
+  done <<<"$nets"
+
+  while IFS= read -r n; do
+    [[ -n "$n" && "$n" != "incusbr0" ]] && { echo "$n"; return; }
+  done <<<"$nets"
+  echo "incusbr0"
+}
+
+incus_delete_container() {
+  local name="${1:-$CT_NAME}"
+  [[ -z "$name" ]] && { msg_error "No container name"; return 1; }
+  if ! incus_container_exists "$name"; then
+    msg_warn "Container ${name} does not exist"
+    return 0
+  fi
+  msg_info "Stopping ${name}"
+  incus stop "$name" --force &>/dev/null || true
+  msg_ok "Stopped"
+  msg_info "Deleting ${name}"
+  incus delete "$name" &>/dev/null
+  msg_ok "Deleted ${name}"
+}
+
+# PVE-parity: after create-phase / configure failures, offer delete (60s auto-remove).
+# Install-script failures already use incus_run_install_script_with_recovery.
+incus_offer_orphan_cleanup() {
+  [[ -n "${_INCUS_INSIDE_CONTAINER:-}" ]] && return 0
+  [[ "${INCUS_ORPHAN_HANDLED:-}" == "1" ]] && return 0
+  [[ "${INCUS_CT_CREATED:-}" != "1" ]] && return 0
+  [[ "${INCUS_BUILD_OK:-}" == "1" ]] && return 0
+  [[ -z "${CT_NAME:-}" ]] && return 0
+  command -v incus &>/dev/null || return 0
+  declare -f incus_container_exists >/dev/null 2>&1 || return 0
+  incus_container_exists "${CT_NAME}" || return 0
+  [[ "${DEV_MODE_KEEP:-false}" == "true" ]] && return 0
+
+  INCUS_ORPHAN_HANDLED=1
+  export INCUS_ORPHAN_HANDLED
+
+  # Avoid nested ERR noise while prompting / deleting
+  set +e
+  trap - ERR
+
+  echo ""
+  msg_warn "Incomplete container ${CT_NAME} left behind (create/configure failed)"
+  echo -e "${YW}What would you like to do?${CL}"
+  echo ""
+  echo -e "  ${GN}1)${CL} Remove container and exit"
+  echo -e "  ${GN}2)${CL} Keep container for debugging"
+  echo ""
+  echo -en "${YW}Select option [1-2] (default: 1, auto-remove in 60s): ${CL}"
+  if read -t 60 -r response </dev/tty 2>/dev/null || read -t 60 -r response; then
+    case "${response:-1}" in
+    2)
+      echo -e "\n${TAB}${YW}Container ${CT_NAME} kept for debugging${CL}"
+      echo -e "${TAB}${INFO} Access: ${GN}incus exec ${CT_NAME} -- bash${CL}"
+      echo -e "${TAB}${INFO} Remove later: ${GN}incus delete ${CT_NAME} --force${CL}"
+      ;;
+    *)
+      echo -e "\n${TAB}${HOLD}${YW}Removing container ${CT_NAME}${CL}"
+      incus_delete_container "${CT_NAME}"
+      ;;
+    esac
+  else
+    echo ""
+    msg_info "No response - removing container ${CT_NAME}"
+    incus_delete_container "${CT_NAME}"
+    msg_ok "Container ${CT_NAME} removed"
+  fi
+}
+
+# ==============================================================================
+# SECTION 3: SHARED UI + BACKEND
+# ==============================================================================
+
+lxc_backend_uses_named_containers() { return 0; }
+
+get_next_container_identifier() {
+  incus_get_next_name "$NSAPP"
+}
+
+populate_advanced_bridge_menu() {
+  BRIDGES=""
+  BRIDGE_MENU_OPTIONS=()
+  local nets n
+  nets=$(incus network list -f csv,noheader 2>/dev/null | cut -d, -f1 | sed '/^\s*$/d' | grep -v '^lo$' || true)
+  while IFS= read -r n; do
+    [[ -z "$n" ]] && continue
+    BRIDGES="${n}"$'\n'"${BRIDGES}"
+    BRIDGE_MENU_OPTIONS+=("$n" "Incus network")
+  done <<<"$nets"
+  BRIDGES=$(echo "$BRIDGES" | grep -v '^\s*$' | sort -u)
+  [[ -z "$BRIDGES" ]] && BRIDGES="incusbr0"$'\n' && BRIDGE_MENU_OPTIONS=("incusbr0" "Incus network")
+}
+
+_incus_sync_from_pve_settings() {
+  # On Incus the instance name must be CT_ID (e.g. debian-1), not the hostname.
+  local _name="${CT_ID:-${HN:-$NSAPP}}"
+  CT_NAME=$(echo "${_name}" | tr '[:upper:]' '[:lower:]' | tr -d ' ' | tr '_' '-')
+  CTID="$CT_NAME"
+  UNPRIVILEGED="${CT_TYPE:-1}"
+  IMAGE_OS="${var_os:-debian}"
+  IMAGE_OS="${IMAGE_OS,,}"
+  IMAGE_VERSION="${var_version:-13}"
+  # Normalize common UI shortcuts for image aliases
+  case "$IMAGE_OS" in
+  ubuntu)
+    case "$IMAGE_VERSION" in
+    22) IMAGE_VERSION="22.04" ;;
+    24) IMAGE_VERSION="24.04" ;;
+    26) IMAGE_VERSION="26.04" ;;
+    esac
+    ;;
+  alpine)
+    case "$IMAGE_VERSION" in
+    latest | edge) IMAGE_VERSION="3.21" ;;
+    esac
+    ;;
+  esac
+  PROFILE="${var_profile:-default}"
+  STORAGE_POOL="${CONTAINER_STORAGE:-${STORAGE_POOL:-}}"
+  if [[ -z "$STORAGE_POOL" ]]; then
+    STORAGE_POOL=$(incus storage list -f csv,noheader 2>/dev/null | head -1 | cut -d, -f1)
+  fi
+  [[ -z "${TAGS:-}" ]] && TAGS="community-script;${var_tags:-}"
+  SSH="${SSH_ROOT:-${SSH:-no}}"
+
+  local mac_val="${MAC:-}"
+  mac_val="${mac_val#*,hwaddr=}"
+  mac_val="${mac_val#hwaddr=}"
+  MAC="$mac_val"
+
+  local vlan_val="${VLAN_TAG:-${VLAN:-}}"
+  vlan_val="${vlan_val#*,tag=}"
+  vlan_val="${vlan_val#tag=}"
+  VLAN_TAG="$vlan_val"
+
+  local mtu_val="${MTU:-}"
+  mtu_val="${mtu_val#*,mtu=}"
+  mtu_val="${mtu_val#mtu=}"
+  MTU="$mtu_val"
+
+  case "${IPV6_METHOD:-auto}" in
+  auto | dhcp) IPV6_ADDR="auto" ;;
+  static) IPV6_ADDR="${IPV6_ADDR:-}" ;;
+  none | disable) IPV6_ADDR="none"; IPV6_METHOD="none" ;;
+  esac
+}
+
+# Shared Proxmox UI (menus / wizard / validators / install_script / start)
+_incus_source "misc/build-ui.func"
+
+# Keep UI update checks under stable names before any later tools.func reload.
+eval "$(declare -f check_container_storage | sed '1s/check_container_storage/_shared_check_container_storage/')"
+eval "$(declare -f check_container_resources | sed '1s/check_container_resources/_shared_check_container_resources/')"
+
+eval "$(declare -f base_settings | sed '1s/base_settings/_pve_base_settings/')"
+base_settings() {
+  [[ -z "${var_brg:-}" ]] && var_brg="$(incus_pick_default_network)"
+  _pve_base_settings "$@"
+}
+
+# Incus create/deploy backend (overrides PVE create hooks)
+_incus_source "misc/incus-backend.func"
+
+# ==============================================================================
+# SECTION 4: PLATFORM OVERRIDES
+# ==============================================================================
+
+pve_check() {
+  # Host install needs a working Incus daemon; guest update mode does not.
+  if [[ -n "${_INCUS_INSIDE_CONTAINER:-}" ]]; then
+    return 0
+  fi
+  incus_check
+}
+arch_check() { :; }
+arm64_notice() { :; }
+ssh_check() { :; }
+
+# Guest update: allow non-root root_check without requiring host `incus` CLI.
+if [[ -n "${_INCUS_INSIDE_CONTAINER:-}" ]]; then
+  root_check() { return 0; }
+fi
+
+validate_container_id() {
+  local id="${1:-}"
+  [[ "$id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || return 1
+  incus_container_exists "$id" && return 1
+  return 0
+}
+
+get_valid_container_id() {
+  local suggested="${1:-$NSAPP}"
+  suggested=$(echo "${suggested,,}" | tr -d ' ' | tr '_' '-')
+  while ! validate_container_id "$suggested"; do
+    suggested="$(incus_get_next_name "$suggested")"
+  done
+  echo "$suggested"
+}
+
+validate_bridge() {
+  local bridge="${1:-}"
+  [[ -n "$bridge" ]] && incus network show "$bridge" &>/dev/null
+}
+
+validate_gateway_in_subnet() { return 0; }
+
+ensure_global_default_vars_file() {
+  local dir vf
+  dir="$(community_scripts_dir)"
+  vf="${dir}/default.vars"
+  mkdir -p "$dir" 2>/dev/null || true
+  [[ -f "$vf" ]] || touch "$vf" 2>/dev/null || true
+  echo "$vf"
+}
+
+get_app_defaults_path() {
+  local n="${NSAPP:-${APP,,}}"
+  echo "$(community_scripts_dir)/defaults/${n}.vars"
+}
+
+diagnostics_check() {
+  local dir diag
+  dir="$(community_scripts_dir)"
+  diag="${dir}/diagnostics"
+  mkdir -p "$dir" 2>/dev/null || true
+
+  if [[ ! -f "$diag" ]]; then
+    if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "DIAGNOSTICS" --yesno "Send Diagnostics of LXC Installation?\n\n(This only transmits data without user data, just RAM, CPU, LXC name, ...)" 10 58); then
+      cat <<EOF >"$diag"
+DIAGNOSTICS=yes
+EOF
+      DIAGNOSTICS="yes"
+    else
+      cat <<EOF >"$diag"
+DIAGNOSTICS=no
+EOF
+      DIAGNOSTICS="no"
+    fi
+  else
+    DIAGNOSTICS=$(awk -F '=' '/^DIAGNOSTICS/ {print $2}' "$diag" 2>/dev/null || echo "yes")
+  fi
+  export DIAGNOSTICS
+}
+
+choose_and_set_storage_for_file() {
+  # Incus replacement for PVE pvesm-based helper (User Defaults / first default.vars).
+  local vf="$1" class="$2" key=""
+  case "$class" in
+  container) key="var_container_storage" ;;
+  template) key="var_template_storage" ;;
+  *)
+    msg_error "Unknown storage class: $class"
+    return 1
+    ;;
+  esac
+
+  local count
+  count=$(incus storage list -f csv,noheader 2>/dev/null | wc -l)
+  if [[ "$count" -le 0 ]]; then
+    msg_error "No Incus storage pools found"
+    return 1
+  fi
+
+  if [[ "$count" -eq 1 ]]; then
+    STORAGE_RESULT=$(incus storage list -f csv,noheader 2>/dev/null | head -1 | cut -d, -f1)
+    STORAGE_INFO=""
+    if [[ "$class" == "container" && -n "${DISK_SIZE:-}" ]]; then
+      validate_storage_space "$STORAGE_RESULT" "$DISK_SIZE" "yes" || true
+    fi
+  else
+    select_storage "$class" || return 1
+  fi
+
+  _write_storage_to_vars "$vf" "$key" "$STORAGE_RESULT"
+  if [[ "$class" == "container" ]]; then
+    export var_container_storage="$STORAGE_RESULT"
+    export CONTAINER_STORAGE="$STORAGE_RESULT"
+  else
+    export var_template_storage="$STORAGE_RESULT"
+    export TEMPLATE_STORAGE="$STORAGE_RESULT"
+  fi
+}
+
+ensure_storage_selection_for_vars_file() {
+  local vf="${1:-}"
+  [[ -z "$vf" ]] && vf="$(community_scripts_dir)/default.vars"
+  [[ -f "$vf" ]] || { mkdir -p "$(dirname "$vf")" 2>/dev/null || true; touch "$vf" 2>/dev/null || true; }
+
+  local tpl ct
+  tpl=$(grep -E '^var_template_storage=' "$vf" 2>/dev/null | cut -d= -f2-)
+  ct=$(grep -E '^var_container_storage=' "$vf" 2>/dev/null | cut -d= -f2-)
+
+  if [[ -n "$tpl" && -n "$ct" ]] && incus storage info "$ct" &>/dev/null; then
+    TEMPLATE_STORAGE="$tpl"
+    CONTAINER_STORAGE="$ct"
+    if [[ -n "${DISK_SIZE:-}" ]]; then
+      validate_storage_space "$ct" "$DISK_SIZE" "yes" || true
+    fi
+    return 0
+  fi
+
+  choose_and_set_storage_for_file "$vf" template
+  choose_and_set_storage_for_file "$vf" container
+}
+
+select_storage() {
+  local purpose="${1:-container}"
+  local options=() pool free_gb info
+  while IFS= read -r pool; do
+    [[ -z "$pool" ]] && continue
+    free_gb=$(incus_storage_pool_free_gb "$pool" 2>/dev/null || echo "?")
+    info="pool free ~${free_gb}GB (not full host disk)"
+    options+=("$pool" "${info}")
+  done < <(incus storage list -f csv,noheader 2>/dev/null | cut -d, -f1)
+  [[ ${#options[@]} -eq 0 ]] && return 1
+
+  if [[ ${#options[@]} -eq 2 ]]; then
+    STORAGE_RESULT="${options[0]}"
+  else
+    STORAGE_RESULT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "INCUS STORAGE POOL" \
+      --menu "Select Incus pool for ${purpose}\n(Shows pool free space, not host disk)" 18 76 8 \
+      "${options[@]}" 3>&1 1>&2 2>&3) || return 1
+  fi
+
+  free_gb=$(incus_storage_pool_free_gb "$STORAGE_RESULT" 2>/dev/null || echo "?")
+  STORAGE_INFO="Pool free: ~${free_gb}GB"
+  if [[ "$purpose" == "template" ]]; then
+    TEMPLATE_STORAGE="$STORAGE_RESULT"
+    TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
+  else
+    CONTAINER_STORAGE="$STORAGE_RESULT"
+    SD="--storage ${CONTAINER_STORAGE}"
+  fi
+  return 0
+}
+
+install_ssh_keys_into_ct() {
+  [[ "${SSH:-no}" != "yes" ]] && return 0
+  : "${SSH_KEYS_FILE:=}"
+  if [[ -z "$SSH_KEYS_FILE" || ! -s "$SSH_KEYS_FILE" ]] && [[ -n "${SSH_AUTHORIZED_KEY:-}" ]]; then
+    SSH_KEYS_FILE="$(mktemp)"
+    printf '%s\n' "$SSH_AUTHORIZED_KEY" >"$SSH_KEYS_FILE"
+  fi
+  if [[ -n "$SSH_KEYS_FILE" && -s "$SSH_KEYS_FILE" ]]; then
+    msg_info "Installing selected SSH keys into CT ${CTID}"
+    incus_ct_exec sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh' || {
+      msg_error "prepare /root/.ssh failed"
+      return 1
+    }
+    incus file push "$SSH_KEYS_FILE" "${CT_NAME}/root/.ssh/authorized_keys" >>"${LOGFILE:-$INCUS_BUILD_LOG}" 2>&1 ||
+      incus_ct_exec sh -c "cat > /root/.ssh/authorized_keys" <"$SSH_KEYS_FILE" || {
+      msg_error "write authorized_keys failed"
+      return 1
+    }
+    incus_ct_exec sh -c 'chmod 600 /root/.ssh/authorized_keys' || true
+    msg_ok "Installed SSH keys into CT ${CTID}"
+    return 0
+  fi
+  msg_warn "No SSH keys to install (skipping)."
+  return 0
+}
+
+destroy_lxc() {
+  local name="${1:-${CT_NAME:-$CTID}}"
+  incus_delete_container "$name"
+}
+
+ensure_log_on_host() {
+  [[ -z "${CT_NAME:-}" || -z "${SESSION_ID:-}" ]] && return 0
+  local remote_log="/root/.install-${SESSION_ID}.log"
+  local local_log="${BUILD_LOG:-$INCUS_BUILD_LOG}.install"
+  incus file pull "${CT_NAME}${remote_log}" "$local_log" 2>/dev/null || true
+  if [[ -f "$local_log" && -f "${BUILD_LOG:-}" ]]; then
+    {
+      echo "================================================================================"
+      echo "COMBINED INSTALLATION LOG - ${APP:-LXC}"
+      echo "Container: ${CT_NAME}"
+      echo "Session ID: ${SESSION_ID}"
+      echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+      echo "================================================================================"
+      echo ""
+      echo "PHASE 1: CONTAINER CREATION (Host)"
+      echo "================================================================================"
+      cat "${BUILD_LOG}"
+      echo ""
+      echo "PHASE 2: APPLICATION INSTALLATION (Container)"
+      echo "================================================================================"
+      cat "$local_log"
+    } >"${combined_log}"
+    INSTALL_LOG="$combined_log"
+    export INSTALL_LOG
+  fi
+}
+
+api_exit_script() {
+  local exit_code=$?
+  if [[ "$exit_code" -ne 0 ]]; then
+    post_update_to_api "failed" "$exit_code" 2>/dev/null || true
+    [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]] && ensure_log_on_host 2>/dev/null || true
+    if [[ -z "${_INCUS_INSIDE_CONTAINER:-}" && "${CONTAINER_INSTALLING:-}" == "true" && -n "${CT_NAME:-}" ]]; then
+      command -v incus &>/dev/null && incus stop "$CT_NAME" --force 2>/dev/null || true
+    fi
+    # Create/configure aborts (before install recovery menu): offer delete like PVE 60s prompt
+    if declare -f incus_offer_orphan_cleanup >/dev/null 2>&1; then
+      incus_offer_orphan_cleanup
+    fi
+  elif [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
+    # Clean exit without completion = user backed out → aborted, not success
+    post_update_to_api "aborted" "0" 2>/dev/null || true
+  fi
+}
+
+header_info() {
+  local app_name header_content=""
+  app_name=$(echo "${APP,,}" | tr -d ' ')
+  if declare -f get_header >/dev/null 2>&1; then
+    header_content=$(get_header "$app_name" 2>/dev/null || true)
+  fi
+  clear 2>/dev/null || true
+  [[ -n "$header_content" ]] && echo "$header_content"
+  return 0
+}
+
+# ==============================================================================
+# SECTION 5: CT SCRIPT ENTRYPOINTS
+# ==============================================================================
+
+# Keep shared start() from build-ui for update mode inside containers.
+# On Incus hosts, run install_script (same as Proxmox).
+eval "$(declare -f start | sed '1s/start/_shared_start/')"
+start() {
+  _incus_source "misc/tools.func"
+  # Ensure cleanup_lxc exists for update_script footer (tools.func may not define it).
+  if ! declare -f cleanup_lxc >/dev/null 2>&1; then
+    cleanup_lxc() {
+      $STD apt -y autoremove 2>/dev/null || true
+      $STD apt -y autoclean 2>/dev/null || true
+    }
+  fi
+  # Re-bind build-ui update checks (80% disk / var_ram) after tools.func load.
+  if declare -f _shared_check_container_storage >/dev/null 2>&1; then
+    check_container_storage() { _shared_check_container_storage "$@"; }
+    check_container_resources() { _shared_check_container_resources "$@"; }
+  fi
+
+  if [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]] && command -v incus &>/dev/null; then
+    install_script || return 0
+    return 0
+  fi
+  # Inside container / update flow — shared silent/verbose update menu
+  _shared_start "$@"
+}
+
+build_container() {
+  incus_build_container
+}
+
+description() {
+  CTID="${CT_NAME:-$CTID}"
+  IP=$(incus exec "${CT_NAME}" -- hostname -I 2>/dev/null | awk '{print $1}')
+  [[ -z "$IP" ]] && IP=$(incus list "${CT_NAME}" -c4 -f csv 2>/dev/null | head -1 | cut -d' ' -f1)
+  export IP
+  incus config set "${CT_NAME}" user.description "${APP} LXC (community-scripts)" 2>/dev/null || true
+  incus config set "${CT_NAME}" user.community-scripts "1" 2>/dev/null || true
+  post_update_to_api "done" "none" 2>/dev/null || true
+}
+
+variables() {
+  incus_variables
+}
+
+# Do NOT override check_container_storage/resources — shared UI versions are
+# correct for update_script() inside containers (80% disk / var_ram checks).
+
+_incus_on_err() {
+  local _ec=$?
+  [[ $_ec -eq 0 ]] && return 0
+  post_update_to_api "failed" "$_ec" 2>/dev/null || true
+  [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]] && ensure_log_on_host 2>/dev/null || true
+}
+
+_incus_on_signal() {
+  local sig="$1" code="$2"
+  post_update_to_api "failed" "$code" 2>/dev/null || true
+  # Only touch instances from the Incus host — never inside a guest update run.
+  # EXIT trap (api_exit_script) offers 60s orphan cleanup / delete.
+  if [[ -z "${_INCUS_INSIDE_CONTAINER:-}" ]] && command -v incus &>/dev/null && [[ -n "${CT_NAME:-}" ]]; then
+    incus stop "$CT_NAME" --force 2>/dev/null || true
+  fi
+  exit "$code"
+}
+
+trap 'api_exit_script' EXIT
+trap '_incus_on_err' ERR
+trap '_incus_on_signal SIGHUP 129' SIGHUP
+trap '_incus_on_signal SIGINT 130' SIGINT
+trap '_incus_on_signal SIGTERM 143' SIGTERM

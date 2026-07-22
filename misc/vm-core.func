@@ -1,6 +1,19 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
+# Unified entry point: Proxmox VE and Incus VM scripts share vm/ templates.
+[[ -n "${_VM_CORE_DISPATCHED:-}" ]] && return
+_VM_CORE_DISPATCHED=1
+
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+
+if command -v pveversion &>/dev/null; then
+  :
+elif command -v incus &>/dev/null && incus info &>/dev/null 2>&1; then
+  source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/incus-vm-core.func" 2>/dev/null || wget -qO- "$COMMUNITY_SCRIPTS_URL/misc/incus-vm-core.func")
+  return 0
+fi
+
 set -euo pipefail
 SPINNER_PID=""
 SPINNER_ACTIVE=0
@@ -573,8 +586,10 @@ cleanup() {
       if [[ $exit_code -ne 0 ]]; then
         post_update_to_api "failed" "$exit_code"
       else
-        # Exited cleanly but description()/success was never called — shouldn't happen
-        post_update_to_api "failed" "1"
+        # Exited cleanly but description()/success was never called: the user
+        # backed out of a dialog. Report as aborted - NOT "failed 1" (which
+        # produced meaningless 'General error' records with no error text).
+        post_update_to_api "aborted" "0"
       fi
     fi
   fi

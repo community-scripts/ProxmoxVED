@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Copyright (c) 2021-2026 community-scripts ORG
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+
+# ==============================================================================
+# LXC-PLATFORM.FUNC - PROXMOX VE / INCUS PLATFORM DETECTION
+# ==============================================================================
+#
+# Detects whether scripts run on a Proxmox VE host, an Incus host, or inside
+# a container (update mode). Used by build.func to load the correct backend.
+#
+# Override: export LXC_PLATFORM=pve|incus|incus-container|container
+#
+# ==============================================================================
+
+[[ -n "${_LXC_PLATFORM_FUNC_LOADED:-}" ]] && return
+_LXC_PLATFORM_FUNC_LOADED=1
+
+detect_lxc_platform() {
+  if [[ -n "${LXC_PLATFORM:-}" ]]; then
+    echo "$LXC_PLATFORM"
+    return
+  fi
+
+  if command -v pveversion &>/dev/null; then
+    echo "pve"
+    return
+  fi
+
+  if command -v incus &>/dev/null && incus info &>/dev/null 2>&1; then
+    echo "incus"
+    return
+  fi
+
+  if [[ -S /dev/incus/sock ]] || [[ -f /etc/profile.d/incus-motd.sh ]]; then
+    echo "incus-container"
+    return
+  fi
+
+  echo "container"
+}
+
+is_incus_lxc_backend() {
+  local platform
+  platform="$(detect_lxc_platform)"
+  [[ "$platform" == "incus" || "$platform" == "incus-container" ]]
+}
+
+is_incus_host() {
+  [[ "$(detect_lxc_platform)" == "incus" ]]
+}
+
+is_incus_container() {
+  [[ "$(detect_lxc_platform)" == "incus-container" ]]
+}
+
+# Writable state directory for defaults/diagnostics.
+# Root (or writable /usr/local) → /usr/local/community-scripts
+# Non-root Incus users → ~/.config/community-scripts
+community_scripts_dir() {
+  if [[ -n "${COMMUNITY_SCRIPTS_STATE_DIR:-}" ]]; then
+    mkdir -p "$COMMUNITY_SCRIPTS_STATE_DIR" 2>/dev/null || true
+    echo "$COMMUNITY_SCRIPTS_STATE_DIR"
+    return 0
+  fi
+
+  local system_dir="/usr/local/community-scripts"
+  if [[ "$(id -u)" -eq 0 ]]; then
+    mkdir -p "$system_dir" 2>/dev/null || true
+    echo "$system_dir"
+    return 0
+  fi
+  if [[ -d "$system_dir" && -w "$system_dir" ]]; then
+    echo "$system_dir"
+    return 0
+  fi
+  if mkdir -p "$system_dir" 2>/dev/null && [[ -w "$system_dir" ]]; then
+    echo "$system_dir"
+    return 0
+  fi
+
+  local user_dir="${XDG_CONFIG_HOME:-${HOME:-/tmp}/.config}/community-scripts"
+  mkdir -p "$user_dir" 2>/dev/null || user_dir="/tmp/community-scripts-$$"
+  mkdir -p "$user_dir" 2>/dev/null || true
+  echo "$user_dir"
+}

@@ -494,10 +494,12 @@ log_section() {
 # silent()
 #
 # - Executes command with output redirected to active log file
-# - On error: displays last 20 lines of log and exits with original exit code
-
+# - On error: displays the FAILING COMMAND'S OWN output (not just the last 20
+#   log lines) and exits with original exit code
+# - Records the log byte offset before running so the exact output segment of
+#   the failing command can be extracted and written to "<logfile>.errinfo"
+#   for telemetry (the host builds the error trace from this file)
 # - Temporarily disables error trap to capture exit code correctly
-# - Sources explain_exit_code() for detailed error messages
 # ------------------------------------------------------------------------------
 silent() {
   local cmd="$*"
@@ -517,6 +519,12 @@ silent() {
   set +Eeuo pipefail
   trap - ERR
 
+  # Byte offset BEFORE the command runs - everything the log grows by is
+  # exactly this command's output
+  local start_bytes=0
+  [[ -f "$logfile" ]] && start_bytes=$(stat -c%s "$logfile" 2>/dev/null || echo 0)
+  [[ ! "$start_bytes" =~ ^[0-9]+$ ]] && start_bytes=0
+
   "$@" >>"$logfile" 2>&1
   local rc=$?
 
@@ -526,19 +534,55 @@ silent() {
   if [[ $rc -ne 0 ]]; then
     # Source explain_exit_code if needed
     if ! declare -f explain_exit_code >/dev/null 2>&1; then
-      source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/error_handler.func)
+      source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/error_handler.func")
     fi
 
     local explanation
     explanation="$(explain_exit_code "$rc")"
+
+    # Capture failure location ("where") for telemetry. silent() exits directly
+    # (the EXIT trap reports the failure), so set these before exiting.
+    FAILED_COMMAND="$cmd"
+    FAILED_LINE="$caller_line"
+    export FAILED_COMMAND FAILED_LINE
+
+    # ── Structured error capture (.errinfo) ──
+    # Extract exactly THIS command's output (from the recorded byte offset),
+    # strip ANSI/progress noise, keep the last 60 lines. This file is the
+    # primary source for the telemetry error trace - self-contained, no
+    # api.func dependency (containers don't source api.func).
+    local errinfo="${logfile}.errinfo"
+    local flat_cmd
+    flat_cmd=$(printf '%s' "$cmd" | tr '\n' ' ' | head -c 300)
+    {
+      echo "EXIT_CODE=${rc}"
+      echo "LINE=${caller_line}"
+      echo "COMMAND=${flat_cmd}"
+      echo "--- OUTPUT ---"
+      if [[ -s "$logfile" ]]; then
+        local segment
+        segment=$(tail -c +"$((start_bytes + 1))" "$logfile" 2>/dev/null |
+          sed 's/\r$//' |
+          sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' |
+          grep -avE '^(Get:|Hit:|Ign:|Fetched |Reading package lists|Reading state information|Building dependency tree|Selecting previously|Preparing to unpack|Unpacking |Processing triggers for|\(Reading database|[0-9]+%[[:space:]]*\[)' |
+          grep -avE '^[[:space:]]*$' |
+          tail -n 60)
+        # If the noise filter swallowed everything, fall back to the raw tail
+        if [[ -z "$segment" ]]; then
+          segment=$(tail -c +"$((start_bytes + 1))" "$logfile" 2>/dev/null |
+            sed 's/\r$//' | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | tail -n 60)
+        fi
+        printf '%s' "$segment" | head -c 10240
+      fi
+    } >"$errinfo" 2>/dev/null || true
 
     printf "\e[?25h"
     msg_error "in line ${caller_line}: exit code ${rc} (${explanation})"
     msg_custom "→" "${YWB}" "${cmd}"
 
     if [[ -s "$logfile" ]]; then
-      echo -e "\n${TAB}--- Last 20 lines of log ---"
-      tail -n 20 "$logfile"
+      echo -e "\n${TAB}--- Output of the failing command (last 20 lines) ---"
+      tail -c +"$((start_bytes + 1))" "$logfile" 2>/dev/null | tail -n 20
       echo -e "${TAB}-----------------------------------"
       echo -e "${TAB}📋 Full log: ${logfile}\n"
     fi
@@ -629,8 +673,10 @@ msg_info() {
   if ! declare -p MSG_INFO_SHOWN &>/dev/null || ! declare -A MSG_INFO_SHOWN &>/dev/null; then
     declare -gA MSG_INFO_SHOWN=()
   fi
-  [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-  MSG_INFO_SHOWN["$msg"]=1
+  local sanitized_key
+  sanitized_key=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
+  [[ -n "${MSG_INFO_SHOWN["$sanitized_key"]+x}" ]] && return
+  MSG_INFO_SHOWN["$sanitized_key"]=1
 
   # Log to file
   log_msg "[INFO] $msg"
@@ -677,11 +723,11 @@ msg_ok() {
   [[ -z "$msg" ]] && return
   stop_spinner
   clear_line
-  echo -e "$CM ${GN}${msg}${CL}"
+  echo -e "$CM${GN}${msg}${CL}"
   log_msg "[OK] $msg"
-  local sanitized_msg
-  sanitized_msg=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
-  unset 'MSG_INFO_SHOWN['"$sanitized_msg"']' 2>/dev/null || true
+  local sanitized_key
+  sanitized_key=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
+  unset 'MSG_INFO_SHOWN['"$sanitized_key"']' 2>/dev/null || true
 }
 
 # ------------------------------------------------------------------------------
@@ -695,7 +741,7 @@ msg_ok() {
 msg_error() {
   stop_spinner
   local msg="$1"
-  echo -e "${BFR:-}${CROSS:-✖️} ${RD}${msg}${CL}" >&2
+  echo -e "${BFR:-}${CROSS:-✖️}${RD}${msg}${CL}" >&2
   log_msg "[ERROR] $msg"
 }
 
@@ -728,7 +774,8 @@ msg_custom() {
   local msg="${3:-}"
   [[ -z "$msg" ]] && return
   stop_spinner
-  echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
+  # Align with CM/CROSS: TAB + icon + TAB + message (not a single leading space).
+  echo -e "${BFR:-}${TAB:-  }${symbol}${TAB:-  }${color}${msg}${CL:-\e[0m}"
   log_msg "$msg"
 }
 
@@ -799,8 +846,20 @@ exit_script() {
 get_header() {
   local app_name=$(echo "${APP,,}" | tr -d ' ')
   local app_type=${APP_TYPE:-ct} # Default to 'ct' if not set
-  local header_url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/${app_type}/headers/${app_name}"
+  local header_url="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/${app_type}/headers/${app_name}"
   local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
+  local repo_header=""
+
+  # Prefer header from local checkout when testing a fork/branch
+  if [[ -n "${COMMUNITY_SCRIPTS_ROOT:-}" && -f "${COMMUNITY_SCRIPTS_ROOT}/${app_type}/headers/${app_name}" ]]; then
+    repo_header="${COMMUNITY_SCRIPTS_ROOT}/${app_type}/headers/${app_name}"
+  elif [[ -n "${COMMUNITY_SCRIPTS_DIR:-}" && -f "$(cd "${COMMUNITY_SCRIPTS_DIR}/.." 2>/dev/null && pwd)/${app_type}/headers/${app_name}" ]]; then
+    repo_header="$(cd "${COMMUNITY_SCRIPTS_DIR}/.." && pwd)/${app_type}/headers/${app_name}"
+  fi
+  if [[ -n "$repo_header" && -s "$repo_header" ]]; then
+    cat "$repo_header" 2>/dev/null || true
+    return 0
+  fi
 
   mkdir -p "$(dirname "$local_header_path")"
 
@@ -1575,6 +1634,76 @@ check_or_create_swap() {
 #   - Loads from /run/local-ip.env or performs runtime lookup
 # ------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------
+# _get_current_ip()
+#
+# - Internal helper: detects the container's primary IP address
+# - Tries eth0 interface first, then hostname -I, then routing table
+# - Falls back to IPv6 if no IPv4 address found
+# - Returns IP on stdout, or empty string on failure
+# ------------------------------------------------------------------------------
+_get_current_ip() {
+  local ip
+
+  # Try direct interface lookup for eth0 FIRST (most reliable for LXC) - IPv4
+  ip=$(ip -4 addr show eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1)
+  if [[ -n "$ip" && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "$ip"
+    return 0
+  fi
+
+  # Fallback: Try hostname -I (returns IPv4 first if available)
+  if command -v hostname >/dev/null 2>&1; then
+    ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+    if [[ -n "$ip" && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "$ip"
+      return 0
+    fi
+  fi
+
+  # Try routing table with IPv4 targets
+  local ipv4_targets=("8.8.8.8" "1.1.1.1" "default")
+  for target in "${ipv4_targets[@]}"; do
+    if [[ "$target" == "default" ]]; then
+      ip=$(ip route get 1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+    else
+      ip=$(ip route get "$target" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+    fi
+    if [[ -n "$ip" ]]; then
+      echo "$ip"
+      return 0
+    fi
+  done
+
+  # IPv6 fallback: Try direct interface lookup for eth0
+  ip=$(ip -6 addr show eth0 scope global 2>/dev/null | awk '/inet6 / {print $2}' | cut -d/ -f1 | head -n1)
+  if [[ -n "$ip" && "$ip" =~ : ]]; then
+    echo "$ip"
+    return 0
+  fi
+
+  # IPv6 fallback: Try hostname -I for IPv6
+  if command -v hostname >/dev/null 2>&1; then
+    ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E ':' | head -n1)
+    if [[ -n "$ip" && "$ip" =~ : ]]; then
+      echo "$ip"
+      return 0
+    fi
+  fi
+
+  # IPv6 fallback: Use routing table with IPv6 targets
+  local ipv6_targets=("2001:4860:4860::8888" "2606:4700:4700::1111")
+  for target in "${ipv6_targets[@]}"; do
+    ip=$(ip -6 route get "$target" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+    if [[ -n "$ip" && "$ip" =~ : ]]; then
+      echo "$ip"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 function get_lxc_ip() {
   local IP_FILE="/run/local-ip.env"
   if [[ -f "$IP_FILE" ]]; then
@@ -1583,69 +1712,7 @@ function get_lxc_ip() {
   fi
 
   if [[ -z "${LOCAL_IP:-}" ]]; then
-    get_current_ip() {
-      local ip
-
-      # Try direct interface lookup for eth0 FIRST (most reliable for LXC) - IPv4
-      ip=$(ip -4 addr show eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1)
-      if [[ -n "$ip" && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "$ip"
-        return 0
-      fi
-
-      # Fallback: Try hostname -I (returns IPv4 first if available)
-      if command -v hostname >/dev/null 2>&1; then
-        ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-        if [[ -n "$ip" && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "$ip"
-          return 0
-        fi
-      fi
-
-      # Try routing table with IPv4 targets
-      local ipv4_targets=("8.8.8.8" "1.1.1.1" "default")
-      for target in "${ipv4_targets[@]}"; do
-        if [[ "$target" == "default" ]]; then
-          ip=$(ip route get 1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
-        else
-          ip=$(ip route get "$target" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
-        fi
-        if [[ -n "$ip" ]]; then
-          echo "$ip"
-          return 0
-        fi
-      done
-
-      # IPv6 fallback: Try direct interface lookup for eth0
-      ip=$(ip -6 addr show eth0 scope global 2>/dev/null | awk '/inet6 / {print $2}' | cut -d/ -f1 | head -n1)
-      if [[ -n "$ip" && "$ip" =~ : ]]; then
-        echo "$ip"
-        return 0
-      fi
-
-      # IPv6 fallback: Try hostname -I for IPv6
-      if command -v hostname >/dev/null 2>&1; then
-        ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E ':' | head -n1)
-        if [[ -n "$ip" && "$ip" =~ : ]]; then
-          echo "$ip"
-          return 0
-        fi
-      fi
-
-      # IPv6 fallback: Use routing table with IPv6 targets
-      local ipv6_targets=("2001:4860:4860::8888" "2606:4700:4700::1111")
-      for target in "${ipv6_targets[@]}"; do
-        ip=$(ip -6 route get "$target" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
-        if [[ -n "$ip" && "$ip" =~ : ]]; then
-          echo "$ip"
-          return 0
-        fi
-      done
-
-      return 1
-    }
-
-    LOCAL_IP="$(get_current_ip || true)"
+    LOCAL_IP="$(_get_current_ip || true)"
     if [[ -z "$LOCAL_IP" ]]; then
       msg_error "Could not determine LOCAL_IP"
       return 1
@@ -1701,6 +1768,27 @@ arm64_notice() {
 on_hup_keepalive() {
   stop_spinner
   log_msg "[WARN] Received SIGHUP (terminal hangup). Continuing execution in background."
+}
+
+# ------------------------------------------------------------------------------
+# arch_resolve()
+#
+# - Selects an architecture-specific value while preserving amd64 defaults
+# - Usage: arch_resolve "amd64-value" "arm64-value"
+# - Defaults: amd64="amd64", arm64="arm64"
+# ------------------------------------------------------------------------------
+arch_resolve() {
+  local amd64_val="${1:-amd64}"
+  local arm64_val="${2:-arm64}"
+  local arch="${PCT_ARCH:-$(dpkg --print-architecture 2>/dev/null || uname -m)}"
+  case "$arch" in
+  amd64 | x86_64) echo "$amd64_val" ;;
+  arm64 | aarch64) echo "$arm64_val" ;;
+  *)
+    msg_error "Unsupported architecture: $arch"
+    return 106
+    ;;
+  esac
 }
 
 trap 'on_hup_keepalive' HUP

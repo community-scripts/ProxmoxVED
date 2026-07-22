@@ -1,0 +1,45 @@
+{
+    "name": "Poznote",
+    "slug": "poznote",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-07-06",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": true,
+    "interface_port": 8040,
+    "documentation": "https://github.com/timothepoznanski/poznote",
+    "website": "https://github.com/timothepoznanski/poznote",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/poznote.webp",
+    "config_path": "/var/www/html/data",
+    "description": "Poznote is a personal note-taking and documentation platform built with PHP 8.4 and SQLite. Features include Markdown editing, OIDC/SSO support, MCP server integration, and a clean web interface served via nginx.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/poznote.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin_change_me",
+        "password": "admin"
+    },
+    "notes": [
+        {
+            "text": "Notes and the SQLite database are stored in /var/www/html/data.",
+            "type": "info"
+        },
+        {
+            "text": "OIDC/SSO and settings-page password can be configured via the .env file (see .env.template in the repo).",
+            "type": "info"
+        }
+    ]
+}

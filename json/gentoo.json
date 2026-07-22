@@ -1,0 +1,42 @@
+{
+    "name": "Gentoo",
+    "slug": "gentoo",
+    "categories": [
+        2
+    ],
+    "date_created": "2026-07-16",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": false,
+    "interface_port": null,
+    "documentation": "https://wiki.gentoo.org/",
+    "website": "https://www.gentoo.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/gentoo.webp",
+    "config_path": null,
+    "description": "Gentoo is a highly customizable source-based Linux distribution.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/gentoo.sh",
+            "config_path": null,
+            "resources": {
+                "cpu": 2,
+                "ram": 1024,
+                "hdd": 8,
+                "os": "Gentoo",
+                "version": "current"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "root",
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Gentoo compiles packages from source, so software installation may take time.",
+            "type": "warning"
+        }
+    ]
+}
