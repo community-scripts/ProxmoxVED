@@ -52,18 +52,34 @@ PG_DB_NAME="terminus" PG_DB_USER="terminus" setup_postgresql_db
 
 # Terminus requires Ruby 4.0.x (per .ruby-version). Debian 13 only provides Ruby 3.3.x.
 # setup_ruby uses rbenv/ruby-build to compile exact version from source (~10-20 mins).
-msg_info "Compiling Ruby 4.0.6 from source (Patience ~10-20 mins, don't close the console!)"
 RUBY_VERSION="4.0.6" RUBY_INSTALL_RAILS="false" setup_ruby
 
 msg_info "Fetching latest version"
 # Terminus uses tags only (no GitHub Releases). Standard functions query /releases (404).
-# get_latest_gh_tag uses /git/matching-refs/tags/ which works for tag-only repos.
-LATEST_TAG=$(get_latest_gh_tag "usetrmnl/terminus")
-echo "$LATEST_TAG" > ~/.terminus
+# Timed curl avoids hangs from github_api_call (no max-time / interactive token prompt).
+ensure_dependencies jq
+gh_auth=()
+[[ -n "${GITHUB_TOKEN:-}" ]] && gh_auth=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+LATEST_TAG=$(
+  curl -fsSL --connect-timeout 10 --max-time 30 \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "${gh_auth[@]}" \
+    "https://api.github.com/repos/usetrmnl/terminus/tags?per_page=1" |
+    jq -r '.[0].name // empty'
+) || true
+if [[ -z "$LATEST_TAG" ]]; then
+  msg_error "Could not fetch latest Terminus tag from GitHub (network/rate limit?)"
+  msg_error "Retry later or: export GITHUB_TOKEN=\"ghp_...\""
+  exit 1
+fi
+echo "$LATEST_TAG" >~/.terminus
 msg_ok "Latest version: $LATEST_TAG"
 
 msg_info "Downloading Terminus"
-curl -fsSL "https://github.com/usetrmnl/terminus/archive/refs/tags/$LATEST_TAG.tar.gz" -o /tmp/terminus.tar.gz
+curl -fsSL --connect-timeout 10 --max-time 120 \
+  "https://github.com/usetrmnl/terminus/archive/refs/tags/$LATEST_TAG.tar.gz" \
+  -o /tmp/terminus.tar.gz
 tar --no-same-owner -xzf /tmp/terminus.tar.gz -C /tmp
 mkdir -p /opt/terminus
 shopt -s dotglob nullglob

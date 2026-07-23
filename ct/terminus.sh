@@ -30,84 +30,102 @@ function update_script() {
   fi
 
   msg_info "Checking for updates"
-  # Terminus uses tags only (no GitHub Releases). Standard functions query /releases (404).
-  # get_latest_gh_tag uses /git/matching-refs/tags/ which works for tag-only repos.
-  LATEST_TAG=$(get_latest_gh_tag "usetrmnl/terminus")
+  # Terminus uses tags only (no GitHub Releases). Standard check_for_gh_release → /releases (404).
+  # Fetch tags with timeouts; avoid get_latest_gh_tag/github_api_call which can hang on
+  # network stalls or block on interactive GITHUB_TOKEN prompts during rate limits.
+  ensure_dependencies jq
+  local gh_auth=()
+  [[ -n "${GITHUB_TOKEN:-}" ]] && gh_auth=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+  LATEST_TAG=$(
+    curl -fsSL --connect-timeout 10 --max-time 30 \
+      -H "Accept: application/vnd.github+json" \
+      -H "X-GitHub-Api-Version: 2022-11-28" \
+      "${gh_auth[@]}" \
+      "https://api.github.com/repos/usetrmnl/terminus/tags?per_page=1" |
+      jq -r '.[0].name // empty'
+  ) || true
   CURRENT_VERSION=$(cat ~/.terminus 2>/dev/null || echo "none")
 
-  if [[ "$LATEST_TAG" != "$CURRENT_VERSION" ]]; then
-    msg_ok "Update available: $LATEST_TAG"
-
-    msg_info "Stopping Services"
-    systemctl stop terminus-web terminus-worker
-    msg_ok "Stopped Services"
-
-    msg_info "Backing up Configuration"
-    cp /opt/terminus/.env /opt/terminus.env.bak
-    msg_ok "Backed up Configuration"
-
-    msg_info "Downloading Terminus $LATEST_TAG"
-    curl -fsSL "https://github.com/usetrmnl/terminus/archive/refs/tags/$LATEST_TAG.tar.gz" -o /tmp/terminus.tar.gz
-    rm -rf /opt/terminus/*
-    tar --no-same-owner -xzf /tmp/terminus.tar.gz -C /tmp
-    shopt -s dotglob nullglob
-    cp -r /tmp/terminus-*/. /opt/terminus/
-    shopt -u dotglob nullglob
-    rm -rf /tmp/terminus*
-
-    msg_info "Initializing Git repository"
-    # Init git repo so Terminus version helper (git_link) can resolve commit SHA.
-    # Without this, git rev-parse fails -> UI shows "Latest (ahead of X.Y.Z)" with 404 link.
-    # Mirrors upstream Dockerfile which clones bare repo with tags.
-    cd /opt/terminus
-    git init -q
-    git config user.email "terminus@local"
-    git config user.name "Terminus"
-    git add -A
-    git commit -m "Release $LATEST_TAG" -q
-    git tag "$LATEST_TAG"
-    GIT_SHA=$(git rev-parse --short HEAD)
-    echo "$LATEST_TAG" > ~/.terminus
-    msg_ok "Downloaded Terminus $LATEST_TAG"
-
-    msg_info "Restoring Configuration"
-    cp /opt/terminus.env.bak /opt/terminus/.env
-    rm -f /opt/terminus.env.bak
-    if ! grep -q "HANAMI_SERVE_ASSETS" /opt/terminus/.env; then
-      echo "HANAMI_SERVE_ASSETS=true" >>/opt/terminus/.env
-    fi
-    sed -i "s|^GIT_TAG=.*|GIT_TAG=$LATEST_TAG|" /opt/terminus/.env
-    sed -i "s|^GIT_LATEST_SHA=.*|GIT_LATEST_SHA=$GIT_SHA|" /opt/terminus/.env
-    msg_ok "Restored Configuration"
-
-    msg_info "Installing Dependencies"
-    export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
-    eval "$(rbenv init - bash)" 2>/dev/null || true
-    cd /opt/terminus
-    $STD bundle install
-    $STD npm install
-    msg_ok "Installed Dependencies"
-
-    msg_info "Running Database Migrations"
-    cd /opt/terminus
-    export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
-    eval "$(rbenv init - bash)" 2>/dev/null || true
-    set -a
-    source /opt/terminus/.env
-    set +a
-    $STD bundle exec hanami db migrate
-    msg_ok "Ran Database Migrations"
-
-    msg_info "Compiling Assets"
-    cd /opt/terminus
-    $STD bundle exec hanami assets compile
-    msg_ok "Compiled Assets"
-
-    msg_info "Starting Services"
-    systemctl start terminus-web terminus-worker
-    msg_ok "Started Services"
-    msg_ok "Updated successfully!"
+  if [[ -z "$LATEST_TAG" ]]; then
+    msg_error "Could not fetch latest Terminus tag from GitHub (network/rate limit?)"
+    msg_error "Retry later or: export GITHUB_TOKEN=\"ghp_...\""
+    exit
   fi
+
+  if [[ "$LATEST_TAG" == "$CURRENT_VERSION" ]]; then
+    msg_ok "Already up to date (${CURRENT_VERSION})"
+    exit
+  fi
+  msg_ok "Update available: ${CURRENT_VERSION} → ${LATEST_TAG}"
+
+  msg_info "Stopping Services"
+  systemctl stop terminus-web terminus-worker
+  msg_ok "Stopped Services"
+
+  create_backup /opt/terminus/.env
+
+  msg_info "Downloading Terminus $LATEST_TAG"
+  curl -fsSL --connect-timeout 10 --max-time 120 \
+    "https://github.com/usetrmnl/terminus/archive/refs/tags/$LATEST_TAG.tar.gz" \
+    -o /tmp/terminus.tar.gz
+  rm -rf /opt/terminus/*
+  tar --no-same-owner -xzf /tmp/terminus.tar.gz -C /tmp
+  shopt -s dotglob nullglob
+  cp -r /tmp/terminus-*/. /opt/terminus/
+  shopt -u dotglob nullglob
+  rm -rf /tmp/terminus*
+
+  msg_info "Initializing Git repository"
+  # Init git repo so Terminus version helper (git_link) can resolve commit SHA.
+  # Without this, git rev-parse fails -> UI shows "Latest (ahead of X.Y.Z)" with 404 link.
+  # Mirrors upstream Dockerfile which clones bare repo with tags.
+  cd /opt/terminus
+  git init -q
+  git config user.email "terminus@local"
+  git config user.name "Terminus"
+  git add -A
+  git commit -m "Release $LATEST_TAG" -q
+  git tag "$LATEST_TAG"
+  GIT_SHA=$(git rev-parse --short HEAD)
+  echo "$LATEST_TAG" >~/.terminus
+  msg_ok "Downloaded Terminus $LATEST_TAG"
+
+  msg_info "Restoring Configuration"
+  restore_backup
+  if ! grep -q "HANAMI_SERVE_ASSETS" /opt/terminus/.env; then
+    echo "HANAMI_SERVE_ASSETS=true" >>/opt/terminus/.env
+  fi
+  sed -i "s|^GIT_TAG=.*|GIT_TAG=$LATEST_TAG|" /opt/terminus/.env
+  sed -i "s|^GIT_LATEST_SHA=.*|GIT_LATEST_SHA=$GIT_SHA|" /opt/terminus/.env
+  msg_ok "Restored Configuration"
+
+  msg_info "Installing Dependencies"
+  export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
+  eval "$(rbenv init - bash)" 2>/dev/null || true
+  cd /opt/terminus
+  $STD bundle install
+  $STD npm install
+  msg_ok "Installed Dependencies"
+
+  msg_info "Running Database Migrations"
+  cd /opt/terminus
+  export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
+  eval "$(rbenv init - bash)" 2>/dev/null || true
+  set -a
+  source /opt/terminus/.env
+  set +a
+  $STD bundle exec hanami db migrate
+  msg_ok "Ran Database Migrations"
+
+  msg_info "Compiling Assets"
+  cd /opt/terminus
+  $STD bundle exec hanami assets compile
+  msg_ok "Compiled Assets"
+
+  msg_info "Starting Services"
+  systemctl start terminus-web terminus-worker
+  msg_ok "Started Services"
+  msg_ok "Updated successfully!"
   exit
 }
 
