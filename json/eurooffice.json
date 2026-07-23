@@ -1,0 +1,38 @@
+{
+  "name": "Euro-Office",
+  "slug": "eurooffice",
+  "categories": [12],
+  "date_created": "2026-07-23",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://euro-office.github.io/documentation/",
+  "website": "https://github.com/Euro-Office",
+  "logo": "",
+  "description": "Euro-Office is a FOSS office suite and collaborative software platform, based on software from a more restrictively licensed office suite called OnlyOffice, that provides editors for documents, spreadsheets, presentations, and PDFs. The software includes web-based applications designed for document creation, editing, and collaborative work.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/eurooffice.sh",
+      "config_path": "/etc/euro-office/documentserver/local.json",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Secret Key is located in /root/.euro-office.creds",
+      "type": "info"
+    }
+  ]
+}
