@@ -35,31 +35,6 @@ function update_script() {
   systemctl stop satisfactory
   msg_ok "Stopped ${APP}"
 
-  msg_info "Configuring Steam Service User"
-  if ! id -u steam >/dev/null 2>&1; then
-    useradd --system \
-      --create-home \
-      --home-dir /home/steam \
-      --shell /usr/sbin/nologin \
-      steam
-  fi
-  install -d -o steam -g steam \
-    /home/steam \
-    /home/steam/.config/Epic/FactoryGame \
-    /etc/systemd/system/satisfactory.service.d
-  if [[ -d /root/.config/Epic/FactoryGame/Saved && ! -e /home/steam/.config/Epic/FactoryGame/Saved ]]; then
-    mv /root/.config/Epic/FactoryGame/Saved /home/steam/.config/Epic/FactoryGame/Saved
-  fi
-  chown -R steam:steam /opt/satisfactory /opt/steamcmd /home/steam
-  cat <<EOF >/etc/systemd/system/satisfactory.service.d/user.conf
-[Service]
-User=steam
-Group=steam
-Environment=HOME=/home/steam
-EOF
-  systemctl daemon-reload
-  msg_ok "Configured Steam Service User"
-
   create_backup /home/steam/.config/Epic/FactoryGame/Saved
 
   msg_info "Updating ${APP}"
