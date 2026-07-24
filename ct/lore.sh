@@ -35,7 +35,7 @@ function update_script() {
     systemctl stop lore
     msg_ok "Stopped Service"
 
-    create_backup /opt/lore/local.toml /opt/lore/tls
+    create_backup /opt/lore/local.toml
 
     fetch_and_deploy_gh_release "lore" "EpicGames/lore" "prebuild" "latest" "/opt/lore" "loreserver-*-x86_64-unknown-linux-gnu.tar.gz"
 
