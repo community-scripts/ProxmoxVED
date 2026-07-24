@@ -77,6 +77,7 @@ _GPU_APPS=(
   fileflows
   "open webui"
   tunarr
+  vllm
   debian
 )
 

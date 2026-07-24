@@ -1,0 +1,50 @@
+{
+  "name": "vLLM",
+  "slug": "vllm",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-07-24",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 8000,
+  "documentation": "https://docs.vllm.ai/",
+  "website": "https://vllm.ai/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/vllm.webp",
+  "config_path": "/opt/vllm/vllm.env",
+  "description": "vLLM is a high-throughput, memory-efficient inference and serving engine for LLMs. It exposes an OpenAI-compatible HTTP API (/v1) so existing OpenAI clients can serve local models.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/vllm.sh",
+      "config_path": "/opt/vllm/vllm.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Select NVIDIA GPU passthrough at container creation. vLLM installs the CUDA build by default and requires an NVIDIA GPU for usable performance; CPU-only inference is impractically slow.",
+      "type": "warning"
+    },
+    {
+      "text": "The model to serve is set via VLLM_MODEL in /opt/vllm/vllm.env (default Qwen/Qwen2.5-0.5B-Instruct). Restart the service after changing it: systemctl restart vllm",
+      "type": "info"
+    },
+    {
+      "text": "The configured model is downloaded from HuggingFace on first service start, which needs internet access and disk space. For gated/private models set HF_TOKEN in /opt/vllm/vllm.env. Resource needs scale heavily with the chosen model.",
+      "type": "info"
+    }
+  ]
+}
