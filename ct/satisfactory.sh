@@ -35,10 +35,10 @@ function update_script() {
   systemctl stop satisfactory
   msg_ok "Stopped ${APP}"
 
-  create_backup /root/.config/Epic/FactoryGame/Saved
+  create_backup /home/steam/.config/Epic/FactoryGame/Saved
 
   msg_info "Updating ${APP}"
-  if $STD /opt/steamcmd/steamcmd.sh \
+  if $STD runuser -u steam -- /opt/steamcmd/steamcmd.sh \
     +force_install_dir /opt/satisfactory/server \
     +login anonymous \
     +app_update 1690800 -beta public validate \
