@@ -52,7 +52,6 @@ function update_script() {
   fi
 
   restore_backup
-  chown -R steam:steam /opt/satisfactory /opt/steamcmd /home/steam
 
   msg_info "Starting ${APP}"
   systemctl start satisfactory
