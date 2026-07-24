@@ -1,0 +1,53 @@
+{
+  "name": "World Monitor",
+  "slug": "worldmonitor",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-07-24",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 8080,
+  "documentation": "https://github.com/koala73/worldmonitor/blob/main/SELF_HOSTING.md",
+  "website": "https://www.worldmonitor.app",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/worldmonitor.webp",
+  "description": "Real-time global intelligence dashboard with AI-powered news aggregation, geopolitical monitoring, and infrastructure tracking in a unified situational awareness interface.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/worldmonitor.sh",
+      "config_path": "/opt/worldmonitor/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The Docker Compose stack is translated to native services: worldmonitor.service (Node API sidecar on 127.0.0.1:46123), worldmonitor-ais-relay.service (AIS/OpenSky/RSS relay on :3004), worldmonitor-redis-rest.service (Upstash-compatible REST proxy on :8079), redis-server, and nginx (serves the built SPA and proxies /api on :8080).",
+      "type": "info"
+    },
+    {
+      "text": "Redis password, REST-proxy token, relay shared secret and the local API token are generated at install and stored in /opt/worldmonitor/.env.",
+      "type": "warning"
+    },
+    {
+      "text": "The dashboard runs with public data sources out of the box. Add optional API keys (Groq, OpenRouter, Finnhub, FRED, EIA, AISSTREAM, NASA FIRMS, ACLED, Cloudflare) to /opt/worldmonitor/.env and restart the services to unlock additional data feeds.",
+      "type": "info"
+    },
+    {
+      "text": "Optional AI assessments work with any OpenAI-compatible endpoint (Ollama, vLLM, llama.cpp). Set LLM_API_URL, LLM_API_KEY and LLM_MODEL in /opt/worldmonitor/.env. No LLM is installed by default.",
+      "type": "info"
+    }
+  ]
+}
