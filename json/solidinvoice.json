@@ -36,6 +36,10 @@
     {
       "text": "App startup could be slow. Once the app has started, complete the setup wizard via the web interface on first access.",
       "type": "info"
+    },
+    {
+      "text": "Reverse proxy: the container ships with HTTPS disabled and its bundled webserver bound to all hostnames, so terminate TLS on your proxy (HAProxy, nginx, Traefik, Cloudflare) and forward to http://<ip>:8765. To let the app manage its own certificate instead, set SOLIDINVOICE_DOMAIN and disable SOLIDINVOICE_DISABLE_HTTPS in /etc/solidinvoice/solidinvoice.env.",
+      "type": "info"
     }
   ]
 }

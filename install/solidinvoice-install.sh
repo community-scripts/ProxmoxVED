@@ -39,6 +39,13 @@ cat <<'EOF' >/etc/solidinvoice/solidinvoice.env
 # When set, the application binds to https://<domain> instead of an IP.
 #SOLIDINVOICE_DOMAIN=
 
+# Bind the bundled webserver to every hostname (SERVER_NAME=http://:<port>) so it
+# answers regardless of the Host header. Required behind a reverse proxy
+# (HAProxy, nginx, Traefik, Cloudflare) that forwards the original domain — without
+# it the server only answers on the container IP / localhost / 127.0.0.1 and returns
+# an empty response for the proxied host. Direct http://<ip>:<port> access still works.
+SOLIDINVOICE_DOCKER=true
+
 # ------------------------------------------------------------------
 # HTTPS / TLS
 # ------------------------------------------------------------------
