@@ -54,7 +54,7 @@ After=network.target
 Type=simple
 User=mumble-server
 Group=mumble-server
-ExecStart=/usr/sbin/mumble-server -ini /etc/mumble/mumble-server.ini -fg
+ExecStart=/usr/bin/mumble-server -ini /etc/mumble/mumble-server.ini -fg
 Restart=on-failure
 RestartSec=5
 
