@@ -14,11 +14,13 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y caddy
+$STD apt install -y caddy patchelf
 msg_ok "Installed Dependencies"
 
-PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULES="mbstring,simplexml,curl,intl,xml" setup_php
+PHP_VERSION="8.4" PHP_FPM="YES" setup_php
 setup_composer
+
+fetch_and_deploy_gh_release "curl-impersonate" "lexiforest/curl-impersonate" "prebuild" "latest" "/usr/local/lib/curl-impersonate" "libcurl-impersonate-v*.$(arch_resolve x86_64-linux-gnu aarch64-linux-gnu).tar.gz"
 
 fetch_and_deploy_gh_release "rss-bridge" "RSS-Bridge/rss-bridge" "tarball"
 
@@ -41,6 +43,22 @@ cat <<EOF >/etc/caddy/Caddyfile
 EOF
 usermod -aG www-data caddy
 msg_ok "Configured Caddy"
+
+if [[ -f /usr/local/lib/curl-impersonate/libcurl-impersonate.so ]]; then
+  msg_info "Enabling curl-impersonate for PHP-FPM"
+  patchelf --set-soname libcurl.so.4 /usr/local/lib/curl-impersonate/libcurl-impersonate.so
+  mkdir -p /etc/systemd/system/php${PHP_VER}-fpm.service.d
+  cat <<EOF >/etc/systemd/system/php${PHP_VER}-fpm.service.d/curl-impersonate.conf
+[Service]
+Environment=LD_PRELOAD=/usr/local/lib/curl-impersonate/libcurl-impersonate.so
+EOF
+  cat <<EOF >>/etc/php/${PHP_VER}/fpm/pool.d/www.conf
+env[CURL_IMPERSONATE] = chrome142
+EOF
+  $STD systemctl daemon-reload
+  safe_service_restart php${PHP_VER}-fpm
+  msg_ok "Enabled curl-impersonate for PHP-FPM"
+fi
 
 systemctl enable -q --now php${PHP_VER}-fpm
 systemctl restart caddy
