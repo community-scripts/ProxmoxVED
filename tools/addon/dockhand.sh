@@ -18,119 +18,82 @@ color
 catch_errors
 
 APP="Dockhand"
-APP_TYPE="tools"
-APP_DIR="/opt/dockhand"
-SERVICE="dockhand"
-REPO="Finsys/dockhand"
+APP_TYPE="addon"
+INSTALL_PATH="/opt/dockhand"
+COMPOSE_FILE="${INSTALL_PATH}/docker-compose.yaml"
 DEFAULT_PORT=3000
 
 header_info "$APP"
 
-if ! grep -q -Ei 'debian|ubuntu' /etc/os-release; then
-  msg_error "Unsupported OS. This addon supports only Debian or Ubuntu."
-  exit 1
-fi
-
 IP=$(hostname -I | awk '{print $1}')
 
-function is_installed() {
-  [[ -d "$APP_DIR" ]] && systemctl is-active --quiet "$SERVICE"
-}
-
-function build_dockhand() {
-  msg_info "Building ${APP} (Patience)"
-  cd "$APP_DIR"
-  $STD npm install
-  $STD npm run build
-  mkdir -p "$APP_DIR/bin" "$APP_DIR/data"
-  CGO_ENABLED=0 $STD go build -C collector -o "$APP_DIR/bin/collection-worker" .
-  msg_ok "Built ${APP}"
+function check_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    msg_error "Docker is not installed. This addon requires an existing Docker host/LXC. Exiting."
+    exit 1
+  fi
+  if ! docker compose version >/dev/null 2>&1; then
+    msg_error "Docker Compose plugin is not available. Install it before running this addon. Exiting."
+    exit 1
+  fi
+  msg_ok "Docker $(docker --version | cut -d' ' -f3 | tr -d ',') and Docker Compose are available"
 }
 
 function install_dockhand() {
   local port="${1:-$DEFAULT_PORT}"
+  check_docker
 
-  msg_info "Installing Dependencies"
-  $STD apt install -y \
-    git \
-    build-essential \
-    python3
-  msg_ok "Installed Dependencies"
+  msg_info "Creating Compose Project"
+  mkdir -p "$INSTALL_PATH"
+  cat <<EOF >"$COMPOSE_FILE"
+services:
+  dockhand:
+    image: fnsys/dockhand:latest
+    container_name: dockhand
+    restart: unless-stopped
+    ports:
+      - ${port}:3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dockhand_data:/app/data
 
-  USE_DOCKER_REPO=true setup_docker
-  NODE_VERSION="24" setup_nodejs
-  setup_go
-
-  fetch_and_deploy_gh_release "dockhand" "$REPO" "tarball" "latest" "$APP_DIR"
-
-  build_dockhand
-
-  msg_info "Creating Service"
-  cat <<EOF >/etc/systemd/system/${SERVICE}.service
-[Unit]
-Description=Dockhand Docker Management
-After=network-online.target docker.service
-Wants=network-online.target
-Requires=docker.service
-
-[Service]
-Type=simple
-WorkingDirectory=${APP_DIR}
-Environment=NODE_ENV=production
-Environment=DATA_DIR=${APP_DIR}/data
-Environment=HOST=0.0.0.0
-Environment=PORT=${port}
-ExecStart=/usr/bin/node ${APP_DIR}/server.js
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
+volumes:
+  dockhand_data:
 EOF
-  systemctl enable -q --now "$SERVICE"
-  msg_ok "Created Service"
+  msg_ok "Created Compose Project"
 
-  msg_ok "${APP} installed at http://${IP}:${port}"
-  echo -e "${TAB}Open the URL and complete the setup wizard to create the admin account."
+  msg_info "Starting ${APP}"
+  cd "$INSTALL_PATH"
+  $STD docker compose up -d
+  msg_ok "Started ${APP}"
+
+  msg_ok "${APP} is reachable at http://${IP}:${port}"
+  echo -e "${TAB}Open the URL and complete the first-run setup wizard to create the admin account."
+}
+
+function update_dockhand() {
+  msg_info "Pulling latest ${APP} image"
+  cd "$INSTALL_PATH"
+  $STD docker compose pull
+  msg_ok "Pulled latest image"
+
+  msg_info "Restarting ${APP}"
+  $STD docker compose up -d --remove-orphans
+  msg_ok "Restarted ${APP}"
+
+  msg_ok "${APP} updated successfully"
 }
 
 function uninstall_dockhand() {
   msg_info "Removing ${APP}"
-  systemctl disable -q --now "$SERVICE" 2>/dev/null || true
-  rm -f "/etc/systemd/system/${SERVICE}.service"
-  rm -rf "$APP_DIR"
-  msg_ok "${APP} uninstalled"
+  cd "$INSTALL_PATH"
+  $STD docker compose down --remove-orphans
+  cd /
+  rm -rf "$INSTALL_PATH"
+  msg_ok "${APP} uninstalled (the dockhand_data volume was kept; remove it with: docker volume rm dockhand_data)"
 }
 
-function update_dockhand() {
-  if check_for_gh_release "dockhand" "$REPO"; then
-    msg_info "Stopping ${APP}"
-    systemctl stop "$SERVICE"
-    msg_ok "Stopped ${APP}"
-
-    msg_info "Backing up Data"
-    cp -r "$APP_DIR/data" /opt/dockhand_data_backup
-    msg_ok "Backed up Data"
-
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "dockhand" "$REPO" "tarball" "latest" "$APP_DIR"
-
-    build_dockhand
-
-    msg_info "Restoring Data"
-    cp -r /opt/dockhand_data_backup/. "$APP_DIR/data"
-    rm -rf /opt/dockhand_data_backup
-    msg_ok "Restored Data"
-
-    msg_info "Starting ${APP}"
-    systemctl start "$SERVICE"
-    msg_ok "Started ${APP}"
-    msg_ok "${APP} updated successfully"
-  else
-    msg_ok "${APP} is already up-to-date"
-  fi
-}
-
-if is_installed; then
+if [[ -f "$COMPOSE_FILE" ]]; then
   read -r -p "Update (1), Uninstall (2), Cancel (3)? [1/2/3]: " action
   action="${action//[[:space:]]/}"
   case "$action" in
