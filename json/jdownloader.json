@@ -34,7 +34,15 @@
     },
     "notes": [
         {
-            "text": "MyJDownloader cloud access is disabled by default. To enable it, edit /opt/jdownloader/cfg/org.jdownloader.api.myjdownloader.MyJDownloaderSettings.json, replace the placeholder email/password with your my.jdownloader.org credentials, set autoconnectenabledv2 to true, and restart the service.",
+            "text": "MyJDownloader cloud access is disabled by default. Easiest setup: open the noVNC web UI, go to Settings > My JDownloader, and sign in with your my.jdownloader.org account. You must register that account and confirm the activation email at my.jdownloader.org first, otherwise the GUI reports 'logins are not correct'.",
+            "type": "info"
+        },
+        {
+            "text": "Headless alternative: to configure MyJDownloader by editing /opt/jdownloader/cfg/org.jdownloader.api.myjdownloader.MyJDownloaderSettings.json (set email, password and autoconnectenabledv2 to true), you must run 'systemctl stop jdownloader' first, then edit the file, then 'systemctl start jdownloader'. Editing the file while the service is running - or using 'systemctl restart' - discards your changes, because JDownloader rewrites its cfg/*.json files from memory on shutdown.",
+            "type": "warning"
+        },
+        {
+            "text": "To paste download links, expand the noVNC control bar on the left edge of the web UI and paste into its clipboard panel; the browser's local clipboard is not shared with the container automatically. Direct Ctrl+V onto the canvas will not work.",
             "type": "info"
         },
         {

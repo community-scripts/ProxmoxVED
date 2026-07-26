@@ -26,7 +26,7 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /etc/couchdb/local.d/obsidian-livesync.ini ]]; then
+  if [[ ! -f /opt/couchdb/etc/local.d/obsidian-livesync.ini ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
@@ -35,7 +35,7 @@ function update_script() {
   systemctl stop couchdb
   msg_ok "Stopped CouchDB"
 
-  create_backup /var/lib/couchdb /etc/couchdb/local.d/obsidian-livesync.ini /opt/obsidian-livesync/.env
+  create_backup /var/lib/couchdb /opt/couchdb/etc/local.d/obsidian-livesync.ini /opt/obsidian-livesync/.env
 
   msg_info "Updating Container OS"
   $STD apt update

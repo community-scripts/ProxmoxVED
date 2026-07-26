@@ -47,8 +47,8 @@ EOF
 msg_ok "Installed CouchDB"
 
 msg_info "Configuring CouchDB"
-mkdir -p /etc/couchdb/local.d /opt/obsidian-livesync
-cat <<EOF >/etc/couchdb/local.d/obsidian-livesync.ini
+mkdir -p /opt/couchdb/etc/local.d /opt/obsidian-livesync
+cat <<EOF >/opt/couchdb/etc/local.d/obsidian-livesync.ini
 [couchdb]
 single_node = true
 max_document_size = 50000000
@@ -85,8 +85,12 @@ chmod 600 /opt/obsidian-livesync/.env
 msg_ok "Configured CouchDB"
 
 msg_info "Creating LiveSync Database"
-systemctl enable -q --now couchdb
-curl -fsS -u "admin:${COUCHDB_PASSWORD}" -X PUT http://127.0.0.1:5984/obsidiannotes >/dev/null
+systemctl enable -q couchdb
+systemctl restart couchdb
+for _ in {1..30}; do
+  curl -fsS -u "admin:${COUCHDB_PASSWORD}" -X PUT http://127.0.0.1:5984/obsidiannotes >/dev/null 2>&1 && break
+  sleep 1
+done
 msg_ok "Created LiveSync Database"
 
 motd_ssh
