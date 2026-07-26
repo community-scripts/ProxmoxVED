@@ -89,6 +89,8 @@ server {
   }
 }
 EOF
+$STD sed -i -E '/^[[:space:]]*worker_cpu_affinity/d' /etc/nginx/nginx.conf
+$STD sed -i -E 's/^[[:space:]]*worker_processes[[:space:]].*/worker_processes auto;/' /etc/nginx/nginx.conf
 create_self_signed_cert
 systemctl reload nginx
 msg_ok "Nginx Server created"
@@ -96,7 +98,7 @@ msg_ok "Nginx Server created"
 msg_info "Creating Kestrel Umbraco Service"
 cat <<EOF >/usr/local/bin/umbraco-start.sh
 #!/usr/bin/env bash
-/usr/bin/dotnet /var/www/html/$var_project_name-publish/$var_project_name.dll --urls "https://0.0.0.0:7000" &
+exec /usr/bin/dotnet /var/www/html/$var_project_name-publish/$var_project_name.dll --urls "https://0.0.0.0:7000"
 EOF
 chmod +x /usr/local/bin/umbraco-start.sh
 
