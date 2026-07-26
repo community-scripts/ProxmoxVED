@@ -15,9 +15,6 @@ update_os
 
 setup_hwaccel
 
-# Seanime shells out to ffmpeg/ffprobe for media streaming and transcoding.
-# jellyfin-ffmpeg7 ships the Intel QSV/VAAPI, AMD and NVIDIA encoders that the
-# Debian ffmpeg build does not fully cover.
 msg_info "Installing FFmpeg"
 setup_deb822_repo \
   "jellyfin" \
@@ -32,9 +29,20 @@ msg_ok "Installed FFmpeg"
 fetch_and_deploy_gh_release "seanime" "5rahim/seanime" "prebuild" "latest" "/opt/seanime" "seanime-[0-9]*_Linux_$(arch_resolve x86_64 arm64).tar.gz"
 chmod +x /opt/seanime/seanime
 
+msg_info "Configuring Seanime"
+SEANIME_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
+mkdir -p /opt/seanime-data
+cat <<EOF >/opt/seanime-data/config.toml
+[server]
+password = "${SEANIME_PASSWORD}"
+EOF
+cat <<EOF >/root/seanime.creds
+Seanime URL: http://${LOCAL_IP}:43211
+Password: ${SEANIME_PASSWORD}
+EOF
+msg_ok "Configured Seanime"
+
 msg_info "Creating Service"
-# Seanime binds 127.0.0.1 by default, which is unreachable from outside the
-# container, so the listen address is set explicitly.
 cat <<EOF >/etc/systemd/system/seanime.service
 [Unit]
 Description=Seanime
@@ -44,7 +52,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/seanime
-ExecStart=/opt/seanime/seanime --datadir /opt/seanime/data --host 0.0.0.0
+ExecStart=/opt/seanime/seanime --datadir /opt/seanime-data --host 0.0.0.0
 Restart=on-failure
 RestartSec=5
 

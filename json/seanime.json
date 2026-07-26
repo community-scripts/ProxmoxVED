@@ -18,7 +18,7 @@
     {
       "type": "default",
       "script": "ct/seanime.sh",
-      "config_path": "/opt/seanime/data/config.toml",
+      "config_path": "/opt/seanime-data/config.toml",
       "resources": {
         "cpu": 2,
         "ram": 2048,
@@ -30,12 +30,12 @@
   ],
   "default_credentials": {
     "username": null,
-    "password": null
+    "password": "auto-generated"
   },
   "notes": [
     {
-      "text": "The instance is unauthenticated by default. Set `password` under `[server]` in /opt/seanime/data/config.toml and restart seanime.service before exposing it beyond your LAN.",
-      "type": "warning"
+      "text": "A random server password is generated at install and saved to `/root/seanime.creds`. Seanime authenticates with that password alone — there is no username. Change it under `[server]` in /opt/seanime-data/config.toml and restart seanime.service.",
+      "type": "info"
     },
     {
       "text": "Seanime is built around a single AniList account per instance and has no multi-user accounts or role-based access. Trakt and SIMKL are not supported, and MyAnimeList is limited to optional progress sync.",
@@ -50,7 +50,7 @@
       "type": "info"
     },
     {
-      "text": "The data directory /opt/seanime/data lives on the container disk and holds config.toml, the database, logs, the transcode cache, downloaded manga and — when the built-in torrent client is used — downloads. Increase the disk size or bind-mount storage before building a large library.",
+      "text": "The data directory /opt/seanime-data lives on the container disk and holds config.toml, the database, logs, the transcode cache, downloaded manga and — when the built-in torrent client is used — downloads. It is kept outside /opt/seanime so updates can replace the binary cleanly. Increase the disk size or bind-mount storage before building a large library.",
       "type": "info"
     }
   ]

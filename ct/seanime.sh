@@ -36,11 +36,9 @@ function update_script() {
     systemctl stop seanime
     msg_ok "Stopped Service"
 
-    create_backup /opt/seanime/data/config.toml
+    create_backup /opt/seanime-data/config.toml
 
-    # CLEAN_INSTALL is intentionally omitted: the release archive holds only the
-    # seanime binary, so wiping /opt/seanime would take the data directory with it.
-    fetch_and_deploy_gh_release "seanime" "5rahim/seanime" "prebuild" "latest" "/opt/seanime" "seanime-[0-9]*_Linux_$(arch_resolve x86_64 arm64).tar.gz"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "seanime" "5rahim/seanime" "prebuild" "latest" "/opt/seanime" "seanime-[0-9]*_Linux_$(arch_resolve x86_64 arm64).tar.gz"
     chmod +x /opt/seanime/seanime
 
     restore_backup
@@ -61,3 +59,5 @@ msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:43211${CL}"
+echo -e "${INFO}${YW} Credentials saved in:${CL}"
+echo -e "${TAB}/root/seanime.creds"
