@@ -23,6 +23,7 @@ $STD apt install -y \
   websockify \
   openbox \
   tint2 \
+  autocutsel \
   x11-xserver-utils \
   x11-utils \
   wmctrl \
@@ -122,6 +123,23 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
+cat <<EOF >/etc/systemd/system/autocutsel.service
+[Unit]
+Description=autocutsel Clipboard Sync
+After=openbox.service
+Requires=openbox.service
+
+[Service]
+Type=simple
+Environment=DISPLAY=:1
+ExecStart=/bin/sh -c 'autocutsel -selection PRIMARY -fork; exec autocutsel -selection CLIPBOARD'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat <<EOF >/etc/systemd/system/jdownloader.service
 [Unit]
 Description=JDownloader Download Manager
@@ -182,6 +200,7 @@ sleep 2
 systemctl enable -q --now openbox
 sleep 1
 systemctl enable -q --now tint2
+systemctl enable -q --now autocutsel
 systemctl enable -q --now jdownloader
 sleep 3
 systemctl enable -q --now x11vnc

@@ -42,7 +42,7 @@
             "type": "warning"
         },
         {
-            "text": "To paste download links, expand the noVNC control bar on the left edge of the web UI and paste into its clipboard panel; the browser's local clipboard is not shared with the container automatically. Direct Ctrl+V onto the canvas will not work.",
+            "text": "To paste download links, expand the noVNC control bar on the left edge of the web UI and paste the link into its clipboard panel - JDownloader's LinkGrabber then picks it up automatically (the container keeps the VNC clipboard in sync via autocutsel). The browser's local OS clipboard is not shared automatically, so use the panel rather than pasting directly onto the canvas.",
             "type": "info"
         },
         {
