@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: MickLesk (CanbiZ)
+# Author: hasan-ismail
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/cooklang/cookcli
+# Source: https://seanime.app/
 
-APP="CookCLI"
-var_tags="${var_tags:-recipes;cooking;food}"
-var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-512}"
+APP="Seanime"
+var_tags="${var_tags:-media;anime;manga}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
+var_gpu="${var_gpu:-yes}"
 
 header_info "$APP"
 variables
@@ -25,30 +26,25 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/cookcli/cook ]]; then
+  if [[ ! -d /opt/seanime ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  if check_for_gh_release "cook" "cooklang/cookcli"; then
+  if check_for_gh_release "seanime" "5rahim/seanime"; then
     msg_info "Stopping Service"
-    systemctl stop cookcli
+    systemctl stop seanime
     msg_ok "Stopped Service"
 
-    create_backup /opt/cookcli/recipes
+    create_backup /opt/seanime-data/config.toml
 
-    ARCH=$(dpkg --print-architecture)
-    if [[ "$ARCH" == "arm64" ]]; then
-      CLEAN_INSTALL=1 fetch_and_deploy_gh_release "cook" "cooklang/cookcli" "prebuild" "latest" "/opt/cookcli" "cook-aarch64-unknown-linux-musl.tar.gz"
-    else
-      CLEAN_INSTALL=1 fetch_and_deploy_gh_release "cook" "cooklang/cookcli" "prebuild" "latest" "/opt/cookcli" "cook-x86_64-unknown-linux-gnu.tar.gz"
-    fi
-    chmod +x /opt/cookcli/cook
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "seanime" "5rahim/seanime" "prebuild" "latest" "/opt/seanime" "seanime-[0-9]*_Linux_$(arch_resolve x86_64 arm64).tar.gz"
+    chmod +x /opt/seanime/seanime
 
     restore_backup
 
     msg_info "Starting Service"
-    systemctl start cookcli
+    systemctl start seanime
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi
@@ -61,5 +57,7 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW}Access it using the following URL:${CL}"
-echo -e "${GATEWAY}${BGN}http://${IP}:9080${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:43211${CL}"
+echo -e "${INFO}${YW} Credentials saved in:${CL}"
+echo -e "${TAB}/root/seanime.creds"

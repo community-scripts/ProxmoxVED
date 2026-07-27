@@ -1,0 +1,57 @@
+{
+  "name": "Seanime",
+  "slug": "seanime",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-07-25",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 43211,
+  "documentation": "https://seanime.app/docs",
+  "website": "https://seanime.app/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/seanime.webp",
+  "description": "Seanime is a self-hosted server for an anime and manga library, built around AniList. It scans local media, tracks progress back to AniList, searches torrents through extension-based providers, downloads through qBittorrent, Transmission, Torbox, Real-Debrid, AllDebrid or Premiumize, streams torrent and debrid content straight to a player, auto-downloads airing episodes, and includes a manga reader and online streaming via extensions.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/seanime.sh",
+      "config_path": "/opt/seanime-data/config.toml",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": "auto-generated"
+  },
+  "notes": [
+    {
+      "text": "A random server password is generated at install and saved to `/root/seanime.creds`. Seanime authenticates with that password alone — there is no username. Change it under `[server]` in /opt/seanime-data/config.toml and restart seanime.service.",
+      "type": "info"
+    },
+    {
+      "text": "Seanime is built around a single AniList account per instance and has no multi-user accounts or role-based access. Trakt and SIMKL are not supported, and MyAnimeList is limited to optional progress sync.",
+      "type": "warning"
+    },
+    {
+      "text": "Attach your existing library to the container, then point Seanime at it under Settings: pct set <CTID> -mp0 /path/on/host,mp=/mnt/anime",
+      "type": "info"
+    },
+    {
+      "text": "GPU passthrough is enabled by default during installation and can be turned off in the Advanced install options. The matching Intel/AMD/NVIDIA drivers and jellyfin-ffmpeg7 are installed for it. Transcoding itself is off by default: enable it under Settings > Transcoding / Direct Play, then set Hardware acceleration to Intel (QSV), Intel (QSV Low-Power), VAAPI or NVIDIA (NVENC). That choice is stored in Seanime's database, so the installer cannot preset it.",
+      "type": "info"
+    },
+    {
+      "text": "The data directory /opt/seanime-data lives on the container disk and holds config.toml, the database, logs, the transcode cache, downloaded manga and — when the built-in torrent client is used — downloads. It is kept outside /opt/seanime so updates can replace the binary cleanly. Increase the disk size or bind-mount storage before building a large library.",
+      "type": "info"
+    }
+  ]
+}
