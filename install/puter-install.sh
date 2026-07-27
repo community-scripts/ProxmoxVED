@@ -33,6 +33,7 @@ msg_ok "Built Application"
 msg_info "Configuring Application"
 mkdir -p /etc/puter/extensions /var/puter/s3-data /var/puter/s3-storage
 JWT_SECRET=$(openssl rand -hex 64)
+JWT_SECRET_V2=$(openssl rand -hex 64)
 URL_SIGNATURE_SECRET=$(openssl rand -hex 64)
 cat <<EOF >/etc/puter/config.json
 {
@@ -44,6 +45,8 @@ cat <<EOF >/etc/puter/config.json
   "pub_port": 4100,
   "allow_nipio_domains": true,
   "jwt_secret": "${JWT_SECRET}",
+  "jwt_secret_v2": "${JWT_SECRET_V2}",
+  "allow_v1_tokens": true,
   "url_signature_secret": "${URL_SIGNATURE_SECRET}",
   "extensions": ["/etc/puter/extensions"],
   "database": {
@@ -52,15 +55,6 @@ cat <<EOF >/etc/puter/config.json
   },
   "redis": {
     "useMock": true
-  },
-  "dynamo": {
-    "inMemory": true,
-    "bootstrapTables": true,
-    "aws": {
-      "access_key": "fake",
-      "secret_key": "fake",
-      "region": "us-east-1"
-    }
   },
   "s3": {
     "localConfig": {
