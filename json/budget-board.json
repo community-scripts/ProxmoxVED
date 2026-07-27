@@ -1,0 +1,46 @@
+{
+  "name": "Budget-Board",
+  "slug": "budget-board",
+  "categories": [
+    23
+  ],
+  "date_created": "2026-07-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 80,
+  "documentation": "https://github.com/teelur/budget-board",
+  "website": "https://budgetboard.net",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/budget-board.webp",
+  "config_path": "/opt/budget-board/server/.env",
+  "description": "Budget-Board is a simple self-hosted app for tracking monthly spending and working towards financial goals. It pairs a .NET web API with a web client backed by PostgreSQL.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/budget-board.sh",
+      "config_path": "/opt/budget-board/server/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Create your account by registering via the web interface on first access.",
+      "type": "info"
+    },
+    {
+      "text": "To enable email features (password reset, notifications), configure the EMAIL_SMTP_* values in /opt/budget-board/server/.env and restart the service.",
+      "type": "info"
+    }
+  ]
+}
