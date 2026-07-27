@@ -79,7 +79,6 @@ cat <<EOF >/etc/caddy/Caddyfile
     root * /opt/slink/services/api/public
     php_fastcgi unix//run/php/php${PHP_VER}-fpm.sock
     file_server
-    encode gzip
 }
 EOF
 msg_ok "Configured Caddy"
