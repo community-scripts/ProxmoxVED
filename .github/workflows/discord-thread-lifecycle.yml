@@ -1,0 +1,372 @@
+name: Discord thread lifecycle
+
+on:
+  issues:
+    types:
+      - labeled
+      - unlabeled
+      - closed
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to act on
+        required: true
+        type: string
+      mode:
+        description: Lifecycle step to run
+        required: true
+        type: choice
+        options:
+          - ready
+          - hold
+          - defer
+          - migrate
+          - delete
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+concurrency:
+  group: discord-thread-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Collapse the trigger into one lifecycle mode plus the issue facts every
+  # downstream step needs, so nothing below re-derives the label logic.
+  # ---------------------------------------------------------------------------
+  route:
+    runs-on: ubuntu-latest
+    if: github.repository == 'community-scripts/ProxmoxVED'
+    outputs:
+      mode: ${{ steps.route.outputs.mode }}
+      issue_number: ${{ steps.route.outputs.issue_number }}
+      issue_title: ${{ steps.route.outputs.issue_title }}
+      issue_url: ${{ steps.route.outputs.issue_url }}
+      issue_locked: ${{ steps.route.outputs.issue_locked }}
+      thread_name: ${{ steps.route.outputs.thread_name }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Determine mode
+        id: route
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          EVENT_LABEL: ${{ github.event.label.name }}
+          ISSUE_LABELS: ${{ join(github.event.issue.labels.*.name, '|') }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_ISSUE: ${{ inputs.issue_number }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_LOCKED: ${{ github.event.issue.locked }}
+        run: |
+          mode=noop
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            mode="$INPUT_MODE"
+            ISSUE_NUMBER="$INPUT_ISSUE"
+            META=$(gh api "/repos/$REPO/issues/$ISSUE_NUMBER")
+            ISSUE_TITLE=$(jq -r '.title' <<<"$META")
+            ISSUE_URL=$(jq -r '.html_url' <<<"$META")
+            ISSUE_LOCKED=$(jq -r '.locked' <<<"$META")
+          elif [ "$EVENT_ACTION" = "closed" ]; then
+            mode=delete
+          else
+            case "$EVENT_ACTION:$EVENT_LABEL" in
+              "labeled:Ready For Testing")               mode=ready ;;
+              "unlabeled:Ready For Testing")             mode=hold ;;
+              "labeled:deferred")                        mode=defer ;;
+              "labeled:Started Migration To ProxmoxVE")  mode=migrate ;;
+            esac
+
+            # Removing 'Ready For Testing' usually accompanies a deferral or a
+            # migration; those modes own the messaging, so drop the duplicate.
+            if [ "$mode" = "hold" ] && printf '%s' "|$ISSUE_LABELS|" \
+              | grep -qE '\|(deferred|Migration To ProxmoxVE|Started Migration To ProxmoxVE)\|'; then
+              mode=noop
+            fi
+          fi
+
+          echo "Mode: $mode (event=$EVENT_NAME action=$EVENT_ACTION label=$EVENT_LABEL issue=$ISSUE_NUMBER)"
+
+          {
+            echo "mode=$mode"
+            echo "issue_number=$ISSUE_NUMBER"
+            echo "issue_url=$ISSUE_URL"
+            echo "issue_locked=${ISSUE_LOCKED:-false}"
+            printf 'issue_title<<ISSUE_TITLE_EOF\n%s\nISSUE_TITLE_EOF\n' "$ISSUE_TITLE"
+            printf 'thread_name<<THREAD_NAME_EOF\nWanted Tester for %s\nTHREAD_NAME_EOF\n' "$ISSUE_TITLE"
+          } >> "$GITHUB_OUTPUT"
+
+  lifecycle:
+    runs-on: ubuntu-latest
+    needs: route
+    if: needs.route.outputs.mode != 'noop'
+    env:
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+      DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      MODE: ${{ needs.route.outputs.mode }}
+      THREAD_NAME: ${{ needs.route.outputs.thread_name }}
+      ISSUE_NUMBER: ${{ needs.route.outputs.issue_number }}
+      ISSUE_TITLE: ${{ needs.route.outputs.issue_title }}
+      ISSUE_URL: ${{ needs.route.outputs.issue_url }}
+      TAG_TESTING: Testing
+      TAG_HOLD: On Hold
+      TAG_DEFERRED: Deferred
+      TAG_MIGRATING: Migrating
+      HELPER: .github/workflows/scripts/discord-thread.sh
+    steps:
+      - name: Checkout helper script
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/workflows/scripts
+          sparse-checkout-cone-mode: false
+
+      - name: Resolve Discord thread
+        id: thread
+        run: |
+          chmod +x "$HELPER"
+          id=$("$HELPER" resolve "$ISSUE_NUMBER" "$THREAD_NAME")
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          if [ -n "$id" ]; then
+            echo "Resolved thread: $id"
+          else
+            echo "No existing thread for: $THREAD_NAME"
+          fi
+
+      # -----------------------------------------------------------------------
+      # Ready For Testing
+      # -----------------------------------------------------------------------
+      - name: Extract script name and type
+        if: env.MODE == 'ready'
+        run: |
+          ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json body --jq '.body // ""')
+
+          # SLUG: from the "Name of the Script" field, normalized to the repo's
+          # lowercase + spaces->dashes convention ("Alpine Cinny" -> "alpine-cinny").
+          NAME_RAW=$(printf '%s\n' "$ISSUE_BODY" \
+            | sed -n '/^###[[:space:]]*Name of the Script/,/^###/p' \
+            | sed '1d;/^###/d;/^[[:space:]]*$/d' | head -n1)
+          if [ -z "$NAME_RAW" ]; then
+            NAME_RAW="$ISSUE_TITLE"
+          fi
+          SLUG=$(printf '%s' "$NAME_RAW" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]\+/-/g')
+
+          if printf '%s' "$ISSUE_BODY" | grep -qi "CT (LXC Container)"; then
+            SCRIPT_TYPE="ct"
+          elif printf '%s' "$ISSUE_BODY" | grep -qi "VM (Virtual Machine)"; then
+            SCRIPT_TYPE="vm"
+          elif printf '%s' "$ISSUE_BODY" | grep -qi "Addon (tools/addon)"; then
+            SCRIPT_TYPE="addon"
+          elif printf '%s' "$ISSUE_BODY" | grep -qi "PVE Tool (tools/pve)"; then
+            SCRIPT_TYPE="pve"
+          elif [[ "$SLUG" == *"-vm"* ]]; then
+            SCRIPT_TYPE="vm"
+          else
+            SCRIPT_TYPE="ct"
+          fi
+
+          echo "SLUG=$SLUG" >> "$GITHUB_ENV"
+          echo "SCRIPT_TYPE=$SCRIPT_TYPE" >> "$GITHUB_ENV"
+          echo "Detected script type: $SCRIPT_TYPE for slug: $SLUG"
+
+      - name: Build testing message
+        if: env.MODE == 'ready'
+        run: |
+          case "$SCRIPT_TYPE" in
+            ct)    SCRIPT_PATH="ct/${SLUG}.sh" ;;
+            vm)    SCRIPT_PATH="vm/${SLUG}.sh" ;;
+            addon) SCRIPT_PATH="tools/addon/${SLUG}.sh" ;;
+            pve)   SCRIPT_PATH="tools/pve/${SLUG}.sh" ;;
+          esac
+
+          {
+            printf 'The %s script is ready for testing:\n' "$ISSUE_TITLE"
+            printf '```\nbash -c "$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/%s)"\n```\n' "$SCRIPT_PATH"
+          } > testing.md
+
+          if [ "$SCRIPT_TYPE" != "pve" ]; then
+            JSON=$(curl -fsSL "https://github.com/community-scripts/ProxmoxVED/raw/main/json/${SLUG}.json" 2>/dev/null || echo '{}')
+
+            username=$(printf '%s' "$JSON" | jq -r '.default_credentials.username // empty' 2>/dev/null || true)
+            password=$(printf '%s' "$JSON" | jq -r '.default_credentials.password // empty' 2>/dev/null || true)
+            if [ -n "$username" ] || [ -n "$password" ]; then
+              printf '\nDefault credentials:\n' >> testing.md
+              [ -n "$username" ] && printf 'Username: %s\n' "$username" >> testing.md
+              [ -n "$password" ] && printf 'Password: %s\n' "$password" >> testing.md
+            fi
+
+            NOTES=$(printf '%s' "$JSON" | jq -r '.notes[]?.text // empty' 2>/dev/null || true)
+            if [ -n "$NOTES" ]; then
+              printf '\n%s\n' "$NOTES" >> testing.md
+            fi
+          fi
+
+          printf '\nNote: This is not in the official repo yet—it'"'"'s just a dev version! After merging into ProxmoxVE, it will need to be recreated.\n' >> testing.md
+
+          cp testing.md discord.md
+          printf '\nDiscussion & issue tracking:\n%s\n' "$ISSUE_URL" >> discord.md
+
+          echo "--- Discord message ---"
+          cat discord.md
+
+      - name: Create Discord thread
+        id: create
+        if: env.MODE == 'ready' && steps.thread.outputs.id == ''
+        run: |
+          id=$("$HELPER" create "$THREAD_NAME" discord.md "$TAG_TESTING")
+          if [ -z "$id" ] || [ "$id" = "null" ]; then
+            echo "::error::Discord thread creation returned no id"
+            exit 1
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "Created thread: $id"
+
+      - name: Comment testing instructions on issue
+        if: steps.create.outputs.id != ''
+        env:
+          THREAD_ID: ${{ steps.create.outputs.id }}
+        run: |
+          {
+            cat testing.md
+            printf '\nDiscord testing thread: https://discord.com/channels/%s/%s\n' "$DISCORD_GUILD_ID" "$THREAD_ID"
+            printf '\n<!-- discord-thread-id: %s -->\n' "$THREAD_ID"
+          } > comment.md
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body-file comment.md
+
+      - name: Reopen existing thread for testing
+        if: env.MODE == 'ready' && steps.thread.outputs.id != ''
+        env:
+          THREAD_ID: ${{ steps.thread.outputs.id }}
+        run: |
+          {
+            printf '▶️ **Testing has resumed** — the `Ready For Testing` label is back on the issue.\n\n'
+            cat testing.md
+            printf '\n🔗 %s\n' "$ISSUE_URL"
+          } > notice.md
+          "$HELPER" post "$THREAD_ID" notice.md
+          "$HELPER" state "$THREAD_ID" false false "$TAG_TESTING"
+
+          # Also re-anchors the thread id on issues whose thread predates the marker.
+          {
+            printf '▶️ Testing resumed. Discord thread: https://discord.com/channels/%s/%s\n' "$DISCORD_GUILD_ID" "$THREAD_ID"
+            printf '\n<!-- discord-thread-id: %s -->\n' "$THREAD_ID"
+          } > comment.md
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body-file comment.md
+
+      - name: Unlock issue
+        if: env.MODE == 'ready' && needs.route.outputs.issue_locked == 'true'
+        run: |
+          gh api --method DELETE "/repos/$REPO/issues/$ISSUE_NUMBER/lock"
+
+      - name: Push script JSON to PocketBase
+        if: env.MODE == 'ready' && env.SCRIPT_TYPE != 'pve'
+        run: |
+          gh workflow run push_json_to_pocketbase.yml --repo "$REPO" -f script_slug="$SLUG"
+
+      # -----------------------------------------------------------------------
+      # Hold / defer / migrate
+      # -----------------------------------------------------------------------
+      - name: Warn about missing thread
+        if: steps.thread.outputs.id == '' && env.MODE != 'ready'
+        run: echo "::warning::No Discord thread found for '$THREAD_NAME' — nothing to update."
+
+      - name: Collect latest issue update
+        if: env.MODE == 'hold' || env.MODE == 'defer'
+        run: |
+          gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json comments --jq '
+            .comments
+            | map(select((.author.login // "") | test("\\[bot\\]$|^github-actions$") | not))
+            | last | .body // ""' > last_update.txt
+
+          if [ ! -s last_update.txt ]; then
+            gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json body --jq '.body // ""' > last_update.txt
+          fi
+
+          if [ "$(wc -c < last_update.txt)" -gt 800 ]; then
+            head -c 800 last_update.txt > trimmed.txt
+            printf '\n…\n' >> trimmed.txt
+            mv trimmed.txt last_update.txt
+          fi
+
+      - name: Pause testing in Discord thread
+        if: env.MODE == 'hold' && steps.thread.outputs.id != ''
+        env:
+          THREAD_ID: ${{ steps.thread.outputs.id }}
+        run: |
+          {
+            printf '⚠️ **Testing paused** — the `Ready For Testing` label was removed because there may be problems with this script.\n\n'
+            printf 'The thread stays open, but please hold off on testing the version above until it is marked ready again.\n\n'
+            printf 'Latest update from the issue:\n\n'
+            cat last_update.txt
+            printf '\n\n🔗 %s\n' "$ISSUE_URL"
+          } > notice.md
+          "$HELPER" post "$THREAD_ID" notice.md
+          "$HELPER" state "$THREAD_ID" false false "$TAG_HOLD"
+
+      - name: Defer testing in Discord thread
+        if: env.MODE == 'defer' && steps.thread.outputs.id != ''
+        env:
+          THREAD_ID: ${{ steps.thread.outputs.id }}
+        run: |
+          {
+            printf '⏸️ **This script has been deferred** and is postponed indefinitely.\n\n'
+            printf 'This thread is locked. It will reopen if the `Ready For Testing` label is added to the issue again.\n\n'
+            printf 'Latest update from the issue:\n\n'
+            cat last_update.txt
+            printf '\n\n🔗 %s\n' "$ISSUE_URL"
+          } > notice.md
+          "$HELPER" post "$THREAD_ID" notice.md
+          "$HELPER" state "$THREAD_ID" true true "$TAG_DEFERRED"
+
+      - name: Comment and lock deferred issue
+        if: env.MODE == 'defer'
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" \
+            --body "⏸️ This script has been **deferred**. The Discord testing thread has been locked. Re-add the \`Ready For Testing\` label to resume testing."
+          gh api --method PUT "/repos/$REPO/issues/$ISSUE_NUMBER/lock" -f lock_reason=resolved
+
+      - name: Announce migration in Discord thread
+        if: env.MODE == 'migrate' && steps.thread.outputs.id != ''
+        env:
+          THREAD_ID: ${{ steps.thread.outputs.id }}
+        run: |
+          # The manual label and the dispatch from move-to-main-repo can both land;
+          # a locked thread means the announcement already went out.
+          if [ "$("$HELPER" locked "$THREAD_ID")" = "true" ]; then
+            echo "Thread already locked — migration was announced before."
+            exit 0
+          fi
+
+          PR=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json comments \
+            --jq '[.comments[].body // "" | scan("community-scripts/ProxmoxVE#([0-9]+)")[]] | last // empty')
+
+          {
+            printf '🚚 **Migration to ProxmoxVE has started.**\n\n'
+            if [ -n "$PR" ]; then
+              printf 'A pull request is open in the main repository: https://github.com/community-scripts/ProxmoxVE/pull/%s\n\n' "$PR"
+            fi
+            printf 'Testing in ProxmoxVED is finished — this thread is locked and will be removed once the migration is complete. Please continue the discussion on the pull request.\n\n'
+            printf '🔗 %s\n' "$ISSUE_URL"
+          } > notice.md
+          "$HELPER" post "$THREAD_ID" notice.md
+          "$HELPER" state "$THREAD_ID" true true "$TAG_MIGRATING"
+
+      # -----------------------------------------------------------------------
+      # Issue closed -> the thread has served its purpose
+      # -----------------------------------------------------------------------
+      - name: Delete Discord thread
+        if: env.MODE == 'delete' && steps.thread.outputs.id != ''
+        env:
+          THREAD_ID: ${{ steps.thread.outputs.id }}
+        run: |
+          "$HELPER" delete "$THREAD_ID"
+          echo "Deleted thread: $THREAD_ID"
