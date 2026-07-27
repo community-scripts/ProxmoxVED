@@ -315,7 +315,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Post deferral notice to Discord thread
-        if: steps.find_thread.outputs.thread_id != ''
+        if: steps.find_thread.outputs.thread_id != '' && github.event.action == 'labeled' && github.event.label.name == 'deferred'
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           THREAD_ID: ${{ steps.find_thread.outputs.thread_id }}
@@ -373,6 +373,34 @@ jobs:
 
           if [ -n "$THREAD_ID" ]; then
             echo "Thread found: $THREAD_ID. Deleting..."
+            curl -X DELETE "https://discord.com/api/v10/channels/$THREAD_ID" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}"
+          else
+            echo "No thread found for issue: $ISSUE_TITLE"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Migration To ProxmoxVE added -> delete the Discord thread (moving upstream)
+  # ---------------------------------------------------------------------------
+  migrate:
+    runs-on: ubuntu-latest
+    if: |
+      github.repository == 'community-scripts/ProxmoxVED'
+      && github.event.action == 'labeled'
+      && github.event.label.name == 'Migration To ProxmoxVE'
+    env:
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+    steps:
+      - name: Get thread-ID and delete thread
+        run: |
+          THREAD_ID=$(curl -s -X GET "https://discord.com/api/v10/guilds/${{ secrets.DISCORD_GUILD_ID }}/threads/active" \
+          -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+          -H "Content-Type: application/json" | \
+          jq -r --arg TITLE "$ISSUE_TITLE" --arg PARENT_ID "${{ secrets.DISCORD_CHANNEL_ID }}" \
+          '.threads[] | select(.parent_id == $PARENT_ID and .name == ("Wanted Tester for " + $TITLE)) | .id')
+
+          if [ -n "$THREAD_ID" ]; then
+            echo "Thread found: $THREAD_ID. Deleting (migration to ProxmoxVE)..."
             curl -X DELETE "https://discord.com/api/v10/channels/$THREAD_ID" \
             -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}"
           else
