@@ -48,7 +48,7 @@ cat <<EOF >/etc/puter/config.json
   "jwt_secret_v2": "${JWT_SECRET_V2}",
   "allow_v1_tokens": true,
   "url_signature_secret": "${URL_SIGNATURE_SECRET}",
-  "extensions": ["/etc/puter/extensions"],
+  "extensions": ["./extensions", "/etc/puter/extensions"],
   "database": {
     "engine": "sqlite",
     "path": "/var/puter/puter-database.sqlite"
