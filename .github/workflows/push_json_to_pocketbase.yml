@@ -4,6 +4,11 @@ on:
   issues:
     types:
       - labeled
+  push:
+    branches:
+      - main
+    paths:
+      - "json/**.json"
   workflow_dispatch:
     inputs:
       script_slug:
@@ -16,6 +21,7 @@ jobs:
     runs-on: self-hosted
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
       (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'Ready For Testing'))
     steps:
       - name: Checkout Repository
@@ -55,6 +61,23 @@ jobs:
             fi
             echo "$file" > changed_app_jsons.txt
             echo "count=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            count=0
+            BEFORE="${{ github.event.before }}"
+            if [[ -z "$BEFORE" || "$BEFORE" =~ ^0+$ ]]; then
+              BEFORE="HEAD~1"
+            fi
+            while IFS= read -r f; do
+              [[ -f "$f" ]] || continue
+              jq -e '.slug' "$f" >/dev/null 2>&1 || continue
+              echo "$f" >> changed_app_jsons.txt
+              count=$((count + 1))
+            done < <(git diff --name-only --diff-filter=d "$BEFORE" "${{ github.sha }}" -- 'json/*.json')
+            echo "count=${count}" >> "$GITHUB_OUTPUT"
+            echo "Push: queued ${count} changed JSON file(s)."
             exit 0
           fi
 
