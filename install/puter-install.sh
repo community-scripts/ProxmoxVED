@@ -109,7 +109,7 @@ msg_ok "Created Service"
 
 msg_info "Retrieving Admin Credentials"
 for _ in $(seq 1 60); do
-  ADMIN_PASS=$(journalctl -u puter --no-pager 2>/dev/null | grep -oP 'password for admin is: \K\S+' | tail -1)
+  ADMIN_PASS=$(journalctl -u puter --no-pager 2>/dev/null | grep -oP 'password for admin is: \K\S+' | tail -1 || true)
   [[ -n "$ADMIN_PASS" ]] && break
   sleep 2
 done
