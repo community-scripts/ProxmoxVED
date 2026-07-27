@@ -19,15 +19,13 @@ $STD apt install -y \
   cmake \
   redis-server \
   nginx \
-  python3 \
   python3-dev \
   libgomp1 \
   libglib2.0-0 \
   libgl1 \
   libsm6 \
   libxext6 \
-  libxrender1 \
-  openssl
+  libxrender1
 msg_ok "Installed Dependencies"
 
 setup_ffmpeg

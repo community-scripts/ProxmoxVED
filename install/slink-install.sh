@@ -28,7 +28,6 @@ fetch_and_deploy_gh_release "slink" "andrii-kryvoviaz/slink" "tarball"
 
 msg_info "Building Client"
 cd /opt/slink/services/client
-export API_URL="http://127.0.0.1:8080"
 $STD yarn install --frozen-lockfile --non-interactive
 $STD yarn svelte-kit sync
 NODE_OPTIONS="--max-old-space-size=2048" $STD yarn build

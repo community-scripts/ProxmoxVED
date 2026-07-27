@@ -107,6 +107,23 @@ EOF
 systemctl enable -q --now puter
 msg_ok "Created Service"
 
+msg_info "Retrieving Admin Credentials"
+for _ in $(seq 1 60); do
+  ADMIN_PASS=$(journalctl -u puter --no-pager 2>/dev/null | grep -oP 'password for admin is: \K\S+' | tail -1)
+  [[ -n "$ADMIN_PASS" ]] && break
+  sleep 2
+done
+if [[ -n "$ADMIN_PASS" ]]; then
+  cat <<EOF >~/puter.creds
+Puter Admin Credentials
+Username: admin
+Password: ${ADMIN_PASS}
+EOF
+  msg_ok "Retrieved Admin Credentials"
+else
+  msg_warn "Could not capture admin password automatically; retrieve it with: journalctl -u puter | grep -i password"
+fi
+
 motd_ssh
 customize
 cleanup_lxc
