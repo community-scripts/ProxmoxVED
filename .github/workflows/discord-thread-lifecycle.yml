@@ -200,8 +200,12 @@ jobs:
             password=$(printf '%s' "$JSON" | jq -r '.default_credentials.password // empty' 2>/dev/null || true)
             if [ -n "$username" ] || [ -n "$password" ]; then
               printf '\nDefault credentials:\n' >> testing.md
-              [ -n "$username" ] && printf 'Username: %s\n' "$username" >> testing.md
-              [ -n "$password" ] && printf 'Password: %s\n' "$password" >> testing.md
+              if [ -n "$username" ]; then
+                printf 'Username: %s\n' "$username" >> testing.md
+              fi
+              if [ -n "$password" ]; then
+                printf 'Password: %s\n' "$password" >> testing.md
+              fi
             fi
 
             NOTES=$(printf '%s' "$JSON" | jq -r '.notes[]?.text // empty' 2>/dev/null || true)
