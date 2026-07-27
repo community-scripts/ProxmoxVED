@@ -34,12 +34,13 @@ PG_DB_NAME="editmind" PG_DB_USER="editmind" setup_postgresql_db
 NODE_VERSION="22" setup_nodejs
 UV_PYTHON="3.11" setup_uv
 
-msg_info "Installing pnpm"
-$STD corepack enable pnpm
-$STD corepack prepare pnpm@10.33.1 --activate
-msg_ok "Installed pnpm"
-
 fetch_and_deploy_gh_release "edit-mind" "IliasHad/edit-mind" "tarball"
+
+msg_info "Installing pnpm"
+PNPM_VERSION=$(grep -oP '"packageManager":\s*"pnpm@\K[0-9.]+' /opt/edit-mind/package.json)
+$STD corepack enable pnpm
+$STD corepack prepare "pnpm@${PNPM_VERSION:-latest}" --activate
+msg_ok "Installed pnpm"
 
 msg_info "Installing Application Dependencies"
 cd /opt/edit-mind
@@ -66,11 +67,11 @@ msg_ok "Set up Python ML Environment"
 msg_info "Configuring Application"
 SESSION_SECRET=$(openssl rand -base64 32)
 ENCRYPTION_KEY=$(openssl rand -base64 32)
-mkdir -p /opt/edit-mind/.data /opt/edit-mind/ml-models
-cat <<EOF >/opt/edit-mind/.env
+mkdir -p /opt/edit-mind-data/ml-models /opt/edit-mind-data/media
+cat <<EOF >/opt/edit-mind-data/.env
 SESSION_SECRET=${SESSION_SECRET}
 ENCRYPTION_KEY=${ENCRYPTION_KEY}
-HOST_MEDIA_PATH=/opt/edit-mind/media
+HOST_MEDIA_PATH=/opt/edit-mind-data/media
 OLLAMA_MODEL=qwen2.5:7b-instruct
 USE_OLLAMA_MODEL=false
 OLLAMA_HOST=
@@ -84,27 +85,26 @@ REDIS_PORT=6379
 POSTGRES_PORT=5432
 CHROMA_PORT=8000
 EOF
-cat <<EOF >/opt/edit-mind/.env.system
+cat <<EOF >/opt/edit-mind-data/.env.system
 DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}
 REDIS_URL=redis://127.0.0.1:6379
 REDIS_HOST=127.0.0.1
 CHROMA_HOST=127.0.0.1
 IS_PERSISTENT=TRUE
 ML_HOST=127.0.0.1
-PROCESSED_VIDEOS_DIR=/opt/edit-mind/.data
-THUMBNAILS_PATH=/opt/edit-mind/.data/.thumbnails
-STITCHED_VIDEOS_DIR=/opt/edit-mind/.data/.stitched-videos
-FACES_DIR=/opt/edit-mind/.data/.faces
-UNKNOWN_FACES_DIR=/opt/edit-mind/.data/.unknown_faces
-KNOWN_FACES_FILE=/opt/edit-mind/.data/.faces.json
-KNOWN_FACES_FILE_LOADED=/opt/edit-mind/.data/.known_faces.json
+PROCESSED_VIDEOS_DIR=/opt/edit-mind-data
+THUMBNAILS_PATH=/opt/edit-mind-data/.thumbnails
+STITCHED_VIDEOS_DIR=/opt/edit-mind-data/.stitched-videos
+FACES_DIR=/opt/edit-mind-data/.faces
+UNKNOWN_FACES_DIR=/opt/edit-mind-data/.unknown_faces
+KNOWN_FACES_FILE=/opt/edit-mind-data/.faces.json
+KNOWN_FACES_FILE_LOADED=/opt/edit-mind-data/.known_faces.json
 BACKGROUND_JOBS_URL=http://127.0.0.1:4000
 NODE_ENV=production
 ANONYMIZED_TELEMETRY=FALSE
 WEB_APP_URL=http://${LOCAL_IP}:3745
 EOF
-mkdir -p /opt/edit-mind/media
-set -a && source /opt/edit-mind/.env && source /opt/edit-mind/.env.system && set +a
+set -a && source /opt/edit-mind-data/.env && source /opt/edit-mind-data/.env.system && set +a
 $STD pnpm --filter prisma migrate:deploy
 $STD pnpm --filter db seed
 msg_ok "Configured Application"
@@ -120,7 +120,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/edit-mind
 Environment=IS_PERSISTENT=TRUE
-ExecStart=/opt/edit-mind/.venv/bin/chroma run --host 127.0.0.1 --port 8000 --path /opt/edit-mind/.data/chroma
+ExecStart=/opt/edit-mind/.venv/bin/chroma run --host 127.0.0.1 --port 8000 --path /opt/edit-mind-data/chroma
 Restart=on-failure
 RestartSec=5
 
@@ -137,13 +137,13 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/edit-mind
-EnvironmentFile=/opt/edit-mind/.env
-EnvironmentFile=/opt/edit-mind/.env.system
-Environment=YOLO_CONFIG_DIR=/opt/edit-mind/ml-models/ultralytics
-Environment=DEEPFACE_HOME=/opt/edit-mind/ml-models/deepface
-Environment=TRANSCRIPTION_MODEL_CACHE=/opt/edit-mind/ml-models/whisper
-Environment=TORCH_HOME=/opt/edit-mind/ml-models/torch
-Environment=HF_HOME=/opt/edit-mind/ml-models/huggingface
+EnvironmentFile=/opt/edit-mind-data/.env
+EnvironmentFile=/opt/edit-mind-data/.env.system
+Environment=YOLO_CONFIG_DIR=/opt/edit-mind-data/ml-models/ultralytics
+Environment=DEEPFACE_HOME=/opt/edit-mind-data/ml-models/deepface
+Environment=TRANSCRIPTION_MODEL_CACHE=/opt/edit-mind-data/ml-models/whisper
+Environment=TORCH_HOME=/opt/edit-mind-data/ml-models/torch
+Environment=HF_HOME=/opt/edit-mind-data/ml-models/huggingface
 ExecStart=/opt/edit-mind/.venv/bin/python /opt/edit-mind/python/main.py --host 0.0.0.0 --port 8765
 Restart=on-failure
 RestartSec=10
@@ -161,8 +161,8 @@ After=network.target postgresql.service redis-server.service edit-mind-chroma.se
 Type=simple
 User=root
 WorkingDirectory=/opt/edit-mind
-EnvironmentFile=/opt/edit-mind/.env
-EnvironmentFile=/opt/edit-mind/.env.system
+EnvironmentFile=/opt/edit-mind-data/.env
+EnvironmentFile=/opt/edit-mind-data/.env.system
 ExecStart=/usr/bin/pnpm --filter background-jobs start
 Restart=on-failure
 RestartSec=5
@@ -180,8 +180,8 @@ After=network.target postgresql.service redis-server.service edit-mind-chroma.se
 Type=simple
 User=root
 WorkingDirectory=/opt/edit-mind
-EnvironmentFile=/opt/edit-mind/.env
-EnvironmentFile=/opt/edit-mind/.env.system
+EnvironmentFile=/opt/edit-mind-data/.env
+EnvironmentFile=/opt/edit-mind-data/.env.system
 ExecStart=/usr/bin/pnpm --filter web start --host 0.0.0.0 --port 3745
 Restart=on-failure
 RestartSec=5
