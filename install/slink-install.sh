@@ -20,7 +20,7 @@ $STD apt install -y \
   git
 msg_ok "Installed Dependencies"
 
-PHP_VERSION="8.4" PHP_FPM="YES" setup_php
+PHP_VERSION="8.5" PHP_FPM="YES" setup_php
 setup_composer
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 
@@ -69,6 +69,7 @@ systemctl start redis-server
 $STD php bin/console messenger:setup-transports --no-interaction
 $STD php bin/console slink:admin:init --no-interaction
 $STD php bin/console cache:warm --no-optional-warmers
+chown -R www-data:www-data /opt/slink/services/api/var /opt/slink/data /opt/slink/images
 msg_ok "Set up API"
 
 msg_info "Configuring Caddy"
