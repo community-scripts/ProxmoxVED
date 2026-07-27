@@ -59,6 +59,7 @@ for i in 1 2 3 4 5; do
 done
 mkdir -p /opt/slink/{data,images}
 sed -i "s|'/services/api/|'/opt/slink/services/api/|" config/migrations/event_store.yaml
+sed -i "s|dir: '/app'|dir: '/opt/slink'|" config/settings.yaml
 $STD php bin/console lexik:jwt:generate-keypair --overwrite --no-interaction
 chmod 644 /opt/slink/services/api/config/jwt/private.pem
 touch /opt/slink/services/api/var/data/slink_store.db
