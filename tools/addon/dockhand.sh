@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # community-scripts ORG | Dockhand Addon Installer
-# Author: community-scripts ORG
+# Author: MickLesk (CanbiZ)
 # License: MIT
 # Source: https://github.com/Finsys/dockhand
 
