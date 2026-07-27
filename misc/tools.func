@@ -6948,6 +6948,60 @@ setup_mariadb_db() {
 }
 
 # ------------------------------------------------------------------------------
+# Creates a MySQL database and user (for apps that require MySQL, not MariaDB).
+#
+# Description:
+#   - Creates database, user and grants using the mysql root socket login
+#   - The user is created with host '%' because MySQL treats 'localhost'
+#     (socket) and '127.0.0.1' (TCP) as distinct hosts; apps connecting over
+#     TCP to 127.0.0.1 would not match a 'localhost' account. mysql-server
+#     binds to 127.0.0.1 by default, so '%' stays local-only.
+#
+# Variables:
+#   MYSQL_DB_NAME   - Database name (required)
+#   MYSQL_DB_USER   - Database user (required)
+#   MYSQL_DB_PASS   - Password (optional, generated if unset)
+#
+# Exports:
+#   MYSQL_DB_NAME, MYSQL_DB_USER, MYSQL_DB_PASS
+#
+# Example:
+#   MYSQL_DB_NAME="fleet" MYSQL_DB_USER="fleet" setup_mysql_db
+# ------------------------------------------------------------------------------
+setup_mysql_db() {
+  if [[ -z "${MYSQL_DB_NAME:-}" || -z "${MYSQL_DB_USER:-}" ]]; then
+    msg_error "MYSQL_DB_NAME and MYSQL_DB_USER must be set before calling setup_mysql_db"
+    return 65
+  fi
+
+  if [[ -z "${MYSQL_DB_PASS:-}" ]]; then
+    MYSQL_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+  fi
+
+  msg_info "Setting up MySQL Database"
+
+  $STD mysql -u root -e "CREATE DATABASE \`${MYSQL_DB_NAME//\`/\`\`}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+  $STD mysql -u root -e "CREATE USER '${MYSQL_DB_USER//\'/\'\'}'@'%' IDENTIFIED BY '${MYSQL_DB_PASS//\'/\'\'}';"
+  $STD mysql -u root -e "GRANT ALL ON \`${MYSQL_DB_NAME//\`/\`\`}\`.* TO '${MYSQL_DB_USER//\'/\'\'}'@'%';"
+  $STD mysql -u root -e "FLUSH PRIVILEGES;"
+
+  local app_name="${APPLICATION,,}"
+  local CREDS_FILE="${MYSQL_DB_CREDS_FILE:-${HOME}/${app_name}.creds}"
+  {
+    echo "MySQL Credentials"
+    echo "Database: $MYSQL_DB_NAME"
+    echo "User: $MYSQL_DB_USER"
+    echo "Password: $MYSQL_DB_PASS"
+  } >>"$CREDS_FILE"
+
+  msg_ok "Set up MySQL Database"
+
+  export MYSQL_DB_NAME
+  export MYSQL_DB_USER
+  export MYSQL_DB_PASS
+}
+
+# ------------------------------------------------------------------------------
 # Installs or updates MeiliSearch search engine.
 #
 # Description:

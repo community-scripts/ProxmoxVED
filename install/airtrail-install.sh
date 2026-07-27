@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="22" setup_nodejs   
 
 msg_info "Installing Bun"
 export BUN_INSTALL="/root/.bun"

@@ -45,6 +45,7 @@ function update_script() {
     export NODE_ENV=production
     $STD bun run build
     $STD bun install --frozen-lockfile --production
+    $STD bun run db:migrate-deploy
     msg_ok "Rebuilt AirTrail"
 
     restore_backup
