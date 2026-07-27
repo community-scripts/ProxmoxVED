@@ -95,6 +95,8 @@ EnvironmentFile=/opt/budget-board/budget-board.env
 [Install]
 WantedBy=multi-user.target
 EOF
+systemctl enable -q --now budget-board
+systemctl reload nginx
 msg_ok "Created services"
 
 motd_ssh
