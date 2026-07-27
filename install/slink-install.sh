@@ -92,6 +92,7 @@ NODE_ENV=production
 BODY_SIZE_LIMIT=Infinity
 ORIGIN=http://${LOCAL_IP}:3000
 API_URL=http://127.0.0.1:8080
+SESSION_TTL_SECONDS=2592000
 EOF
 cat <<'EOF' >/etc/systemd/system/slink-client.service
 [Unit]
