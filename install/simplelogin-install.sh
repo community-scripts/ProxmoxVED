@@ -22,7 +22,8 @@ $STD apt install -y \
   pkg-config \
   libpq-dev \
   cmake \
-  pkg-config \
+  ninja-build \
+  clang \
   redis-server \
   nginx \
   postfix \
@@ -41,6 +42,7 @@ msg_info "Installing SimpleLogin (Patience)"
 cd /opt/simplelogin
 $STD uv venv
 $STD uv pip install setuptools hatchling editables
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
 $STD uv sync --locked --no-dev --no-build-isolation --no-install-package newrelic
 VENV_SITE=$(/opt/simplelogin/.venv/bin/python -c "import site; print(site.getsitepackages()[0])")
 mkdir -p "${VENV_SITE}/newrelic"
