@@ -70,19 +70,20 @@ cat <<EOF >/etc/puter/config.json
 EOF
 cat <<'EXTEOF' >/etc/puter/extensions/subdomain-fix.cjs
 'use strict';
-// Puter extension: fix Express subdomain offset for multi-part nip.io domains.
-// By default Express uses offset=2 (correct for puter.com / puter.localhost).
-// For nip.io IP domains (e.g. puter.192.168.0.151.nip.io = 7 parts) the offset
-// must equal the domain part count so the homepage route matches correctly.
+// Fix Express `subdomain offset` for multi-part nip.io domains. Puter routes via
+// req.subdomains; for a domain like puter.<IP>.nip.io the offset must equal the
+// domain label count so root routes see an empty req.subdomains and api.<domain>
+// resolves to subdomain 'api'. Read at request time — extension.config is only
+// populated after extensions are imported; req.app.set persists app-wide.
 const { extension } = require('/opt/puter/dist/src/backend/extensions.js');
-const domain = (extension.config && extension.config.domain) || 'puter.localhost';
-const offset = domain.split('.').length;
-if (offset !== 2) {
-    extension.registerGlobalMiddleware(function subdomainOffsetFix(req, _res, next) {
+extension.registerGlobalMiddleware(function subdomainOffsetFix(req, _res, next) {
+    const domain = (extension.config && extension.config.domain) || 'puter.localhost';
+    const offset = domain.split('.').length;
+    if (req.app.get('subdomain offset') !== offset) {
         req.app.set('subdomain offset', offset);
-        next();
-    });
-}
+    }
+    next();
+});
 EXTEOF
 msg_ok "Configured Application"
 

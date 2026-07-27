@@ -20,7 +20,7 @@ $STD apt install -y \
   git
 msg_ok "Installed Dependencies"
 
-PHP_VERSION="8.5" PHP_FPM="YES" setup_php
+PHP_VERSION="8.4" PHP_FPM="YES" setup_php
 setup_composer
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 
