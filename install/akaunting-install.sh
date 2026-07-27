@@ -16,8 +16,7 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   caddy \
-  build-essential \
-  python3
+  build-essential
 msg_ok "Installed Dependencies"
 
 PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULES="bcmath,gd,intl,xml,zip,pdo_mysql,mbstring,curl" setup_php
@@ -30,9 +29,7 @@ fetch_and_deploy_gh_release "akaunting" "akaunting/akaunting" "tarball"
 
 msg_info "Setting up Akaunting"
 cd /opt/akaunting
-$STD composer install --no-dev --optimize-autoloader
-$STD npm install
-$STD npm run production
+
 cat <<EOF >/opt/akaunting/.env
 APP_NAME=Akaunting
 APP_ENV=production
@@ -51,30 +48,51 @@ CACHE_DRIVER=file
 SESSION_DRIVER=file
 QUEUE_CONNECTION=sync
 EOF
+export COMPOSER_ALLOW_SUPERUSER=1
+$STD composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+if [[ -f package-lock.json ]]; then
+  $STD npm ci
+else
+  $STD npm install
+fi
+$STD npm run production
+# Node dependencies are only required to compile the frontend assets.
+rm -rf \
+  /opt/akaunting/node_modules \
+  /root/.npm \
+  /root/.cache/node-gyp
 $STD php artisan key:generate --force
-mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
+mkdir -p \
+  storage/framework/cache \
+  storage/framework/sessions \
+  storage/framework/views \
+  storage/logs \
+  bootstrap/cache
 chown -R www-data:www-data /opt/akaunting
 chmod -R 775 storage bootstrap/cache
 $STD php artisan migrate --force
 msg_ok "Set up Akaunting"
 
 msg_info "Configuring Caddy"
-PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
+PHP_VER="$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')"
+
 cat <<EOF >/etc/caddy/Caddyfile
 :80 {
     root * /opt/akaunting/public
+
     @public path /public/*
     uri @public strip_prefix /public
+
     php_fastcgi unix//run/php/php${PHP_VER}-fpm.sock
     file_server
     encode gzip
 }
 EOF
-usermod -aG www-data caddy
-msg_ok "Configured Caddy"
 
-systemctl enable -q --now php${PHP_VER}-fpm
+usermod -aG www-data caddy
+systemctl enable -q --now "php${PHP_VER}-fpm"
 systemctl restart caddy
+msg_ok "Configured Caddy"
 
 motd_ssh
 customize
