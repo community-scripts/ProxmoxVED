@@ -31,7 +31,7 @@ fetch_and_deploy_gh_release "chatwoot" "chatwoot/chatwoot" "tarball"
 
 RUBY_VERSION=$(tr -d ' \n' </opt/chatwoot/.ruby-version)
 RUBY_VERSION="${RUBY_VERSION}" RUBY_INSTALL_RAILS="false" setup_ruby
-NODE_VERSION=$(tr -d ' \n' </opt/chatwoot/.nvmrc)
+NODE_VERSION=$(grep -oP '"node":\s*"\K[0-9]+' /opt/chatwoot/package.json)
 NODE_VERSION="${NODE_VERSION}" NODE_MODULE="pnpm" setup_nodejs
 export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
 
