@@ -96,6 +96,30 @@ EnvironmentFile=/opt/budget-board/budget-board.env
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now budget-board
+
+cat <<'EOF' >/etc/nginx/sites-available/budget-board.conf
+server {
+    listen 80 default_server;
+    server_name _;
+    root /var/www/html;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:6253;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+EOF
+ln -sf /etc/nginx/sites-available/budget-board.conf /etc/nginx/sites-enabled/budget-board.conf
+rm -f /etc/nginx/sites-enabled/default
 systemctl reload nginx
 msg_ok "Created services"
 
