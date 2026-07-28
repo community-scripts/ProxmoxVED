@@ -13,7 +13,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y curl sudo mc jq git wget mcrcon samba gnupg
+$STD apt-get install -y curl sudo mc jq git wget samba gnupg
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Azul Zulu OpenJDK 25"
