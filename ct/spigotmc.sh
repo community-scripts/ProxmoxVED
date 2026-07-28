@@ -6,13 +6,13 @@ source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source
 # Source: https://www.spigotmc.org/
 
 APP="SpigotMC"
-var_tags="game;minecraft;server"
-var_cpu="2"
-var_ram="4096"
-var_disk="16"
-var_os="debian"
-var_version="13"
-var_unprivileged="1"
+var_tags="${var_tags:-game;minecraft;server}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-4096}"
+var_disk="${var_disk:-16}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-13}"
+var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
 variables
