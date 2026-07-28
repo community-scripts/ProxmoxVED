@@ -9,9 +9,9 @@ APP="AliasVault"
 var_tags="${var_tags:-security;passwords;privacy}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-6144}"
-var_disk="${var_disk:-30}"
+var_disk="${var_disk:-24}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
@@ -45,23 +45,8 @@ function update_script() {
     source "$HOME/.cargo/env"
     $STD rustup target add wasm32-unknown-unknown
     cd /opt/aliasvault/core
-    # Strip year-hardcoded test step from per-package build.sh (upstream bug)
-    find /opt/aliasvault/core -name build.sh -exec sed -i 's/npm run test &&[[:space:]]*//g' {} +
     $STD bash build-and-distribute.sh --browser
     msg_ok "Built Core Libraries"
-
-    msg_info "Copying Core Artifacts"
-    mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm
-    cp /opt/aliasvault/core/rust/dist/wasm/aliasvault_core_bg.wasm \
-      /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
-    cp /opt/aliasvault/core/rust/dist/wasm/aliasvault_core.js \
-      /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
-    mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/{identity-generator,vault}
-    cp -r /opt/aliasvault/core/typescript/identity-generator/dist/. \
-      /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/identity-generator/
-    cp -r /opt/aliasvault/core/vault/dist/. \
-      /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/vault/
-    msg_ok "Copied Core Artifacts"
 
     msg_info "Building AliasVault Applications (Patience)"
     cd /opt/aliasvault/apps/server
