@@ -17,8 +17,8 @@ $STD apt-get install -y curl sudo mc jq git wget samba gnupg
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Azul Zulu OpenJDK 25"
-wget -qO /etc/apt/trusted.gpg.d/zulu-repo.asc https://repos.azul.com/azul-repo.key
-echo "deb http://repos.azul.com/zulu/apt all main" > /etc/apt/sources.list.d/zulu.list
+curl -s https://repos.azul.com/azul-repo.key | gpg --dearmor > /usr/share/keyrings/azul.gpg
+echo "deb [signed-by=/usr/share/keyrings/azul.gpg] https://repos.azul.com/zulu/deb stable main" > /etc/apt/sources.list.d/zulu.list
 $STD apt-get update
 $STD apt-get install -y zulu25-jdk
 msg_ok "Installed Azul Zulu OpenJDK 25"
