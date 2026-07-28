@@ -23,7 +23,7 @@ $STD apt-get update
 $STD apt-get install -y zulu25-jdk
 msg_ok "Installed Azul Zulu OpenJDK 25"
 
-read -rp "${TAB3}Which SpigotMC version would you like to install? (e.g. 1.20.4) [Default: latest]: " MC_VERSION
+read -rp "${TAB3}Which SpigotMC version would you like to install? (e.g. 1.20.4) [Default: latest]: " MC_VERSION || true
 MC_VERSION=${MC_VERSION:-latest}
 
 msg_info "Building SpigotMC (This will take a while)"
