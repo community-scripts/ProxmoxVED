@@ -54,22 +54,22 @@ cd /opt/aliasvault/core
 # Upstream ships year-hardcoded tests (AgeRangeConverter) that fail after 2025-12-31
 # and abort the build via `set -e` + `npm run test && npm run build`. Strip the
 # test step from per-package build.sh so the actual build always runs.
-find /opt/aliasvault/core -name build.sh -exec sed -i 's/npm run test &&[[:space:]]*//g' {} +
+#find /opt/aliasvault/core -name build.sh -exec sed -i 's/npm run test &&[[:space:]]*//g' {} +
 $STD bash build-and-distribute.sh --browser
 msg_ok "Built Core Libraries"
 
-msg_info "Copying Core Artifacts"
-mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm
-cp /opt/aliasvault/core/rust/dist/wasm/aliasvault_core_bg.wasm \
-  /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
-cp /opt/aliasvault/core/rust/dist/wasm/aliasvault_core.js \
-  /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
-mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/{identity-generator,vault}
-cp -r /opt/aliasvault/core/typescript/identity-generator/dist/. \
-  /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/identity-generator/
-cp -r /opt/aliasvault/core/vault/dist/. \
-  /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/vault/
-msg_ok "Copied Core Artifacts"
+#msg_info "Copying Core Artifacts"
+#mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm
+#cp /opt/aliasvault/core/rust/dist/wasm/aliasvault_core_bg.wasm \
+#  /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
+#cp /opt/aliasvault/core/rust/dist/wasm/aliasvault_core.js \
+#  /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/wasm/
+#mkdir -p /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/{identity-generator,vault}
+#cp -r /opt/aliasvault/core/typescript/identity-generator/dist/. \
+#  /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/identity-generator/
+#cp -r /opt/aliasvault/core/vault/dist/. \
+#  /opt/aliasvault/apps/server/AliasVault.Client/wwwroot/js/dist/core/vault/
+#msg_ok "Copied Core Artifacts"
 
 msg_info "Building AliasVault Applications (Patience)"
 cd /opt/aliasvault/apps/server
