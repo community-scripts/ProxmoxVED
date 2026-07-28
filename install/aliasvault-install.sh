@@ -34,7 +34,7 @@ NODE_VERSION="24" setup_nodejs
 
 msg_info "Installing .NET SDK 10.0"
 setup_deb822_repo "microsoft-prod" \
-  "https://packages.microsoft.com/keys/microsoft.asc" \
+  "https://packages.microsoft.com/keys/microsoft-2025.asc" \
   "https://packages.microsoft.com/debian/13/prod" \
   "trixie" \
   "main" \
