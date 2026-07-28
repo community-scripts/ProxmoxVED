@@ -13,7 +13,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y curl sudo mc jq git wget samba gnupg
+$STD apt-get install -y git samba
 msg_ok "Installed Dependencies"
 
 read -rp "${TAB3}Which SpigotMC version would you like to install? (e.g. 1.20.4, 26.2) [Default: latest]: " MC_VERSION || true
