@@ -24,12 +24,7 @@ if [[ "$MC_VERSION" =~ ^1\.(17|18|19|20)(\.|$) ]]; then
     JAVA_VERSION=21
 fi
 
-msg_info "Installing Azul Zulu OpenJDK ${JAVA_VERSION}"
-curl -s https://repos.azul.com/azul-repo.key | gpg --dearmor > /usr/share/keyrings/azul.gpg
-echo "deb [signed-by=/usr/share/keyrings/azul.gpg] https://repos.azul.com/zulu/deb stable main" > /etc/apt/sources.list.d/zulu.list
-$STD apt-get update
-$STD apt-get install -y zulu${JAVA_VERSION}-jdk
-msg_ok "Installed Azul Zulu OpenJDK ${JAVA_VERSION}"
+JAVA_VERSION="${JAVA_VERSION}" setup_java
 
 msg_info "Building SpigotMC (This will take a while)"
 mkdir -p /opt/spigotmc-build
