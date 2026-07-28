@@ -42,7 +42,7 @@ msg_info "Setting up Application"
 echo "eula=true" > eula.txt
 
 # Configure RCON for remote commands
-RCON_PASS=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
+RCON_PASS=$(openssl rand -hex 8)
 cat <<EOF > server.properties
 enable-rcon=true
 rcon.password=$RCON_PASS
