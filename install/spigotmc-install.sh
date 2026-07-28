@@ -56,6 +56,8 @@ EOF
 msg_ok "Set up Application"
 
 msg_info "Setting up Samba Share"
+# Disable default homes share so the root folder isn't shared
+sed -i 's/\[homes\]/\[homes_disabled\]/g' /etc/samba/smb.conf
 cat <<EOF >> /etc/samba/smb.conf
 [SpigotMC]
    path = /opt/spigotmc
@@ -92,7 +94,7 @@ systemctl enable -q --now spigotmc
 msg_ok "Created Service"
 
 msg_info "Creating README Documentation"
-cat <<'EOF' > /root/README.md
+cat <<'EOF' > /opt/spigotmc/README.md
 # SpigotMC LXC Container Documentation
 
 Welcome to your SpigotMC container! Here are some useful commands and instructions.
