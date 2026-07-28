@@ -30,19 +30,19 @@ msg_ok "Installed Dependencies"
 setup_rust
 fetch_and_deploy_gh_release "wasm-pack" "rustwasm/wasm-pack" "prebuild" "latest" "/usr/local/bin" "wasm-pack-v*-x86_64-unknown-linux-musl.tar.gz"
 
-NODE_VERSION="20" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 
 msg_info "Installing .NET SDK 10.0"
 setup_deb822_repo "microsoft-prod" \
   "https://packages.microsoft.com/keys/microsoft.asc" \
-  "https://packages.microsoft.com/debian/12/prod" \
-  "bookworm" \
+  "https://packages.microsoft.com/debian/13/prod" \
+  "trixie" \
   "main" \
   "amd64"
 $STD apt install -y dotnet-sdk-10.0
 msg_ok "Installed .NET SDK 10.0"
 
-PG_VERSION="16" setup_postgresql
+PG_VERSION="18" setup_postgresql
 PG_DB_NAME="aliasvault" PG_DB_USER="aliasvault" setup_postgresql_db
 
 fetch_and_deploy_gh_release "aliasvault" "aliasvault/aliasvault" "tarball"
