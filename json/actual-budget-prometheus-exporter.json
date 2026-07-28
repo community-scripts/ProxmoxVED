@@ -1,0 +1,42 @@
+{
+  "name": "Actual Budget Prometheus Exporter",
+  "slug": "actual-budget-prometheus-exporter",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-07-28",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3001,
+  "documentation": "https://github.com/sakowicz/actual-budget-prometheus-exporter",
+  "website": "https://github.com/sakowicz/actual-budget-prometheus-exporter",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/actual-budget.webp",
+  "description": "Prometheus exporter for Actual Budget. Exposes account balances, budget balances, transaction counts and uncategorized/transfer counts as metrics on /metrics. Installs as an addon into an existing LXC (e.g. alongside your Actual Budget server) and builds from source with Node.js.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "tools/addon/actual-budget-prometheus-exporter.sh",
+      "config_path": "/opt/actual-budget-prometheus-exporter.env",
+      "resources": null
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "This is an addon, not a standalone container. Run it inside an existing LXC via the tools/addon script; it does not create its own container.",
+      "type": "info"
+    },
+    {
+      "text": "Requires an Actual Budget server URL, server password, and the Budget Sync ID (Settings > Advanced settings > Sync ID). E2E encryption password is optional.",
+      "type": "info"
+    },
+    {
+      "text": "Metrics are served at http://<ip>:3001/metrics (port configurable via PORT in the config file).",
+      "type": "info"
+    }
+  ]
+}
