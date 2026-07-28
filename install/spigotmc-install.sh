@@ -39,7 +39,9 @@ msg_ok "Built SpigotMC"
 
 msg_info "Setting up Application"
 # Automatically accept EULA
-echo "eula=true" > eula.txt
+cat <<EOF > eula.txt
+eula=true
+EOF
 
 # Configure RCON for remote commands
 RCON_PASS=$(openssl rand -hex 8)
