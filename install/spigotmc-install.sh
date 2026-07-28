@@ -86,6 +86,38 @@ EOF
 systemctl enable -q --now spigotmc
 msg_ok "Created Service"
 
+msg_info "Creating README Documentation"
+cat <<'EOF' > /root/README.md
+# SpigotMC LXC Container Documentation
+
+Welcome to your SpigotMC container! Here are some useful commands and instructions.
+
+## 1. Managing the Server
+This server runs as a systemd service named `spigotmc`.
+- **Start the server:** `systemctl start spigotmc`
+- **Stop the server:** `systemctl stop spigotmc`
+- **Restart the server:** `systemctl restart spigotmc`
+- **Check server status:** `systemctl status spigotmc`
+- **View live console logs:** `journalctl -fu spigotmc`
+
+## 2. Changing Allocated RAM
+To change the maximum amount of RAM the Minecraft server can use:
+1. Open the service file in an editor: `nano /etc/systemd/system/spigotmc.service`
+2. Find the `ExecStart=` line.
+3. Change `-Xmx2048M` (or whatever value is there) to your desired maximum RAM (e.g., `-Xmx4096M` for 4GB).
+4. Save and exit (Press `CTRL+X`, then `Y`, then `Enter`).
+5. Reload systemd: `systemctl daemon-reload`
+6. Restart the server: `systemctl restart spigotmc`
+
+## 3. Changing the SMB (Samba) Password
+The default Samba username is `root` with password `spigot`. To change it:
+1. Run this command: `smbpasswd -a root`
+2. Type your new password and press Enter.
+3. Retype the new password and press Enter.
+You can now access your files using the new password over the network.
+EOF
+msg_ok "Created README Documentation"
+
 motd_ssh
 customize
 cleanup_lxc
