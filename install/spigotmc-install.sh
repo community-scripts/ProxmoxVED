@@ -16,7 +16,6 @@ msg_info "Installing Dependencies"
 $STD apt install -y git samba
 msg_ok "Installed Dependencies"
 
-read -rp "${TAB3}Which SpigotMC version would you like to install? (e.g. 1.20.4, 26.2) [Default: latest]: " MC_VERSION || true
 MC_VERSION=${MC_VERSION:-latest}
 
 JAVA_VERSION=25
@@ -32,7 +31,7 @@ cd /opt/spigotmc-build
 wget -qO BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
 $STD java -jar BuildTools.jar --rev $MC_VERSION
 mkdir -p /opt/spigotmc
-mv spigot-*.jar /opt/spigotmc/
+mv spigot-*.jar /opt/spigotmc/spigot.jar
 cd /opt/spigotmc
 rm -rf /opt/spigotmc-build
 msg_ok "Built SpigotMC"
@@ -67,7 +66,6 @@ systemctl restart smbd
 msg_ok "Set up Samba Share"
 
 msg_info "Creating Service"
-SPIGOT_JAR=$(ls spigot-*.jar | head -n 1)
 JAVA_PATH=$(which java)
 
 cat <<EOF > /etc/systemd/system/spigotmc.service
@@ -79,7 +77,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/spigotmc
-ExecStart=${JAVA_PATH} -Xms1024M -Xmx2048M -jar ${SPIGOT_JAR} nogui
+ExecStart=${JAVA_PATH} -Xms1024M -Xmx2048M -jar spigot.jar nogui
 Restart=on-failure
 RestartSec=5
 
