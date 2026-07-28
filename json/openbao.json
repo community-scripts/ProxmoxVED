@@ -1,0 +1,61 @@
+{
+  "name": "OpenBao",
+  "slug": "openbao",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-07-28",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8200,
+  "documentation": "https://openbao.org/docs/",
+  "website": "https://openbao.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openbao.webp",
+  "description": "OpenBao is a community-driven, open-source fork of HashiCorp Vault for managing, storing and distributing secrets such as tokens, passwords, certificates and encryption keys.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/openbao.sh",
+      "config_path": "/etc/openbao/openbao.hcl",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    },
+    {
+      "type": "alpine",
+      "script": "ct/alpine-openbao.sh",
+      "config_path": "/etc/openbao/openbao.hcl",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 3,
+        "os": "Alpine",
+        "version": "3.24"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The web UI is served over HTTPS with a self-signed certificate, so your browser will show a warning on first access.",
+      "type": "info"
+    },
+    {
+      "text": "The initial root token and unseal key are written to /etc/openbao/openbao.env (Debian) or /etc/conf.d/openbao (Alpine). Copy them to your password manager - they cannot be recovered if lost.",
+      "type": "warning"
+    },
+    {
+      "text": "OpenBao is unsealed automatically on every boot, reading the unseal key from that same file. Because the key sits next to the data, the seal offers no protection in this setup. To unseal manually instead, remove the BAO_UNSEAL_KEY line and delete /etc/systemd/system/openbao.service.d/unseal.conf (Debian) or the start_post block in /etc/init.d/openbao (Alpine).",
+      "type": "warning"
+    }
+  ]
+}
