@@ -26,7 +26,7 @@ fi
 
 JAVA_VERSION="${JAVA_VERSION}" setup_java
 
-msg_info "Building SpigotMC (This will take a while)"
+msg_info "Building SpigotMC (Patience)"
 mkdir -p /opt/spigotmc-build
 cd /opt/spigotmc-build
 wget -qO BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
