@@ -1,0 +1,53 @@
+{
+  "name": "Rommarr",
+  "slug": "rommarr",
+  "categories": [
+    14
+  ],
+  "date_created": "2026-07-28",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 7878,
+  "documentation": "https://github.com/BlizzHacker/rommarr#readme",
+  "website": "https://github.com/BlizzHacker/rommarr",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/romm.webp",
+  "description": "Rommarr is the *arr for games. It watches for game requests, searches your indexers through Prowlarr, hands the winner to qBittorrent, SABnzbd or NZBGet depending on the release's protocol, picks the ROM out of the finished download and files it into RomM where it can be played. Release ranking is built for cartridges rather than video: it scores region and revision instead of bitrate, treats a large result as a warning rather than a preference, and rejects prototypes, hacks and cross-console mismatches.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/rommarr.sh",
+      "config_path": "/opt/rommarr/.env",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Edit /opt/rommarr/.env after install. Rommarr needs a Prowlarr URL and API key, at least one download client, and the path to RomM's library root. It starts and serves its UI with none of them reachable, and the Settings pages say which are missing.",
+      "type": "info"
+    },
+    {
+      "text": "A release is routed by its protocol, so an indexer type with no matching client cannot be grabbed at all. Configure qBittorrent for torrents, SABnzbd or NZBGet for usenet, or both. The Download Clients page names any protocol left uncovered.",
+      "type": "info"
+    },
+    {
+      "text": "ROMM_LIBRARY must be a path RomM also scans, and the download client's completed directory must be reachable from this container. If the client runs elsewhere, set a remote path mapping under Settings, otherwise imports fail with 'download path does not exist' while the file is sitting right there.",
+      "type": "warning"
+    },
+    {
+      "text": "Use a dedicated RomM account rather than your admin one. Rommarr only reads the library and triggers a rescan.",
+      "type": "info"
+    }
+  ]
+}
