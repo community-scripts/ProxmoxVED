@@ -56,9 +56,9 @@ cat <<EOF >> /etc/samba/smb.conf
    path = /opt/spigotmc
    browseable = yes
    read only = no
-   guest ok = yes
-   force user = root
+   valid users = root
 EOF
+(echo "spigot"; echo "spigot") | smbpasswd -s -a root
 systemctl restart smbd
 msg_ok "Set up Samba Share"
 
