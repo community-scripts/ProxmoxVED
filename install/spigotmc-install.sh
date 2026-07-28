@@ -16,12 +16,12 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y curl sudo mc jq git wget samba gnupg
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Azul Zulu OpenJDK 25"
+msg_info "Installing Azul Zulu OpenJDK 21"
 curl -s https://repos.azul.com/azul-repo.key | gpg --dearmor > /usr/share/keyrings/azul.gpg
 echo "deb [signed-by=/usr/share/keyrings/azul.gpg] https://repos.azul.com/zulu/deb stable main" > /etc/apt/sources.list.d/zulu.list
 $STD apt-get update
-$STD apt-get install -y zulu25-jdk
-msg_ok "Installed Azul Zulu OpenJDK 25"
+$STD apt-get install -y zulu21-jdk
+msg_ok "Installed Azul Zulu OpenJDK 21"
 
 read -rp "${TAB3}Which SpigotMC version would you like to install? (e.g. 1.20.4) [Default: latest]: " MC_VERSION || true
 MC_VERSION=${MC_VERSION:-latest}
