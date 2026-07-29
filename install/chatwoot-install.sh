@@ -25,7 +25,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" PG_MODULES="pgvector" setup_postgresql
-PG_DB_NAME="chatwoot_production" PG_DB_USER="chatwoot" PG_DB_EXTENSIONS="vector" setup_postgresql_db
+PG_DB_NAME="chatwoot_production" PG_DB_USER="chatwoot" PG_DB_EXTENSIONS="vector,pg_stat_statements" setup_postgresql_db
 
 fetch_and_deploy_gh_release "chatwoot" "chatwoot/chatwoot" "tarball"
 
