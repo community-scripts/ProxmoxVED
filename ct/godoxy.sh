@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: MickLesk (CanbiZ)
+# Author: MickLesk (CanbiZ), yusing
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/yusing/godoxy
 
 APP="GoDoxy"
-var_tags="${var_tags:-reverse-proxy;agent;proxmox}"
+var_tags="${var_tags:-reverse-proxy;webserver;network}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
 var_disk="${var_disk:-2}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-var_arm64="${var_arm64:-no}"
+var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -25,20 +25,29 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /usr/local/bin/godoxy ]]; then
+  if [[ ! -f /opt/godoxy/godoxy ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
   if check_for_gh_release "godoxy" "yusing/godoxy"; then
     msg_info "Stopping Service"
-    systemctl stop godoxy-agent
+    systemctl stop godoxy
     msg_ok "Stopped Service"
 
-    fetch_and_deploy_gh_release "godoxy" "yusing/godoxy" "singlefile" "latest" "/usr/local/bin" "godoxy-agent-linux-amd64"
+    create_backup \
+      /opt/godoxy/config \
+      /opt/godoxy/data \
+      /opt/godoxy/error_pages \
+      /etc/godoxy.env \
+      /etc/ssl/godoxy
+
+    fetch_and_deploy_gh_release "godoxy" "yusing/godoxy" "singlefile" "latest" "/opt/godoxy" "godoxy-linux-$(arch_resolve)"
+
+    restore_backup
 
     msg_info "Starting Service"
-    systemctl start godoxy-agent
+    systemctl start godoxy
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi
@@ -51,5 +60,6 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Configure certs and AGENT_PORT in:${CL}"
-echo -e "${GATEWAY}${BGN}/etc/godoxy-agent.env${CL}"
+echo -e "${INFO}${YW}Access it using the following URL:${CL}"
+echo -e "${GATEWAY}${BGN}https://${IP}${CL}"
+echo -e "${INFO}${YW}Login as admin; the generated password is stored in /etc/godoxy.env.${CL}"
