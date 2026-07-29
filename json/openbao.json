@@ -46,15 +46,11 @@
   },
   "notes": [
     {
-      "text": "The web UI is served over HTTPS with a self-signed certificate, so your browser will show a warning on first access.",
+      "text": "The initial root token and unseal key are written to /etc/openbao/openbao.env (Debian) or /etc/conf.d/openbao (Alpine).",
       "type": "info"
     },
     {
-      "text": "The initial root token and unseal key are written to /etc/openbao/openbao.env (Debian) or /etc/conf.d/openbao (Alpine). Copy them to your password manager - they cannot be recovered if lost.",
-      "type": "warning"
-    },
-    {
-      "text": "OpenBao is unsealed automatically on every boot, reading the unseal key from that same file. Because the key sits next to the data, the seal offers no protection in this setup. To unseal manually instead, remove the BAO_UNSEAL_KEY line and delete /etc/systemd/system/openbao.service.d/unseal.conf (Debian) or the start_post block in /etc/init.d/openbao (Alpine).",
+      "text": "OpenBao is unsealed automatically on every boot, reading the unseal key from that same file. To unseal manually instead, remove the BAO_UNSEAL_KEY line and delete /etc/systemd/system/openbao.service.d/unseal.conf (Debian) or the start_post block in /etc/init.d/openbao (Alpine).",
       "type": "warning"
     }
   ]

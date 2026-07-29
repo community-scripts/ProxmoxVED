@@ -29,10 +29,6 @@ for _ in {1..30}; do
   curl -fsSk -o /dev/null "https://127.0.0.1:8200/v1/sys/seal-status" && break
   sleep 2
 done
-if ! curl -fsSk -o /dev/null "https://127.0.0.1:8200/v1/sys/seal-status"; then
-  msg_error "OpenBao did not become ready within 60 seconds"
-  exit 1
-fi
 msg_ok "Started OpenBao"
 
 msg_info "Initializing OpenBao"
@@ -41,14 +37,7 @@ msg_info "Initializing OpenBao"
   cat <<'EOF' >/etc/openbao/openbao-init.json
 EOF
 )
-if ! bao operator init -key-shares=1 -key-threshold=1 -format=json >/etc/openbao/openbao-init.json; then
-  msg_error "Failed to initialize OpenBao"
-  exit 1
-fi
-if ! jq -e '(.unseal_keys_b64[0] | type == "string" and length > 0) and (.root_token | type == "string" and length > 0)' /etc/openbao/openbao-init.json >/dev/null; then
-  msg_error "OpenBao initialization output is invalid or missing credentials"
-  exit 1
-fi
+bao operator init -key-shares=1 -key-threshold=1 -format=json >/etc/openbao/openbao-init.json
 chmod 600 /etc/openbao/openbao.env
 chown root:root /etc/openbao/openbao.env
 cat <<EOF >>/etc/openbao/openbao.env
@@ -72,10 +61,6 @@ for _ in {1..15}; do
   bao status -format=json 2>/dev/null | jq -e '.sealed == false' >/dev/null && break
   sleep 2
 done
-if ! bao status -format=json 2>/dev/null | jq -e '.sealed == false' >/dev/null; then
-  msg_error "OpenBao did not unseal within 30 seconds"
-  exit 1
-fi
 msg_ok "Enabled Auto-Unseal"
 
 motd_ssh

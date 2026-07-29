@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apk add --no-cache openssl
+$STD apk add openssl
 msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "openbao" "openbao/openbao" "prebuild" "latest" "/opt/openbao" "openbao_*_linux_$(arch_resolve).tar.gz"
@@ -95,10 +95,6 @@ for _ in $(seq 1 30); do
   curl -fsSk -o /dev/null "https://127.0.0.1:8200/v1/sys/seal-status" && break
   sleep 2
 done
-if ! curl -fsSk -o /dev/null "https://127.0.0.1:8200/v1/sys/seal-status"; then
-  msg_error "OpenBao did not become ready within 60 seconds"
-  exit 1
-fi
 msg_ok "Created Service"
 
 msg_info "Initializing OpenBao"
@@ -107,14 +103,7 @@ msg_info "Initializing OpenBao"
   cat <<'EOF' >/etc/openbao/openbao-init.json
 EOF
 )
-if ! bao operator init -key-shares=1 -key-threshold=1 -format=json >/etc/openbao/openbao-init.json; then
-  msg_error "Failed to initialize OpenBao"
-  exit 1
-fi
-if ! jq -e '(.unseal_keys_b64[0] | type == "string" and length > 0) and (.root_token | type == "string" and length > 0)' /etc/openbao/openbao-init.json >/dev/null; then
-  msg_error "OpenBao initialization output is invalid or missing credentials"
-  exit 1
-fi
+bao operator init -key-shares=1 -key-threshold=1 -format=json >/etc/openbao/openbao-init.json
 cat <<EOF >>/etc/conf.d/openbao
 BAO_UNSEAL_KEY=$(jq -r '.unseal_keys_b64[0]' /etc/openbao/openbao-init.json)
 BAO_ROOT_TOKEN=$(jq -r '.root_token' /etc/openbao/openbao-init.json)
@@ -125,10 +114,6 @@ for _ in $(seq 1 15); do
   bao status -format=json 2>/dev/null | jq -e '.sealed == false' >/dev/null && break
   sleep 2
 done
-if ! bao status -format=json 2>/dev/null | jq -e '.sealed == false' >/dev/null; then
-  msg_error "OpenBao did not unseal within 30 seconds"
-  exit 1
-fi
 msg_ok "Initialized OpenBao"
 
 motd_ssh
