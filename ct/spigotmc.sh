@@ -2,7 +2,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: kauezatarin
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.spigotmc.org/
 
 APP="SpigotMC"
@@ -24,42 +24,38 @@ function update_script() {
   check_container_storage
   check_container_resources
   
-  if ! pct exec "$CTID" -- test -d /opt/spigotmc; then
+  if [[ ! -d /opt/spigotmc ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
   msg_info "Stopping SpigotMC service"
-  pct exec "$CTID" -- systemctl stop spigotmc
+  systemctl stop spigotmc
   msg_ok "Stopped SpigotMC service"
   
   msg_info "Backing up SpigotMC folder"
-  pct exec "$CTID" -- bash -c 'tar -czf /root/spigotmc_backup_$(date +%Y%m%d_%H%M%S).tar.gz -C /opt spigotmc'
-  msg_ok "Backed up to /root/"
-  
-  MC_VERSION=$(whiptail --inputbox "Which SpigotMC version would you like to update to? (e.g. 1.20.4, 26.2)" 10 58 "latest" --title "SpigotMC Update" 3>&1 1>&2 2>&3 || echo "latest")
+  cp -r /opt/spigotmc /opt/spigotmc_backup
+  msg_ok "Backed up to /opt/spigotmc_backup"
   
   msg_info "Building new SpigotMC jar (Patience)"
-  pct exec "$CTID" -- bash -c "
-    mkdir -p /opt/spigotmc-build
-    cd /opt/spigotmc-build
-    wget -qO BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
-    
-    JAVA_VERSION=25
-    if [[ \"\$MC_VERSION\" =~ ^1\.(17|18|19|20)(\.|$) ]]; then
-        JAVA_VERSION=21
-    fi
-    apt update >/dev/null 2>&1
-    apt install -y zulu\${JAVA_VERSION}-jdk >/dev/null 2>&1
-    
-    java -jar BuildTools.jar --rev \$MC_VERSION >/dev/null 2>&1
-    mv spigot-*.jar /opt/spigotmc/spigot.jar
-    rm -rf /opt/spigotmc-build
-  "
+  mkdir -p /opt/spigotmc-build
+  cd /opt/spigotmc-build
+  wget -qO BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
+  
+  MC_VERSION=${MC_VERSION:-latest}
+  JAVA_VERSION=25
+  if [[ "$MC_VERSION" =~ ^1\.(17|18|19|20)(\.|$) ]]; then
+      JAVA_VERSION=21
+  fi
+  JAVA_VERSION="${JAVA_VERSION}" setup_java
+  
+  java -jar BuildTools.jar --rev $MC_VERSION >/dev/null 2>&1
+  mv spigot-*.jar /opt/spigotmc/spigot.jar
+  rm -rf /opt/spigotmc-build
   msg_ok "Built new SpigotMC jar"
   
   msg_info "Starting SpigotMC service"
-  pct exec "$CTID" -- systemctl start spigotmc
+  systemctl start spigotmc
   msg_ok "Started SpigotMC service"
   
   msg_ok "Updated Successfully!"
@@ -67,10 +63,6 @@ function update_script() {
 }
 
 start
-if [ -z "${MC_VERSION:-}" ]; then
-  MC_VERSION=$(whiptail --inputbox "Which SpigotMC version would you like to install? (e.g. 1.20.4, 26.2)" 10 58 "latest" --title "SpigotMC Version" 3>&1 1>&2 2>&3 || echo "latest")
-fi
-export MC_VERSION
 build_container
 description
 

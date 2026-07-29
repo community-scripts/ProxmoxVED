@@ -1,5 +1,5 @@
 {
-  "name": "SpigotMc",
+  "name": "SpigotMC",
   "slug": "spigotmc",
   "categories": [24],
   "date_created": "2026-07-28",
@@ -31,7 +31,7 @@
   },
   "notes": [
     {
-      "text": "This script will install the latest Spigot version. If you need to specify a version use the Advanced Settup mode.",
+      "text": "This script will install the latest Spigot version. To specify an older version, run export MC_VERSION=1.20.4 before executing the script.",
       "type": "info"
     }
   ]
