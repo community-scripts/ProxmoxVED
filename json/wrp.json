@@ -1,0 +1,45 @@
+{
+  "name": "WRP",
+  "slug": "wrp",
+  "categories": [
+    4
+  ],
+  "date_created": "2026-07-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8080,
+  "documentation": "https://github.com/tenox7/wrp#readme",
+  "website": "https://github.com/tenox7/wrp",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/chromium.webp",
+  "description": "WRP (Web Rendering Proxy) is a browser-in-browser proxy server that lets historical and vintage web browsers use the modern web. It drives a headless Chromium instance and renders pages back as clickable images or simplified HTML, so clients as old as Mosaic can browse today's HTTPS-only web.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/wrp.sh",
+      "config_path": "/etc/systemd/system/wrp.service",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "No dedicated icon exists yet for WRP; the Chromium icon is used as a placeholder since WRP is a Chromium-driven proxy.",
+      "type": "info"
+    },
+    {
+      "text": "Point a legacy browser (or its proxy settings) at http://<container-ip>:8080. To change listen address or add flags (-t, -g, -m, etc.), edit ExecStart in /etc/systemd/system/wrp.service and run systemctl restart wrp.",
+      "type": "info"
+    }
+  ]
+}
