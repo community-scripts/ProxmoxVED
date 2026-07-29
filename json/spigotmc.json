@@ -1,6 +1,38 @@
 {
-  "name": "SpigotMC",
-  "version": "13",
-  "description": "Minecraft Server (SpigotMC)",
-  "author": "kauezatarin"
+  "name": "SpigotMc",
+  "slug": "spigotmc",
+  "categories": [24],
+  "date_created": "2026-07-28",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 25565,
+  "documentation": "https://www.spigotmc.org/wiki/spigot/",
+  "website": "https://www.spigotmc.org/",
+  "logo": "https://proxy.spigotmc.org/6eb9384c1bb659208ce12bf7c1cde12f2275e575/687474703a2f2f692e696d6775722e636f6d2f473862634f2e706e67",
+  "description": "Spigot is a high performance, customized Bukkit Minecraft server API. It allows you to host your own Minecraft JE server to play with your friends.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/spigotmc.sh",
+      "config_path": "/opt/spigotmc",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "This script will install the latest Spigot version. If you need to specify a version use the Advanced Settup mode.",
+      "type": "info"
+    }
+  ]
 }
