@@ -80,7 +80,7 @@ RAILS_ENV=production $STD bundle exec rails db:chatwoot_prepare
 msg_ok "Prepared Database"
 
 msg_info "Precompiling Assets"
-RAILS_ENV=production $STD bundle exec rails assets:precompile
+RAILS_ENV=production NODE_OPTIONS="--max-old-space-size=4096" $STD bundle exec rails assets:precompile
 msg_ok "Precompiled Assets"
 
 msg_info "Creating Services"
