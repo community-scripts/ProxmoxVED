@@ -22,7 +22,7 @@
             "config_path": "/opt/chatwoot/.env",
             "resources": {
                 "cpu": 4,
-                "ram": 4096,
+                "ram": 6144,
                 "hdd": 16,
                 "os": "Debian",
                 "version": "13"
