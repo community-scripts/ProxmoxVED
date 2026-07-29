@@ -25,18 +25,9 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if ! command -v orb >/dev/null 2>&1; then
+  if ! dpkg -s orb >/dev/null 2>&1; then
     msg_error "No ${APP} Installation Found!"
     exit 233
-  fi
-
-  if [[ ! -f /etc/apt/sources.list.d/orb.sources ]]; then
-    setup_deb822_repo \
-      "orb" \
-      "https://pkgs.orb.net/stable/debian/orbforge.noarmor.gpg" \
-      "https://pkgs.orb.net/stable/debian" \
-      "orb" \
-      "main"
   fi
 
   msg_info "Updating $APP LXC"
