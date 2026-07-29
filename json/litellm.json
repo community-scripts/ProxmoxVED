@@ -38,10 +38,6 @@
       "type": "info"
     },
     {
-      "text": "Uses PostgreSQL and Python (uv) with the official LiteLLM release tarball.",
-      "type": "info"
-    },
-    {
       "text": "LITELLM_SALT_KEY cannot be changed after models are added to the proxy.",
       "type": "warning"
     }

@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: stout01
-# Co-Authors: MickLesk, tremor021 (prior pip/Prisma versions)
+# Co-Authors: MickLesk, tremor021
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/BerriAI/litellm
 
@@ -18,8 +18,7 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
   python3-dev \
-  libpq-dev \
-  openssl
+  libpq-dev
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
@@ -76,24 +75,6 @@ EOF
 systemctl enable -q --now litellm
 msg_ok "Created Service"
 
-msg_info "Waiting for LiteLLM health check"
-for i in $(seq 1 90); do
-  if curl -sf "http://127.0.0.1:4000/health/liveliness" >/dev/null 2>&1; then
-    msg_ok "LiteLLM is healthy"
-    break
-  fi
-  if ! systemctl is-active --quiet litellm; then
-    msg_error "LiteLLM service is not running — check: journalctl -u litellm -n 50"
-    journalctl -u litellm -n 30 --no-pager 2>/dev/null
-    exit 150
-  fi
-  sleep 2
-  if [[ "$i" -eq 90 ]]; then
-    msg_error "LiteLLM did not become healthy within 180s"
-    journalctl -u litellm -n 30 --no-pager 2>/dev/null
-    exit 150
-  fi
-done
 
 cat <<EOF >~/litellm.creds
 LiteLLM Credentials
