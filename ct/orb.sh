@@ -39,9 +39,6 @@ function update_script() {
       "main"
   fi
 
-  # The sensor identity (private.key + certificate.crt) lives in /home/orb/.config/orb.
-  # Upgrading the package replaces only /usr/bin/orb, so that directory is never touched
-  # and the sensor keeps its Orb ID and its history. Do not clear it to "start clean".
   msg_info "Updating $APP LXC"
   $STD apt update
   $STD apt install -y --only-upgrade orb
@@ -55,8 +52,5 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW}The sensor is running but is not linked to an Orb account yet.${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}To link the sensor to your orb account run:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}pct exec ${CTID} -- runuser -u orb -- orb link${CL}"
-echo -e "${INFO}${YW}Then scan the QR code, or open the printed URL and sign in.${CL}"
-echo -e "${INFO}${YW}Measurements are viewed in the Orb app or at:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://app.orb.net${CL}"

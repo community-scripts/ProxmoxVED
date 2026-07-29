@@ -35,27 +35,11 @@
   },
   "notes": [
     {
-      "text": "The sensor starts unlinked and must be claimed before it appears in your account. Run `runuser -u orb -- orb link` inside the container, then scan the QR code it prints or open the URL it shows and sign in to Orb.",
+      "text": "The sensor starts unlinked and must be claimed before it appears in your account. Run `runuser -u orb -- orb link` inside the container to sign into Orb.",
       "type": "info"
     },
     {
-      "text": "Running `orb sensor --help` STARTS A SECOND SENSOR. The sensor subcommand does not implement --help, so any such invocation launches another sensor process that shares this sensor's identity and writes the same filestore, which can register a duplicate device in the Orb cloud that you then have to delete by hand. Never use `orb sensor` to probe the CLI. Use `orb help` for usage and `orb version` for the version - both are safe.",
-      "type": "warning"
-    },
-    {
-      "text": "The sensor's identity is the private.key and certificate.crt in /home/orb/.config/orb (mode 700, owned by orb). Deleting or resetting that directory registers a brand new sensor and orphans all previous history, so preserve it across rebuilds, restores and migrations. Package upgrades replace only /usr/bin/orb and never touch it.",
-      "type": "warning"
-    },
-    {
-      "text": "There is no web interface. The sensor listens on port 7443 for Orb's own API and returns 404 for anything else, so there is nothing to browse to. View measurements in the Orb app or at https://app.orb.net, or run `runuser -u orb -- orb summary` in the container for the latest scores as JSON.",
-      "type": "info"
-    },
-    {
-      "text": "The sensor's display name is a cloud-side property and there is no rename command. Rename it in the Orb app or dashboard; the container hostname is unrelated to it.",
-      "type": "info"
-    },
-    {
-      "text": "Update through the script's own update option. The package also ships orb-update.timer for Orb's daily self-upgrade and it is left disabled, which is deliberate: /usr/bin/orb-update refreshes only /etc/apt/sources.list.d/orb.list, the legacy one-line source, while this script installs the repository in deb822 format as orb.sources. Enabling that timer would therefore refresh nothing of Orb's own package list.",
+      "text": "View measurements in the Orb app or at https://app.orb.net, or run `runuser -u orb -- orb summary` in the container for the latest scores as JSON.",
       "type": "info"
     }
   ]
