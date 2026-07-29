@@ -1,0 +1,54 @@
+{
+  "name": "Kaneo",
+  "slug": "kaneo",
+  "categories": [
+    25
+  ],
+  "date_created": "2026-07-26",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 5173,
+  "documentation": "https://kaneo.app/docs",
+  "website": "https://kaneo.app/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/kaneo.webp",
+  "config_path": "/opt/kaneo/.env",
+  "description": "Kaneo is an open source project management platform with kanban boards, task tracking, time tracking and team workspaces.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/kaneo.sh",
+      "config_path": "/opt/kaneo/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 6144,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The first registered account becomes the instance admin.",
+      "type": "info"
+    },
+    {
+      "text": "Registration and guest sign-in both stay open after that. Set DISABLE_REGISTRATION=true and DISABLE_GUEST_ACCESS=true in /opt/kaneo/.env and restart the service to close the instance; DISABLE_REGISTRATION alone still leaves the guest login available.",
+      "type": "warning"
+    },
+    {
+      "text": "The API URL is baked into the frontend at build time. To move Kaneo to another IP or a custom domain, set KANEO_CLIENT_URL and KANEO_API_URL in /opt/kaneo/.env and the matching VITE_API_URL and VITE_CLIENT_URL in /opt/kaneo/apps/web/.env.production, then rebuild with 'cd /opt/kaneo && pnpm exec turbo build --filter=@kaneo/web'.",
+      "type": "warning"
+    },
+    {
+      "text": "Image and file attachments require object storage. Add S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY to /opt/kaneo/.env and restart the service.",
+      "type": "info"
+    }
+  ]
+}
