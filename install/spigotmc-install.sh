@@ -16,20 +16,20 @@ msg_info "Installing Dependencies"
 $STD apt install -y git samba
 msg_ok "Installed Dependencies"
 
-MC_VERSION=${MC_VERSION:-latest}
+mc_version=${mc_version:-latest}
 
-JAVA_VERSION=25
-if [[ "$MC_VERSION" =~ ^1\.(17|18|19|20)(\.|$) ]]; then
-    JAVA_VERSION=21
+java_version=25
+if [[ "$mc_version" =~ ^1\.(17|18|19|20)(\.|$) ]]; then
+    java_version=21
 fi
 
-JAVA_VERSION="${JAVA_VERSION}" setup_java
+JAVA_VERSION="${java_version}" setup_java
 
 msg_info "Building SpigotMC (Patience)"
 mkdir -p /opt/spigotmc-build
 cd /opt/spigotmc-build
 wget -qO BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
-$STD java -jar BuildTools.jar --rev $MC_VERSION
+$STD java -jar BuildTools.jar --rev "$mc_version"
 mkdir -p /opt/spigotmc
 mv spigot-*.jar /opt/spigotmc/spigot.jar
 cd /opt/spigotmc
@@ -43,13 +43,13 @@ eula=true
 EOF
 
 # Configure RCON for remote commands
-RCON_PASS=$(openssl rand -hex 8)
+rcon_pass=$(openssl rand -hex 8)
 cat <<EOF > server.properties
 enable-rcon=true
-rcon.password=$RCON_PASS
+rcon.password=${rcon_pass}
 rcon.port=25575
 EOF
-msg_ok "Set up Application"
+msg_ok "Configured Application (RCON enabled)"
 
 msg_info "Setting up Samba Share"
 # Disable default homes share so the root folder isn't shared
@@ -66,7 +66,7 @@ systemctl restart smbd
 msg_ok "Set up Samba Share"
 
 msg_info "Creating Service"
-JAVA_PATH=$(which java)
+java_path=$(which java)
 
 cat <<EOF > /etc/systemd/system/spigotmc.service
 [Unit]
@@ -77,7 +77,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/spigotmc
-ExecStart=${JAVA_PATH} -Xms1024M -Xmx2048M -jar spigot.jar nogui
+ExecStart=${java_path} -Xms1024M -Xmx2048M -jar spigot.jar nogui
 Restart=on-failure
 RestartSec=5
 

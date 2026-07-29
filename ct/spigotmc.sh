@@ -42,14 +42,14 @@ function update_script() {
   cd /opt/spigotmc-build
   wget -qO BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
   
-  MC_VERSION=${MC_VERSION:-latest}
-  JAVA_VERSION=25
-  if [[ "$MC_VERSION" =~ ^1\.(17|18|19|20)(\.|$) ]]; then
-      JAVA_VERSION=21
+  mc_version=${mc_version:-latest}
+  java_version=25
+  if [[ "$mc_version" =~ ^1\.(17|18|19|20)(\.|$) ]]; then
+      java_version=21
   fi
-  JAVA_VERSION="${JAVA_VERSION}" setup_java
+  JAVA_VERSION="${java_version}" setup_java
   
-  java -jar BuildTools.jar --rev $MC_VERSION >/dev/null 2>&1
+  java -jar BuildTools.jar --rev "$mc_version" >/dev/null 2>&1
   mv spigot-*.jar /opt/spigotmc/spigot.jar
   rm -rf /opt/spigotmc-build
   msg_ok "Built new SpigotMC jar"
