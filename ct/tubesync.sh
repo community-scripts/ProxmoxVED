@@ -37,11 +37,10 @@ function update_script() {
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "tubesync" "meeb/tubesync" "tarball"
 
     msg_info "Installing Python Dependencies"
-    cd /opt/tubesync
     $STD uv venv /opt/tubesync/.venv
-    $STD uv pip install --python /opt/tubesync/.venv/bin/python pipenv
-    /opt/tubesync/.venv/bin/pipenv requirements --from-pipfile 2>/dev/null |
-      grep -vE '^(-i |mysqlclient)' >/opt/tubesync/requirements.txt
+    # Resolve deps from the upstream Pipfile (skip mysqlclient; add libsass for compilescss).
+    sed -n '/^\[packages\]/,/^\[/{/=/p}' /opt/tubesync/Pipfile | grep -v '^mysqlclient' |
+      sed -E 's/ = \{.*extras = \[([^]]*)\].*/[\1]/; s/ = "\*"//; s/ = "([^"]*)"/\1/; s/[" ]//g' >/opt/tubesync/requirements.txt
     $STD uv pip install --python /opt/tubesync/.venv/bin/python -r /opt/tubesync/requirements.txt
     $STD uv pip install --python /opt/tubesync/.venv/bin/python libsass
     msg_ok "Installed Python Dependencies"

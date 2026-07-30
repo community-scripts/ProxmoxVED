@@ -41,7 +41,11 @@
       "type": "warning"
     },
     {
-      "text": "SQLite is used by default. To use PostgreSQL/MySQL instead, set DATABASE_CONNECTION in /opt/tubesync.env before first start.",
+      "text": "SQLite is used by default. For PostgreSQL, set DATABASE_CONNECTION in /opt/tubesync.env (e.g. postgresql://user:pass@host:5432/tubesync) before first start.",
+      "type": "info"
+    },
+    {
+      "text": "MySQL/MariaDB is not bundled (the mysqlclient driver needs a native build). To use it, install the driver first: 'apt install -y build-essential default-libmysqlclient-dev pkg-config && uv pip install --python /opt/tubesync/.venv/bin/python mysqlclient', then set DATABASE_CONNECTION=mysql://user:pass@host:3306/tubesync in /opt/tubesync.env.",
       "type": "info"
     }
   ]
