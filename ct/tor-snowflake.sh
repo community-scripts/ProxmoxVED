@@ -46,7 +46,11 @@ function update_script() {
 
     msg_info "Building Snowflake"
     cd /opt/tor-snowflake/proxy
-    $STD go build -o snowflake-proxy .
+    for attempt in 1 2 3; do
+      $STD go build -o snowflake-proxy . && break
+      [[ "$attempt" -eq 3 ]] && { msg_error "go build failed after 3 attempts"; exit 1; }
+      sleep 10
+    done
     msg_ok "Built Snowflake"
 
     msg_info "Starting Service"
