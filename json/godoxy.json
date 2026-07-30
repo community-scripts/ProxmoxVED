@@ -35,7 +35,7 @@
   },
   "notes": [
     {
-      "text": "The WebUI password is generated during installation and stored in /etc/godoxy.env.",
+      "text": "The WebUI password is stored in /etc/godoxy.env.",
       "type": "info"
     },
     {
