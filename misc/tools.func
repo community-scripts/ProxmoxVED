@@ -2736,7 +2736,8 @@ get_latest_gl_tag() {
   local repo_encoded
   repo_encoded=$(printf '%s' "$repo" | sed 's|/|%2F|g')
 
-  local api_base="https://gitlab.com/api/v4/projects/${repo_encoded}/repository/tags"
+  local gitlab_host="${GITLAB_HOST:-https://gitlab.com}"
+  local api_base="${gitlab_host}/api/v4/projects/${repo_encoded}/repository/tags"
   local api_timeout="--connect-timeout 10 --max-time 60"
 
   local header=()
@@ -2861,8 +2862,9 @@ fetch_and_deploy_gl_tag() {
   repo_encoded=$(printf '%s' "$repo" | sed 's|/|%2F|g')
 
   # GitLab source tarball URL (no release needed, works for any tag).
+  local gitlab_host="${GITLAB_HOST:-https://gitlab.com}"
   local version_safe="${resolved_tag//\//-}"
-  local tarball_url="https://gitlab.com/${repo}/-/archive/${resolved_tag}/${app_lc}-${version_safe}.tar.gz"
+  local tarball_url="${gitlab_host}/${repo}/-/archive/${resolved_tag}/${app_lc}-${version_safe}.tar.gz"
 
   local tmpdir
   tmpdir=$(mktemp -d) || return 1
@@ -9419,11 +9421,12 @@ get_latest_gitlab_release() {
   local temp_file
   temp_file=$(mktemp)
 
+  local gitlab_host="${GITLAB_HOST:-https://gitlab.com}"
   local http_code
   http_code=$(curl --connect-timeout 10 --max-time 30 -sSL \
     -w "%{http_code}" -o "$temp_file" \
     "${header[@]}" \
-    "https://gitlab.com/api/v4/projects/$repo_encoded/releases?per_page=1&order_by=released_at&sort=desc" 2>/dev/null) || true
+    "${gitlab_host}/api/v4/projects/$repo_encoded/releases?per_page=1&order_by=released_at&sort=desc" 2>/dev/null) || true
 
   if [[ "$http_code" != "200" ]]; then
     rm -f "$temp_file"
@@ -9476,11 +9479,15 @@ check_for_gl_release() {
   local app_lc="${app,,}"
   local current_file="$HOME/.${app_lc}"
 
+  local gitlab_host="${GITLAB_HOST:-https://gitlab.com}"
+  local gitlab_hostname="${gitlab_host#*://}"
+  gitlab_hostname="${gitlab_hostname%%/*}"
+
   msg_info "Checking for update: ${app}"
 
   # DNS check
-  if ! getent hosts gitlab.com >/dev/null 2>&1; then
-    msg_error "Network error: cannot resolve gitlab.com"
+  if ! getent hosts "$gitlab_hostname" >/dev/null 2>&1; then
+    msg_error "Network error: cannot resolve $gitlab_hostname"
     return 6
   fi
 
@@ -9503,7 +9510,7 @@ check_for_gl_release() {
     local pinned_encoded="${pinned_version_in//\//%2F}"
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o "$gl_check_json" \
       "${header[@]}" \
-      "https://gitlab.com/api/v4/projects/$repo_encoded/releases/$pinned_encoded" 2>/dev/null) || true
+      "${gitlab_host}/api/v4/projects/$repo_encoded/releases/$pinned_encoded" 2>/dev/null) || true
     if [[ "$http_code" == "200" ]] && [[ -s "$gl_check_json" ]]; then
       releases_json="[$(<"$gl_check_json")]"
     fi
@@ -9514,7 +9521,7 @@ check_for_gl_release() {
   if [[ -z "$releases_json" ]]; then
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o "$gl_check_json" \
       "${header[@]}" \
-      "https://gitlab.com/api/v4/projects/$repo_encoded/releases?per_page=100&order_by=released_at&sort=desc" 2>/dev/null) || true
+      "${gitlab_host}/api/v4/projects/$repo_encoded/releases?per_page=100&order_by=released_at&sort=desc" 2>/dev/null) || true
 
     if [[ "$http_code" == "200" ]] && [[ -s "$gl_check_json" ]]; then
       releases_json=$(<"$gl_check_json")
@@ -9538,7 +9545,7 @@ check_for_gl_release() {
       return 22
     elif [[ "$http_code" == "000" || -z "$http_code" ]]; then
       msg_error "GitLab API connection failed (no response)."
-      msg_error "Check your network/DNS: curl -sSL https://gitlab.com/api/v4/version"
+      msg_error "Check your network/DNS: curl -sSL ${gitlab_host}/api/v4/version"
       rm -f "$gl_check_json"
       return 7
     else
@@ -9783,7 +9790,8 @@ fetch_and_deploy_gl_release() {
   local repo_encoded
   repo_encoded=$(printf '%s' "$repo" | sed 's|/|%2F|g')
 
-  local api_base="https://gitlab.com/api/v4/projects/$repo_encoded/releases"
+  local gitlab_host="${GITLAB_HOST:-https://gitlab.com}"
+  local api_base="${gitlab_host}/api/v4/projects/$repo_encoded/releases"
   local api_url
   if [[ "$version" != "latest" ]]; then
     api_url="$api_base/$version"
@@ -9832,7 +9840,7 @@ fetch_and_deploy_gl_release() {
       msg_error "  export GITLAB_TOKEN=\"glpat-your_token_here\""
     elif [[ "$http_code" == "000" || -z "$http_code" ]]; then
       msg_error "GitLab API connection failed (no response)."
-      msg_error "Check your network/DNS: curl -sSL https://gitlab.com/api/v4/version"
+      msg_error "Check your network/DNS: curl -sSL ${gitlab_host}/api/v4/version"
     else
       msg_error "Failed to fetch release metadata (HTTP $http_code)"
     fi
@@ -9887,7 +9895,7 @@ fetch_and_deploy_gl_release() {
 
   ### Tarball Mode ###
   if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
-    local direct_tarball_url="https://gitlab.com/$repo/-/archive/$tag_name/${app_lc}-${version_safe}.tar.gz"
+    local direct_tarball_url="${gitlab_host}/$repo/-/archive/$tag_name/${app_lc}-${version_safe}.tar.gz"
     filename="${app_lc}-${version_safe}.tar.gz"
 
     _download_source_tarball "$direct_tarball_url" "$tmpdir/$filename" "${header[@]}" || {
@@ -9935,7 +9943,7 @@ fetch_and_deploy_gl_release() {
 
     if [[ -z "$url_match" ]]; then
       local fallback_json
-      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "https://gitlab.com" "binary" "$asset_pattern" "$tag_name"); then
+      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "$gitlab_host" "binary" "$asset_pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // empty')
         [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
@@ -10007,7 +10015,7 @@ fetch_and_deploy_gl_release() {
 
     if [[ -z "$asset_url" ]]; then
       local fallback_json
-      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "https://gitlab.com" "prebuild" "$pattern" "$tag_name"); then
+      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "$gitlab_host" "prebuild" "$pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // empty')
         [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
@@ -10060,7 +10068,7 @@ fetch_and_deploy_gl_release() {
 
     if [[ -z "$asset_url" ]]; then
       local fallback_json
-      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "https://gitlab.com" "singlefile" "$pattern" "$tag_name"); then
+      if fallback_json=$(_gl_scan_older_releases "$repo" "$repo_encoded" "$gitlab_host" "singlefile" "$pattern" "$tag_name"); then
         json="$fallback_json"
         tag_name=$(echo "$json" | jq -r '.tag_name // empty')
         [[ "$tag_name" =~ ^v[0-9] ]] && version="${tag_name:1}" || version="$tag_name"
