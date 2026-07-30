@@ -1,0 +1,48 @@
+{
+  "name": "TubeSync",
+  "slug": "tubesync",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-07-30",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 4848,
+  "documentation": "https://github.com/meeb/tubesync/blob/main/README.md",
+  "website": "https://github.com/meeb/tubesync",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/tubesync.webp",
+  "description": "TubeSync is a PVR (personal video recorder) for YouTube. It synchronizes channels and playlists to your local storage, downloading media automatically via yt-dlp so you can keep an offline library and watch it in your media player of choice.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/tubesync.sh",
+      "config_path": "/opt/tubesync.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Downloaded media is stored in /opt/tubesync-downloads and app data (SQLite database, cache, cookies) in /opt/tubesync-config. Increase the container disk to fit your library.",
+      "type": "info"
+    },
+    {
+      "text": "The web interface has no authentication by default. Set HTTP_USER and HTTP_PASS in /opt/tubesync.env to enable HTTP basic auth.",
+      "type": "warning"
+    },
+    {
+      "text": "SQLite is used by default. To use PostgreSQL/MySQL instead, set DATABASE_CONNECTION in /opt/tubesync.env before first start.",
+      "type": "info"
+    }
+  ]
+}
