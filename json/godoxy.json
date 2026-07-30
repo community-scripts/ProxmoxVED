@@ -37,14 +37,6 @@
     {
       "text": "The WebUI password is stored in /etc/godoxy.env.",
       "type": "info"
-    },
-    {
-      "text": "The initial HTTPS certificate is self-signed. Replace it or configure an ACME provider in /opt/godoxy/config/config.yml for a trusted certificate.",
-      "type": "warning"
-    },
-    {
-      "text": "File-based routes can be added to /opt/godoxy/config/routes.yml; Docker is not installed or required.",
-      "type": "info"
     }
   ]
 }
