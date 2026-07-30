@@ -2819,6 +2819,7 @@ get_latest_gl_tag() {
 # Notes:
 #   - Supports CLEAN_INSTALL=1 to wipe target before extracting
 #   - Supports GITLAB_TOKEN for private/rate-limited projects
+#   - Supports GITLAB_HOST for self-hosted GitLab (default: https://gitlab.com)
 #   - For repos that only publish tags, not formal GitLab Releases
 #     (use fetch_and_deploy_gl_release for proper Releases with assets)
 # ------------------------------------------------------------------------------
@@ -9468,6 +9469,7 @@ get_latest_gitlab_release() {
 # Notes:
 #   - Requires `jq` (auto-installed if missing)
 #   - Supports GITLAB_TOKEN env var for private/rate-limited repos
+#   - Supports GITLAB_HOST for self-hosted GitLab (default: https://gitlab.com)
 #   - Does not modify anything, only checks version state
 # ------------------------------------------------------------------------------
 check_for_gl_release() {
