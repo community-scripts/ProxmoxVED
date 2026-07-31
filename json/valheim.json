@@ -1,0 +1,53 @@
+{
+  "name": "Valheim",
+  "slug": "valheim",
+  "categories": [
+    24
+  ],
+  "date_created": "2026-07-31",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 2460,
+  "documentation": "https://github.com/PawelSzymanski89/valheim-proxmox#readme",
+  "website": "https://www.valheimgame.com/",
+  "logo": "https://cdn.cloudflare.steamstatic.com/steam/apps/892970/capsule_231x87.jpg",
+  "description": "Valheim dedicated server with a web admin panel. The panel shows who is online with a live session timer and keeps a login history that survives journal rotation, manages the admin/ban/allow lists, switches, uploads and downloads worlds, restores backups, and edits the launch settings (name, world, ports, crossplay, world preset and modifiers). Mods install from a Thunderstore Mod Manager share code, which pins every player to the same versions. World backups run every two hours, keeping 30.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/valheim.sh",
+      "config_path": "/opt/valheim/server.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 30,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "valheim123"
+  },
+  "notes": [
+    {
+      "text": "The panel password is the same on every install. It shows a red banner until you change it in Settings, and refuses to have the default set back. Locked out: `pct exec <CTID> -- /opt/valheim/panel-passwd.sh 'new-password'`.",
+      "type": "warning"
+    },
+    {
+      "text": "Keep the panel on the LAN or behind a VPN - it can delete worlds and hand out world downloads. Only the game needs to face the internet: forward UDP 2456-2458 to the container.",
+      "type": "warning"
+    },
+    {
+      "text": "Crossplay is off by default. With crossplay on the server never binds the game port at all and players join with a code instead, which makes a router forward meaningless - turn it on in Settings only if you want that mode.",
+      "type": "info"
+    },
+    {
+      "text": "The game download is ~1.5 GB from Steam, so the install takes a few minutes. Valheim caps at 10 players; 8 GB covers that comfortably and leaves room for mods.",
+      "type": "info"
+    }
+  ]
+}
