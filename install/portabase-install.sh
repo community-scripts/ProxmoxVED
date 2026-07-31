@@ -29,7 +29,8 @@ fetch_and_deploy_gh_release "tusd" "tus/tusd" "prebuild" "latest" "/opt/tusd" "t
 
 msg_info "Configuring Portabase"
 mkdir -p /opt/portabase-data/uploads/tmp
-[[ -f /opt/tusd/tusd_linux_amd64 ]] && mv -f /opt/tusd/tusd_linux_amd64 /opt/tusd/tusd
+mv -f /opt/tusd/tusd_linux_amd64/tusd /opt/tusd/tusd
+rm -rf /opt/tusd/tusd_linux_amd64
 chmod +x /opt/tusd/tusd
 PROJECT_SECRET=$(openssl rand -hex 32)
 cat <<EOF >/opt/portabase/.env

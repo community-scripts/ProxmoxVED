@@ -48,13 +48,31 @@ $STD pnpm install --config.network-timeout=240000
 $STD pnpm release
 msg_ok "Built Logseq Web App"
 
+msg_info "Generating Self-Signed Certificate"
+create_self_signed_cert "logseq"
+msg_ok "Generated Self-Signed Certificate"
+
 msg_info "Configuring Nginx"
 cat <<'EOF' >/etc/nginx/sites-available/logseq.conf
 server {
     listen 80 default_server;
     server_name _;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl default_server;
+    http2 on;
+    server_name _;
+
+    ssl_certificate /etc/ssl/logseq/logseq.crt;
+    ssl_certificate_key /etc/ssl/logseq/logseq.key;
+
     root /opt/logseq/static;
     index index.html;
+
+    add_header Cross-Origin-Opener-Policy same-origin always;
+    add_header Cross-Origin-Embedder-Policy require-corp always;
 
     location / {
         try_files $uri $uri/ /index.html;

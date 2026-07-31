@@ -48,6 +48,13 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
    - Override the store location with `BACKUP_DIR` if `/opt/<NSAPP>.backup` clashes.
 3. Never back up to `/tmp` (the system can clear it).
 
+### Secure-Context Web Apps (HTTPS)
+
+Browser APIs like `crypto.subtle` (Web Crypto / PKCE), `navigator.storage.getDirectory` (OPFS), service workers, and `SharedArrayBuffer` are only available in a **secure context** (HTTPS or `localhost`). An app that uses any of them breaks over plain `http://<IP>` with errors such as `crypto.subtle is unavailable in insecure contexts` or `Cannot read properties of undefined (reading 'getDirectory')`. When the app (SPA or backend console) relies on these:
+- Terminate TLS with `create_self_signed_cert "<app>"` (its SAN already covers the container IP) behind an nginx `listen 443 ssl` server, redirect `:80 → :443`, and proxy to the app on an internal port (or serve the static root directly).
+- If the source uses `SharedArrayBuffer` (grep for it), also set cross-origin isolation on the HTTPS server: `add_header Cross-Origin-Opener-Policy same-origin always;` and `add_header Cross-Origin-Embedder-Policy require-corp always;`.
+- In `notes`, tell users to accept the self-signed certificate (on every port the login flow touches) and point them at the `https://` URL.
+
 ### Anti-Patterns — NEVER Do
 - Do NOT wrap `setup_*` / `fetch_and_deploy_gh_release` / `check_for_gh_release` in `msg_info`/`msg_ok` blocks — they have built-in messages.
 - Do NOT create pointless variables (no `APP_DIR`, `APP_USER`, `APP_PORT`).
