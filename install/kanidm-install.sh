@@ -49,10 +49,12 @@ bindaddress = "0.0.0.0:8443"
 db_path = "/var/lib/kanidm/kanidm.db"
 tls_chain = "/etc/ssl/kanidm/kanidm.crt"
 tls_key = "/etc/ssl/kanidm/kanidm.key"
-domain = "kanidm.lan"
-origin = "https://kanidm.lan:8443"
+domain = "kanidm.${LOCAL_IP}.nip.io"
+origin = "https://kanidm.${LOCAL_IP}.nip.io:8443"
 log_level = "info"
 EOF
+chmod 600 /etc/kanidm/server.toml
+chmod 640 /etc/ssl/kanidm/kanidm.key
 msg_ok "Configured Kanidm"
 
 msg_info "Creating Service"

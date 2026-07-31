@@ -34,15 +34,15 @@
   },
   "notes": [
     {
-      "text": "The server uses a self-signed TLS certificate. Open the web UI at https://<IP>:8443 and accept the certificate warning, or set 'verify_ca = false' in your kanidm client config.",
-      "type": "warning"
-    },
-    {
-      "text": "Generate the break-glass admin passwords after install by running inside the container: 'kanidmd recover-account idm_admin' (manages people and groups) and 'kanidmd recover-account admin' (manages server configuration).",
+      "text": "Kanidm cannot run on a bare IP (WebAuthn/passkeys require a real domain name, and its domain must start with a letter). The script defaults the domain/origin to kanidm.<container-IP>.nip.io, a public wildcard DNS that resolves to the container automatically — just open https://kanidm.<container-IP>.nip.io:8443, no hosts file or DNS setup needed, and accept the self-signed certificate warning.",
       "type": "info"
     },
     {
-      "text": "The default domain/origin is kanidm.lan (https://kanidm.lan:8443). For WebAuthn/passkeys and OAuth2 to work correctly, point a DNS/hosts record for this name at the container or set your own domain in /etc/kanidm/server.toml.",
+      "text": "If your router/DNS has rebinding protection (blocks public names that resolve to private IPs), nip.io may not resolve. Fallback: add '<container-IP> kanidm.local' to your client's hosts file and set the matching domain/origin in /etc/kanidm/server.toml. To use your own real domain, change 'domain' and 'origin' in server.toml BEFORE creating accounts — changing it later requires a Kanidm domain rename.",
+      "type": "warning"
+    },
+    {
+      "text": "Generate the break-glass admin passwords after install, inside the container: 'kanidmd recover-account idm_admin' (manages people and groups — use this account to sign in to the web portal) and 'kanidmd recover-account admin' (manages server configuration).",
       "type": "info"
     }
   ]

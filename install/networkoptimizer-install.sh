@@ -15,6 +15,7 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
+  git \
   sshpass \
   iperf3
 setup_deb822_repo \
@@ -33,6 +34,7 @@ msg_info "Building NetworkOptimizer"
 RID="linux-x64"
 [[ "$(dpkg --print-architecture)" == "arm64" ]] && RID="linux-arm64"
 cd /opt/networkoptimizer
+export MinVerVersionOverride="$(cat ~/.networkoptimizer)"
 $STD dotnet publish src/NetworkOptimizer.Web -c Release -r "$RID" --self-contained -o /opt/networkoptimizer/publish
 chmod +x /opt/networkoptimizer/publish/NetworkOptimizer.Web
 msg_ok "Built NetworkOptimizer"
