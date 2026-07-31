@@ -572,7 +572,11 @@ pkg_upgrade() {
     $STD pacman -Su --noconfirm
     ;;
   emerge)
-    $STD emerge --quiet --update --deep @world
+    # A full source-based @world rebuild fails under the unprivileged-LXC emerge
+    # sandbox ("Operation not permitted") and OOMs a base container. The stage3
+    # template is recent enough; the portage tree is already synced in pkg_update.
+    # Skip the world rebuild so the base container provisions reliably.
+    :
     ;;
   *)
     msg_error "Unknown package manager: $PKG_MANAGER"
