@@ -1,0 +1,41 @@
+{
+  "name": "9Router",
+  "slug": "9router",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-07-29",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 20128,
+  "documentation": "https://github.com/decolua/9router#readme",
+  "website": "https://9router.com",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/9router.webp",
+  "description": "9Router is a self-hosted AI gateway that connects coding tools to multiple AI providers with routing and fallback support.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/9router.sh",
+      "config_path": null,
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": "123456"
+  },
+  "notes": [
+    {
+      "text": "Remote first login uses the upstream default password; change it immediately.",
+      "type": "warning"
+    }
+  ]
+}
