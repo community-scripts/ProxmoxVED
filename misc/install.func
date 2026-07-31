@@ -691,7 +691,10 @@ pkg_clean() {
     $STD pacman -Sc --noconfirm
     ;;
   emerge)
-    $STD emerge --quiet --depclean
+    # Skip depclean on a base container: it requires a full @world update first
+    # (which we skip) and can unmerge needed packages or fail ("Operation not
+    # permitted") under the unprivileged-LXC emerge sandbox.
+    :
     ;;
   *)
     return 0
@@ -1147,22 +1150,24 @@ EOF
   msg_ok "Updated Container OS"
   post_progress_to_api
 
-  # Source appropriate tools.func based on OS
-  local tools_content
+  # Source appropriate tools.func based on OS. Fetch with curl OR wget: Gentoo
+  # stage3 ships wget but not curl (the curl bootstrap can fall back to wget and
+  # leave curl absent), so a hard curl call fails with "command not found".
+  local tools_content tools_url tools_name
   case "$OS_FAMILY" in
-  alpine)
-    tools_content=$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/alpine-tools.func") || {
-      msg_error "Failed to download alpine-tools.func"
-      exit 115
-    }
-    ;;
-  *)
-    tools_content=$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/tools.func") || {
-      msg_error "Failed to download tools.func"
-      exit 115
-    }
-    ;;
+  alpine) tools_name="alpine-tools.func" ;;
+  *) tools_name="tools.func" ;;
   esac
+  tools_url="$COMMUNITY_SCRIPTS_URL/misc/${tools_name}"
+  if command -v curl &>/dev/null; then
+    tools_content=$(curl -fsSL "$tools_url")
+  elif command -v wget &>/dev/null; then
+    tools_content=$(wget -qO- "$tools_url")
+  fi
+  if [[ -z "$tools_content" ]]; then
+    msg_error "Failed to download ${tools_name}"
+    exit 115
+  fi
   source /dev/stdin <<<"$tools_content"
   if ! declare -f fetch_and_deploy_gh_release >/dev/null 2>&1; then
     msg_error "tools.func loaded but incomplete — missing expected functions"

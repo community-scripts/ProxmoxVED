@@ -6,7 +6,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.centos.org/centos-stream/
 
-APP="CentOS Stream"
+APP="CentOS"
 var_tags="${var_tags:-os}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
