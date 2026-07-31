@@ -15,7 +15,7 @@ update_os
 
 NODE_VERSION="22" setup_nodejs
 PG_VERSION="16" setup_postgresql
-PG_DB_NAME="logto" PG_DB_USER="logto" setup_postgresql_db
+PG_DB_NAME="logto" PG_DB_USER="logto" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
 
 fetch_and_deploy_gh_release "logto" "logto-io/logto" "prebuild" "latest" "/opt/logto" "logto.tar.gz"
 
