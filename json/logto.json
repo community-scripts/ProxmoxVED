@@ -35,12 +35,12 @@
   },
   "notes": [
     {
-      "text": "Open the Admin Console at http://<IP>:3002 and complete the Welcome flow to create your first admin account.",
+      "text": "Open the Admin Console at https://<IP>:3002 and accept the self-signed certificate; also open https://<IP>:3001 once and accept it there (the sign-in flow redirects between both ports). Then complete the Welcome flow to create your first admin account. HTTPS is required: the console uses Web Crypto (crypto.subtle), which browsers only expose in secure (HTTPS) contexts.",
       "type": "info"
     },
     {
-      "text": "The Core service (OIDC issuer / API) runs on port 3001, the Admin Console on port 3002.",
-      "type": "info"
+      "text": "TLS is terminated by nginx with a self-signed certificate (SAN includes the container IP). Core/OIDC API is on https://<IP>:3001, Admin Console on https://<IP>:3002. For a browser-trusted cert, replace /etc/ssl/logto/logto.{crt,key} or front Logto with your own reverse proxy and a real domain.",
+      "type": "warning"
     }
   ]
 }
