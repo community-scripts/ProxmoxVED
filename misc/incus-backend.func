@@ -995,7 +995,7 @@ incus_run_install_script_with_recovery() {
     incus exec "${CT_NAME}" -- bash || true
     echo ""
     echo -en "${YW}Container ${CT_NAME} still running. Remove now? (y/N): ${CL}"
-    if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
+    if read -r response </dev/tty && [[ "$response" =~ ^[Yy]$ ]]; then
       incus_delete_container "${CT_NAME}"
     else
       msg_dev "Container ${CT_NAME} kept for debugging"
@@ -1071,7 +1071,7 @@ incus_run_install_script_with_recovery() {
   local max_option=$((next_option - 1))
   echo ""
   echo -en "${YW}Select option [1-${max_option}] (default: 1, auto-remove in 60s): ${CL}"
-  if read -t 60 -r response; then
+  if read -t 60 -r response </dev/tty; then
     case "${response:-1}" in
     1)
       echo -e "\n${TAB}${HOLD}${YW}Removing container ${CT_NAME}${CL}"
