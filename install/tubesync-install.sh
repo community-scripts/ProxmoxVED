@@ -32,6 +32,14 @@ $STD uv pip install --python /opt/tubesync/.venv/bin/python -r /opt/tubesync/req
 $STD uv pip install --python /opt/tubesync/.venv/bin/python libsass
 msg_ok "Installed Python Dependencies"
 
+msg_info "Applying TubeSync patches"
+# TubeSync ships patches that add the yt_dlp.patch submodule (and hat.syslog
+# files) on top of the installed packages - the app imports these at runtime.
+SITE_PACKAGES=$(/opt/tubesync/.venv/bin/python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')
+cp -rf /opt/tubesync/patches/hat/. "$SITE_PACKAGES/hat/"
+cp -rf /opt/tubesync/patches/yt_dlp/. "$SITE_PACKAGES/yt_dlp/"
+msg_ok "Applied TubeSync patches"
+
 msg_info "Configuring TubeSync"
 mkdir -p /opt/tubesync-config /opt/tubesync-downloads
 # Derive local_settings.py from the upstream container example and point the

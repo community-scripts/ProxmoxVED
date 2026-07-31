@@ -43,6 +43,10 @@ function update_script() {
       sed -E 's/ = \{.*extras = \[([^]]*)\].*/[\1]/; s/ = "\*"//; s/ = "([^"]*)"/\1/; s/[" ]//g' >/opt/tubesync/requirements.txt
     $STD uv pip install --python /opt/tubesync/.venv/bin/python -r /opt/tubesync/requirements.txt
     $STD uv pip install --python /opt/tubesync/.venv/bin/python libsass
+    # Re-apply the yt_dlp/hat patches on top of the freshly installed packages.
+    SITE_PACKAGES=$(/opt/tubesync/.venv/bin/python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')
+    cp -rf /opt/tubesync/patches/hat/. "$SITE_PACKAGES/hat/"
+    cp -rf /opt/tubesync/patches/yt_dlp/. "$SITE_PACKAGES/yt_dlp/"
     msg_ok "Installed Python Dependencies"
 
     msg_info "Updating TubeSync"
