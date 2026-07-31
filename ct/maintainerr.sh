@@ -8,9 +8,9 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 
 APP="Maintainerr"
 var_tags="${var_tags:-media;arr;cleanup}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-2048}"
-var_disk="${var_disk:-8}"
+var_cpu="${var_cpu:-4}"
+var_ram="${var_ram:-8192}"
+var_disk="${var_disk:-24}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_arm64="${var_arm64:-no}"
@@ -43,7 +43,7 @@ function update_script() {
     msg_info "Rebuilding Maintainerr (Patience)"
     cd /opt/maintainerr
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-    export NODE_OPTIONS="--max-old-space-size=1024"
+    export NODE_OPTIONS="--max-old-space-size=4096"
     $STD corepack enable
     $STD corepack prepare yarn@4.11.0 --activate
     $STD yarn config set enableTelemetry 0
@@ -58,6 +58,11 @@ function update_script() {
     msg_ok "Rebuilt Maintainerr"
 
     restore_backup
+    sed -i '/^npm_package_version=/d;/^VERSION_TAG=/d' /opt/maintainerr/.env
+    {
+      echo "VERSION_TAG=stable"
+      echo "npm_package_version=$(cat ~/.maintainerr)"
+    } >>/opt/maintainerr/.env
 
     msg_info "Starting Service"
     systemctl start maintainerr

@@ -21,9 +21,9 @@
       "script": "ct/maintainerr.sh",
       "config_path": "/opt/data",
       "resources": {
-        "cpu": 2,
-        "ram": 2048,
-        "hdd": 8,
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 24,
         "os": "Debian",
         "version": "13"
       }

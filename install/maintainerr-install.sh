@@ -32,7 +32,7 @@ fetch_and_deploy_gh_release "maintainerr" "Maintainerr/Maintainerr" "tarball" "l
 msg_info "Building Maintainerr (Patience)"
 cd /opt/maintainerr
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-export NODE_OPTIONS="--max-old-space-size=1024"
+export NODE_OPTIONS="--max-old-space-size=4096"
 $STD corepack enable
 $STD corepack prepare yarn@4.11.0 --activate
 $STD yarn config set enableTelemetry 0
@@ -58,6 +58,8 @@ DATA_DIR=/opt/data
 UI_PORT=6246
 UI_HOSTNAME=0.0.0.0
 BASE_PATH=
+VERSION_TAG=stable
+npm_package_version=$(cat ~/.maintainerr)
 EOF
 msg_ok "Configured Environment"
 
