@@ -1334,12 +1334,19 @@ customize() {
       # rapid respawns) so whichever one the user opens works.
       local _agetty_opts='--autologin root --noclear --noissue --keep-baud'
 
+      # Pin TERM=linux on the getty AND pass 'linux' as the agetty term type.
+      # util-linux >= 2.40 agetty auto-probes the terminal with ESC[6n (CPR) when
+      # the term type is unknown; on the PVE noVNC console (tty1 = container-getty@1)
+      # the response leaks into the shell as "R;80R" garbage. A known TERM stops the
+      # probe. The console-getty-only mitigation in pve-backend.func missed tty1,
+      # which is exactly what noVNC/pct console attaches to.
       if [[ -f /usr/lib/systemd/system/container-getty@.service ]]; then
         mkdir -p /etc/systemd/system/container-getty@1.service.d
         cat >/etc/systemd/system/container-getty@1.service.d/override.conf <<EOF
 [Service]
+Environment=TERM=linux
 ExecStart=
-ExecStart=-/sbin/agetty ${_agetty_opts} tty%I 115200,38400,9600 - \$TERM
+ExecStart=-/sbin/agetty ${_agetty_opts} tty%I 115200,38400,9600 - linux
 EOF
       fi
 
@@ -1347,8 +1354,9 @@ EOF
         mkdir -p /etc/systemd/system/console-getty.service.d
         cat >/etc/systemd/system/console-getty.service.d/override.conf <<EOF
 [Service]
+Environment=TERM=linux
 ExecStart=
-ExecStart=-/sbin/agetty ${_agetty_opts} 115200,38400,9600 - \$TERM
+ExecStart=-/sbin/agetty ${_agetty_opts} 115200,38400,9600 - linux
 EOF
         # Enable console-getty for pct console (not enabled by default on Fedora/RHEL)
         systemctl enable console-getty.service &>/dev/null || true

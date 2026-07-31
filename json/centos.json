@@ -25,7 +25,7 @@
                 "ram": 512,
                 "hdd": 4,
                 "os": "CentOS",
-                "version": "9"
+                "version": "10"
             }
         }
     ],

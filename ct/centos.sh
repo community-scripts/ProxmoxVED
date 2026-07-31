@@ -12,7 +12,7 @@ var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-centos}"
-var_version="${var_version:-9}"
+var_version="${var_version:-10}"
 var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
