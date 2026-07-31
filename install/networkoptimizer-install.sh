@@ -25,7 +25,7 @@ setup_deb822_repo \
 $STD apt install -y dotnet-sdk-10.0
 msg_ok "Installed Dependencies"
 
-GO_VERSION="1.23" setup_go
+setup_go
 
 fetch_and_deploy_gh_release "networkoptimizer" "Ozark-Connect/NetworkOptimizer" "tarball"
 
