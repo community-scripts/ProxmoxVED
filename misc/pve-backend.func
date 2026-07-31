@@ -1126,7 +1126,7 @@ PROFILE
 
     echo ""
     echo -en "${YW}Select option [1-${max_option}] (default: 1, auto-remove in 60s): ${CL}"
-    if read -t 60 -r response; then
+    if read -t 60 -r response </dev/tty; then
       case "${response:-1}" in
       1)
         # Remove container
