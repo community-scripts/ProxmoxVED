@@ -127,8 +127,8 @@ msg_ok "Configured Server"
 msg_info "Setting up Admin Panel"
 fetch_and_deploy_gh_release "valheim-panel" "PawelSzymanski89/valheim-proxmox" "prebuild" "latest" "/opt/valheim/panel" "panel.tar.gz"
 $STD uv venv /opt/valheim/panel/.venv
-$STD /opt/valheim/panel/.venv/bin/python -m ensurepip
-$STD /opt/valheim/panel/.venv/bin/pip install fastapi "uvicorn[standard]" pyyaml
+# a uv-created venv ships without pip, and ensurepip is not in it either - install through uv
+$STD uv pip install --python /opt/valheim/panel/.venv/bin/python fastapi "uvicorn[standard]" pyyaml
 # The starting password is the same on every install on purpose - the panel shows a red
 # banner until it is changed and refuses to have the default set back.
 cat <<'EOF' >/opt/valheim/panel.env

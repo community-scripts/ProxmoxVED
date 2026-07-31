@@ -66,7 +66,7 @@ function update_script() {
     fetch_and_deploy_gh_release "valheim-panel" "PawelSzymanski89/valheim-proxmox" "prebuild" "latest" "/opt/valheim/panel" "panel.tar.gz"
 
     msg_info "Updating Panel Dependencies"
-    $STD /opt/valheim/panel/.venv/bin/pip install --upgrade fastapi "uvicorn[standard]" pyyaml
+    $STD uv pip install --python /opt/valheim/panel/.venv/bin/python --upgrade fastapi "uvicorn[standard]" pyyaml
     msg_ok "Updated Panel Dependencies"
 
     msg_info "Starting Panel"
