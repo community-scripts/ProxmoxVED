@@ -1406,9 +1406,19 @@ EOF
       ;;
 
     openrc)
-      # Alpine/Gentoo: modify inittab for auto-login
+      # Alpine/Gentoo inittab formats differ: Alpine uses
+      #   "tty1::respawn:/sbin/getty 38400 tty1"
+      # Gentoo uses
+      #   "1::respawn:/sbin/agetty 38400 tty1"
+      # Match any respawn line running a getty/agetty on tty1 (resp. console) and
+      # rewrite it with --autologin, preserving the original inittab id.
       if [[ -f /etc/inittab ]]; then
-        sed -i 's|^tty1::respawn:.*|tty1::respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
+        sed -i -E 's#^([A-Za-z0-9]*::respawn:).*[ag]etty.*tty1.*#\1/sbin/agetty --autologin root --noclear tty1 38400 linux#' /etc/inittab
+        sed -i -E 's#^([A-Za-z0-9]*::respawn:).*[ag]etty.*console.*#\1/sbin/agetty --autologin root --noclear console 115200 linux#' /etc/inittab
+        telinit q &>/dev/null || kill -HUP 1 &>/dev/null || true
+        sleep 1
+        pkill -f 'agetty.*tty1' &>/dev/null || true
+        pkill -f 'agetty.*console' &>/dev/null || true
       fi
       touch /root/.hushlogin
       ;;
