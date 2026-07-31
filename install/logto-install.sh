@@ -24,14 +24,14 @@ PG_DB_NAME="logto" PG_DB_USER="logto" PG_DB_GRANT_SUPERUSER="true" setup_postgre
 fetch_and_deploy_gh_release "logto" "logto-io/logto" "prebuild" "latest" "/opt/logto" "logto.tar.gz"
 
 msg_info "Generating Self-Signed Certificate"
-create_self_signed_cert "logto"
+create_self_signed_cert "logto" "DNS:logto.${LOCAL_IP}.nip.io"
 msg_ok "Generated Self-Signed Certificate"
 
 msg_info "Configuring Logto"
 DB_URL="postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}"
 cat <<EOF >/opt/logto/.env
 DB_URL=${DB_URL}
-ENDPOINT=https://${LOCAL_IP}:3001
+ENDPOINT=https://logto.${LOCAL_IP}.nip.io:3001
 ADMIN_ENDPOINT=https://${LOCAL_IP}:3002
 PORT=13001
 ADMIN_PORT=13002

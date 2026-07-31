@@ -35,11 +35,11 @@
   },
   "notes": [
     {
-      "text": "Open the Admin Console at https://<IP>:3002 and accept the self-signed certificate; also open https://<IP>:3001 once and accept it there (the sign-in flow redirects between both ports). Then complete the Welcome flow to create your first admin account. HTTPS is required: the console uses Web Crypto (crypto.subtle), which browsers only expose in secure (HTTPS) contexts.",
+      "text": "Open the Admin Console at https://<IP>:3002 and accept the self-signed certificate. The sign-in flow redirects to the Core at https://logto.<IP>.nip.io:3001 (a nip.io hostname that auto-resolves to the container) — open that URL once too and accept its certificate before signing in. Then complete the Welcome flow to create your first admin account.",
       "type": "info"
     },
     {
-      "text": "TLS is terminated by nginx with a self-signed certificate (SAN includes the container IP). Core/OIDC API is on https://<IP>:3001, Admin Console on https://<IP>:3002. For a browser-trusted cert, replace /etc/ssl/logto/logto.{crt,key} or front Logto with your own reverse proxy and a real domain.",
+      "text": "HTTPS with two distinct hostnames is required: the console uses Web Crypto (crypto.subtle, HTTPS-only), and Logto's OIDC needs the Core (logto.<IP>.nip.io:3001) and Console (<IP>:3002) on different hostnames so their session cookies don't collide (a bare IP on two ports causes an 'invalid session' error). If your router blocks nip.io (DNS-rebinding protection), or for a browser-trusted cert, front Logto with your own domain + reverse proxy and set ENDPOINT/ADMIN_ENDPOINT in /opt/logto/.env accordingly.",
       "type": "warning"
     }
   ]
