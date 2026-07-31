@@ -22,8 +22,8 @@
       "config_path": "/opt/aurral/aurral.env",
       "resources": {
         "cpu": 2,
-        "ram": 2048,
-        "hdd": 8,
+        "ram": 4096,
+        "hdd": 10,
         "os": "Debian",
         "version": "13"
       }

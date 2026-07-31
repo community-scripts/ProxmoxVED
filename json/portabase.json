@@ -21,8 +21,8 @@
       "script": "ct/portabase.sh",
       "config_path": "/opt/portabase/.env",
       "resources": {
-        "cpu": 2,
-        "ram": 4096,
+        "cpu": 4,
+        "ram": 8192,
         "hdd": 15,
         "os": "Debian",
         "version": "13"

@@ -7,8 +7,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source
 
 APP="Portabase"
 var_tags="${var_tags:-database;backup}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-4096}"
+var_cpu="${var_cpu:-4}"
+var_ram="${var_ram:-8192}"
 var_disk="${var_disk:-15}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
