@@ -19,11 +19,34 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
 - Install scripts source `$FUNCTIONS_FILE_PATH`, call `color`, `verb_ip6`, `catch_errors`, `setting_up_container`, `network_check`, `update_os`, and end with `motd_ssh` / `customize` / `cleanup_lxc`.
 
 ### Helper Functions — ALWAYS Use
-- `fetch_and_deploy_gh_release` for GitHub releases (specify mode: `"tarball"`, `"binary"`, `"prebuild"`, or `"singlefile"`).
-- `check_for_gh_release` for update checks.
-- `setup_nodejs`, `setup_go`, `setup_uv`, `setup_rust`, `setup_ruby`, `setup_java`, `setup_php` for runtimes.
-- `setup_postgresql` / `setup_postgresql_db`, `setup_mariadb_db`, `setup_mongodb`, `setup_mysql` for databases.
-- `setup_ffmpeg`, `setup_imagemagick`, `setup_composer`, `setup_adminer`, `setup_gs`, `setup_hwaccel` for tools.
+
+**Source deploy (pick the forge + explicit mode):**
+- `fetch_and_deploy_gh_release "<app>" "owner/repo" "<mode>" ["latest"] ["/opt/<app>"] ["<asset-pattern>"]` — GitHub. Modes: `tarball` (source), `binary` (.deb), `prebuild` (prebuilt archive), `singlefile` (single binary). The resolved version is written to `~/.<app>` (read it back with `cat ~/.<app>` when you need the version at build/runtime).
+- `fetch_and_deploy_gl_release` / `fetch_and_deploy_gl_tag` — GitLab (self-hosted or gitlab.com). Set `GITLAB_URL="https://gitlab.example.org"` (default `https://gitlab.com`) and optional `GITLAB_TOKEN`. Same modes as GitHub. Do NOT use the GitHub helper for GitLab repos.
+- `fetch_and_deploy_codeberg_release` — Codeberg. `fetch_and_deploy_from_url` — last resort for a fixed URL when no release API fits (still avoids hand-rolled curl/tar).
+- Multi-arch assets: build the asset pattern with `arch_resolve "x86_64" "arm64"` (returns the arch-correct token) instead of hardcoding the architecture.
+
+**Update checks:** `check_for_gh_release "<app>" "owner/repo"` / `check_for_gl_release` (with `GITLAB_URL`) return 0 when a newer release exists. `get_latest_github_release "owner/repo"` returns just the version string.
+
+**Runtimes:** `NODE_VERSION="22" NODE_MODULE="pnpm@x" setup_nodejs` · `setup_go` (no arg = latest; NEVER pin a bare `1.23` — the download URL needs a full `1.23.x`) · `RUST_CRATES="..." setup_rust` · `UV_PYTHON="3.12" setup_uv` · `RUBY_VERSION setup_ruby` · `JAVA_VERSION setup_java` · `PHP_VERSION="8.3" PHP_MODULE="gd,intl,mysql" PHP_FPM="YES" setup_php` (note: `PHP_MODULE`, singular).
+
+**Databases:** `setup_postgresql` + `PG_DB_NAME PG_DB_USER PG_DB_EXTENSIONS="vector,pg_stat_statements" [PG_DB_GRANT_SUPERUSER="true"] setup_postgresql_db` (list every extension the app's schema enables — non-trusted ones like `pg_stat_statements`/`vector` need pre-creating; grant SUPERUSER only when the app truly needs it) · `setup_mariadb` + `setup_mariadb_db` · `setup_mysql` + `setup_mysql_db` · `setup_mongodb` · `setup_clickhouse` · `setup_meilisearch`.
+
+**Tools/infra:** `setup_composer` · `setup_ffmpeg` · `setup_imagemagick` · `setup_gs` · `setup_yq` · `setup_adminer` · `setup_hwaccel` · `setup_nltk`.
+
+**Repos, services, TLS:** `setup_deb822_repo "name" "<gpg_url>" "<repo_url>" "<suite>" ["component"] ["archs"]` for 3rd-party APT repos (never hand-roll GPG keys + sources) · `safe_service_restart <svc>` · `ensure_dependencies <pkg...>` (installs jq/openssl/etc. on demand) · `install_packages_with_retry <pkg...>` · `create_self_signed_cert "<app>"` → `/etc/ssl/<app>/<app>.{crt,key}` (SAN = hostname + container IP + localhost; never hand-roll openssl).
+
+### Data Persistence & Updates (CRITICAL)
+
+`CLEAN_INSTALL=1 fetch_and_deploy_*` **wipes `/opt/<app>` before re-extracting**, so anything the user created that lives inside it is lost on update. Therefore:
+
+1. **Store all persistent state OUTSIDE the app dir** — in a dedicated `/opt/<app>_data` (NOT `/opt/<app>/data`). Point the app there via its data-dir setting/env (e.g. a `DATA_DIR` / `*_DATA_DIR` env or a config key), and put secrets/config the app cannot regenerate (signing keys, generated `.env`/`.toml`) there too. Then updates keep everything with **no backup/restore step at all** — prefer this design.
+2. **Only if data genuinely cannot be relocated** out of `/opt/<app>`, back it up in `update_script()` with the manifest helpers (never manual `cp`):
+   - `create_backup /opt/<app>/data /opt/<app>/.env` — copies each path into `/opt/<NSAPP>.backup` with a manifest; idempotent and aborts the update on failure.
+   - `CLEAN_INSTALL=1 fetch_and_deploy_gh_release ...`
+   - `restore_backup` — restores every manifest path and deletes the store.
+   - Override the store location with `BACKUP_DIR` if `/opt/<NSAPP>.backup` clashes.
+3. Never back up to `/tmp` (the system can clear it).
 
 ### Anti-Patterns — NEVER Do
 - Do NOT wrap `setup_*` / `fetch_and_deploy_gh_release` / `check_for_gh_release` in `msg_info`/`msg_ok` blocks — they have built-in messages.
@@ -55,12 +78,16 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
 - [ ] No core packages in dependency list
 - [ ] `msg_info`/`msg_ok`/`msg_error` for custom logging only
 - [ ] Correct CT script structure with all `var_*` declarations
-- [ ] `update_script()` present with backup/restore
+- [ ] `update_script()` present
+- [ ] Persistent data/config lives in `/opt/<app>_data` (outside the wiped app dir); if unavoidable inside, backed up via `create_backup`/`restore_backup`
 - [ ] Footer: `motd_ssh`, `customize`, `cleanup_lxc`
 - [ ] JSON metadata file matches CT script resources
 - [ ] JSON `has_arm` accurately reflects arm64 support
 - [ ] CT `var_arm64` accurately reflects arm64 support
 - [ ] Backups go to `/opt`, not `/tmp`
+- [ ] Multi-arch asset patterns use `arch_resolve` (no hardcoded arch)
+- [ ] 3rd-party APT repos via `setup_deb822_repo`; self-signed TLS via `create_self_signed_cert`
+- [ ] GitLab sources use `fetch_and_deploy_gl_release`/`check_for_gl_release` with `GITLAB_URL`
 
 ## Output Format
 
