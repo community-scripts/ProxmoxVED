@@ -43,7 +43,7 @@
       "type": "warning"
     },
     {
-      "text": "Sonic analysis is CPU- and memory-intensive and downloads ML models (CLAP/ONNX) on first use into /opt/audiomuse-ai_data. Configuration, models and caches live there so they survive updates; the PostgreSQL database holds the analysis results.",
+      "text": "The installer downloads roughly 2.2 GB of ML models (musicnn, CLAP, Whisper, silero, gte) into /opt/audiomuse-ai_data/model, so the setup takes a while. Configuration, models and caches live in /opt/audiomuse-ai_data so they survive updates; the PostgreSQL database holds the analysis results. Sonic analysis itself is CPU- and memory-intensive.",
       "type": "info"
     },
     {

@@ -18,6 +18,7 @@ $STD apt install -y \
   build-essential \
   git \
   ffmpeg \
+  libchromaprint-tools \
   libsndfile1 \
   libgomp1 \
   redis-server
@@ -38,8 +39,36 @@ $STD uv pip install --python /opt/audiomuse-ai/.venv \
   -r /opt/audiomuse-ai/requirements/cpu.txt
 msg_ok "Set up Python Environment"
 
+MODEL_DIR="/opt/audiomuse-ai_data/model"
+MODEL_URL="https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model"
+DCLAP_URL="https://github.com/NeptuneHub/AudioMuse-AI-DCLAP/releases/download/v1"
+
+msg_info "Downloading ML Models (Patience)"
+mkdir -p "$MODEL_DIR/huggingface"
+for FILE in musicnn_embedding.onnx musicnn_prediction.onnx clap_text_model.onnx; do
+  curl -fsSL "${MODEL_URL}/${FILE}" -o "${MODEL_DIR}/${FILE}"
+done
+for FILE in model_epoch_36.onnx model_epoch_36.onnx.data; do
+  curl -fsSL "${DCLAP_URL}/${FILE}" -o "${MODEL_DIR}/${FILE}"
+done
+for BUNDLE in lyrics_model_whisper lyrics_model_silero_vad lyrics_model_gte_vnni; do
+  curl -fsSL "${MODEL_URL}/${BUNDLE}.tar.gz" -o "/tmp/${BUNDLE}.tar.gz"
+  tar -xzf "/tmp/${BUNDLE}.tar.gz" -C "$MODEL_DIR"
+  rm -f "/tmp/${BUNDLE}.tar.gz"
+done
+curl -fsSL "${MODEL_URL}/huggingface_models.tar.gz" -o /tmp/huggingface_models.tar.gz
+tar -xzf /tmp/huggingface_models.tar.gz -C "${MODEL_DIR}/huggingface"
+rm -f /tmp/huggingface_models.tar.gz
+HF_HUB_DIR="${MODEL_DIR}/huggingface/hub"
+rm -rf "${HF_HUB_DIR}/models--bert-base-uncased" "${HF_HUB_DIR}/models--facebook--bart-base"
+if [[ -d "${HF_HUB_DIR}/models--roberta-base" ]]; then
+  find "${HF_HUB_DIR}/models--roberta-base/blobs" -type f -size +10M -delete
+  find "${HF_HUB_DIR}/models--roberta-base/snapshots" \( -name "model.safetensors" -o -name "pytorch_model.bin" \) -delete
+fi
+msg_ok "Downloaded ML Models"
+
 msg_info "Configuring AudioMuse-AI"
-mkdir -p /opt/audiomuse-ai_data/models/huggingface /opt/audiomuse-ai_data/cache/numba
+mkdir -p /opt/audiomuse-ai_data/{temp_audio,ivf_cache,plugins,backup} /opt/audiomuse-ai_data/cache/numba
 AUDIOMUSE_PASSWORD=$(openssl rand -base64 18)
 JWT_SECRET=$(openssl rand -hex 32)
 API_TOKEN=$(openssl rand -hex 32)
@@ -61,9 +90,24 @@ JELLYFIN_URL=http://YOUR_JELLYFIN_IP:8096
 JELLYFIN_USER_ID=
 JELLYFIN_TOKEN=
 AI_MODEL_PROVIDER=NONE
-HF_HOME=/opt/audiomuse-ai_data/models/huggingface
+APP_DATA_DIR=/opt/audiomuse-ai_data
+TEMP_DIR=/opt/audiomuse-ai_data/temp_audio
+BACKUP_DIR=/opt/audiomuse-ai_data/backup
+RESTORE_LOG_DIR=/opt/audiomuse-ai_data/backup
 XDG_CACHE_HOME=/opt/audiomuse-ai_data/cache
 NUMBA_CACHE_DIR=/opt/audiomuse-ai_data/cache/numba
+HF_HOME=${MODEL_DIR}/huggingface
+HF_HUB_DISABLE_XET=1
+HF_XET_DISABLE=1
+EMBEDDING_MODEL_PATH=${MODEL_DIR}/musicnn_embedding.onnx
+PREDICTION_MODEL_PATH=${MODEL_DIR}/musicnn_prediction.onnx
+CLAP_AUDIO_MODEL_PATH=${MODEL_DIR}/model_epoch_36.onnx
+CLAP_TEXT_MODEL_PATH=${MODEL_DIR}/clap_text_model.onnx
+LYRICS_MODEL_DIR=${MODEL_DIR}
+LYRICS_WHISPER_MODEL_DIR=${MODEL_DIR}/whisper-small-onnx
+SILERO_VAD_ONNX_PATH=${MODEL_DIR}/silero_vad.onnx
+LYRICS_GTE_ONNX_PATH=${MODEL_DIR}/gte-multilingual-base-int8.onnx
+LYRICS_GTE_TOKENIZER_DIR=${MODEL_DIR}/gte-multilingual-base
 EOF
 {
   echo ""
@@ -85,7 +129,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/audiomuse-ai
 EnvironmentFile=/opt/audiomuse-ai_data/audiomuse.env
-ExecStart=/opt/audiomuse-ai/.venv/bin/gunicorn flask_app:app --bind 0.0.0.0:8000 --workers 2 --timeout 600
+ExecStart=/opt/audiomuse-ai/.venv/bin/gunicorn --bind 0.0.0.0:8000 --workers 1 --threads 4 --worker-class gthread --keep-alive 5 --timeout 300 app:app
 Restart=always
 RestartSec=5
 
@@ -96,7 +140,7 @@ EOF
 cat <<EOF >/etc/systemd/system/audiomuse-ai-worker.service
 [Unit]
 Description=AudioMuse-AI RQ Worker
-After=network-online.target postgresql.service redis-server.service
+After=network-online.target postgresql.service redis-server.service audiomuse-ai.service
 Wants=network-online.target
 
 [Service]
@@ -115,7 +159,7 @@ EOF
 cat <<EOF >/etc/systemd/system/audiomuse-ai-worker-high.service
 [Unit]
 Description=AudioMuse-AI RQ High-Priority Worker
-After=network-online.target postgresql.service redis-server.service
+After=network-online.target postgresql.service redis-server.service audiomuse-ai.service
 Wants=network-online.target
 
 [Service]
@@ -134,7 +178,7 @@ EOF
 cat <<EOF >/etc/systemd/system/audiomuse-ai-janitor.service
 [Unit]
 Description=AudioMuse-AI RQ Janitor
-After=network-online.target postgresql.service redis-server.service
+After=network-online.target postgresql.service redis-server.service audiomuse-ai.service
 Wants=network-online.target
 
 [Service]
