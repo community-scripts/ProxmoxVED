@@ -1,0 +1,54 @@
+{
+  "name": "Ignis",
+  "slug": "ignis",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-07-31",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 443,
+  "documentation": "https://github.com/Nystik-gh/ignis",
+  "website": "https://github.com/Nystik-gh/ignis",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/obsidian.webp",
+  "config_path": "/etc/systemd/system/ignis.service",
+  "description": "Ignis runs Obsidian in the browser by reimplementing the Electron APIs Obsidian uses, keeping your vaults on the server. It supports multiple vaults, plugins, file upload/download and sync across browser tabs, so you can access your Obsidian vault from any device without a desktop client.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/ignis.sh",
+      "config_path": "/etc/systemd/system/ignis.service",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Open https://<IP> and accept the self-signed certificate. HTTPS is required: outside a secure browser context Obsidian's browser APIs (OPFS, service workers) are disabled and the app will not load correctly. nginx terminates TLS and proxies to the Node server on port 8080.",
+      "type": "info"
+    },
+    {
+      "text": "Ignis has NO built-in authentication. Do not expose it directly to the internet - put an authenticating reverse proxy (or VPN) in front of it before allowing remote access.",
+      "type": "warning"
+    },
+    {
+      "text": "Vaults and application data live in /opt/ignis_data (vaults, data, obsidian-app), kept outside the app directory so they survive updates. Include /opt/ignis_data in regular backups.",
+      "type": "warning"
+    },
+    {
+      "text": "On install the matching Obsidian web build is downloaded and unpacked automatically. A default vault is created on first start (AUTO_CREATE_DEFAULT).",
+      "type": "info"
+    }
+  ]
+}
