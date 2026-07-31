@@ -8594,7 +8594,6 @@ setup_postgresql_db() {
 
   # Superuser grant (if requested - WARNING!)
   if [[ "${PG_DB_GRANT_SUPERUSER:-}" == "true" ]]; then
-    msg_warn "Granting SUPERUSER privilege (security risk!)"
     $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $PG_DB_NAME to $PG_DB_USER;"
     $STD sudo -u postgres psql -c "ALTER USER $PG_DB_USER WITH SUPERUSER;"
   fi
