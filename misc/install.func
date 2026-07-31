@@ -1413,8 +1413,8 @@ EOF
       # Match any respawn line running a getty/agetty on tty1 (resp. console) and
       # rewrite it with --autologin, preserving the original inittab id.
       if [[ -f /etc/inittab ]]; then
-        sed -i -E 's#^([A-Za-z0-9]*::respawn:).*[ag]etty.*tty1.*#\1/sbin/agetty --autologin root --noclear tty1 38400 linux#' /etc/inittab
-        sed -i -E 's#^([A-Za-z0-9]*::respawn:).*[ag]etty.*console.*#\1/sbin/agetty --autologin root --noclear console 115200 linux#' /etc/inittab
+        sed -i -E 's#^([A-Za-z0-9]*:[0-9]*:respawn:).*[ag]etty.*tty1.*#\1/sbin/agetty --autologin root --noclear tty1 38400 linux#' /etc/inittab
+        sed -i -E 's#^([A-Za-z0-9]*:[0-9]*:respawn:).*[ag]etty.*console.*#\1/sbin/agetty --autologin root --noclear console 115200 linux#' /etc/inittab
         telinit q &>/dev/null || kill -HUP 1 &>/dev/null || true
         sleep 1
         pkill -f 'agetty.*tty1' &>/dev/null || true
