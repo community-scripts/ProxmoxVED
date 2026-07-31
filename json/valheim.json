@@ -12,7 +12,7 @@
   "interface_port": 2460,
   "documentation": "https://github.com/PawelSzymanski89/valheim-proxmox#readme",
   "website": "https://www.valheimgame.com/",
-  "logo": "https://cdn.cloudflare.steamstatic.com/steam/apps/892970/capsule_231x87.jpg",
+  "logo": "https://cdn.jsdelivr.net/gh/PawelSzymanski89/valheim-proxmox@main/docs/icon.svg",
   "description": "Valheim dedicated server with a web admin panel. The panel shows who is online with a live session timer and keeps a login history that survives journal rotation, manages the admin/ban/allow lists, switches, uploads and downloads worlds, restores backups, and edits the launch settings (name, world, ports, crossplay, world preset and modifiers). Mods install from a Thunderstore Mod Manager share code, which pins every player to the same versions. World backups run every two hours, keeping 30.",
   "install_methods": [
     {
