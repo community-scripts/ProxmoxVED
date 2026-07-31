@@ -1252,6 +1252,7 @@ EOF
   # Create MOTD profile script
   local PROFILE_FILE="/etc/profile.d/00_lxc-details.sh"
   cat >"$PROFILE_FILE" <<EOF
+[ -z "\${SSH_CONNECTION:-}\${SSH_TTY:-}" ] && [ -t 1 ] && printf '\033[3J\033[H\033[2J'
 echo ""
 echo -e "${BOLD:-}${YW:-}${APPLICATION:-Container} LXC Container - DEV Repository${CL:-}"
 echo -e "${RD:-}WARNING: This is a DEVELOPMENT version (ProxmoxVED). Do NOT use in production!${CL:-}"
@@ -1361,7 +1362,10 @@ customize() {
       #   - console-getty.service       -> /dev/console (pct console / serial)
       # We configure both with --autologin --noissue (prevents banner spam from
       # rapid respawns) so whichever one the user opens works.
-      local _agetty_opts='--autologin root --noclear --noissue --keep-baud'
+      # No --noclear: agetty clears tty1 before autologin so leftover boot output
+      # (Fedora 43 systemd prints to the console) doesn't leave a big blank gap
+      # above the login. --noissue keeps it from reprinting the issue on respawn.
+      local _agetty_opts='--autologin root --noissue --keep-baud'
 
       # Pin TERM=linux on the getty AND pass 'linux' as the agetty term type.
       # util-linux >= 2.40 agetty auto-probes the terminal with ESC[6n (CPR) when
