@@ -13,13 +13,13 @@
   "documentation": "https://github.com/Darkrock-Studios/hammer-editor/blob/develop/HOW-TO-RUN-A-SERVER.md",
   "website": "https://hammereditor.com",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/hammer-editor.webp",
-  "config_path": "/opt/hammer_data/hammer_data",
+  "config_path": "/opt/hammer_data/config.toml",
   "description": "This installs the self-hosted sync server for Hammer, the offline-first story/novel writing app. The Kotlin/Ktor server lets you sync your Hammer projects across your own devices instead of using Dropbox or a third-party service. It ships with an in-process (embedded) PostgreSQL, so no external database is required. The server has no UI of its own - install the Hammer desktop/mobile client separately and point it at this server.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/hammer.sh",
-      "config_path": "/opt/hammer_data/hammer_data",
+      "config_path": "/opt/hammer_data/config.toml",
       "resources": {
         "cpu": 2,
         "ram": 2048,
@@ -35,15 +35,19 @@
   },
   "notes": [
     {
-      "text": "This is the SYNC SERVER only, not the Hammer editor and it has no web interface. Install the Hammer client (desktop/mobile) separately, create a server account from the client, and point it at http://<IP>:8080.",
+      "text": "This is the SYNC SERVER only, not the Hammer editor. Install the Hammer client (desktop/mobile) separately and create your account from there - the first account created becomes the admin account. http://<IP>:8080 serves the public web pages (/setup, /admin); /api is the sync endpoint and returns an error in a browser because it requires the client's protocol-version header.",
       "type": "info"
+    },
+    {
+      "text": "Hammer clients only speak https and will NOT connect to plain HTTP, so the default http://<IP>:8080 works in a browser but not from the app. Put a TLS reverse proxy in front of it, or give Hammer a real certificate via sslPort/[sslCert] in /opt/hammer_data/config.toml. Self-signed certificates are rejected by the clients.",
+      "type": "warning"
     },
     {
       "text": "Sync data is stored in an embedded PostgreSQL under /opt/hammer_data (kept outside the app directory so it survives updates). Include /opt/hammer_data in regular backups.",
       "type": "warning"
     },
     {
-      "text": "The server is served over plain HTTP on port 8080. For access over the internet, put it behind a reverse proxy with TLS. Optional settings (public URL, TLS, external PostgreSQL) can be configured via a config.toml - see the upstream HOW-TO-RUN-A-SERVER documentation.",
+      "text": "Settings live in /opt/hammer_data/config.toml, which the server auto-loads from its data directory. It ships pre-filled with the container IP plus commented examples for reverse proxy, TLS, external PostgreSQL and caching. Apply changes with 'systemctl restart hammer'.",
       "type": "info"
     }
   ]
