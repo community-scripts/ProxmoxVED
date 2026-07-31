@@ -1437,6 +1437,19 @@ EOF
     msg_ok "Customized Container"
   fi
 
+  # Disable readline bracketed-paste on the PVE noVNC console (TERM=linux only):
+  # bash 5.3+/readline 8.3 emit a cursor-position query (ESC[6n) around
+  # bracketed-paste setup whose response leaks into the first prompt as
+  # "R;80R" garbage. Scoped to term=linux so SSH sessions (xterm) keep it.
+  if [[ -d /etc || -f /etc/inputrc ]] && ! grep -q 'enable-bracketed-paste off' /etc/inputrc 2>/dev/null; then
+    cat >>/etc/inputrc <<'EOF'
+
+$if term=linux
+set enable-bracketed-paste off
+$endif
+EOF
+  fi
+
   # Create update script
   # Use var_os for OS-based containers, otherwise use app name
   local update_script_name="${var_os:-$app}"
