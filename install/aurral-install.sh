@@ -38,10 +38,11 @@ $STD npm ci --workspace backend --omit=dev --include=optional --include-workspac
 msg_ok "Built Aurral"
 
 msg_info "Creating Service"
+mkdir -p /opt/aurral_data
 cat <<EOF >/opt/aurral/aurral.env
 NODE_ENV=production
 PORT=3001
-AURRAL_DATA_DIR=/opt/aurral/data
+AURRAL_DATA_DIR=/opt/aurral_data
 APP_VERSION=$(cat ~/.aurral)
 EOF
 cat <<EOF >/etc/systemd/system/aurral.service

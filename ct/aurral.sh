@@ -35,10 +35,6 @@ function update_script() {
     systemctl stop aurral
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Data"
-    cp -r /opt/aurral/data /opt/aurral_data_backup
-    msg_ok "Backed up Data"
-
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "aurral" "lklynet/aurral" "tarball"
 
     msg_info "Updating Aurral"
@@ -49,18 +45,14 @@ function update_script() {
     $STD npm ci --workspace frontend --include-workspace-root=false
     $STD npm run build --workspace frontend
     $STD npm ci --workspace backend --omit=dev --include=optional --include-workspace-root=false
+    mkdir -p /opt/aurral_data
     cat <<EOF >/opt/aurral/aurral.env
 NODE_ENV=production
 PORT=3001
-AURRAL_DATA_DIR=/opt/aurral/data
+AURRAL_DATA_DIR=/opt/aurral_data
 APP_VERSION=$(cat ~/.aurral)
 EOF
     msg_ok "Updated Aurral"
-
-    msg_info "Restoring Data"
-    cp -r /opt/aurral_data_backup/. /opt/aurral/data
-    rm -rf /opt/aurral_data_backup
-    msg_ok "Restored Data"
 
     msg_info "Starting Service"
     systemctl start aurral
