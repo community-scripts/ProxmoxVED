@@ -33,7 +33,7 @@ fetch_and_deploy_gh_release "audiomuse-ai" "NeptuneHub/AudioMuse-AI" "tarball"
 
 msg_info "Setting up Python Environment (Patience)"
 cd /opt/audiomuse-ai
-$STD uv venv --python 3.11 /opt/audiomuse-ai/.venv
+$STD uv venv --seed --python 3.11 /opt/audiomuse-ai/.venv
 $STD uv pip install --python /opt/audiomuse-ai/.venv \
   -r /opt/audiomuse-ai/requirements/common.txt \
   -r /opt/audiomuse-ai/requirements/cpu.txt

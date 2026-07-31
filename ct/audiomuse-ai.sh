@@ -39,7 +39,7 @@ function update_script() {
 
     msg_info "Updating Python Environment"
     cd /opt/audiomuse-ai
-    $STD uv venv --python 3.11 /opt/audiomuse-ai/.venv
+    $STD uv venv --seed --python 3.11 /opt/audiomuse-ai/.venv
     $STD uv pip install --python /opt/audiomuse-ai/.venv \
       -r /opt/audiomuse-ai/requirements/common.txt \
       -r /opt/audiomuse-ai/requirements/cpu.txt
