@@ -1,0 +1,50 @@
+{
+  "name": "Hammer",
+  "slug": "hammer",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-07-31",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8080,
+  "documentation": "https://github.com/Darkrock-Studios/hammer-editor/blob/develop/HOW-TO-RUN-A-SERVER.md",
+  "website": "https://hammereditor.com",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/hammer-editor.webp",
+  "config_path": "/opt/hammer_data/hammer_data",
+  "description": "This installs the self-hosted sync server for Hammer, the offline-first story/novel writing app. The Kotlin/Ktor server lets you sync your Hammer projects across your own devices instead of using Dropbox or a third-party service. It ships with an in-process (embedded) PostgreSQL, so no external database is required. The server has no UI of its own - install the Hammer desktop/mobile client separately and point it at this server.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/hammer.sh",
+      "config_path": "/opt/hammer_data/hammer_data",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "This is the SYNC SERVER only, not the Hammer editor and it has no web interface. Install the Hammer client (desktop/mobile) separately, create a server account from the client, and point it at http://<IP>:8080.",
+      "type": "info"
+    },
+    {
+      "text": "Sync data is stored in an embedded PostgreSQL under /opt/hammer_data (kept outside the app directory so it survives updates). Include /opt/hammer_data in regular backups.",
+      "type": "warning"
+    },
+    {
+      "text": "The server is served over plain HTTP on port 8080. For access over the internet, put it behind a reverse proxy with TLS. Optional settings (public URL, TLS, external PostgreSQL) can be configured via a config.toml - see the upstream HOW-TO-RUN-A-SERVER documentation.",
+      "type": "info"
+    }
+  ]
+}
