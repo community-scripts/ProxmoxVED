@@ -125,6 +125,8 @@ chown -R valheim:valheim /opt/valheim
 msg_ok "Configured Server"
 
 msg_info "Setting up Admin Panel"
+# "latest" on purpose: check_for_gh_release in ct/valheim.sh compares against the same
+# pointer, so an install and an update never disagree. Verified against v1.0.2.
 fetch_and_deploy_gh_release "valheim-panel" "PawelSzymanski89/valheim-proxmox" "prebuild" "latest" "/opt/valheim/panel" "panel.tar.gz"
 $STD uv venv /opt/valheim/panel/.venv
 # a uv-created venv ships without pip, and ensurepip is not in it either - install through uv
