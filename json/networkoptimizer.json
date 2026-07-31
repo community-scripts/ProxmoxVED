@@ -1,0 +1,50 @@
+{
+  "name": "NetworkOptimizer",
+  "slug": "networkoptimizer",
+  "categories": [
+    4
+  ],
+  "date_created": "2026-07-31",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8042,
+  "documentation": "https://github.com/Ozark-Connect/NetworkOptimizer",
+  "website": "https://ozarkconnect.net/network-optimizer",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/networkoptimizer.webp",
+  "config_path": "/opt/networkoptimizer/networkoptimizer.env",
+  "description": "Network Optimizer is a self-hosted optimization, monitoring (NMS) and security audit tool for UniFi networks. It scores and optimizes Wi-Fi, runs DNS, VLAN and firewall security checks, hosts a centralized WAN and LAN speed test server with L2 tracing, and monitors ISP and WAN health. Built on .NET 10 / Blazor Server with a local SQLite database.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/networkoptimizer.sh",
+      "config_path": "/opt/networkoptimizer/networkoptimizer.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 12,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "On first start an admin password is auto-generated. Retrieve it with: journalctl -u networkoptimizer | grep -i password",
+      "type": "warning"
+    },
+    {
+      "text": "Edit ASPNETCORE_URLS, HOST_IP and Iperf3Server__Enabled in /opt/networkoptimizer/networkoptimizer.env, then restart the service.",
+      "type": "info"
+    },
+    {
+      "text": "Licensed under the Business Source License 1.1: free for personal use of up to 3 sites; commercial use requires a license.",
+      "type": "info"
+    }
+  ]
+}

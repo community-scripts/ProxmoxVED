@@ -1,0 +1,46 @@
+{
+  "name": "Logto",
+  "slug": "logto",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-07-31",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 3002,
+  "documentation": "https://docs.logto.io/",
+  "website": "https://logto.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/logto.webp",
+  "config_path": "/opt/logto/.env",
+  "description": "Logto is an open-source identity and access management (IAM) platform for building sign-in, authentication, and authorization. It provides OIDC-based auth, a prebuilt sign-in experience, user and role management, and an Admin Console, backed by PostgreSQL.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/logto.sh",
+      "config_path": "/opt/logto/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Open the Admin Console at http://<IP>:3002 and complete the Welcome flow to create your first admin account.",
+      "type": "info"
+    },
+    {
+      "text": "The Core service (OIDC issuer / API) runs on port 3001, the Admin Console on port 3002.",
+      "type": "info"
+    }
+  ]
+}

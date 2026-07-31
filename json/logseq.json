@@ -1,0 +1,49 @@
+{
+  "name": "Logseq",
+  "slug": "logseq",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-07-31",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 80,
+  "documentation": "https://docs.logseq.com/",
+  "website": "https://logseq.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/logseq.webp",
+  "description": "Logseq is a privacy-first, open-source knowledge base and outliner for organizing notes, tasks and connected thoughts with Markdown and a local-first graph. This deployment builds and serves the self-hosted web version behind Nginx.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/logseq.sh",
+      "config_path": "/opt/logseq",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "All graphs are stored locally in the browser (IndexedDB/OPFS). Clearing browser data removes your notes, so export and back up regularly.",
+      "type": "warning"
+    },
+    {
+      "text": "This is the self-hosted web build. Logseq does not ship a sync server (Logseq Sync is a separate paid hosted service), so graphs do not sync across devices or browsers.",
+      "type": "info"
+    },
+    {
+      "text": "The initial build compiles ClojureScript and can take 10+ minutes; generous RAM is required.",
+      "type": "info"
+    }
+  ]
+}

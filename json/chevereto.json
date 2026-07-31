@@ -1,0 +1,50 @@
+{
+  "name": "Chevereto",
+  "slug": "chevereto",
+  "categories": [
+    11
+  ],
+  "date_created": "2026-07-31",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 80,
+  "documentation": "https://v4-docs.chevereto.com/",
+  "website": "https://chevereto.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/chevereto.webp",
+  "config_path": "/opt/chevereto/app/env.php",
+  "description": "Chevereto is a self-hosted image and video hosting platform for building your own Flickr or Imgur style media sharing site with full control over content, data and platform rules. This installs the open-source AGPLv3 Free edition on nginx, PHP-FPM and MariaDB.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/chevereto.sh",
+      "config_path": "/opt/chevereto/app/env.php",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Open http://<IP> in your browser and complete the web installer to create the admin account and initialize the database.",
+      "type": "info"
+    },
+    {
+      "text": "Database credentials are stored in /opt/chevereto/app/env.php",
+      "type": "info"
+    },
+    {
+      "text": "Uses MariaDB, nginx and PHP-FPM. Uploaded images are stored in /opt/chevereto/images",
+      "type": "info"
+    }
+  ]
+}

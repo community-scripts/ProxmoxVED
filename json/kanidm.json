@@ -1,0 +1,49 @@
+{
+  "name": "Kanidm",
+  "slug": "kanidm",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-07-31",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8443,
+  "documentation": "https://kanidm.github.io/kanidm/stable/",
+  "website": "https://kanidm.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/kanidm.webp",
+  "description": "Kanidm is a modern, simple and secure identity management platform written in Rust. It provides OAuth2/OIDC, LDAP, RADIUS and Unix (PAM/nsswitch) authentication, WebAuthn/passkey support and a self-service web portal for managing people, groups and service accounts.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/kanidm.sh",
+      "config_path": "/etc/kanidm/server.toml",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The server uses a self-signed TLS certificate. Open the web UI at https://<IP>:8443 and accept the certificate warning, or set 'verify_ca = false' in your kanidm client config.",
+      "type": "warning"
+    },
+    {
+      "text": "Generate the break-glass admin passwords after install by running inside the container: 'kanidmd recover-account idm_admin' (manages people and groups) and 'kanidmd recover-account admin' (manages server configuration).",
+      "type": "info"
+    },
+    {
+      "text": "The default domain/origin is kanidm.lan (https://kanidm.lan:8443). For WebAuthn/passkeys and OAuth2 to work correctly, point a DNS/hosts record for this name at the container or set your own domain in /etc/kanidm/server.toml.",
+      "type": "info"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "name": "Portabase",
+  "slug": "portabase",
+  "categories": [
+    7
+  ],
+  "date_created": "2026-07-31",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 3000,
+  "documentation": "https://portabase.io/docs",
+  "website": "https://portabase.io",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/portabase.webp",
+  "config_path": "/opt/portabase/.env",
+  "description": "Portabase is a self-hosted dashboard to schedule, run and restore database backups for PostgreSQL, MySQL, MariaDB, MsSQL, Firebird, SQLite, MongoDB, Redis and Docker volumes. It supports retention policies, notifications and multiple storage backends (local, S3, Azure, GCS).",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/portabase.sh",
+      "config_path": "/opt/portabase/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 15,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin@example.com",
+    "password": "Portabase123!"
+  },
+  "notes": [
+    {
+      "text": "Change the default admin password (admin@example.com / Portabase123!) after the first login.",
+      "type": "warning"
+    },
+    {
+      "text": "SMTP, storage backends and auth providers can be configured in /opt/portabase/.env - restart with 'systemctl restart portabase' after changes.",
+      "type": "info"
+    }
+  ]
+}
