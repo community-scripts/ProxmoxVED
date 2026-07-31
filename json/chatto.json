@@ -13,13 +13,13 @@
     "documentation": "https://docs.chatto.run",
     "website": "https://chatto.run",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/chatto.webp",
-    "config_path": "/opt/chatto/chatto.toml",
+    "config_path": "/opt/chatto_data/chatto.toml",
     "description": "Chatto is a fully-featured, privacy-first team and group chat application that is free and easy to self-host. It ships as a single binary with an embedded NATS/JetStream store (no external database) and supports voice/video calls and screensharing via an optional LiveKit server.",
     "install_methods": [
         {
             "type": "default",
             "script": "ct/chatto.sh",
-            "config_path": "/opt/chatto/chatto.toml",
+            "config_path": "/opt/chatto_data/chatto.toml",
             "resources": {
                 "cpu": 2,
                 "ram": 2048,
@@ -35,15 +35,15 @@
     },
     "notes": [
         {
-            "text": "Create the first account with `cd /opt/chatto && ./chatto operator user create --login admin` (enable the operator API in chatto.toml first), or register via the web UI at http://IP:4000.",
+            "text": "Create the first account with `cd /opt/chatto && ./chatto operator user create --login admin` (the operator API is enabled by default), or register via the web UI at http://IP:4000.",
             "type": "info"
         },
         {
-            "text": "Review /opt/chatto/chatto.toml and configure SMTP credentials and a public webserver.url before using Chatto in production.",
+            "text": "Review /opt/chatto_data/chatto.toml and configure SMTP credentials and a public webserver.url before using Chatto in production.",
             "type": "warning"
         },
         {
-            "text": "All data is stored in /opt/chatto/data (embedded NATS/JetStream). Include this directory and chatto.toml in regular backups.",
+            "text": "All persistent data (embedded NATS/JetStream store and chatto.toml with its secrets) lives in /opt/chatto_data, kept outside the app directory so it survives updates. Include /opt/chatto_data in regular backups.",
             "type": "warning"
         },
         {

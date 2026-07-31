@@ -35,19 +35,8 @@ function update_script() {
     systemctl stop chatto
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Data"
-    cp -r /opt/chatto/data /opt/chatto_data_backup
-    cp /opt/chatto/chatto.toml /opt/chatto.toml.bak
-    msg_ok "Backed up Data"
-
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "chatto" "chattocorp/chatto" "prebuild" "latest" "/opt/chatto" "chatto_Linux_$(arch_resolve x86_64 arm64).tar.gz"
     chmod +x /opt/chatto/chatto
-
-    msg_info "Restoring Data"
-    cp -r /opt/chatto_data_backup/. /opt/chatto/data
-    cp /opt/chatto.toml.bak /opt/chatto/chatto.toml
-    rm -rf /opt/chatto_data_backup /opt/chatto.toml.bak
-    msg_ok "Restored Data"
 
     msg_info "Starting Service"
     systemctl start chatto
