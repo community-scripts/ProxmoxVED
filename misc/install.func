@@ -1214,6 +1214,26 @@ if [ -z "${SSH_CONNECTION:-}${SSH_TTY:-}" ]; then
       export TERM=linux ;;
   esac
   unset _ct
+
+  # bash 5.3 / readline 8.3 emit a cursor-position query (ESC[6n) on the noVNC
+  # console whose response ("\e[<row>;<col>R") is not consumed by readline and
+  # leaks into the prompt as "R;80R" garbage. TERM=linux does not stop it on
+  # Fedora 43 / Arch. Drain pending input at login, before each prompt, and on
+  # window resize (the noVNC attach that delivers the late response).
+  case "$-" in
+  *i*)
+    __cs_drain() {
+      local _j
+      while IFS= read -rst 0.06 -N 128 _j 2>/dev/null; do :; done
+    }
+    __cs_drain
+    trap '__cs_drain' WINCH
+    case "${PROMPT_COMMAND:-}" in
+    *__cs_drain*) : ;;
+    *) PROMPT_COMMAND="__cs_drain${PROMPT_COMMAND:+;$PROMPT_COMMAND}" ;;
+    esac
+    ;;
+  esac
 fi
 EOF
   fi
@@ -1237,7 +1257,7 @@ echo -e "${BOLD:-}${YW:-}${APPLICATION:-Container} LXC Container - DEV Repositor
 echo -e "${RD:-}WARNING: This is a DEVELOPMENT version (ProxmoxVED). Do NOT use in production!${CL:-}"
 echo -e "${YW:-} OS: ${GN:-}${os_name} - Version: ${os_version}${CL:-}"
 echo -e "${YW:-} Hostname: ${GN:-}\$(hostname)${CL:-}"
-echo -e "${YW:-} IP Address: ${GN:-}\$(hostname -I 2>/dev/null | awk '{print \$1}' || ip -4 addr show scope global | awk '/inet /{print \$2}' | cut -d/ -f1 | head -1)${CL:-}"
+echo -e "${YW:-} IP Address: ${GN:-}\$(ip -4 route get 1 2>/dev/null | sed -n 's/.* src \\([0-9.]\\+\\).*/\\1/p' | head -1)${CL:-}"
 echo -e "${YW:-} Repository: ${GN:-}https://github.com/community-scripts/ProxmoxVED${CL:-}"
 echo ""
 EOF
