@@ -25,7 +25,7 @@ DEFAULT_PORT=3000
 
 header_info "$APP"
 
-IP=$(hostname -I | awk '{print $1}')
+IP=$(_get_current_ip)
 
 function check_docker() {
   if ! command -v docker >/dev/null 2>&1; then
