@@ -1,0 +1,54 @@
+{
+  "name": "PrismCast",
+  "slug": "prismcast",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-08-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 5589,
+  "documentation": "https://github.com/hjdhjd/prismcast",
+  "website": "https://github.com/hjdhjd/prismcast",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/google-chrome.webp",
+  "config_path": "/opt/prismcast_data/config.json",
+  "description": "PrismCast uses Google Chrome to navigate to browser-based streaming sites, captures the video output, and serves it as HLS streams. It emulates an HDHomeRun tuner on the network, letting Plex or Channels DVR discover it as a Live TV source without any physical tuner hardware.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/prismcast.sh",
+      "config_path": "/opt/prismcast_data/config.json",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Requires Google Chrome (not Chromium) and has no ARM64 support, since Google does not publish an arm64 Chrome package for Linux.",
+      "type": "warning"
+    },
+    {
+      "text": "On first use, open noVNC at http://<IP>:6080/vnc.html to log in to your streaming provider inside the container's browser session. The session persists in the Chrome profile afterward.",
+      "type": "info"
+    },
+    {
+      "text": "Add the tuner to Plex or Channels DVR using <IP>:5004 (HDHomeRun emulation port).",
+      "type": "info"
+    },
+    {
+      "text": "GPU passthrough is offered at container creation (Advanced install) and, when a device is passed through, hardware VAAPI decode/encode drivers are installed automatically and enabled in Chrome. The virtual display itself still composites in software (stock Debian Xvfb has no DRI3 device backing), so the heaviest cost - video decode - is accelerated, but on-screen compositing is not. Without GPU passthrough, everything runs in software and multiple concurrent streams may require increasing the allocated CPU.",
+      "type": "info"
+    }
+  ]
+}
