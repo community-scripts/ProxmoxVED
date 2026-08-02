@@ -47,8 +47,12 @@
       "type": "info"
     },
     {
-      "text": "GPU passthrough is offered at container creation (Advanced install) and, when a device is passed through, hardware VAAPI decode/encode drivers are installed automatically and enabled in Chrome. The virtual display itself still composites in software (stock Debian Xvfb has no DRI3 device backing), so the heaviest cost - video decode - is accelerated, but on-screen compositing is not. Without GPU passthrough, everything runs in software and multiple concurrent streams may require increasing the allocated CPU.",
+      "text": "GPU passthrough is offered at container creation (Advanced install); when a device is passed through, VAAPI decode/encode drivers are installed automatically and Chrome is launched with --use-gl=angle --use-angle=gl-egl, which gets real GPU-backed rendering via direct EGL/GBM access to the DRM device even though stock Debian's Xvfb has no DRI3 support of its own. Without GPU passthrough, everything runs in software and multiple concurrent streams may require increasing the allocated CPU.",
       "type": "info"
+    },
+    {
+      "text": "Chrome is launched with a spoofed Windows User-Agent. Xfinity Stream's guide page checks the client OS and blocks Linux outright (\"Update your browser to start streaming\"), which breaks every channel with a guide-load timeout regardless of login state - this affects any Linux-hosted deployment (Docker or LXC), not just this script. Without the override, the Xfinity integration does not work at all.",
+      "type": "warning"
     }
   ]
 }

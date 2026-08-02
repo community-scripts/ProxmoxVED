@@ -75,18 +75,29 @@ $STD apt install -y \
   xdg-utils
 msg_ok "Installed Chrome Dependencies"
 
+msg_info "Adding Google Chrome APT Repository"
+setup_deb822_repo "google-chrome" "https://dl.google.com/linux/linux_signing_key.pub" "http://dl.google.com/linux/chrome/deb/" "stable" "main" "amd64"
+msg_ok "Added Google Chrome APT Repository"
+
 msg_info "Installing Google Chrome"
-curl -fsSL -o /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-$STD apt install -y /tmp/google-chrome.deb
-rm -f /tmp/google-chrome.deb
+$STD apt install -y google-chrome-stable
 msg_ok "Installed Google Chrome"
 
 msg_info "Creating Chrome Sandbox Wrapper"
-cat <<'EOF' >/usr/local/bin/chrome-no-sandbox
+# --use-gl=angle --use-angle=gl-egl gets Chrome real GPU-backed rendering via direct EGL/GBM access to
+# the DRM device, bypassing the fact that stock Debian's Xvfb has no DRI3 device backing of its own.
+# The spoofed --user-agent is load-bearing, not cosmetic: Xfinity Stream's guide page checks the client
+# OS and hard-blocks Linux ("Update your browser to start streaming"/"unsupported operating system"),
+# which otherwise makes every channel fail with "guide page did not load within timeout" regardless of
+# login state. Since every Docker/LXC deployment of this app runs on Linux, without this override the
+# Xfinity integration - the app's primary use case - does not work at all.
+CHROME_VERSION=$(google-chrome-stable --version | grep -oP '[\d.]+' | head -1)
+cat <<EOF >/usr/local/bin/chrome-no-sandbox
 #!/bin/bash
-exec /usr/bin/google-chrome-stable --no-sandbox --disable-setuid-sandbox --disable-gpu-sandbox \
-  --enable-features=VaapiVideoDecoder,VaapiVideoEncoder,AcceleratedVideoEncoder,VaapiIgnoreDriverChecks \
-  --ignore-gpu-blocklist "$@"
+exec /usr/bin/google-chrome-stable --no-sandbox --disable-setuid-sandbox --disable-gpu-sandbox \\
+  --enable-features=VaapiVideoDecoder,VaapiVideoEncoder,AcceleratedVideoEncoder,VaapiIgnoreDriverChecks \\
+  --ignore-gpu-blocklist --use-gl=angle --use-angle=gl-egl \\
+  --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_VERSION} Safari/537.36" "\$@"
 EOF
 chmod +x /usr/local/bin/chrome-no-sandbox
 msg_ok "Created Chrome Sandbox Wrapper"
