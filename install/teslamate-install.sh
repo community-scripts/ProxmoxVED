@@ -28,7 +28,7 @@ systemctl enable -q --now mosquitto
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
-PG_DB_NAME="teslamate" PG_DB_USER="teslamate" setup_postgresql_db
+PG_DB_NAME="teslamate" PG_DB_USER="teslamate" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
 NODE_VERSION="22" setup_nodejs
 
 setup_deb822_repo \

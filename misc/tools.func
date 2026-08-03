@@ -5066,8 +5066,10 @@ setup_ffmpeg() {
     return 251
   }
 
+  local PREV_DIR="$PWD"
   cd "$TMP_DIR/FFmpeg-"* || {
     msg_error "Source extraction failed"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 251
   }
@@ -5093,22 +5095,26 @@ setup_ffmpeg() {
 
   if [[ ${#args[@]} -eq 0 ]]; then
     msg_error "FFmpeg configure args array is empty"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 65
   fi
 
   $STD ./configure "${args[@]}" || {
     msg_error "FFmpeg configure failed"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 150
   }
   $STD make -j"$(nproc)" || {
     msg_error "FFmpeg compilation failed"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 150
   }
   $STD make install || {
     msg_error "FFmpeg installation failed"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 150
   }
@@ -5117,18 +5123,21 @@ setup_ffmpeg() {
 
   ldconfig -p 2>/dev/null | grep libavdevice >/dev/null || {
     msg_error "libavdevice not registered with dynamic linker"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 150
   }
 
   if ! command -v ffmpeg &>/dev/null; then
     msg_error "FFmpeg installation failed"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 150
   fi
 
   local FINAL_VERSION
   FINAL_VERSION=$(ffmpeg -version 2>/dev/null | head -n1 | awk '{print $3}')
+  cd "$PREV_DIR" 2>/dev/null || cd /
   rm -rf "$TMP_DIR"
   cache_installed_version "ffmpeg" "$FINAL_VERSION"
   ensure_usr_local_bin_persist
@@ -5252,9 +5261,11 @@ setup_gs() {
     # Fallback: try to use system version or return error
     if [[ "$CURRENT_VERSION" == "0" ]]; then
       msg_error "Ghostscript not installed and cannot determine latest version"
-      rm -rf "$TMP_DIR"
+      cd "$PREV_DIR" 2>/dev/null || cd /
+    rm -rf "$TMP_DIR"
       return 250
     fi
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 0
   fi
@@ -5262,6 +5273,7 @@ setup_gs() {
   # Scenario 1: Already at latest version
   if [[ -n "$LATEST_VERSION_DOTTED" ]] && dpkg --compare-versions "$CURRENT_VERSION" ge "$LATEST_VERSION_DOTTED" 2>/dev/null; then
     cache_installed_version "ghostscript" "$LATEST_VERSION_DOTTED"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 0
   fi
@@ -5276,12 +5288,14 @@ setup_gs() {
   if ! CURL_TIMEOUT=180 curl_with_retry "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${LATEST_VERSION}/ghostscript-${LATEST_VERSION_DOTTED}.tar.gz" "$TMP_DIR/ghostscript.tar.gz"; then
     msg_error "Failed to download Ghostscript"
     msg_error "Hint: Check connectivity to github.com/ArtifexSoftware — may be a GitHub rate-limit, set GITHUB_TOKEN"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 250
   fi
 
   if ! tar -xzf "$TMP_DIR/ghostscript.tar.gz" -C "$TMP_DIR"; then
     msg_error "Failed to extract Ghostscript archive"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 251
   fi
@@ -5289,12 +5303,14 @@ setup_gs() {
   # Verify directory exists before cd
   if [[ ! -d "$TMP_DIR/ghostscript-${LATEST_VERSION_DOTTED}" ]]; then
     msg_error "Ghostscript source directory not found: $TMP_DIR/ghostscript-${LATEST_VERSION_DOTTED}"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 252
   fi
 
   cd "$TMP_DIR/ghostscript-${LATEST_VERSION_DOTTED}" || {
     msg_error "Failed to enter Ghostscript source directory"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 252
   }
@@ -5303,16 +5319,19 @@ setup_gs() {
 
   $STD ./configure || {
     msg_error "Ghostscript configure failed"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 150
   }
   $STD make -j"$(nproc)" || {
     msg_error "Ghostscript compilation failed"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 150
   }
   $STD make install || {
     msg_error "Ghostscript installation failed"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 150
   }
@@ -5324,6 +5343,7 @@ setup_gs() {
     fi
   fi
 
+  cd "$PREV_DIR" 2>/dev/null || cd /
   rm -rf "$TMP_DIR"
   cache_installed_version "ghostscript" "$LATEST_VERSION_DOTTED"
   ensure_usr_local_bin_persist
@@ -8728,6 +8748,7 @@ EOF
       msg_warn "Some Ruby build dependencies could not be installed — compilation may fail"
   else
     msg_error "No Ruby build dependencies available"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 100
   fi
@@ -8737,20 +8758,23 @@ EOF
     local RBENV_RELEASE
     RBENV_RELEASE=$(get_latest_github_release "rbenv/rbenv") || {
       msg_error "Failed to fetch latest rbenv version from GitHub"
-      rm -rf "$TMP_DIR"
+      cd "$PREV_DIR" 2>/dev/null || cd /
+    rm -rf "$TMP_DIR"
       return 7
     }
 
     if ! curl_with_retry "https://github.com/rbenv/rbenv/archive/refs/tags/v${RBENV_RELEASE}.tar.gz" "$TMP_DIR/rbenv.tar.gz"; then
       msg_error "Failed to download rbenv"
       msg_error "Hint: Check connectivity to github.com/rbenv/rbenv"
-      rm -rf "$TMP_DIR"
+      cd "$PREV_DIR" 2>/dev/null || cd /
+    rm -rf "$TMP_DIR"
       return 7
     fi
 
     tar -xzf "$TMP_DIR/rbenv.tar.gz" -C "$TMP_DIR" || {
       msg_error "Failed to extract rbenv"
-      rm -rf "$TMP_DIR"
+      cd "$PREV_DIR" 2>/dev/null || cd /
+    rm -rf "$TMP_DIR"
       return 251
     }
 
@@ -8758,7 +8782,8 @@ EOF
     cp -r "$TMP_DIR/rbenv-${RBENV_RELEASE}/." "$RBENV_DIR/"
     (cd "$RBENV_DIR" && src/configure && $STD make -C src) || {
       msg_error "Failed to build rbenv"
-      rm -rf "$TMP_DIR"
+      cd "$PREV_DIR" 2>/dev/null || cd /
+    rm -rf "$TMP_DIR"
       return 150
     }
 
@@ -8795,7 +8820,8 @@ EOF
 
   if [[ ! -d "$RBENV_DIR/plugins/ruby-build" ]]; then
     _install_ruby_build_plugin || {
-      rm -rf "$TMP_DIR"
+      cd "$PREV_DIR" 2>/dev/null || cd /
+    rm -rf "$TMP_DIR"
       return 7
     }
   fi
@@ -8808,20 +8834,23 @@ EOF
     if [[ ! -f "$RBENV_DIR/plugins/ruby-build/share/ruby-build/$RUBY_VERSION" ]]; then
       msg_info "Updating ruby-build definitions"
       _install_ruby_build_plugin || {
-        rm -rf "$TMP_DIR"
+        cd "$PREV_DIR" 2>/dev/null || cd /
+    rm -rf "$TMP_DIR"
         return 7
       }
       msg_ok "Updated ruby-build definitions"
     fi
     $STD "$RBENV_BIN" install "$RUBY_VERSION" || {
       msg_error "Failed to install Ruby $RUBY_VERSION"
-      rm -rf "$TMP_DIR"
+      cd "$PREV_DIR" 2>/dev/null || cd /
+    rm -rf "$TMP_DIR"
       return 150
     }
   fi
 
   "$RBENV_BIN" global "$RUBY_VERSION" || {
     msg_error "Failed to set Ruby $RUBY_VERSION as global version"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 150
   }
@@ -8835,6 +8864,7 @@ EOF
     }
   fi
 
+  cd "$PREV_DIR" 2>/dev/null || cd /
   rm -rf "$TMP_DIR"
   cache_installed_version "ruby" "$RUBY_VERSION"
   msg_ok "Setup Ruby $RUBY_VERSION"
@@ -9188,6 +9218,7 @@ setup_yq() {
   local LATEST_VERSION
   LATEST_VERSION=$(get_latest_github_release "${GITHUB_REPO}") || {
     msg_error "Could not fetch latest yq version from GitHub API"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 250
   }
@@ -9201,6 +9232,7 @@ setup_yq() {
   # Scenario 1: Already at latest version
   if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$LATEST_VERSION" ]]; then
     cache_installed_version "yq" "$LATEST_VERSION"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 0
   fi
@@ -9227,6 +9259,7 @@ setup_yq() {
   if ! curl_with_retry "https://github.com/${GITHUB_REPO}/releases/download/v${LATEST_VERSION}/yq_linux_${yq_arch}" "$TMP_DIR/yq"; then
     msg_error "Failed to download yq"
     msg_error "Hint: Check connectivity to github.com/${GITHUB_REPO} — set GITHUB_TOKEN to avoid rate-limiting"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 250
   fi
@@ -9234,6 +9267,7 @@ setup_yq() {
   chmod +x "$TMP_DIR/yq"
   mv "$TMP_DIR/yq" "$BINARY_PATH" || {
     msg_error "Failed to install yq"
+    cd "$PREV_DIR" 2>/dev/null || cd /
     rm -rf "$TMP_DIR"
     return 252
   }
