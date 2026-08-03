@@ -19,8 +19,10 @@ fetch_and_deploy_gh_release "matter-hub" "RiDDiX/home-assistant-matter-hub" "tar
 
 msg_info "Building Matter Hub"
 cd /opt/matter-hub
+MATTER_HUB_VERSION=$(cat ~/.matter-hub)
 $STD pnpm install --frozen-lockfile
-$STD pnpm build
+$STD pnpm run release:version "$MATTER_HUB_VERSION"
+APP_VERSION="$MATTER_HUB_VERSION" $STD pnpm build
 msg_ok "Built Matter Hub"
 
 msg_info "Installing Matter Hub"
@@ -46,6 +48,7 @@ HAMH_HOME_ASSISTANT_URL=http://CHANGE_ME:8123/
 HAMH_HOME_ASSISTANT_ACCESS_TOKEN=CHANGE_ME
 HAMH_HTTP_PORT=8482
 HAMH_LOG_LEVEL=info
+APP_VERSION=${MATTER_HUB_VERSION}
 EOF
 chmod 600 /opt/matter-hub.env
 msg_ok "Configured Matter Hub"

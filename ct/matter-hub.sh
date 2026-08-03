@@ -38,8 +38,11 @@ function update_script() {
 
     msg_info "Building Matter Hub"
     cd /opt/matter-hub
+    MATTER_HUB_VERSION=$(cat ~/.matter-hub)
     $STD pnpm install --frozen-lockfile
-    $STD pnpm build
+    $STD pnpm run release:version "$MATTER_HUB_VERSION"
+    APP_VERSION="$MATTER_HUB_VERSION" $STD pnpm build
+    sed -i "s|^APP_VERSION=.*|APP_VERSION=${MATTER_HUB_VERSION}|" /opt/matter-hub.env
     msg_ok "Built Matter Hub"
 
     msg_info "Installing Matter Hub"
