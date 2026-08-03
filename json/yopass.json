@@ -1,0 +1,50 @@
+{
+  "name": "Yopass",
+  "slug": "yopass",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 1337,
+  "documentation": "https://github.com/jhaals/yopass#readme",
+  "website": "https://yopass.se/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/yopass.webp",
+  "config_path": "/etc/systemd/system/yopass.service",
+  "description": "Yopass shares secrets through one-time links. The secret is encrypted in the browser before it is sent, so the server only ever stores an opaque blob with an expiry, and the decryption key travels in the URL fragment which is never transmitted. Opening the link destroys the secret.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/yopass.sh",
+      "config_path": "/etc/systemd/system/yopass.service",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Serve this over HTTPS. Encryption happens in the browser, and without a secure context the page cannot be trusted to do that - put it behind a TLS reverse proxy before using it for anything real.",
+      "type": "warning"
+    },
+    {
+      "text": "Secrets live in the local Redis with a TTL and are gone once fetched or expired. Redis persistence is not configured, so a restart clears pending secrets - which is arguably the desired behaviour here.",
+      "type": "info"
+    },
+    {
+      "text": "Options are passed as flags in /etc/systemd/system/yopass.service and can equally be set as uppercase environment variables. Useful ones: --force-onetime-secrets, --disable-upload, --max-length.",
+      "type": "info"
+    }
+  ]
+}

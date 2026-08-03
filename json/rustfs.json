@@ -1,0 +1,54 @@
+{
+  "name": "RustFS",
+  "slug": "rustfs",
+  "categories": [
+    11
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 9001,
+  "documentation": "https://docs.rustfs.com/",
+  "website": "https://rustfs.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rustfs.webp",
+  "config_path": "/etc/default/rustfs",
+  "description": "RustFS is an S3-compatible object storage server written in Rust. It covers the S3 core API, versioning, bucket replication, lifecycle management, bitrot protection and multi-tenancy, and is a drop-in target for anything that speaks S3 - backup tools, media apps or CI artifacts. Frequently named as a MinIO alternative.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/rustfs.sh",
+      "config_path": "/etc/default/rustfs",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Access key and secret key are generated at install and stored in /etc/default/rustfs. Use them to log into the console on port 9001 and for any S3 client.",
+      "type": "warning"
+    },
+    {
+      "text": "Two ports: 9000 serves the S3 API, 9001 the web console. Object data lives in /opt/rustfs_data/data - back that up, or better, give the container a dedicated disk and point RUSTFS_VOLUMES at it.",
+      "type": "info"
+    },
+    {
+      "text": "Distributed mode and lifecycle management are marked as under testing upstream. Single-node operation is the supported path today.",
+      "type": "info"
+    },
+    {
+      "text": "The binary comes from the official artifact server at dl.rustfs.com rather than GitHub, because the project publishes tags but no release assets. The URL is a stable 'latest' path, so updates just re-download it.",
+      "type": "info"
+    }
+  ]
+}
