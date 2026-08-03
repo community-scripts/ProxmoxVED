@@ -38,7 +38,7 @@ function update_script() {
 
     msg_info "Building Your Spotify"
     cd /opt/your-spotify
-    $STD pnpm install --frozen-lockfile --dangerously-allow-all-builds
+    $STD pnpm install --frozen-lockfile
     $STD pnpm --filter @your_spotify/server build
     $STD pnpm --filter @your_spotify/client build
     msg_ok "Built Your Spotify"
