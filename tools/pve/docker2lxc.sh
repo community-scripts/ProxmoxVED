@@ -6,16 +6,16 @@
 # Source: https://github.com/opencontainers/image-spec
 #
 # Converts any OCI/Docker image into a native Proxmox VE LXC container.
-# PVE 9.1+ uses the built-in `pct create --rootfs oci=` path, older releases
-# fall back to skopeo + umoci and import the flattened image as an LXC template,
-# so the container always ends up on real PVE storage.
+# The image is pulled with skopeo, flattened with umoci and imported as a
+# regular LXC template, so the container ends up on real PVE storage and
+# snapshots/backups/migration keep working. Runs on PVE 8 and 9.
 #
 # Usage: bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/pve/docker2lxc.sh)"
 #
 # Unattended via environment:
 #   OCI_IMAGE CT_NAME VMID CORES MEMORY DISK STORAGE TMPL_STORAGE NET_BRIDGE VLAN
 #   IP_MODE(dhcp|static) STATIC_IP NET_GATEWAY DNS UNPRIVILEGED(0|1) NESTING(0|1)
-#   START_AFTER(yes|no) CONVERT_MODE(auto|native|legacy) EXTRA_ENV("K=V;K=V")
+#   START_AFTER(yes|no) EXTRA_ENV("K=V;K=V")
 #   REGISTRY_CREDS("user:pass")
 
 if ! command -v curl >/dev/null 2>&1; then
@@ -444,39 +444,6 @@ create_container_legacy() {
   esac
 }
 
-create_container_native() {
-  local kv
-  local -a args=(
-    "$VMID"
-    --hostname "$CT_NAME"
-    --cores "$CORES"
-    --memory "$MEMORY"
-    --rootfs "${STORAGE}:${DISK},oci=${FULL_IMAGE}"
-    --unprivileged "$UNPRIVILEGED"
-    --nameserver "$DNS"
-    --net0 "$(build_net_arg)"
-  )
-  [[ "$NESTING" == "1" ]] && args+=(--features nesting=1)
-
-  msg_info "Creating container $VMID from OCI image"
-  if ! pct create "${args[@]}" &>"$D2L_TMP/create.log"; then
-    msg_error "Native OCI create failed - falling back to skopeo/umoci"
-    log_tail "$D2L_TMP/create.log" 15
-    if pct status "$VMID" &>/dev/null; then
-      pct destroy "$VMID" --force 1 --purge 1 &>/dev/null || true
-    fi
-    CONVERT_MODE="legacy"
-    return 1
-  fi
-  msg_ok "Created container $VMID"
-
-  for kv in "${EXTRA_ENV_LIST[@]}"; do
-    [[ "$kv" == *=* ]] || continue
-    pct set "$VMID" -env "$kv" &>/dev/null || msg_warn "Could not set env $kv"
-  done
-  return 0
-}
-
 # ==============================================================================
 # MAIN
 # ==============================================================================
@@ -489,19 +456,9 @@ PVE_MAJOR=${PVE_VER%%.*}
 PVE_MINOR=$(echo "$PVE_VER" | cut -d. -f2)
 HOST_ARCH=$(dpkg --print-architecture)
 
-if ((PVE_MAJOR > 9)) || { ((PVE_MAJOR == 9)) && ((PVE_MINOR >= 1)); }; then
-  NATIVE_OCI=1
-else
-  NATIVE_OCI=0
-fi
 msg_ok "Proxmox VE $PVE_VER on $HOST_ARCH"
-
-CONVERT_MODE="${CONVERT_MODE:-auto}"
-[[ "$CONVERT_MODE" == "auto" ]] && { ((NATIVE_OCI)) && CONVERT_MODE="native" || CONVERT_MODE="legacy"; }
-if [[ "$CONVERT_MODE" == "native" ]] && ((!NATIVE_OCI)); then
-  msg_warn "Native OCI support needs PVE 9.1+ (found $PVE_VER) - using the skopeo/umoci path"
-  CONVERT_MODE="legacy"
-fi
+((PVE_MAJOR >= 9 && PVE_MINOR >= 1)) &&
+  msg_warn "PVE $PVE_VER can import OCI images itself (Storage -> CT Templates -> Pull from OCI registry)"
 
 D2L_TMP=$(mktemp -d)
 
@@ -553,7 +510,6 @@ fi
 
 echo ""
 echo -e "${TAB}${BL}Image:${CL}      $FULL_IMAGE"
-echo -e "${TAB}${BL}Mode:${CL}       $CONVERT_MODE ($([[ "$CONVERT_MODE" == native ]] && echo "pct oci=" || echo "skopeo+umoci"))"
 echo -e "${TAB}${BL}Container:${CL}  $VMID / $CT_NAME"
 echo -e "${TAB}${BL}Resources:${CL}  ${CORES} cores, ${MEMORY} MB, ${DISK} GB on $STORAGE"
 echo -e "${TAB}${BL}Network:${CL}    $NET_BRIDGE ${VLAN:+vlan $VLAN }($IP_MODE${STATIC_IP:+ $STATIC_IP})"
@@ -563,18 +519,9 @@ echo ""
 prompt_confirm "Create container $VMID from $FULL_IMAGE?" "y" || bail "Cancelled by user"
 echo ""
 
-if [[ "$CONVERT_MODE" == "native" ]]; then
-  install_deps skopeo jq
-  fetch_image_config "docker://$FULL_IMAGE" "$D2L_TMP/config.json"
-  parse_image_config "$D2L_TMP/config.json"
-  create_container_native || true
-fi
-
-if [[ "$CONVERT_MODE" == "legacy" ]]; then
-  [[ -n "$TMPL_STORAGE" ]] || abort "No storage with content type 'vztmpl' available"
-  build_template "$FULL_IMAGE"
-  create_container_legacy
-fi
+[[ -n "$TMPL_STORAGE" ]] || abort "No storage with content type 'vztmpl' available"
+build_template "$FULL_IMAGE"
+create_container_legacy
 
 if [[ "$START_AFTER" == "yes" ]]; then
   msg_info "Starting container $VMID"
