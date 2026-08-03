@@ -4897,29 +4897,43 @@ EOF
 }
 
 # ------------------------------------------------------------------------------
-# Installs FFmpeg from source or prebuilt binary (Debian/Ubuntu only).
+# Installs FFmpeg from the distribution repository, a prebuilt build, or source.
 #
 # Description:
-#   - Downloads and builds FFmpeg from GitHub (https://github.com/FFmpeg/FFmpeg)
-#   - Supports specific version override via FFMPEG_VERSION (e.g. n7.1.1)
-#   - Supports build profile via FFMPEG_TYPE:
-#       - minimal : x264, vpx, mp3 only
-#       - medium  : adds subtitles, fonts, opus, vorbis
-#       - full    : adds dav1d, svt-av1, zlib, numa
-#       - binary  : downloads static build (johnvansickle.com)
-#   - Defaults to latest stable version and full feature set
+#   - Three acquisition strategies, selected via FFMPEG_TYPE:
+#       repo    : distribution package (default) - fast, no build, LGPL
+#       github  : prebuilt static build from BtbN/FFmpeg-Builds (daily, amd64+arm64)
+#       minimal : compile from source - x264, vpx, mp3 only
+#       medium  : compile from source - adds subtitles, fonts, opus, vorbis
+#       full    : compile from source - adds x265, dav1d, zlib, vaapi
+#   - "binary" is accepted as a deprecated alias for "github"
+#
+# Variables:
+#   FFMPEG_TYPE    - repo (default) | github | minimal | medium | full
+#   FFMPEG_VERSION - source builds: git tag (default: latest stable)
+#                    github builds: "latest" (master) or a release line, e.g. "n7.1"
+#   FFMPEG_LICENSE - github builds: gpl (default) | lgpl
 #
 # Notes:
-#   - Requires: curl, jq, build-essential, and matching codec libraries
-#   - Result is installed to /usr/local/bin/ffmpeg
+#   - Prefer "repo" unless the app needs a codec or version Debian does not ship.
+#     A source build takes 20+ minutes on a small container.
+#   - Source builds use --enable-gpl --enable-nonfree. Those binaries are NOT
+#     redistributable; they are only fine because they are built on the target
+#     host for its own use. Apps that require an LGPL FFmpeg must use "repo"
+#     or FFMPEG_LICENSE=lgpl.
+#   - repo installs to /usr/bin, github and source builds to /usr/local/bin.
 # ------------------------------------------------------------------------------
 
 setup_ffmpeg() {
-  local TMP_DIR=$(mktemp -d)
+  local TMP_DIR
+  TMP_DIR=$(mktemp -d)
   local GITHUB_REPO="FFmpeg/FFmpeg"
   local VERSION="${FFMPEG_VERSION:-latest}"
-  local TYPE="${FFMPEG_TYPE:-full}"
+  local TYPE="${FFMPEG_TYPE:-repo}"
+  local LICENSE="${FFMPEG_LICENSE:-gpl}"
   local BIN_PATH="/usr/local/bin/ffmpeg"
+
+  [[ "$TYPE" == "binary" ]] && TYPE="github"
 
   # Get currently installed version
   local INSTALLED_VERSION=""
@@ -4927,32 +4941,56 @@ setup_ffmpeg() {
     INSTALLED_VERSION=$(ffmpeg -version 2>/dev/null | head -n1 | awk '{print $3}')
   fi
 
-  msg_info "Setup FFmpeg ${VERSION} ($TYPE)"
+  msg_info "Setup FFmpeg ($TYPE)"
 
-  # Binary fallback mode
-  if [[ "$TYPE" == "binary" ]]; then
-    local ffmpeg_arch
-    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
-    arm64) ffmpeg_arch="arm64" ;;
-    *) ffmpeg_arch="amd64" ;;
-    esac
-    if ! CURL_TIMEOUT=300 curl_with_retry "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${ffmpeg_arch}-static.tar.xz" "$TMP_DIR/ffmpeg.tar.xz"; then
-      msg_error "Failed to download FFmpeg binary"
-      msg_error "Hint: Check connectivity to johnvansickle.com/ffmpeg (static builds, may be slow — large file)"
+  # Distribution package
+  if [[ "$TYPE" == "repo" ]]; then
+    if ! $STD apt install -y ffmpeg; then
+      msg_error "Failed to install FFmpeg from the distribution repository"
+      rm -rf "$TMP_DIR"
+      return 100
+    fi
+    local FINAL_VERSION
+    FINAL_VERSION=$(ffmpeg -version 2>/dev/null | head -n1 | awk '{print $3}')
+    rm -rf "$TMP_DIR"
+    cache_installed_version "ffmpeg" "$FINAL_VERSION"
+    [[ -n "$INSTALLED_VERSION" ]] && msg_ok "Upgrade FFmpeg $INSTALLED_VERSION → $FINAL_VERSION" || msg_ok "Setup FFmpeg $FINAL_VERSION"
+    return 0
+  fi
+
+  # Prebuilt static build from BtbN/FFmpeg-Builds
+  if [[ "$TYPE" == "github" ]]; then
+    local ffmpeg_arch line
+    ffmpeg_arch=$(arch_resolve linux64 linuxarm64) || {
+      rm -rf "$TMP_DIR"
+      return 106
+    }
+    [[ "$VERSION" == "latest" || -z "$VERSION" ]] && line="master-latest" || line="${VERSION}-latest"
+
+    if ! CURL_TIMEOUT=300 curl_with_retry \
+      "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-${line}-${ffmpeg_arch}-${LICENSE}.tar.xz" \
+      "$TMP_DIR/ffmpeg.tar.xz"; then
+      msg_error "Failed to download FFmpeg build ffmpeg-${line}-${ffmpeg_arch}-${LICENSE}"
+      msg_error "Hint: check FFMPEG_VERSION/FFMPEG_LICENSE against the assets of https://github.com/BtbN/FFmpeg-Builds/releases/tag/latest"
       rm -rf "$TMP_DIR"
       return 250
     fi
-    tar -xf "$TMP_DIR/ffmpeg.tar.xz" -C "$TMP_DIR" || {
-      msg_error "Failed to extract FFmpeg binary"
+
+    tar -xJf "$TMP_DIR/ffmpeg.tar.xz" -C "$TMP_DIR" || {
+      msg_error "Failed to extract FFmpeg archive"
       rm -rf "$TMP_DIR"
       return 251
     }
-    local EXTRACTED_DIR
-    EXTRACTED_DIR=$(find "$TMP_DIR" -maxdepth 1 -type d -name "ffmpeg-*")
-    cp "$EXTRACTED_DIR/ffmpeg" "$BIN_PATH"
-    cp "$EXTRACTED_DIR/ffprobe" /usr/local/bin/ffprobe
+
+    if ! cp "$TMP_DIR/ffmpeg-"*/bin/ffmpeg "$TMP_DIR/ffmpeg-"*/bin/ffprobe /usr/local/bin/ 2>/dev/null; then
+      msg_error "Failed to install FFmpeg binaries"
+      rm -rf "$TMP_DIR"
+      return 150
+    fi
     chmod +x "$BIN_PATH" /usr/local/bin/ffprobe
-    local FINAL_VERSION=$($BIN_PATH -version 2>/dev/null | head -n1 | awk '{print $3}')
+
+    local FINAL_VERSION
+    FINAL_VERSION=$("$BIN_PATH" -version 2>/dev/null | head -n1 | awk '{print $3}')
     rm -rf "$TMP_DIR"
     cache_installed_version "ffmpeg" "$FINAL_VERSION"
     ensure_usr_local_bin_persist
@@ -4968,18 +5006,21 @@ setup_ffmpeg() {
     ffmpeg_tags=$(curl -fsSL --max-time 15 "https://api.github.com/repos/${GITHUB_REPO}/tags" 2>/dev/null || echo "")
 
     if [[ -z "$ffmpeg_tags" ]]; then
-      msg_warn "Could not fetch FFmpeg versions from GitHub, trying binary fallback"
-      VERSION="" # Will trigger binary fallback below
-    else
-      VERSION=$(echo "$ffmpeg_tags" | jq -r '.[].name' 2>/dev/null |
-        grep -E '^n[0-9]+\.[0-9]+\.[0-9]+$' |
-        sort -V | tail -n1 || echo "")
+      msg_error "Could not fetch FFmpeg versions from GitHub"
+      msg_error "Hint: use FFMPEG_TYPE=repo or FFMPEG_TYPE=github instead of a source build"
+      rm -rf "$TMP_DIR"
+      return 250
     fi
+
+    VERSION=$(echo "$ffmpeg_tags" | jq -r '.[].name' 2>/dev/null |
+      grep -E '^n[0-9]+\.[0-9]+\.[0-9]+$' |
+      sort -V | tail -n1 || echo "")
   fi
 
   if [[ -z "$VERSION" ]]; then
-    msg_info "Could not determine FFmpeg source version, using pre-built binary"
-    VERSION="" # Will use binary fallback
+    msg_error "Could not determine an FFmpeg source version"
+    rm -rf "$TMP_DIR"
+    return 250
   fi
 
   # Dependency selection
@@ -5005,7 +5046,7 @@ setup_ffmpeg() {
     fi
     ;;
   *)
-    msg_error "Invalid FFMPEG_TYPE: $TYPE"
+    msg_error "Unknown FFMPEG_TYPE: $TYPE (expected repo, github, minimal, medium or full)"
     rm -rf "$TMP_DIR"
     return 65
     ;;
@@ -5013,50 +5054,10 @@ setup_ffmpeg() {
 
   ensure_dependencies "${DEPS[@]}"
 
-  # Try to download source if VERSION is set
-  if [[ -n "$VERSION" ]]; then
-    if ! CURL_TIMEOUT=300 curl_with_retry "https://github.com/${GITHUB_REPO}/archive/refs/tags/${VERSION}.tar.gz" "$TMP_DIR/ffmpeg.tar.gz"; then
-      msg_warn "Failed to download FFmpeg source ${VERSION}, falling back to pre-built binary"
-      VERSION=""
-    fi
-  fi
-
-  # If no source download (either VERSION empty or download failed), use binary
-  if [[ -z "$VERSION" ]]; then
-    msg_info "Setup FFmpeg from pre-built binary"
-    local ffmpeg_arch detected_arch
-    detected_arch="$(dpkg --print-architecture 2>/dev/null || true)"
-    if [[ -z "$detected_arch" ]]; then
-      detected_arch="$(uname -m 2>/dev/null || true)"
-    fi
-    case "$detected_arch" in
-    arm64 | aarch64) ffmpeg_arch="arm64" ;;
-    amd64 | x86_64) ffmpeg_arch="amd64" ;;
-    *) ffmpeg_arch="amd64" ;;
-    esac
-    if ! CURL_TIMEOUT=300 curl_with_retry "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${ffmpeg_arch}-static.tar.xz" "$TMP_DIR/ffmpeg.tar.xz"; then
-      msg_error "Failed to download FFmpeg pre-built binary"
-      msg_error "Hint: Check connectivity to johnvansickle.com/ffmpeg (large file, may timeout on slow connections)"
-      rm -rf "$TMP_DIR"
-      return 250
-    fi
-
-    tar -xJf "$TMP_DIR/ffmpeg.tar.xz" -C "$TMP_DIR" || {
-      msg_error "Failed to extract FFmpeg binary archive"
-      rm -rf "$TMP_DIR"
-      return 251
-    }
-
-    if ! cp "$TMP_DIR/ffmpeg-"*/ffmpeg /usr/local/bin/ffmpeg 2>/dev/null; then
-      msg_error "Failed to install FFmpeg binary"
-      rm -rf "$TMP_DIR"
-      return 150
-    fi
-
-    cache_installed_version "ffmpeg" "static"
+  if ! CURL_TIMEOUT=300 curl_with_retry "https://github.com/${GITHUB_REPO}/archive/refs/tags/${VERSION}.tar.gz" "$TMP_DIR/ffmpeg.tar.gz"; then
+    msg_error "Failed to download FFmpeg source ${VERSION}"
     rm -rf "$TMP_DIR"
-    msg_ok "Setup FFmpeg from pre-built binary"
-    return 0
+    return 250
   fi
 
   tar -xzf "$TMP_DIR/ffmpeg.tar.gz" -C "$TMP_DIR" || {
