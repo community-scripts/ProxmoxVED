@@ -10,11 +10,11 @@
   "privileged": false,
   "has_arm": true,
   "interface_port": 8482,
-  "documentation": "https://t0bst4r.github.io/home-assistant-matter-hub",
-  "website": "https://github.com/t0bst4r/home-assistant-matter-hub",
+  "documentation": "https://riddix.github.io/home-assistant-matter-hub",
+  "website": "https://github.com/RiDDiX/home-assistant-matter-hub",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/home-assistant.webp",
   "config_path": "/opt/matter-hub.env",
-  "description": "Home Assistant Matter Hub publishes your Home Assistant entities as Matter devices, so Apple Home, Google Home, Amazon Alexa and any other Matter controller can see and control them. It acts as a Matter bridge in front of Home Assistant and needs only a long-lived access token to connect.",
+  "description": "Home Assistant Matter Hub publishes your Home Assistant entities as Matter devices, so Apple Home, Google Home, Amazon Alexa and any other Matter controller can see and control them. It acts as a Matter bridge in front of Home Assistant and needs only a long-lived access token to connect. This installs the actively maintained RiDDiX fork - the original t0bst4r project reached end of maintenance in January 2026.",
   "install_methods": [
     {
       "type": "default",
@@ -22,8 +22,8 @@
       "config_path": "/opt/matter-hub.env",
       "resources": {
         "cpu": 2,
-        "ram": 1024,
-        "hdd": 4,
+        "ram": 4096,
+        "hdd": 8,
         "os": "Debian",
         "version": "13"
       }
@@ -39,11 +39,15 @@
       "type": "warning"
     },
     {
-      "text": "Matter relies on IPv6 and mDNS. The container needs working IPv6 and must be on the same L2 network as your Matter controllers - across VLANs you have to allow and route mDNS/UDP, otherwise commissioning fails.",
+      "text": "Matter relies on IPv6 and mDNS. The container needs working IPv6 and must be on the same L2 network as your Matter controllers. Access points and switches that filter or rate-limit multicast are the most common cause of devices going 'No Response' after a while - check for IGMP snooping, mDNS/Bonjour filtering and AP isolation.",
       "type": "warning"
     },
     {
       "text": "Bridge data and fabric credentials are stored in /opt/matter-hub_data. Deleting that directory unpairs every controller and requires re-commissioning.",
+      "type": "info"
+    },
+    {
+      "text": "This is the community fork by RiDDiX. The original t0bst4r/home-assistant-matter-hub ended maintenance in January 2026 and receives no further fixes.",
       "type": "info"
     }
   ]

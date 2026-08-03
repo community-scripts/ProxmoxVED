@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/t0bst4r/home-assistant-matter-hub
+# Source: https://github.com/RiDDiX/home-assistant-matter-hub
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -13,7 +13,15 @@ setting_up_container
 network_check
 update_os
 
-NODE_VERSION="22" NODE_MODULE="home-assistant-matter-hub@latest" setup_nodejs
+NODE_VERSION="24" NODE_MODULE="pnpm@^10" setup_nodejs
+
+fetch_and_deploy_gh_release "matter-hub" "RiDDiX/home-assistant-matter-hub" "tarball"
+
+msg_info "Building Matter Hub"
+cd /opt/matter-hub
+$STD pnpm install --frozen-lockfile
+$STD pnpm build
+msg_ok "Built Matter Hub"
 
 msg_info "Configuring Matter Hub"
 mkdir -p /opt/matter-hub_data
@@ -36,9 +44,9 @@ After=network-online.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/matter-hub_data
+WorkingDirectory=/opt/matter-hub
 EnvironmentFile=/opt/matter-hub.env
-ExecStart=home-assistant-matter-hub start --storage-location=/opt/matter-hub_data
+ExecStart=/usr/bin/node /opt/matter-hub/apps/home-assistant-matter-hub/dist/backend/cli.js start --storage-location=/opt/matter-hub_data
 Restart=on-failure
 RestartSec=10
 

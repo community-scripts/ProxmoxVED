@@ -3,13 +3,13 @@ source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/t0bst4r/home-assistant-matter-hub
+# Source: https://github.com/RiDDiX/home-assistant-matter-hub
 
 APP="Matter-Hub"
 var_tags="${var_tags:-smarthome;matter}"
 var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-1024}"
-var_disk="${var_disk:-4}"
+var_ram="${var_ram:-4096}"
+var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -24,23 +24,29 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/matter-hub.env ]]; then
+  if [[ ! -d /opt/matter-hub ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  msg_info "Stopping Service"
-  systemctl stop matter-hub
-  msg_ok "Stopped Service"
+  if check_for_gh_release "matter-hub" "RiDDiX/home-assistant-matter-hub"; then
+    msg_info "Stopping Service"
+    systemctl stop matter-hub
+    msg_ok "Stopped Service"
 
-  msg_info "Updating ${APP}"
-  $STD npm install -g home-assistant-matter-hub@latest
-  msg_ok "Updated ${APP}"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "matter-hub" "RiDDiX/home-assistant-matter-hub" "tarball"
 
-  msg_info "Starting Service"
-  systemctl start matter-hub
-  msg_ok "Started Service"
-  msg_ok "Updated successfully!"
+    msg_info "Building Matter Hub"
+    cd /opt/matter-hub
+    $STD pnpm install --frozen-lockfile
+    $STD pnpm build
+    msg_ok "Built Matter Hub"
+
+    msg_info "Starting Service"
+    systemctl start matter-hub
+    msg_ok "Started Service"
+    msg_ok "Updated successfully!"
+  fi
   exit
 }
 
