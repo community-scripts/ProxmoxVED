@@ -39,15 +39,23 @@
       "type": "warning"
     },
     {
+      "text": "Defguard 2.x needs an Edge component before the setup wizard can be completed. It is installed in this same container, so in the wizard step 'Edge Component Adoption' enter 127.0.0.1:50051. Ports do not collide: Core uses 8000/50055, Edge uses 8080/8443/50051.",
+      "type": "warning"
+    },
+    {
       "text": "DEFGUARD_COOKIE_INSECURE=true is set so the web UI works over plain HTTP. When you put Defguard behind a TLS reverse proxy, remove that line and set DEFGUARD_URL to the public https URL, then restart the service.",
       "type": "warning"
     },
     {
-      "text": "This is only the Core service. VPN traffic is handled by a separate Defguard Gateway which connects back to the gRPC port 50055 on this container - see the upstream documentation for gateway deployment.",
+      "text": "VPN traffic is handled by a third component, the Defguard Gateway, installed on the machine that terminates the tunnels. It connects back to the gRPC port 50055 on this container - see the upstream documentation.",
       "type": "info"
     },
     {
-      "text": "Data is stored in the local PostgreSQL database, not in /opt. Back up the 'defguard' database rather than the app directory.",
+      "text": "To run Edge on a separate host instead (upstream's segmented layout, with Edge in a DMZ and Core internal), use tools/addon/defguard-edge.sh in that container and point the wizard at its IP:50051.",
+      "type": "info"
+    },
+    {
+      "text": "Installed from the official Defguard apt repository (apt.defguard.net, component release-2.0), so updates go through apt. Data lives in the local PostgreSQL database 'defguard', not in /opt.",
       "type": "info"
     }
   ]

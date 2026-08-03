@@ -29,28 +29,15 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "defguard" "DefGuard/defguard"; then
-    msg_info "Stopping Service"
-    systemctl stop defguard
-    msg_ok "Stopped Service"
+  msg_info "Updating ${APP}"
+  $STD apt update
+  $STD apt install -y defguard defguard-proxy
+  msg_ok "Updated ${APP}"
 
-    msg_info "Backing up Configuration"
-    cp /etc/defguard/core.conf /opt/defguard-core.conf.bak
-    msg_ok "Backed up Configuration"
-
-    fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary" "latest" "/opt/defguard" "defguard-*-$(arch_resolve x86_64 aarch64)-unknown-linux-gnu.deb"
-
-    msg_info "Restoring Configuration"
-    mv /opt/defguard-core.conf.bak /etc/defguard/core.conf
-    chown root:defguard /etc/defguard/core.conf
-    chmod 640 /etc/defguard/core.conf
-    msg_ok "Restored Configuration"
-
-    msg_info "Starting Service"
-    systemctl restart defguard
-    msg_ok "Started Service"
-    msg_ok "Updated successfully!"
-  fi
+  msg_info "Restarting Services"
+  systemctl restart defguard defguard-proxy
+  msg_ok "Restarted Services"
+  msg_ok "Updated successfully!"
   exit
 }
 
@@ -62,4 +49,6 @@ msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW}Access it using the following URL:${CL}"
 echo -e "${GATEWAY}${BGN}http://${IP}:8000${CL}"
+echo -e "${INFO}${YW}In the setup wizard, enter this as the Edge address:${CL}"
+echo -e "${TAB}${DEFAULT}${BGN}127.0.0.1:50051${CL}"
 echo -e "${INFO}${YW}The generated admin password is in /etc/defguard/core.conf${CL}"
