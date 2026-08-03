@@ -1,0 +1,54 @@
+{
+  "name": "HAProxy",
+  "slug": "haproxy",
+  "categories": [
+    21
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8404,
+  "documentation": "https://docs.haproxy.org/",
+  "website": "https://www.haproxy.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/haproxy.webp",
+  "config_path": "/etc/haproxy/haproxy.cfg",
+  "description": "HAProxy is a TCP and HTTP load balancer and reverse proxy, known for handling very high connection counts with low latency. Unlike the UI-driven proxies it is configured entirely through a single text file, which makes it a good fit for layer-4 balancing, health checking and failover setups where a GUI proxy is not enough.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/haproxy.sh",
+      "config_path": "/etc/haproxy/haproxy.cfg",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "HAProxy has no configuration UI. The install ships only a statistics page on port 8404 plus a commented frontend/backend example - you have to write your own rules in /etc/haproxy/haproxy.cfg.",
+      "type": "warning"
+    },
+    {
+      "text": "The generated password for the statistics page is in the 'stats auth' line of /etc/haproxy/haproxy.cfg.",
+      "type": "info"
+    },
+    {
+      "text": "Always validate before restarting: 'haproxy -c -f /etc/haproxy/haproxy.cfg'. A syntax error prevents the service from starting, which takes every proxied site down with it. The update path in this script does that check automatically.",
+      "type": "warning"
+    },
+    {
+      "text": "For TLS, HAProxy expects certificate and key concatenated into a single PEM file. Certificates are not renewed by HAProxy itself - pair it with certbot or an ACME client.",
+      "type": "info"
+    }
+  ]
+}
