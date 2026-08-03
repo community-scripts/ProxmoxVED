@@ -437,6 +437,11 @@ create_container_legacy() {
     done
   } >>"$conf"
   msg_ok "Wrote raw lxc.init.cmd to $conf"
+
+  case "$IMG_USER" in
+  "" | root | 0 | 0:0 | root:root) ;;
+  *) msg_warn "Image wants to run as '$IMG_USER', but raw lxc.init.cmd cannot drop privileges - it will run as root" ;;
+  esac
 }
 
 create_container_native() {
