@@ -1,0 +1,54 @@
+{
+  "name": "Your Spotify",
+  "slug": "your-spotify",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 3000,
+  "documentation": "https://github.com/Yooooomi/your_spotify#readme",
+  "website": "https://github.com/Yooooomi/your_spotify",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/your-spotify.webp",
+  "config_path": "/opt/your-spotify.env",
+  "description": "Your Spotify records your Spotify listening history and turns it into statistics: top tracks, artists and albums over any period, listening habits by time of day, and long-term trends. Past history can be imported from a Spotify privacy data export.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/your-spotify.sh",
+      "config_path": "/opt/your-spotify.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 3072,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "You must create a Spotify application at https://developer.spotify.com/dashboard and put its client ID and secret into SPOTIFY_PUBLIC and SPOTIFY_SECRET in /opt/your-spotify.env, then run 'systemctl restart your-spotify'. Without them nothing works.",
+      "type": "warning"
+    },
+    {
+      "text": "In the Spotify dashboard add the redirect URI http://<IP>:8080/oauth/spotify/callback - it must match API_ENDPOINT in the env file exactly, otherwise the login fails.",
+      "type": "warning"
+    },
+    {
+      "text": "Two services run here: your-spotify (API on 8080) and your-spotify-web (UI on 3000). The API endpoint is baked into the built frontend, so changing API_ENDPOINT means re-running the sed steps from the install script or re-running the update.",
+      "type": "info"
+    },
+    {
+      "text": "Listening history is stored in the local MongoDB database 'your_spotify'. Back that up rather than /opt.",
+      "type": "info"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "name": "PeerTube",
+  "slug": "peertube",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 9000,
+  "documentation": "https://docs.joinpeertube.org/",
+  "website": "https://joinpeertube.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/peertube.webp",
+  "config_path": "/opt/peertube_data/config/production.yaml",
+  "description": "PeerTube is a federated, self-hosted video platform. Videos are distributed peer-to-peer via WebTorrent to reduce bandwidth on the origin server, and instances federate over ActivityPub so users can follow channels across the fediverse, including Mastodon.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/peertube.sh",
+      "config_path": "/opt/peertube_data/config/production.yaml",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 40,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "root",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The initial 'root' password is generated on first start and written to the log. Read it with: journalctl -u peertube | grep -i 'User password'",
+      "type": "warning"
+    },
+    {
+      "text": "PeerTube does not support changing the webserver hostname after the fact - it is a documented, risky operation. Set webserver.hostname in /opt/peertube_data/config/production.yaml to your final domain BEFORE creating any content, then restart the service.",
+      "type": "warning"
+    },
+    {
+      "text": "For federation and normal use PeerTube needs HTTPS on a public domain. The install is configured for plain HTTP on port 9000 for initial setup; put it behind a TLS reverse proxy and set webserver.https to true and port to 443.",
+      "type": "warning"
+    },
+    {
+      "text": "Videos, thumbnails and logs live in /opt/peertube_data/storage, the configuration in /opt/peertube_data/config, and metadata in the PostgreSQL database 'peertube_prod'. Transcoding is CPU-heavy - give the container more cores if you upload a lot.",
+      "type": "info"
+    }
+  ]
+}

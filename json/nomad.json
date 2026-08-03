@@ -1,0 +1,54 @@
+{
+  "name": "Nomad",
+  "slug": "nomad",
+  "categories": [
+    3
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 4646,
+  "documentation": "https://developer.hashicorp.com/nomad/docs",
+  "website": "https://www.nomadproject.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nomad.webp",
+  "config_path": "/etc/nomad.d/nomad.hcl",
+  "description": "Nomad is a workload orchestrator from HashiCorp. It schedules containers, raw binaries, Java applications and VMs across a cluster from a single binary, and is a much lighter alternative to Kubernetes for homelab-scale deployments. This installs a single node running as both server and client.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/nomad.sh",
+      "config_path": "/etc/nomad.d/nomad.hcl",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "This is a single-node setup: server and client are both enabled with bootstrap_expect = 1. To join more nodes, edit /etc/nomad.d/nomad.hcl and restart the service.",
+      "type": "info"
+    },
+    {
+      "text": "ACLs are disabled by default, so the UI on port 4646 is open to anyone who can reach it. Enable the ACL system or restrict access before exposing this beyond a trusted network.",
+      "type": "warning"
+    },
+    {
+      "text": "The Docker task driver needs a working Docker daemon in the same container, which is not installed here. Out of the box the exec, raw_exec and java drivers are available.",
+      "type": "info"
+    },
+    {
+      "text": "State lives in /opt/nomad_data. Installed from the official HashiCorp apt repository, so updates go through 'apt install nomad'.",
+      "type": "info"
+    }
+  ]
+}
