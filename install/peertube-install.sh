@@ -23,6 +23,7 @@ systemctl enable -q --now redis-server
 msg_ok "Installed Dependencies"
 
 setup_ffmpeg
+setup_hwaccel
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="peertube_prod" PG_DB_USER="peertube" PG_DB_EXTENSIONS="pg_trgm,unaccent" setup_postgresql_db
 NODE_VERSION="22" NODE_MODULE="pnpm@^10" setup_nodejs

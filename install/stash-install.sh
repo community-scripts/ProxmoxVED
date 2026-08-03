@@ -14,6 +14,7 @@ network_check
 update_os
 
 setup_ffmpeg
+setup_hwaccel
 
 fetch_and_deploy_gh_release "stash" "stashapp/stash" "singlefile" "latest" "/opt/stash" "$(arch_resolve stash-linux stash-linux-arm64v8)"
 
