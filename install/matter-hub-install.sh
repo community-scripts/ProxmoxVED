@@ -23,6 +23,22 @@ $STD pnpm install --frozen-lockfile
 $STD pnpm build
 msg_ok "Built Matter Hub"
 
+msg_info "Installing Matter Hub"
+mkdir -p /opt/matter-hub_app
+cat <<EOF >/opt/matter-hub_app/package.json
+{
+  "name": "hamh-wrapper",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "home-assistant-matter-hub": "file:/opt/matter-hub/apps/home-assistant-matter-hub/package.tgz"
+  }
+}
+EOF
+cd /opt/matter-hub_app
+$STD npm install --omit=dev --no-audit --no-fund
+msg_ok "Installed Matter Hub"
+
 msg_info "Configuring Matter Hub"
 mkdir -p /opt/matter-hub_data
 cat <<EOF >/opt/matter-hub.env
@@ -44,9 +60,9 @@ After=network-online.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/matter-hub
+WorkingDirectory=/opt/matter-hub_data
 EnvironmentFile=/opt/matter-hub.env
-ExecStart=/usr/bin/node /opt/matter-hub/apps/home-assistant-matter-hub/dist/backend/cli.js start --storage-location=/opt/matter-hub_data
+ExecStart=/opt/matter-hub_app/node_modules/.bin/home-assistant-matter-hub start --storage-location=/opt/matter-hub_data
 Restart=on-failure
 RestartSec=10
 

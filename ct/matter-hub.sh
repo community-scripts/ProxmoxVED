@@ -9,7 +9,7 @@ APP="Matter-Hub"
 var_tags="${var_tags:-smarthome;matter}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-4096}"
-var_disk="${var_disk:-8}"
+var_disk="${var_disk:-12}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -41,6 +41,12 @@ function update_script() {
     $STD pnpm install --frozen-lockfile
     $STD pnpm build
     msg_ok "Built Matter Hub"
+
+    msg_info "Installing Matter Hub"
+    rm -rf /opt/matter-hub_app/node_modules /opt/matter-hub_app/package-lock.json
+    cd /opt/matter-hub_app
+    $STD npm install --omit=dev --no-audit --no-fund
+    msg_ok "Installed Matter Hub"
 
     msg_info "Starting Service"
     systemctl start matter-hub
