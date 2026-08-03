@@ -89,7 +89,9 @@ storage:
   client_overrides: '/opt/peertube_data/storage/client-overrides/'
 
 admin:
-  email: 'admin@${LOCAL_IP}'
+  # Must be a syntactically valid address - PeerTube validates it when creating
+  # the root user, and an IP as the domain part is rejected (require_tld).
+  email: 'admin@example.com'
 EOF
 chmod 750 /opt/peertube_data/config
 msg_ok "Configured PeerTube"
