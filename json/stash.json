@@ -1,0 +1,50 @@
+{
+  "name": "Stash",
+  "slug": "stash",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 9999,
+  "documentation": "https://docs.stashapp.cc/",
+  "website": "https://stashapp.cc/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/stash.webp",
+  "config_path": "/opt/stash_data/config.yml",
+  "description": "Stash is a self-hosted organizer for adult media collections. It scans your library, then enriches it with performers, studios, tags and scene metadata pulled from stash-box instances such as StashDB and from community scrapers, and serves everything through a web interface.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/stash.sh",
+      "config_path": "/opt/stash_data/config.yml",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "On first start Stash runs a setup wizard at http://<IP>:9999 where you pick your media directories and optionally set a username and password.",
+      "type": "info"
+    },
+    {
+      "text": "Configuration, database and generated content live in /opt/stash_data, outside the app directory, so they survive updates. Include this directory in your backups.",
+      "type": "info"
+    },
+    {
+      "text": "Media files are not stored in the container. Mount your library into the LXC (for example via a Proxmox bind mount) and point the Stash scan directories at the mount path.",
+      "type": "warning"
+    }
+  ]
+}

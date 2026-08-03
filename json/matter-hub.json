@@ -1,0 +1,50 @@
+{
+  "name": "Home Assistant Matter Hub",
+  "slug": "matter-hub",
+  "categories": [
+    17
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8482,
+  "documentation": "https://t0bst4r.github.io/home-assistant-matter-hub",
+  "website": "https://github.com/t0bst4r/home-assistant-matter-hub",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/home-assistant.webp",
+  "config_path": "/opt/matter-hub.env",
+  "description": "Home Assistant Matter Hub publishes your Home Assistant entities as Matter devices, so Apple Home, Google Home, Amazon Alexa and any other Matter controller can see and control them. It acts as a Matter bridge in front of Home Assistant and needs only a long-lived access token to connect.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/matter-hub.sh",
+      "config_path": "/opt/matter-hub.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Set HAMH_HOME_ASSISTANT_URL and HAMH_HOME_ASSISTANT_ACCESS_TOKEN in /opt/matter-hub.env, then run 'systemctl restart matter-hub'. Create the long-lived access token in Home Assistant under your user profile, Security tab.",
+      "type": "warning"
+    },
+    {
+      "text": "Matter relies on IPv6 and mDNS. The container needs working IPv6 and must be on the same L2 network as your Matter controllers - across VLANs you have to allow and route mDNS/UDP, otherwise commissioning fails.",
+      "type": "warning"
+    },
+    {
+      "text": "Bridge data and fabric credentials are stored in /opt/matter-hub_data. Deleting that directory unpairs every controller and requires re-commissioning.",
+      "type": "info"
+    }
+  ]
+}

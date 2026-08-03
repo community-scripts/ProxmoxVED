@@ -1,0 +1,50 @@
+{
+  "name": "Decypharr",
+  "slug": "decypharr",
+  "categories": [
+    14
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8282,
+  "documentation": "https://sirrobot01.github.io/decypharr/",
+  "website": "https://github.com/sirrobot01/decypharr",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/decypharr.webp",
+  "config_path": "/opt/decypharr_data/config.json",
+  "description": "Decypharr exposes a mock qBittorrent and SABnzbd API in front of debrid services, so Sonarr, Radarr, Lidarr and friends can send downloads to Real-Debrid, Torbox, AllDebrid, Debrid-Link or Premiumize as if they were talking to a normal download client. It also supports direct Usenet streaming via NNTP without a separate download client.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/decypharr.sh",
+      "config_path": "/opt/decypharr_data/config.json",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Open http://<IP>:8282 and complete the setup wizard to add your debrid provider and create the admin account. The configuration is written to /opt/decypharr_data/config.json, outside the app directory, so it survives updates.",
+      "type": "info"
+    },
+    {
+      "text": "The qBittorrent-compatible endpoint is what you add in Sonarr/Radarr as a download client - point it at http://<IP>:8282 and use the credentials you created in the wizard.",
+      "type": "info"
+    },
+    {
+      "text": "The optional rclone/DFS mount features need /dev/fuse inside the container. In an unprivileged LXC add 'lxc.cgroup2.devices.allow: c 10:229 rwm' and 'lxc.mount.entry: /dev/fuse dev/fuse none bind,create=file' to the container config. WebDAV and the download-client API work without it.",
+      "type": "warning"
+    }
+  ]
+}

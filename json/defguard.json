@@ -1,0 +1,54 @@
+{
+  "name": "Defguard",
+  "slug": "defguard",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8000,
+  "documentation": "https://docs.defguard.net/",
+  "website": "https://defguard.net/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/defguard.webp",
+  "config_path": "/etc/defguard/core.conf",
+  "description": "Defguard is a WireGuard VPN server combined with an identity provider. It adds user enrollment, multi-factor authentication, OpenID Connect SSO and per-user access control on top of WireGuard, all managed from a web interface. This installs the Defguard Core service; gateways are deployed separately on the machines that terminate the VPN tunnels.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/defguard.sh",
+      "config_path": "/etc/defguard/core.conf",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The generated admin password is stored as DEFGUARD_DEFAULT_ADMIN_PASSWORD in /etc/defguard/core.conf. Log in as 'admin' at http://<IP>:8000 and change it.",
+      "type": "warning"
+    },
+    {
+      "text": "DEFGUARD_COOKIE_INSECURE=true is set so the web UI works over plain HTTP. When you put Defguard behind a TLS reverse proxy, remove that line and set DEFGUARD_URL to the public https URL, then restart the service.",
+      "type": "warning"
+    },
+    {
+      "text": "This is only the Core service. VPN traffic is handled by a separate Defguard Gateway which connects back to the gRPC port 50055 on this container - see the upstream documentation for gateway deployment.",
+      "type": "info"
+    },
+    {
+      "text": "Data is stored in the local PostgreSQL database, not in /opt. Back up the 'defguard' database rather than the app directory.",
+      "type": "info"
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func")
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: MickLesk (CanbiZ)
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://github.com/DefGuard/defguard
+
+APP="Defguard"
+var_tags="${var_tags:-vpn;wireguard;sso}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-8}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-13}"
+var_unprivileged="${var_unprivileged:-1}"
+
+header_info "$APP"
+variables
+color
+catch_errors
+
+function update_script() {
+  header_info
+  check_container_storage
+  check_container_resources
+
+  if [[ ! -f /etc/defguard/core.conf ]]; then
+    msg_error "No ${APP} Installation Found!"
+    exit
+  fi
+
+  if check_for_gh_release "defguard" "DefGuard/defguard"; then
+    msg_info "Stopping Service"
+    systemctl stop defguard
+    msg_ok "Stopped Service"
+
+    msg_info "Backing up Configuration"
+    cp /etc/defguard/core.conf /opt/defguard-core.conf.bak
+    msg_ok "Backed up Configuration"
+
+    fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary" "latest" "/opt/defguard" "defguard-*-$(arch_resolve x86_64 aarch64)-unknown-linux-gnu.deb"
+
+    msg_info "Restoring Configuration"
+    mv /opt/defguard-core.conf.bak /etc/defguard/core.conf
+    chown root:defguard /etc/defguard/core.conf
+    chmod 640 /etc/defguard/core.conf
+    msg_ok "Restored Configuration"
+
+    msg_info "Starting Service"
+    systemctl restart defguard
+    msg_ok "Started Service"
+    msg_ok "Updated successfully!"
+  fi
+  exit
+}
+
+start
+build_container
+description
+
+msg_ok "Completed Successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW}Access it using the following URL:${CL}"
+echo -e "${GATEWAY}${BGN}http://${IP}:8000${CL}"
+echo -e "${INFO}${YW}The generated admin password is in /etc/defguard/core.conf${CL}"
