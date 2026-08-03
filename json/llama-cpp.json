@@ -1,0 +1,54 @@
+{
+  "name": "llama.cpp",
+  "slug": "llama-cpp",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8080,
+  "documentation": "https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md",
+  "website": "https://github.com/ggml-org/llama.cpp",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/llama-cpp.webp",
+  "config_path": "/opt/llama-cpp.env",
+  "description": "llama.cpp runs GGUF language models directly in C/C++ with no Python runtime. This installs llama-server, which serves a built-in web chat UI plus an OpenAI-compatible API on the same port, so it can back tools like AnythingLLM, Open WebUI or Claude Code. Lighter and closer to the metal than Ollama.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/llama-cpp.sh",
+      "config_path": "/opt/llama-cpp.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 30,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "On first start llama-server downloads the model set in LLAMA_ARG_HF_REPO (default: ggml-org/gemma-3-1b-it-GGUF, roughly 800 MB) into /opt/llama-cpp_data/models, so the container is usable straight away. Swap it for any GGUF repo, or point LLAMA_ARG_MODEL at a local file, then restart.",
+      "type": "info"
+    },
+    {
+      "text": "The web UI and the OpenAI-compatible API share port 8080: /v1/chat/completions, /v1/models and friends. There is no authentication - set LLAMA_ARG_API_KEY in /opt/llama-cpp.env or keep it off untrusted networks.",
+      "type": "warning"
+    },
+    {
+      "text": "This is the CPU build (LLAMA_ARG_N_GPU_LAYERS=0). For GPU offload pass a card through and install the matching build - the release also ships vulkan, rocm and sycl variants. Adjust the asset name in the script accordingly.",
+      "type": "info"
+    },
+    {
+      "text": "RAM is the limiting factor: the model must fit alongside the KV cache. 8 GB comfortably runs models up to roughly 7B at Q4. Raise LLAMA_ARG_CTX_SIZE only if you have headroom.",
+      "type": "info"
+    }
+  ]
+}
