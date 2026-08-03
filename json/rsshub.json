@@ -1,0 +1,54 @@
+{
+  "name": "RSSHub",
+  "slug": "rsshub",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 1200,
+  "documentation": "https://docs.rsshub.app/",
+  "website": "https://rsshub.app/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rsshub.webp",
+  "config_path": "/opt/rsshub.env",
+  "description": "RSSHub generates RSS feeds for sites that do not offer them - social networks, video platforms, shops, forums, news outlets and hundreds more, through community-maintained route definitions. Feed the resulting URLs into any reader such as FreshRSS, Miniflux or CommaFeed.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/rsshub.sh",
+      "config_path": "/opt/rsshub.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 12,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The instance is open to anyone who can reach it. If it is exposed beyond your LAN, uncomment ACCESS_KEY in /opt/rsshub.env and append ?key=... to your feed URLs, otherwise strangers can use your server to scrape third-party sites.",
+      "type": "warning"
+    },
+    {
+      "text": "Caching goes to the local Redis with a 300 second expiry. Many routes scrape HTML, so a short cache means more requests to the target site and a higher chance of being rate-limited or blocked - raise CACHE_EXPIRE if a route starts failing.",
+      "type": "info"
+    },
+    {
+      "text": "Routes that need credentials (some social networks) are configured through additional environment variables in /opt/rsshub.env - see the route documentation upstream.",
+      "type": "info"
+    },
+    {
+      "text": "The build is a large TypeScript project and takes several minutes; 4 GB RAM is the practical minimum for it to complete.",
+      "type": "info"
+    }
+  ]
+}

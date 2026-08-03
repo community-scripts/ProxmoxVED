@@ -196,6 +196,15 @@ fetch_and_deploy_gh_release "appname" "owner/repo" "singlefile" "latest" "/opt/a
 CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 ```
 
+**Pre-release projects:** `/releases/latest` on GitHub hides pre-releases. For projects
+that only ship betas (e.g. RustFS), set `GH_INCLUDE_PRERELEASE=1` — it applies to both
+`fetch_and_deploy_gh_release` and `check_for_gh_release`:
+
+```bash
+GH_INCLUDE_PRERELEASE=1 fetch_and_deploy_gh_release "app" "owner/repo" "prebuild" "latest" "/opt/app" "app-linux-amd64.zip"
+if GH_INCLUDE_PRERELEASE=1 check_for_gh_release "app" "owner/repo"; then
+```
+
 **Version file:** After `fetch_and_deploy_gh_release`, the deployed version is stored in `~/.appname`. You can read it with `cat ~/.appname` — useful when you need the version later (e.g. for build-time environment variables).
 
 ### Runtime/Language Setup
