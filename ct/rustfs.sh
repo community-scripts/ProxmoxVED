@@ -29,21 +29,19 @@ function update_script() {
     exit
   fi
 
-  msg_info "Stopping Service"
-  systemctl stop rustfs
-  msg_ok "Stopped Service"
+  if GH_INCLUDE_PRERELEASE=1 check_for_gh_release "rustfs" "rustfs/rustfs"; then
+    msg_info "Stopping Service"
+    systemctl stop rustfs
+    msg_ok "Stopped Service"
 
-  msg_info "Updating ${APP}"
-  curl -fsSL "https://dl.rustfs.com/artifacts/rustfs/release/rustfs-linux-$(arch_resolve x86_64 aarch64)-gnu-latest.zip" -o /tmp/rustfs.zip
-  $STD unzip -o /tmp/rustfs.zip -d /opt/rustfs
-  rm -f /tmp/rustfs.zip
-  chmod +x /opt/rustfs/rustfs
-  msg_ok "Updated ${APP}"
+    GH_INCLUDE_PRERELEASE=1 CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustfs" "rustfs/rustfs" "prebuild" "latest" "/opt/rustfs" "rustfs-linux-$(arch_resolve x86_64 aarch64)-gnu-latest.zip"
+    chmod +x /opt/rustfs/rustfs
 
-  msg_info "Starting Service"
-  systemctl start rustfs
-  msg_ok "Started Service"
-  msg_ok "Updated successfully!"
+    msg_info "Starting Service"
+    systemctl start rustfs
+    msg_ok "Started Service"
+    msg_ok "Updated successfully!"
+  fi
   exit
 }
 

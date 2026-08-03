@@ -3016,7 +3016,7 @@ check_for_gh_release() {
     rm -f "$gh_check_json"
   fi
 
-  if [[ -z "$pinned_version_in" && -z "$tag_prefix" ]]; then
+  if [[ -z "$pinned_version_in" && -z "$tag_prefix" && "${GH_INCLUDE_PRERELEASE:-0}" != "1" ]]; then
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o "$gh_check_json" \
       -H 'Accept: application/vnd.github+json' \
       -H 'X-GitHub-Api-Version: 2022-11-28' \
@@ -4032,7 +4032,9 @@ fetch_and_deploy_gh_release() {
   local api_url="https://api.github.com/repos/$repo/releases"
   if [[ "$version" != "latest" ]]; then
     api_url="$api_url/tags/$version"
-  elif [[ -n "$tag_prefix" ]]; then
+  elif [[ -n "$tag_prefix" || "${GH_INCLUDE_PRERELEASE:-0}" == "1" ]]; then
+    # /releases/latest hides prereleases, so projects that only ship betas
+    # (e.g. RustFS) need the full list plus the filter further below.
     api_url="$api_url?per_page=100"
   else
     api_url="$api_url/latest"
@@ -4099,11 +4101,13 @@ fetch_and_deploy_gh_release() {
 
   local json tag_name
   json=$(<"$gh_rel_json")
-  if [[ "$version" == "latest" && -n "$tag_prefix" ]]; then
-    json=$(echo "$json" | jq --arg p "$tag_prefix" \
-      '[.[] | select(.draft==false and .prerelease==false) | select(.tag_name | startswith($p))][0] // empty')
+  if [[ "$version" == "latest" && ( -n "$tag_prefix" || "${GH_INCLUDE_PRERELEASE:-0}" == "1" ) ]]; then
+    local _allow_pre="false"
+    [[ "${GH_INCLUDE_PRERELEASE:-0}" == "1" ]] && _allow_pre="true"
+    json=$(echo "$json" | jq --arg p "$tag_prefix" --argjson pre "$_allow_pre" \
+      '[.[] | select(.draft==false) | select($pre or .prerelease==false) | select(.tag_name | startswith($p))][0] // empty')
     if [[ -z "$json" || "$json" == "null" ]]; then
-      msg_error "No stable release matching prefix '${tag_prefix}' found for $repo on GitHub"
+      msg_error "No matching release found for $repo on GitHub"
       return 1
     fi
   fi

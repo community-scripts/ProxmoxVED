@@ -13,17 +13,9 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt install -y unzip
-msg_ok "Installed Dependencies"
-
-msg_info "Installing RustFS"
 mkdir -p /opt/rustfs_data/{data,logs}
-curl -fsSL "https://dl.rustfs.com/artifacts/rustfs/release/rustfs-linux-$(arch_resolve x86_64 aarch64)-gnu-latest.zip" -o /tmp/rustfs.zip
-$STD unzip -o /tmp/rustfs.zip -d /opt/rustfs
-rm -f /tmp/rustfs.zip
+GH_INCLUDE_PRERELEASE=1 fetch_and_deploy_gh_release "rustfs" "rustfs/rustfs" "prebuild" "latest" "/opt/rustfs" "rustfs-linux-$(arch_resolve x86_64 aarch64)-gnu-latest.zip"
 chmod +x /opt/rustfs/rustfs
-msg_ok "Installed RustFS"
 
 msg_info "Configuring RustFS"
 RUSTFS_ACCESS_KEY=$(openssl rand -hex 8)
