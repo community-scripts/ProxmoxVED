@@ -457,8 +457,8 @@ PVE_MINOR=$(echo "$PVE_VER" | cut -d. -f2)
 HOST_ARCH=$(dpkg --print-architecture)
 
 msg_ok "Proxmox VE $PVE_VER on $HOST_ARCH"
-((PVE_MAJOR >= 9 && PVE_MINOR >= 1)) &&
-  msg_warn "PVE $PVE_VER can import OCI images itself (Storage -> CT Templates -> Pull from OCI registry)"
+((PVE_MAJOR > 9 || (PVE_MAJOR == 9 && PVE_MINOR >= 1))) &&
+  msg_warn "PVE $PVE_VER can also import OCI images itself: Storage -> CT Templates -> Pull from OCI registry"
 
 D2L_TMP=$(mktemp -d)
 
