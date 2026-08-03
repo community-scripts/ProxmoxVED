@@ -13,8 +13,8 @@
 # Usage: bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/pve/docker2lxc.sh)"
 #
 # Unattended via environment:
-#   OCI_IMAGE CT_NAME VMID CORES MEMORY DISK STORAGE TMPL_STORAGE BRIDGE VLAN
-#   IP_MODE(dhcp|static) STATIC_IP GATEWAY DNS UNPRIVILEGED(0|1) NESTING(0|1)
+#   OCI_IMAGE CT_NAME VMID CORES MEMORY DISK STORAGE TMPL_STORAGE NET_BRIDGE VLAN
+#   IP_MODE(dhcp|static) STATIC_IP NET_GATEWAY DNS UNPRIVILEGED(0|1) NESTING(0|1)
 #   START_AFTER(yes|no) CONVERT_MODE(auto|native|legacy) EXTRA_ENV("K=V;K=V")
 #   REGISTRY_CREDS("user:pass")
 
@@ -37,7 +37,7 @@ declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "docker2lxc" "
 APP="Docker2LXC"
 APP_TYPE="tools"
 
-TMP_DIR=""
+D2L_TMP=""
 INIT_STRATEGY="wrapper"
 TEMPLATE_VOLID=""
 IMG_WORKDIR=""
@@ -52,13 +52,13 @@ have() { command -v "$1" &>/dev/null; }
 
 abort() {
   msg_error "$1"
-  [[ -n "$TMP_DIR" ]] && rm -rf "$TMP_DIR"
+  [[ -n "$D2L_TMP" ]] && rm -rf "$D2L_TMP"
   exit 1
 }
 
 bail() {
   msg_warn "$1"
-  [[ -n "$TMP_DIR" ]] && rm -rf "$TMP_DIR"
+  [[ -n "$D2L_TMP" ]] && rm -rf "$D2L_TMP"
   exit 0
 }
 
@@ -99,8 +99,8 @@ fetch_image_config() {
   local -a auth=()
   [[ -n "${REGISTRY_CREDS:-}" ]] && auth=(--creds "$REGISTRY_CREDS")
 
-  skopeo inspect --config "${auth[@]}" "$ref" >"$out" 2>"$TMP_DIR/skopeo.err" || {
-    log_tail "$TMP_DIR/skopeo.err"
+  skopeo inspect --config "${auth[@]}" "$ref" >"$out" 2>"$D2L_TMP/skopeo.err" || {
+    log_tail "$D2L_TMP/skopeo.err"
     abort "Could not read image config for $ref"
   }
 }
@@ -264,13 +264,13 @@ apply_static_network() {
   local pid=$1
   netns_ip "$pid" link set eth0 up
   netns_ip "$pid" addr add "$STATIC_IP" dev eth0 2>/dev/null || true
-  [[ -n "${GATEWAY:-}" ]] &&
-    { netns_ip "$pid" route replace default via "$GATEWAY" dev eth0 2>/dev/null || msg_warn "Could not set default route via $GATEWAY"; }
+  [[ -n "${NET_GATEWAY:-}" ]] &&
+    { netns_ip "$pid" route replace default via "$NET_GATEWAY" dev eth0 2>/dev/null || msg_warn "Could not set default route via $NET_GATEWAY"; }
   return 0
 }
 
 apply_dhcp_network() {
-  local pid=$1 hook="$TMP_DIR/dhclient-hook.sh"
+  local pid=$1 hook="$D2L_TMP/dhclient-hook.sh"
 
   cat >"$hook" <<'HOOK'
 #!/usr/bin/env bash
@@ -299,8 +299,8 @@ HOOK
 
   netns_ip "$pid" link set eth0 up
   nsenter -t "$pid" -n -- dhclient -1 -q \
-    -sf "$hook" -lf "$TMP_DIR/dhcp.lease" -pf "$TMP_DIR/dhcp.pid" eth0 &>/dev/null || return 1
-  [[ -f "$TMP_DIR/dhcp.pid" ]] && kill "$(cat "$TMP_DIR/dhcp.pid")" 2>/dev/null
+    -sf "$hook" -lf "$D2L_TMP/dhcp.lease" -pf "$D2L_TMP/dhcp.pid" eth0 &>/dev/null || return 1
+  [[ -f "$D2L_TMP/dhcp.pid" ]] && kill "$(cat "$D2L_TMP/dhcp.pid")" 2>/dev/null
   return 0
 }
 
@@ -354,26 +354,26 @@ build_template() {
 
   msg_info "Pulling $ref"
   skopeo copy --override-os linux --override-arch "$HOST_ARCH" "${auth[@]}" \
-    "docker://$ref" "oci:$TMP_DIR/oci:converted" &>"$TMP_DIR/pull.log" || {
+    "docker://$ref" "oci:$D2L_TMP/oci:converted" &>"$D2L_TMP/pull.log" || {
     msg_error "Pull failed"
-    log_tail "$TMP_DIR/pull.log"
+    log_tail "$D2L_TMP/pull.log"
     abort "Could not pull $ref"
   }
   msg_ok "Pulled $ref"
 
-  fetch_image_config "oci:$TMP_DIR/oci:converted" "$TMP_DIR/config.json"
-  parse_image_config "$TMP_DIR/config.json"
+  fetch_image_config "oci:$D2L_TMP/oci:converted" "$D2L_TMP/config.json"
+  parse_image_config "$D2L_TMP/config.json"
 
   msg_info "Flattening layers"
-  umoci unpack --image "$TMP_DIR/oci:converted" "$TMP_DIR/bundle" &>"$TMP_DIR/unpack.log" || {
+  umoci unpack --image "$D2L_TMP/oci:converted" "$D2L_TMP/bundle" &>"$D2L_TMP/unpack.log" || {
     msg_error "umoci unpack failed"
-    log_tail "$TMP_DIR/unpack.log"
+    log_tail "$D2L_TMP/unpack.log"
     abort "Could not flatten $ref"
   }
   msg_ok "Flattened layers"
 
-  OSTYPE_DETECTED=$(detect_ostype "$TMP_DIR/bundle/rootfs")
-  prepare_rootfs "$TMP_DIR/bundle/rootfs"
+  OSTYPE_DETECTED=$(detect_ostype "$D2L_TMP/bundle/rootfs")
+  prepare_rootfs "$D2L_TMP/bundle/rootfs"
 
   have zstd || ext="tar.gz"
   slug=$(echo "$ref" | sed 's|[/:]|-|g; s|[^a-zA-Z0-9._-]|-|g')
@@ -383,18 +383,18 @@ build_template() {
   mkdir -p "$(dirname "$template_path")"
 
   msg_info "Packing template"
-  tar --numeric-owner --xattrs --xattrs-include='*' -caf "$template_path" -C "$TMP_DIR/bundle/rootfs" . 2>/dev/null ||
-    tar --numeric-owner -caf "$template_path" -C "$TMP_DIR/bundle/rootfs" . ||
+  tar --numeric-owner --xattrs --xattrs-include='*' -caf "$template_path" -C "$D2L_TMP/bundle/rootfs" . 2>/dev/null ||
+    tar --numeric-owner -caf "$template_path" -C "$D2L_TMP/bundle/rootfs" . ||
     abort "Could not pack template"
   msg_ok "Built template $TEMPLATE_VOLID ($(du -h "$template_path" | cut -f1))"
 }
 
 build_net_arg() {
-  local net="name=eth0,bridge=${BRIDGE}"
+  local net="name=eth0,bridge=${NET_BRIDGE}"
   [[ -n "${VLAN:-}" ]] && net+=",tag=${VLAN}"
   if [[ "$IP_MODE" == "static" ]]; then
     net+=",ip=${STATIC_IP}"
-    [[ -n "${GATEWAY:-}" ]] && net+=",gw=${GATEWAY}"
+    [[ -n "${NET_GATEWAY:-}" ]] && net+=",gw=${NET_GATEWAY}"
   else
     net+=",ip=dhcp"
   fi
@@ -418,9 +418,9 @@ create_container_legacy() {
   [[ "$NESTING" == "1" ]] && args+=(--features nesting=1)
 
   msg_info "Creating container $VMID"
-  pct create "${args[@]}" &>"$TMP_DIR/create.log" || {
+  pct create "${args[@]}" &>"$D2L_TMP/create.log" || {
     msg_error "pct create failed"
-    log_tail "$TMP_DIR/create.log" 30
+    log_tail "$D2L_TMP/create.log" 30
     abort "Could not create container $VMID"
   }
   msg_ok "Created container $VMID"
@@ -459,9 +459,9 @@ create_container_native() {
   [[ "$NESTING" == "1" ]] && args+=(--features nesting=1)
 
   msg_info "Creating container $VMID from OCI image"
-  if ! pct create "${args[@]}" &>"$TMP_DIR/create.log"; then
+  if ! pct create "${args[@]}" &>"$D2L_TMP/create.log"; then
     msg_error "Native OCI create failed - falling back to skopeo/umoci"
-    log_tail "$TMP_DIR/create.log" 15
+    log_tail "$D2L_TMP/create.log" 15
     if pct status "$VMID" &>/dev/null; then
       pct destroy "$VMID" --force 1 --purge 1 &>/dev/null || true
     fi
@@ -503,7 +503,7 @@ if [[ "$CONVERT_MODE" == "native" ]] && ((!NATIVE_OCI)); then
   CONVERT_MODE="legacy"
 fi
 
-TMP_DIR=$(mktemp -d)
+D2L_TMP=$(mktemp -d)
 
 echo ""
 OCI_IMAGE="${OCI_IMAGE:-$(prompt_input "OCI/Docker image (e.g. nginx:alpine, ghcr.io/user/app:1.2.3):" "nginx:alpine" 120)}"
@@ -520,13 +520,13 @@ DISK="${DISK:-$(prompt_input "Disk size in GB:" "8")}"
 DEFAULT_STORAGE=$(pvesm status --content rootdir 2>/dev/null | awk 'NR>1 && $3=="active" {print $1; exit}')
 STORAGE="${STORAGE:-$(prompt_input "Storage for the container rootfs:" "${DEFAULT_STORAGE:-local-lvm}")}"
 TMPL_STORAGE="${TMPL_STORAGE:-$(prompt_input "Storage for the generated template:" "$(pick_template_storage)")}"
-BRIDGE="${BRIDGE:-$(prompt_input "Network bridge:" "vmbr0")}"
+NET_BRIDGE="${NET_BRIDGE:-$(prompt_input "Network bridge:" "vmbr0")}"
 VLAN="${VLAN:-$(prompt_input "VLAN tag (empty for none):" "")}"
 IP_MODE="${IP_MODE:-$(prompt_select "IP mode:" 1 60 "dhcp" "static")}"
 
 if [[ "$IP_MODE" == "static" ]]; then
   STATIC_IP="${STATIC_IP:-$(prompt_input "Static IP in CIDR notation (e.g. 192.168.1.50/24):" "")}"
-  GATEWAY="${GATEWAY:-$(prompt_input "Gateway:" "")}"
+  NET_GATEWAY="${NET_GATEWAY:-$(prompt_input "Gateway:" "")}"
   [[ -n "$STATIC_IP" ]] || abort "Static mode selected but no IP given"
 fi
 DNS="${DNS:-$(prompt_input "DNS server:" "$(awk '/^nameserver/{print $2; exit}' /etc/resolv.conf 2>/dev/null || echo 1.1.1.1)")}"
@@ -556,7 +556,7 @@ echo -e "${TAB}${BL}Image:${CL}      $FULL_IMAGE"
 echo -e "${TAB}${BL}Mode:${CL}       $CONVERT_MODE ($([[ "$CONVERT_MODE" == native ]] && echo "pct oci=" || echo "skopeo+umoci"))"
 echo -e "${TAB}${BL}Container:${CL}  $VMID / $CT_NAME"
 echo -e "${TAB}${BL}Resources:${CL}  ${CORES} cores, ${MEMORY} MB, ${DISK} GB on $STORAGE"
-echo -e "${TAB}${BL}Network:${CL}    $BRIDGE ${VLAN:+vlan $VLAN }($IP_MODE${STATIC_IP:+ $STATIC_IP})"
+echo -e "${TAB}${BL}Network:${CL}    $NET_BRIDGE ${VLAN:+vlan $VLAN }($IP_MODE${STATIC_IP:+ $STATIC_IP})"
 echo -e "${TAB}${BL}Privileged:${CL} $([[ "$UNPRIVILEGED" == "1" ]] && echo no || echo yes)"
 echo ""
 
@@ -565,8 +565,8 @@ echo ""
 
 if [[ "$CONVERT_MODE" == "native" ]]; then
   install_deps skopeo jq
-  fetch_image_config "docker://$FULL_IMAGE" "$TMP_DIR/config.json"
-  parse_image_config "$TMP_DIR/config.json"
+  fetch_image_config "docker://$FULL_IMAGE" "$D2L_TMP/config.json"
+  parse_image_config "$D2L_TMP/config.json"
   create_container_native || true
 fi
 
@@ -578,13 +578,13 @@ fi
 
 if [[ "$START_AFTER" == "yes" ]]; then
   msg_info "Starting container $VMID"
-  if pct start "$VMID" &>"$TMP_DIR/start.log"; then
+  if pct start "$VMID" &>"$D2L_TMP/start.log"; then
     msg_ok "Started container $VMID"
     sleep 2
     bring_up_network "$VMID"
   else
     msg_error "Container failed to start"
-    log_tail "$TMP_DIR/start.log"
+    log_tail "$D2L_TMP/start.log"
     echo -e "${TAB}${YW}Debug with: pct start $VMID --debug${CL}"
   fi
 fi
@@ -610,4 +610,4 @@ fi
 echo -e "${TAB}${BL}Console:${CL} pct console $VMID    ${BL}Shell:${CL} pct enter $VMID"
 echo ""
 
-rm -rf "$TMP_DIR"
+rm -rf "$D2L_TMP"
