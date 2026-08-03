@@ -51,11 +51,11 @@
       "type": "info"
     },
     {
-      "text": "To run Edge on a separate host instead (upstream's segmented layout, with Edge in a DMZ and Core internal), use tools/addon/defguard-edge.sh in that container and point the wizard at its IP:50051.",
+      "text": "Installed from the official Defguard apt repository (apt.defguard.net, component release-2.0), so updates go through apt. Data lives in the local PostgreSQL database 'defguard', not in /opt.",
       "type": "info"
     },
     {
-      "text": "Installed from the official Defguard apt repository (apt.defguard.net, component release-2.0), so updates go through apt. Data lives in the local PostgreSQL database 'defguard', not in /opt.",
+      "text": "To run Edge on a separate host instead (upstream's segmented layout, with Edge in a DMZ and Core internal), install the defguard-proxy package from the same apt repository there and copy the proxy.toml block from install/defguard-install.sh, then point the wizard at that host's IP:50051.",
       "type": "info"
     }
   ]

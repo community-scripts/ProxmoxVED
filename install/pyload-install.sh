@@ -49,6 +49,15 @@ EOF
 systemctl enable -q --now pyload
 msg_ok "Created Service"
 
+msg_info "Configuring Web Interface"
+for _ in {1..30}; do
+  [[ -f /opt/pyload_data/userdir/settings/pyload.cfg ]] && break
+  sleep 1
+done
+sed -i 's|^\([[:space:]]*ip host : "IP address"\) = localhost$|\1 = 0.0.0.0|' /opt/pyload_data/userdir/settings/pyload.cfg
+systemctl restart pyload
+msg_ok "Configured Web Interface"
+
 motd_ssh
 customize
 cleanup_lxc

@@ -13,13 +13,13 @@
   "documentation": "https://github.com/pyload/pyload/wiki",
   "website": "https://pyload.net/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/pyload.webp",
-  "config_path": "/opt/pyload_data/userdir",
+  "config_path": "/opt/pyload_data/userdir/settings/pyload.cfg",
   "description": "pyLoad is a lightweight download manager written in Python. It handles one-click hosters, container files (DLC, RSDF, CCF) and direct links, supports premium accounts, captcha solving and a plugin system, and is controlled through a web interface, a CLI or third-party clients.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/pyload.sh",
-      "config_path": "/opt/pyload_data/userdir",
+      "config_path": "/opt/pyload_data/userdir/settings/pyload.cfg",
       "resources": {
         "cpu": 2,
         "ram": 2048,
@@ -37,6 +37,10 @@
     {
       "text": "Log in at http://<IP>:8000 with pyload/pyload and change the password immediately.",
       "type": "warning"
+    },
+    {
+      "text": "pyLoad binds its web interface to localhost by default. The installer rewrites the webui host in /opt/pyload_data/userdir/settings/pyload.cfg to 0.0.0.0 so the container is reachable by IP - do not set it back to localhost unless you only access it through a reverse proxy on the same host.",
+      "type": "info"
     },
     {
       "text": "Downloads go to /opt/pyload_data/downloads and the configuration lives in /opt/pyload_data/userdir. Both are outside the app directory so they survive updates.",
