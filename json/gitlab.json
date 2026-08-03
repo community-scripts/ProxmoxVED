@@ -43,8 +43,12 @@
       "type": "warning"
     },
     {
-      "text": "EXTERNAL_URL is set to the container IP at install time. If you use a domain or a reverse proxy, change external_url in /etc/gitlab/gitlab.rb and run 'gitlab-ctl reconfigure'.",
+      "text": "external_url is set to the container IP at install time. If you use a domain or a reverse proxy, change external_url in /etc/gitlab/gitlab.rb and run 'gitlab-ctl reconfigure'.",
       "type": "info"
+    },
+    {
+      "text": "/etc/gitlab/gitlab.rb sets package['modify_kernel_parameters'] = false. Omnibus otherwise runs 'sysctl -e --system' during reconfigure, which fails in an unprivileged LXC because most kernel keys are not writable. Do not remove that line.",
+      "type": "warning"
     },
     {
       "text": "Omnibus bundles its own PostgreSQL, Redis and NGINX - do not install those separately in this container. Repositories live in /var/opt/gitlab; back up with 'gitlab-backup create' rather than copying directories.",

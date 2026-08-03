@@ -27,9 +27,24 @@ setup_deb822_repo \
   "$(get_os_info codename)" \
   "main"
 
+msg_info "Configuring GitLab"
+mkdir -p /etc/gitlab
+cat <<EOF >/etc/gitlab/gitlab.rb
+external_url 'http://${LOCAL_IP}'
+
+# Omnibus runs 'sysctl -e --system' during reconfigure, which fails in an
+# unprivileged LXC because most kernel keys are not writable.
+package['modify_kernel_parameters'] = false
+EOF
+msg_ok "Configured GitLab"
+
 msg_info "Installing GitLab CE (Patience)"
-EXTERNAL_URL="http://${LOCAL_IP}" $STD apt install -y gitlab-ce
+$STD apt install -y gitlab-ce
 msg_ok "Installed GitLab CE"
+
+msg_info "Reconfiguring GitLab (Patience)"
+$STD gitlab-ctl reconfigure
+msg_ok "Reconfigured GitLab"
 
 motd_ssh
 customize
