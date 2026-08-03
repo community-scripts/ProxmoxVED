@@ -1,0 +1,54 @@
+{
+  "name": "Unsloth",
+  "slug": "unsloth",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 8888,
+  "documentation": "https://unsloth.ai/docs/new/studio",
+  "website": "https://unsloth.ai/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/unsloth.webp",
+  "config_path": "/opt/unsloth.env",
+  "description": "Unsloth Studio is a local web UI for running and fine-tuning language models. It can search, download and serve GGUF, LoRA and safetensors models, compare two models side by side, export to other formats, and expose OpenAI- and Anthropic-compatible endpoints so local models can be used from Claude Code, Codex and similar tools. Fine-tuning with LoRA is configured entirely through the UI.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/unsloth.sh",
+      "config_path": "/opt/unsloth.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 40,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The generated UI password is stored as UNSLOTH_STUDIO_PASSWORD in /opt/unsloth.env. Without it Unsloth Studio would prompt for one on the terminal, which a systemd service cannot answer.",
+      "type": "warning"
+    },
+    {
+      "text": "Fine-tuning requires an NVIDIA GPU. Without one, inference, model management, export and the OpenAI-compatible API work, but training does not. Pass a card through and install the NVIDIA driver in the container to enable it.",
+      "type": "warning"
+    },
+    {
+      "text": "Models and Hugging Face caches land in /opt/unsloth_data, which fills up quickly - a single 7B model at Q4 is roughly 4 GB. Give the container more disk if you plan to keep several, and back that directory up rather than /opt/unsloth.",
+      "type": "info"
+    },
+    {
+      "text": "PyTorch is installed with uv's --torch-backend=auto, so a CPU-only container gets the CPU wheels and a GPU container the matching CUDA build. Re-run the update after adding a GPU so the right backend is pulled.",
+      "type": "info"
+    }
+  ]
+}
