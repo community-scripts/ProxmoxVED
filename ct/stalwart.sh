@@ -35,6 +35,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "stalwart" "stalwartlabs/stalwart" "prebuild" "latest" "/opt/stalwart" "stalwart-$(arch_resolve x86_64 aarch64)-unknown-linux-gnu.tar.gz"
+    chmod +x /opt/stalwart/stalwart
 
     msg_info "Starting Service"
     systemctl start stalwart
@@ -53,4 +54,4 @@ echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW}Access it using the following URL:${CL}"
 echo -e "${GATEWAY}${BGN}http://${IP}:8080/admin${CL}"
 echo -e "${INFO}${YW}The bootstrap admin password was printed to the service log:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}journalctl -u stalwart | grep -A8 'bootstrap mode'${CL}"
+echo -e "${TAB}${DEFAULT}${BGN}journalctl -u stalwart | grep -A8 'bootstrap mode'${CL}"

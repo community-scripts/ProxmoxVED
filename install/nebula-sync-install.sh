@@ -14,6 +14,7 @@ network_check
 update_os
 
 fetch_and_deploy_gh_release "nebula-sync" "lovelaze/nebula-sync" "prebuild" "latest" "/opt/nebula-sync" "nebula-sync_*_linux_$(arch_resolve).tar.gz"
+chmod +x /opt/nebula-sync/nebula-sync
 
 msg_info "Configuring nebula-sync"
 cat <<EOF >/opt/nebula-sync.env

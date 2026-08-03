@@ -35,6 +35,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "nebula-sync" "lovelaze/nebula-sync" "prebuild" "latest" "/opt/nebula-sync" "nebula-sync_*_linux_$(arch_resolve).tar.gz"
+    chmod +x /opt/nebula-sync/nebula-sync
 
     msg_info "Starting Service"
     systemctl start nebula-sync
@@ -50,5 +51,6 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW}${APP} has no web interface. Set PRIMARY and REPLICAS in /opt/nebula-sync.env, then run:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}systemctl restart nebula-sync${CL}"
+echo -e "${INFO}${YW}${APP} has no web interface.${CL}"
+echo -e "${INFO}${YW}Set PRIMARY and REPLICAS in /opt/nebula-sync.env, then run:${CL}"
+echo -e "${TAB}${DEFAULT}${BGN}systemctl restart nebula-sync${CL}"

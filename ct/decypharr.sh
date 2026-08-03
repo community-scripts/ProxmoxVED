@@ -35,6 +35,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "decypharr" "sirrobot01/decypharr" "prebuild" "latest" "/opt/decypharr" "decypharr_Linux_$(arch_resolve x86_64 arm64).tar.gz"
+    chmod +x /opt/decypharr/decypharr
 
     msg_info "Starting Service"
     systemctl start decypharr

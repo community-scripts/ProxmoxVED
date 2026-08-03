@@ -14,6 +14,7 @@ network_check
 update_os
 
 fetch_and_deploy_gh_release "stalwart" "stalwartlabs/stalwart" "prebuild" "latest" "/opt/stalwart" "stalwart-$(arch_resolve x86_64 aarch64)-unknown-linux-gnu.tar.gz"
+chmod +x /opt/stalwart/stalwart
 
 msg_info "Configuring Stalwart"
 mkdir -p /opt/stalwart_data/{etc,data,logs}

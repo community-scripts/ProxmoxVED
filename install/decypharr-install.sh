@@ -18,6 +18,7 @@ $STD apt install -y fuse3
 msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "decypharr" "sirrobot01/decypharr" "prebuild" "latest" "/opt/decypharr" "decypharr_Linux_$(arch_resolve x86_64 arm64).tar.gz"
+chmod +x /opt/decypharr/decypharr
 
 msg_info "Creating Service"
 mkdir -p /opt/decypharr_data
