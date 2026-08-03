@@ -17,7 +17,8 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
   python3-dev \
-  libgomp1
+  libgomp1 \
+  git
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs

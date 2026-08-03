@@ -227,10 +227,30 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 | ------------------- | ---------------------------------- |
 | `setup_adminer`     | Installs Adminer for DB management |
 | `setup_composer`    | Install PHP Composer               |
-| `setup_ffmpeg`      | Install FFmpeg                     |
+| `setup_ffmpeg`      | Install FFmpeg (see below)         |
 | `setup_imagemagick` | Install ImageMagick                |
 | `setup_gs`          | Install Ghostscript                |
 | `setup_hwaccel`     | Configure hardware acceleration    |
+
+**FFmpeg acquisition (`FFMPEG_TYPE`):**
+
+| Value                        | Source                                    | When to use                                        |
+| ---------------------------- | ----------------------------------------- | -------------------------------------------------- |
+| `repo` *(default)*           | Distribution package (`apt install ffmpeg`) | Almost always. Debian 13 ships 7.1.x.             |
+| `github`                     | Prebuilt static build from BtbN/FFmpeg-Builds | Newer than the distro, or a specific release line |
+| `minimal` / `medium` / `full`| Compiled from source                      | Only for codecs the above cannot provide           |
+
+```bash
+setup_ffmpeg                                    # distribution package
+FFMPEG_TYPE="github" setup_ffmpeg               # latest master, GPL
+FFMPEG_TYPE="github" FFMPEG_LICENSE="lgpl" setup_ffmpeg
+FFMPEG_TYPE="github" FFMPEG_VERSION="n7.1" setup_ffmpeg
+FFMPEG_TYPE="full" setup_ffmpeg                 # 20+ min build, avoid
+```
+
+Source builds use `--enable-gpl --enable-nonfree`. Those binaries must not be
+redistributed - building them on the target host for its own use is fine, shipping
+them is not. Use `repo` or `FFMPEG_LICENSE=lgpl` when an app requires LGPL FFmpeg.
 
 ### Helper Utilities
 
