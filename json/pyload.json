@@ -1,0 +1,50 @@
+{
+  "name": "pyLoad",
+  "slug": "pyload",
+  "categories": [
+    11
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8000,
+  "documentation": "https://github.com/pyload/pyload/wiki",
+  "website": "https://pyload.net/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/pyload.webp",
+  "config_path": "/opt/pyload_data/userdir",
+  "description": "pyLoad is a lightweight download manager written in Python. It handles one-click hosters, container files (DLC, RSDF, CCF) and direct links, supports premium accounts, captcha solving and a plugin system, and is controlled through a web interface, a CLI or third-party clients.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/pyload.sh",
+      "config_path": "/opt/pyload_data/userdir",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "pyload",
+    "password": "pyload"
+  },
+  "notes": [
+    {
+      "text": "Log in at http://<IP>:8000 with pyload/pyload and change the password immediately.",
+      "type": "warning"
+    },
+    {
+      "text": "Downloads go to /opt/pyload_data/downloads and the configuration lives in /opt/pyload_data/userdir. Both are outside the app directory so they survive updates.",
+      "type": "info"
+    },
+    {
+      "text": "pyLoad is still in pre-release; the installer uses the pyload-ng pre-release channel because no stable release exists yet.",
+      "type": "info"
+    }
+  ]
+}
