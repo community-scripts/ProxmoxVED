@@ -46,10 +46,16 @@ msg_ok "Installed PHP Dependencies"
 
 msg_info "Configuring Dreeve"
 mkdir -p /opt/dreeve_data /opt/dreeve/var/{cache,log}
+DREEVE_PASSWORD=$(openssl rand -base64 18)
+DREEVE_HASH=$(/opt/frankenphp/frankenphp php-cli -r 'echo password_hash($argv[1], PASSWORD_BCRYPT, ["cost" => 13]);' -- "$DREEVE_PASSWORD")
 cat <<EOF >/opt/dreeve/.env.local
 APP_ENV=prod
 APP_DEBUG=0
+APP_SECRET=$(openssl rand -hex 32)
+APP_URL=http://${LOCAL_IP}:8080
 DATABASE_DIRECTORY=/opt/dreeve_data
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH='${DREEVE_HASH}'
 TZ=UTC
 
 # Create an API application at https://www.strava.com/settings/api
@@ -58,6 +64,13 @@ STRAVA_CLIENT_SECRET=replace-me
 STRAVA_REFRESH_TOKEN=replace-me
 EOF
 chmod 600 /opt/dreeve/.env.local
+
+cat <<EOF >~/dreeve.creds
+Dreeve Admin
+Username: admin
+Password: ${DREEVE_PASSWORD}
+EOF
+chmod 600 ~/dreeve.creds
 
 cat <<EOF >/opt/dreeve/Caddyfile
 {

@@ -309,13 +309,36 @@ EOF
     mkdir -p /usr/local/bin
     cat <<'EOF' >/usr/local/bin/pdm-remove-nag.sh
 #!/bin/sh
-WEB_JS=/usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
-if [ -s "$WEB_JS" ] && ! grep -q NoMoreNagging "$WEB_JS"; then
-    echo "Patching Web UI nag..."
-    sed -i -e "/data\.status/ s/!//" -e "/data\.status/ s/active/NoMoreNagging/" "$WEB_JS"
+# PDM ships its web UI as a Yew/WASM app in a single JS bundle - there is no
+# proxmoxlib.js and no HTML template to patch, so the dialog is removed from the
+# DOM at runtime instead. Re-applied by the apt hook after every package update.
+BUNDLE=/usr/share/javascript/proxmox-datacenter-manager/js/pdm-ui_bundle.js
+if [ -s "$BUNDLE" ] && ! grep -q PDM_NO_MORE_NAGGING "$BUNDLE"; then
+    echo "Patching PDM subscription nag..."
+    cat >>"$BUNDLE" <<'JS'
+
+// PDM_NO_MORE_NAGGING
+(function () {
+  var drop = function () {
+    document.querySelectorAll('dialog.pwt-outer-dialog').forEach(function (d) {
+      if ((d.textContent || '').toLowerCase().indexOf('subscription') !== -1) {
+        d.remove();
+      }
+    });
+  };
+  var start = function () {
+    drop();
+    new MutationObserver(drop).observe(document.body, { childList: true, subtree: true });
+  };
+  if (document.body) { start(); } else {
+    document.addEventListener('DOMContentLoaded', start);
+  }
+})();
+JS
 fi
 EOF
     chmod 755 /usr/local/bin/pdm-remove-nag.sh
+    /usr/local/bin/pdm-remove-nag.sh >/dev/null 2>&1
 
     cat <<'EOF' >/etc/apt/apt.conf.d/no-nag-script
 DPkg::Post-Invoke { "/usr/local/bin/pdm-remove-nag.sh"; };
@@ -326,9 +349,9 @@ EOF
   no)
     msg_error "Selected no to Disabling subscription nag"
     rm -f /etc/apt/apt.conf.d/no-nag-script /usr/local/bin/pdm-remove-nag.sh 2>/dev/null
+    apt --reinstall install proxmox-datacenter-manager-ui &>/dev/null || msg_error "UI reinstall failed"
     ;;
   esac
-  apt --reinstall install proxmox-widget-toolkit &>/dev/null || msg_error "Widget toolkit reinstall failed"
 
   # ---- UPDATE ----
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "UPDATE" --menu \
