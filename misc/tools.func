@@ -4901,6 +4901,99 @@ EOF
 }
 
 # ------------------------------------------------------------------------------
+# Installs a .NET SDK or runtime.
+#
+# Description:
+#   - Debian and Ubuntu 22.04 install from packages.microsoft.com.
+#   - Ubuntu 24.04 and newer ship .NET in the distribution archive and Microsoft
+#     publishes no dotnet packages for them, so no extra repository is added.
+#   - .NET installs side by side, so an existing major version is left alone.
+#
+# Variables:
+#   DOTNET_VERSION - major version: 8, 9, 10 (default: 10). "8.0" also works.
+#   DOTNET_TYPE    - sdk (default) | runtime | aspnetcore
+#
+# Notes:
+#   - Debian 13 carries 8, 9 and 10; Debian 12 and Ubuntu 22.04 additionally
+#     carry 6 and 7. Ubuntu 22.04 has no 10.
+#   - aspnetcore is the ASP.NET Core runtime that framework-dependent web apps
+#     need at runtime. Use sdk only when something has to be compiled.
+# ------------------------------------------------------------------------------
+
+setup_dotnet() {
+  local DOTNET_VERSION="${DOTNET_VERSION:-10}"
+  local DOTNET_TYPE="${DOTNET_TYPE:-sdk}"
+  local DISTRO_ID DISTRO_CODENAME DISTRO_VERSION PACKAGE_PREFIX
+
+  DOTNET_VERSION="${DOTNET_VERSION%%.*}.0"
+
+  case "$DOTNET_TYPE" in
+  sdk) PACKAGE_PREFIX="dotnet-sdk" ;;
+  runtime) PACKAGE_PREFIX="dotnet-runtime" ;;
+  aspnetcore) PACKAGE_PREFIX="aspnetcore-runtime" ;;
+  *)
+    msg_error "setup_dotnet: invalid DOTNET_TYPE '$DOTNET_TYPE' (expected sdk, runtime or aspnetcore)"
+    return 65
+    ;;
+  esac
+
+  local DESIRED_PACKAGE="${PACKAGE_PREFIX}-${DOTNET_VERSION}"
+  DISTRO_ID=$(get_os_info id)
+  DISTRO_CODENAME=$(get_os_info codename)
+  DISTRO_VERSION=$(get_os_info version_id)
+
+  local USE_MS_REPO=1
+  if [[ "$DISTRO_ID" == "ubuntu" ]] && ((${DISTRO_VERSION%%.*} >= 24)); then
+    USE_MS_REPO=0
+  fi
+
+  if ((USE_MS_REPO)); then
+    local REPO_URL="https://packages.microsoft.com/${DISTRO_ID}/${DISTRO_VERSION}/prod"
+
+    prepare_repository_setup "microsoft-prod" || {
+      msg_error "Failed to prepare Microsoft repository"
+      return 100
+    }
+
+    if ! verify_repo_available "$REPO_URL" "$DISTRO_CODENAME"; then
+      msg_error "Microsoft does not publish a .NET feed for ${DISTRO_ID} ${DISTRO_VERSION} (${DISTRO_CODENAME})"
+      return 100
+    fi
+
+    setup_deb822_repo \
+      "microsoft-prod" \
+      "https://packages.microsoft.com/keys/microsoft.asc" \
+      "$REPO_URL" \
+      "$DISTRO_CODENAME" \
+      "main" || return 100
+  fi
+
+  ensure_apt_working || return 100
+
+  if ! apt-cache show "$DESIRED_PACKAGE" &>/dev/null; then
+    msg_error "Package ${DESIRED_PACKAGE} is not available on ${DISTRO_ID} ${DISTRO_VERSION} (${DISTRO_CODENAME})"
+    return 100
+  fi
+
+  if dpkg-query -W -f '${Status}' "$DESIRED_PACKAGE" 2>/dev/null | grep -q "install ok installed"; then
+    msg_info "Update .NET ${DOTNET_TYPE} ${DOTNET_VERSION}"
+    upgrade_packages_with_retry "$DESIRED_PACKAGE" || {
+      msg_error "Failed to update ${DESIRED_PACKAGE}"
+      return 100
+    }
+  else
+    msg_info "Setup .NET ${DOTNET_TYPE} ${DOTNET_VERSION}"
+    install_packages_with_retry "$DESIRED_PACKAGE" || {
+      msg_error "Failed to install ${DESIRED_PACKAGE}"
+      return 100
+    }
+  fi
+
+  cache_installed_version "dotnet-${DOTNET_TYPE}" "$DOTNET_VERSION"
+  msg_ok "Setup .NET ${DOTNET_TYPE} ${DOTNET_VERSION}"
+}
+
+# ------------------------------------------------------------------------------
 # Installs FFmpeg from the distribution repository, a prebuilt build, or source.
 #
 # Description:

@@ -67,18 +67,13 @@ function update_script() {
     systemctl stop appname
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Data"
-    cp -r /opt/appname/data /opt/appname_data_backup
-    msg_ok "Backed up Data"
+    create_backup /opt/appname/.env /opt/appname/data
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 
-    # Build steps...
+    restore_backup
 
-    msg_info "Restoring Data"
-    cp -r /opt/appname_data_backup/. /opt/appname/data
-    rm -rf /opt/appname_data_backup
-    msg_ok "Restored Data"
+    # Build steps...
 
     msg_info "Starting Service"
     systemctl start appname
@@ -268,6 +263,8 @@ them is not. Use `repo` or `FFMPEG_LICENSE=lgpl` when an app requires LGPL FFmpe
 | `$LOCAL_IP`                   | Always available - contains the container's IP address | `echo "Access: http://${LOCAL_IP}:3000"`  |
 | `ensure_dependencies`         | Checks/installs dependencies                           | `ensure_dependencies curl jq`             |
 | `install_packages_with_retry` | APT install with retry                                 | `install_packages_with_retry nginx redis` |
+| `create_backup`               | Backs up paths before an update                        | `create_backup /opt/app/.env /opt/app/data` |
+| `restore_backup`              | Restores everything `create_backup` recorded           | `restore_backup`                          |
 
 ---
 
@@ -402,6 +399,7 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo"
 - `setup_gs`
 - `setup_adminer`
 - `setup_hwaccel`
+- `create_backup` / `restore_backup`
 
 ### 9. Creating Unnecessary System Users
 
@@ -685,24 +683,19 @@ function update_script() {
     systemctl stop appname
     msg_ok "Stopped Service"
 
-    # 4. Backup data (if present)
-    msg_info "Backing up Data"
-    cp -r /opt/appname/data /opt/appname_data_backup
-    msg_ok "Backed up Data"
+    # 4. Backup config/data (if present) - has its own messages, do not wrap
+    create_backup /opt/appname/.env /opt/appname/data
 
     # 5. Perform clean install
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 
-    # 6. Rebuild (if needed)
+    # 6. Restore BEFORE any build step that reads the config
+    restore_backup
+
+    # 7. Rebuild (if needed)
     cd /opt/appname
     $STD npm install
     $STD npm run build
-
-    # 7. Restore data
-    msg_info "Restoring Data"
-    cp -r /opt/appname_data_backup/. /opt/appname/data
-    rm -rf /opt/appname_data_backup
-    msg_ok "Restored Data"
 
     # 8. Start service
     msg_info "Starting Service"
