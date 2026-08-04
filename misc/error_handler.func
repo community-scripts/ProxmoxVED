@@ -497,7 +497,9 @@ error_handler() {
       fi
 
       local response=""
-      if read -t 60 -r response </dev/tty; then
+      local read_rc=0
+      read -t 60 -r response </dev/tty || read_rc=$?
+      if [[ $read_rc -eq 0 ]]; then
         if [[ -z "$response" || "$response" =~ ^[Yy]$ ]]; then
           echo ""
           if declare -f msg_info >/dev/null 2>&1; then
@@ -520,7 +522,7 @@ error_handler() {
             echo -e "${YW}Container ${CTID} kept for debugging${CL}"
           fi
         fi
-      else
+      elif [[ $read_rc -gt 128 ]]; then
         # Timeout - auto-remove
         echo ""
         if declare -f msg_info >/dev/null 2>&1; then
@@ -534,6 +536,17 @@ error_handler() {
           msg_ok "Container ${CTID} removed"
         else
           echo -e "${GN}✔${CL} Container ${CTID} removed"
+        fi
+      else
+        # read itself failed (closed/broken tty, I/O error) rather than timing
+        # out - keeping the container is the reversible choice.
+        while read -r -t 0.1 -n 1 _ </dev/tty 2>/dev/null; do :; done
+        echo ""
+        if declare -f msg_error >/dev/null 2>&1; then
+          msg_error "Could not read your response (tty error) - keeping container ${CTID} for safety."
+          msg_error "Remove it manually if not needed: pct destroy ${CTID}"
+        else
+          echo -e "${RD}Could not read your response (tty error) - keeping container ${CTID}${CL}"
         fi
       fi
     fi

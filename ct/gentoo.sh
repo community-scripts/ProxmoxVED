@@ -13,7 +13,7 @@ var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-10}"
 var_os="${var_os:-gentoo}"
 var_version="${var_version:-current}"
-var_arm64="${var_arm64:-no}"
+#var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"

@@ -1071,7 +1071,9 @@ incus_run_install_script_with_recovery() {
   local max_option=$((next_option - 1))
   echo ""
   echo -en "${YW}Select option [1-${max_option}] (default: 1, auto-remove in 60s): ${CL}"
-  if read -t 60 -r response </dev/tty; then
+  local read_rc=0
+  read -t 60 -r response </dev/tty || read_rc=$?
+  if [[ $read_rc -eq 0 ]]; then
     case "${response:-1}" in
     1)
       echo -e "\n${TAB}${HOLD}${YW}Removing container ${CT_NAME}${CL}"
@@ -1155,11 +1157,18 @@ incus_run_install_script_with_recovery() {
       fi
       ;;
     esac
-  else
+  elif [[ $read_rc -gt 128 ]]; then
     echo ""
     msg_info "No response - removing container ${CT_NAME}"
     incus_delete_container "${CT_NAME}"
     msg_ok "Container ${CT_NAME} removed"
+  else
+    # read itself failed (closed/broken tty, I/O error) rather than timing
+    # out - keeping the container is the reversible choice.
+    while read -r -t 0.1 -n 1 _ </dev/tty 2>/dev/null; do :; done
+    echo ""
+    msg_error "Could not read your selection (tty error) - keeping container ${CT_NAME} for safety."
+    msg_error "Remove it manually if not needed: incus delete ${CT_NAME} --force"
   fi
 
   post_update_to_api "failed" "$install_exit_code" "force" 2>/dev/null || true

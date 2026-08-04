@@ -1126,7 +1126,9 @@ PROFILE
 
     echo ""
     echo -en "${YW}Select option [1-${max_option}] (default: 1, auto-remove in 60s): ${CL}"
-    if read -t 60 -r response </dev/tty; then
+    local read_rc=0
+    read -t 60 -r response </dev/tty || read_rc=$?
+    if [[ $read_rc -eq 0 ]]; then
       case "${response:-1}" in
       1)
         # Remove container
@@ -1318,7 +1320,7 @@ PROFILE
         ;;
 
       esac
-    else
+    elif [[ $read_rc -gt 128 ]]; then
       # Timeout - auto-remove
       echo ""
       msg_info "No response - removing container ${CTID}"
@@ -1326,6 +1328,14 @@ PROFILE
       pct stop "$CTID" &>/dev/null || true
       pct destroy "$CTID" &>/dev/null || true
       msg_ok "Container ${CTID} removed"
+    else
+      # read itself failed (closed/broken tty, I/O error) rather than timing
+      # out - keeping the container is the reversible choice.
+      while read -r -t 0.1 -n 1 _ </dev/tty 2>/dev/null; do :; done
+      echo ""
+      msg_error "Could not read your selection (tty error) - keeping container ${CTID} for safety."
+      msg_error "Remove it manually if not needed: pct destroy ${CTID}"
+      exit $install_exit_code
     fi
 
     # Force one final status update attempt after cleanup
