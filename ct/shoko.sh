@@ -36,7 +36,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "shoko" "ShokoAnime/ShokoServer" "prebuild" "latest" "/opt/shoko" "Shoko.CLI_Framework_any-x64.zip"
-    chmod +x /opt/shoko/publish/Shoko.CLI
+    chmod +x /opt/shoko/Shoko.CLI
 
     msg_info "Starting Service"
     systemctl start shoko

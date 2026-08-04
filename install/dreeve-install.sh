@@ -23,6 +23,14 @@ msg_ok "Installed Dependencies"
 fetch_and_deploy_gh_release "frankenphp" "php/frankenphp" "singlefile" "latest" "/opt/frankenphp" "frankenphp-linux-$(arch_resolve x86_64 aarch64)-gnu"
 fetch_and_deploy_gh_release "dreeve" "dreeveapp/dreeve" "tarball"
 
+msg_info "Providing php CLI"
+cat <<'EOF' >/usr/local/bin/php
+#!/usr/bin/env bash
+exec /opt/frankenphp/frankenphp php-cli "$@"
+EOF
+chmod +x /usr/local/bin/php
+msg_ok "Provided php CLI"
+
 msg_info "Installing Composer"
 curl -fsSL https://getcomposer.org/installer -o /tmp/composer-setup.php
 $STD /opt/frankenphp/frankenphp php-cli /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer

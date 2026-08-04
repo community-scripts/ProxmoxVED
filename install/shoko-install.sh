@@ -25,7 +25,7 @@ fetch_and_deploy_gh_release "shoko" "ShokoAnime/ShokoServer" "prebuild" "latest"
 
 msg_info "Creating Service"
 mkdir -p /opt/shoko_data
-chmod +x /opt/shoko/publish/Shoko.CLI
+chmod +x /opt/shoko/Shoko.CLI
 cat <<EOF >/etc/systemd/system/shoko.service
 [Unit]
 Description=Shoko Server
@@ -35,10 +35,10 @@ After=network-online.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/shoko/publish
+WorkingDirectory=/opt/shoko
 Environment=HOME=/opt/shoko_data
 Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
-ExecStart=/opt/shoko/publish/Shoko.CLI
+ExecStart=/opt/shoko/Shoko.CLI
 Restart=on-failure
 RestartSec=10
 
