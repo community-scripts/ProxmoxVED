@@ -1,0 +1,53 @@
+{
+  "name": "Proxmox Datacenter Manager Post Install",
+  "slug": "post-pdm-install",
+  "categories": [
+    1
+  ],
+  "date_created": "2026-08-04",
+  "type": "pve",
+  "updateable": false,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": null,
+  "documentation": "https://pdm.proxmox.com/docs/installation.html",
+  "website": "https://pdm.proxmox.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/proxmox.webp",
+  "description": "This script performs post-installation routines on a Proxmox Datacenter Manager host: it corrects the Debian sources, manages the pdm-enterprise, pdm-no-subscription and pdm-test repositories, optionally removes the subscription nag, and runs a distribution upgrade. Each step is a separate prompt, so nothing is changed without being asked.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "tools/pve/post-pdm-install.sh",
+      "config_path": "/etc/apt/sources.list.d/",
+      "resources": {
+        "cpu": null,
+        "ram": null,
+        "hdd": null,
+        "os": null,
+        "version": "PDM"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Execute within the Proxmox Datacenter Manager shell. The script aborts if the proxmox-datacenter-manager package is not installed.",
+      "type": "info"
+    },
+    {
+      "text": "The pdm-enterprise repository is enabled by default after a fresh install and makes 'apt update' fail without a subscription. Disabling it and enabling pdm-no-subscription instead is the usual fix.",
+      "type": "warning"
+    },
+    {
+      "text": "Proxmox Datacenter Manager is still under active development. Do not make it the only management path to your nodes - keep direct access to the PVE web interfaces.",
+      "type": "warning"
+    },
+    {
+      "text": "After the run, clear your browser cache or do a hard reload (Ctrl+Shift+R) before using the PDM web interface, otherwise the old JavaScript stays cached.",
+      "type": "info"
+    }
+  ]
+}
