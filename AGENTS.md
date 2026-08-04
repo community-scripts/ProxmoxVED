@@ -548,24 +548,26 @@ RES_VERSION=$(cat ~/.restic)
 VERSION=$(get_latest_github_release "restic/restic")
 ```
 
-### 19. Backing Up to /tmp in Update Scripts
+### 19. Hand-rolled Backups in Update Scripts
 
 ```bash
-# ❌ WRONG - /tmp can be cleared by the system
+# ❌ WRONG - manual cp/mv dance (and /tmp can be cleared by the system)
 msg_info "Backing up Configuration"
 cp /opt/appname/.env /tmp/appname.env.bak
 msg_ok "Backed up Configuration"
 # ... update ...
 cp /tmp/appname.env.bak /opt/appname/.env
 
-# ✅ CORRECT - back up directly into /opt
-msg_info "Backing up Configuration"
-cp /opt/appname/.env /opt/appname.env.bak
-msg_ok "Backed up Configuration"
+# ✅ CORRECT - use the helpers (they bring their own msg_info/msg_ok)
+create_backup /opt/appname/.env /opt/appname/data
 # ... update ...
-cp /opt/appname.env.bak /opt/appname/.env
-rm -f /opt/appname.env.bak
+restore_backup
 ```
+
+`create_backup` stores into `/opt/<NSAPP>.backup` (override with `BACKUP_DIR`),
+records a manifest so `restore_backup` needs no arguments, uses `cp -a` so
+permissions survive, skips re-backing-up on a retry so the last-known-good copy
+is kept, and aborts the update if the backup itself fails.
 
 ### 20. Using "(Patience)" in msg_info by Default
 

@@ -17,16 +17,7 @@ PG_VERSION="17" setup_postgresql
 PG_DB_NAME="lingarr" PG_DB_USER="lingarr" setup_postgresql_db
 NODE_VERSION="24" setup_nodejs
 
-msg_info "Adding Microsoft Repository"
-curl -fsSL "https://packages.microsoft.com/config/debian/$(get_os_info version_id)/packages-microsoft-prod.deb" -o /tmp/packages-microsoft-prod.deb
-$STD apt install -y /tmp/packages-microsoft-prod.deb
-rm -f /tmp/packages-microsoft-prod.deb
-$STD apt update
-msg_ok "Added Microsoft Repository"
-
-msg_info "Installing .NET SDK"
-$STD apt install -y dotnet-sdk-10.0
-msg_ok "Installed .NET SDK"
+DOTNET_VERSION="10" DOTNET_TYPE="sdk" setup_dotnet
 
 fetch_and_deploy_gh_release "lingarr" "lingarr-translate/lingarr" "tarball"
 
