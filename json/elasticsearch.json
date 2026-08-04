@@ -1,0 +1,54 @@
+{
+  "name": "Elasticsearch",
+  "slug": "elasticsearch",
+  "categories": [
+    8
+  ],
+  "date_created": "2026-08-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 9200,
+  "documentation": "https://www.elastic.co/docs/",
+  "website": "https://www.elastic.co/elasticsearch",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/elasticsearch.webp",
+  "config_path": "/etc/elasticsearch/elasticsearch.yml",
+  "description": "Elasticsearch is a distributed search and analytics engine. It is mostly deployed as the backend for something else - log aggregation, full-text search in an application, or as the storage layer for Graylog and similar tools. This installs a single node from the official Elastic repository.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/elasticsearch.sh",
+      "config_path": "/etc/elasticsearch/elasticsearch.yml",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "elastic",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "vm.max_map_count is a kernel setting that containers cannot change - it is inherited from the Proxmox host. The installer aborts if it is below 262144. Modern kernels default to 1048576, so this normally passes; if not, set it on the HOST with: echo 'vm.max_map_count=1048576' >/etc/sysctl.d/99-elasticsearch.conf && sysctl --system",
+      "type": "warning"
+    },
+    {
+      "text": "Set a password for the built-in 'elastic' user before use: /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic",
+      "type": "warning"
+    },
+    {
+      "text": "TLS is disabled so the node is reachable over plain HTTP on the LAN, but authentication is on. Do not expose port 9200 to the internet without enabling xpack.security.http.ssl in /etc/elasticsearch/elasticsearch.yml.",
+      "type": "warning"
+    },
+    {
+      "text": "The JVM heap is set to 1 GB in /etc/elasticsearch/jvm.options.d/heap.options. Rule of thumb: half the container RAM, never above 31 GB. Data lives in /opt/elasticsearch_data.",
+      "type": "info"
+    }
+  ]
+}
