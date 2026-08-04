@@ -1,0 +1,54 @@
+{
+  "name": "Lingarr",
+  "slug": "lingarr",
+  "categories": [
+    14
+  ],
+  "date_created": "2026-08-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 9876,
+  "documentation": "https://lingarr.com/",
+  "website": "https://github.com/lingarr-translate/lingarr",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/lingarr.webp",
+  "config_path": "/opt/lingarr.env",
+  "description": "Lingarr translates subtitles in your Radarr and Sonarr libraries. It watches for media without subtitles in the languages you want and translates existing ones automatically, using either a self-hosted LibreTranslate instance or a hosted provider such as DeepL, OpenAI, Anthropic or Gemini.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/lingarr.sh",
+      "config_path": "/opt/lingarr.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Set a translation backend in /opt/lingarr.env before use. The default points at a LibreTranslate instance that does not exist yet - either deploy one and set LIBRE_TRANSLATE_URL, or switch SERVICE_TYPE to a hosted provider and add its API key.",
+      "type": "warning"
+    },
+    {
+      "text": "Mount your media libraries into the LXC and connect Radarr/Sonarr through the web UI. Lingarr writes subtitle files next to the media, so it needs write access to those paths.",
+      "type": "warning"
+    },
+    {
+      "text": "Needs the .NET 10 SDK, which Debian does not ship - it comes from the Microsoft repository. The build is therefore large; the compiled output lands in /opt/lingarr_app while the source tree stays in /opt/lingarr.",
+      "type": "info"
+    },
+    {
+      "text": "Metadata is stored in the local PostgreSQL database 'lingarr'. Upstream also supports MySQL and SQLite via DB_CONNECTION.",
+      "type": "info"
+    }
+  ]
+}
