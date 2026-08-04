@@ -1,0 +1,54 @@
+{
+  "name": "Shoko Server",
+  "slug": "shoko",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 8111,
+  "documentation": "https://docs.shokoanime.com/",
+  "website": "https://shokoanime.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/shoko.webp",
+  "config_path": "/opt/shoko_data/.shoko",
+  "description": "Shoko Server organizes anime collections. It identifies files by hash against AniDB, pulls in metadata from TvDB, TMDB and Trakt, and tracks watched state and series relations. Plugins expose the result to Plex, Jellyfin and Kodi, so the library stays correct even with inconsistently named files.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/shoko.sh",
+      "config_path": "/opt/shoko_data/.shoko",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Complete the first-run wizard at http://<IP>:8111. An AniDB account is required - Shoko identifies files against AniDB and without it the whole point is lost.",
+      "type": "warning"
+    },
+    {
+      "text": "AniDB enforces strict rate limits and bans clients that hammer the API. Leave the default throttling alone when importing a large collection, or the account gets temporarily banned.",
+      "type": "warning"
+    },
+    {
+      "text": "Your anime files are not stored in the container - mount the library into the LXC and add it as an import folder. Shoko's own database and settings live in /opt/shoko_data.",
+      "type": "info"
+    },
+    {
+      "text": "Runs on the framework-dependent release build with the ASP.NET Core 8 runtime from Debian, so no .NET SDK and no compilation is needed. Upstream also documents a source build, which this script does not use.",
+      "type": "info"
+    }
+  ]
+}
