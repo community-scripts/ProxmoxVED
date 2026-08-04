@@ -15,10 +15,11 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  aspnetcore-runtime-8.0 \
   mediainfo \
-  librhash0
+  "$(apt-cache show librhash1 &>/dev/null && echo librhash1 || echo librhash0)"
 msg_ok "Installed Dependencies"
+
+DOTNET_VERSION="8" DOTNET_TYPE="aspnetcore" setup_dotnet
 
 fetch_and_deploy_gh_release "shoko" "ShokoAnime/ShokoServer" "prebuild" "latest" "/opt/shoko" "Shoko.CLI_Framework_any-x64.zip"
 

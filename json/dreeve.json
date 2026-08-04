@@ -1,0 +1,54 @@
+{
+  "name": "Dreeve",
+  "slug": "dreeve",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-08-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8080,
+  "documentation": "https://docs.dreeve.app/",
+  "website": "https://dreeve.app/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/dreeve.webp",
+  "config_path": "/opt/dreeve/.env.local",
+  "description": "Dreeve is a self-hosted dashboard for sports and fitness data. It imports your Strava activities and turns them into statistics, heatmaps, gear tracking, training analysis and yearly overviews - formerly known as Statistics for Strava.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/dreeve.sh",
+      "config_path": "/opt/dreeve/.env.local",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Dreeve does nothing without Strava credentials. Create an API application at https://www.strava.com/settings/api and put STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET and STRAVA_REFRESH_TOKEN into /opt/dreeve/.env.local, then restart the service.",
+      "type": "warning"
+    },
+    {
+      "text": "Upstream only documents a Docker deployment. This script reproduces that setup natively - FrankenPHP as the server (the same one their image is based on) plus composer install - but it is not a path the project supports, so an upstream change can break it.",
+      "type": "warning"
+    },
+    {
+      "text": "Activity data is stored in a SQLite database under /opt/dreeve_data via DATABASE_DIRECTORY. Back up that directory.",
+      "type": "info"
+    },
+    {
+      "text": "Not included: the Go-based fit-tool and shoutrrr notification binary that the official image bundles. FIT file import and push notifications are therefore unavailable.",
+      "type": "info"
+    }
+  ]
+}
