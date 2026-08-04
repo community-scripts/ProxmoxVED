@@ -6,12 +6,12 @@ source <(curl -fsSL https://raw.githubusercontent.com/leonardo091800/ProxmoxVED/
 # Source: https://github.com/naiba/bonds | Github: https://github.com/naiba/bonds
 
 APP="Bonds"
-var_tags="${var_tags:-erp}"
+var_tags="${var_tags:-monitoring}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-13}"
+var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"

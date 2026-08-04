@@ -14,15 +14,12 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y openssl curl
+$STD apt-get install -y openssl
 msg_ok "Installed Dependencies"
 
 msg_info "Downloading and Deploying Bonds"
-RELEASE_TAG=$(curl -s https://api.github.com/repos/naiba/bonds/releases/latest | grep '"tag_name":' | cut -d'"' -f4)
-ARCH=$(arch_resolve "amd64" "arm64")
-
-mkdir -p /opt/bonds
-curl -fsSL "https://github.com/naiba/bonds/releases/download/${RELEASE_TAG}/bonds-server-linux-${ARCH}.tar.gz" | tar -xz -C /opt/bonds
+fetch_and_deploy_gh_release "bonds" "naiba/bonds" "tarball" "latest" "/opt/bonds" "bonds-server-linux-$(arch_resolve "amd64" "arm64")"
+mv /opt/bonds/bonds-server-linux-* /opt/bonds/bonds-server
 chmod +x /opt/bonds/bonds-server
 msg_ok "Downloaded and Deployed Bonds"
 
