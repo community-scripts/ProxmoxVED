@@ -1,0 +1,54 @@
+{
+  "name": "Borg-UI",
+  "slug": "borg-ui",
+  "categories": [
+    2
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8081,
+  "documentation": "https://github.com/karanhudia/borg-ui#readme",
+  "website": "https://github.com/karanhudia/borg-ui",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/borgbackup.webp",
+  "config_path": "/opt/borg-ui/.env",
+  "description": "Borg-UI is a web frontend for BorgBackup. It replaces the borg command line for everyday work: creating and browsing repositories, scheduling backups, inspecting archives and restoring files, all from the browser. BorgBackup itself is installed alongside it.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/borg-ui.sh",
+      "config_path": "/opt/borg-ui/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Create your account through the web UI at http://<IP>:8081 on first visit.",
+      "type": "info"
+    },
+    {
+      "text": "This container backs up what it can see. Mount the directories you want to protect into the LXC, and for remote repositories deploy an SSH key from the UI to the target host.",
+      "type": "warning"
+    },
+    {
+      "text": "ENABLE_STARTUP_LICENSE_SYNC is set to false in /opt/borg-ui/.env so the container does not contact the upstream licence service on every start. Set it to true if you use a paid licence.",
+      "type": "info"
+    },
+    {
+      "text": "Application data lives in /opt/borg-ui_data. The Borg repositories themselves are wherever you point them - those are the ones that actually matter for backups.",
+      "type": "info"
+    }
+  ]
+}
