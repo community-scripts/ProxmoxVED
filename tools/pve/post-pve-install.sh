@@ -44,6 +44,10 @@ msg_error() {
   echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
 }
 
+# Telemetry
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "post-pve-install" "pve"
+
 get_pve_version() {
   local pve_ver
   pve_ver="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
@@ -84,19 +88,19 @@ main() {
   if [[ "$PVE_MAJOR" == "8" ]]; then
     if ((PVE_MINOR < 0 || PVE_MINOR > 9)); then
       msg_error "Unsupported Proxmox 8 version"
-      exit 1
+      exit 105
     fi
     start_routines_8
   elif [[ "$PVE_MAJOR" == "9" ]]; then
-    if ((PVE_MINOR != 0)); then
-      msg_error "Only Proxmox 9.0 is currently supported"
-      exit 1
+    if ((PVE_MINOR < 0 || PVE_MINOR > 2)); then
+      msg_error "Only Proxmox 9.0-9.2.x is currently supported"
+      exit 105
     fi
-    start_routines_9
+    start_routines_9 "$PVE_MINOR"
   else
     msg_error "Unsupported Proxmox VE major version: $PVE_MAJOR"
-    echo -e "Supported: 8.0–8.9.x and 9.0"
-    exit 1
+    echo -e "Supported: 8.0–8.9.x and 9.0–9.2.x"
+    exit 105
   fi
 }
 
@@ -111,15 +115,21 @@ start_routines_8() {
   yes)
     msg_info "Correcting Proxmox VE Sources"
     cat <<EOF >/etc/apt/sources.list
-deb http://deb.debian.org/debian bookworm main contrib
-deb http://deb.debian.org/debian bookworm-updates main contrib
-deb http://security.debian.org/debian-security bookworm-security main contrib
+deb https://deb.debian.org/debian bookworm main contrib
+deb https://deb.debian.org/debian bookworm-updates main contrib
+deb https://security.debian.org/debian-security bookworm-security main contrib
 EOF
     echo 'APT::Get::Update::SourceListWarnings::NonFreeFirmware "false";' >/etc/apt/apt.conf.d/no-bookworm-firmware.conf
     msg_ok "Corrected Proxmox VE Sources"
     ;;
   no) msg_error "Selected no to Correcting Proxmox VE Sources" ;;
   esac
+
+  if [[ "$(dpkg --print-architecture 2>/dev/null)" == "arm64" ]]; then
+    msg_ok "ARM64 detected - skipping Proxmox repository setup"
+    post_routines_common
+    return
+  fi
 
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-ENTERPRISE" --menu "The 'pve-enterprise' repository is only available to users who have purchased a Proxmox VE subscription.\n \nDisable 'pve-enterprise' repository?" 14 58 2 \
     "yes" " " \
@@ -184,6 +194,7 @@ EOF
 }
 
 start_routines_9() {
+  local PVE_MINOR="${1:-0}"
   header_info
 
   # check if deb822 Sources (*.sources) exist
@@ -197,7 +208,7 @@ start_routines_9() {
 
       # Check sources.list
       if [[ -f "$listfile" ]] && grep -qE '^\s*deb ' "$listfile"; then
-        (( ++LEGACY_COUNT ))
+        ((++LEGACY_COUNT))
       fi
 
       # Check .list files
@@ -247,8 +258,10 @@ start_routines_9() {
       msg_info "Correcting Proxmox VE Sources (deb822)"
       # remove all existing .list files
       rm -f /etc/apt/sources.list.d/*.list
-      # remove bookworm and proxmox entries from sources.list
-      sed -i '/proxmox/d;/bookworm/d' /etc/apt/sources.list || true
+      # remove bookworm and proxmox entries from sources.list (if it exists)
+      if [ -f /etc/apt/sources.list ]; then
+        sed -i '/proxmox/d;/bookworm/d' /etc/apt/sources.list
+      fi
       # Create new deb822 sources
       cat >/etc/apt/sources.list.d/debian.sources <<EOF
 Types: deb
@@ -275,13 +288,19 @@ EOF
     esac
   fi
 
+  if [[ "$(dpkg --print-architecture 2>/dev/null)" == "arm64" ]]; then
+    msg_ok "ARM64 detected - skipping Proxmox repository setup"
+    post_routines_common
+    return
+  fi
+
   # ---- PVE-ENTERPRISE ----
   if component_exists_in_sources "pve-enterprise"; then
     CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
       --title "PVE-ENTERPRISE" \
       --menu "'pve-enterprise' repository already exists.\n\nWhat do you want to do?" 14 58 2 \
       "keep" "Keep as is" \
-      "disable" "Comment out (disable) this repo" \
+      "disable" "Disable this repo (set Enabled: false)" \
       "delete" "Delete this repo file" \
       3>&2 2>&1 1>&3)
     case $CHOICE in
@@ -289,11 +308,15 @@ EOF
       msg_ok "Kept 'pve-enterprise' repository"
       ;;
     disable)
-      msg_info "Disabling (commenting) 'pve-enterprise' repository"
-      # Comment out every non-comment line in the file that has 'pve-enterprise' in Components
+      msg_info "Disabling 'pve-enterprise' repository"
+      # Use Enabled: false instead of commenting to avoid malformed entry
       for file in /etc/apt/sources.list.d/*.sources; do
         if grep -q "Components:.*pve-enterprise" "$file"; then
-          sed -i '/^\s*Types:/,/^$/s/^\([^#].*\)$/# \1/' "$file"
+          if grep -q "^Enabled:" "$file"; then
+            sed -i 's/^Enabled:.*/Enabled: false/' "$file"
+          else
+            echo "Enabled: false" >>"$file"
+          fi
         fi
       done
       msg_ok "Disabled 'pve-enterprise' repository"
@@ -346,10 +369,15 @@ EOF
       msg_ok "Kept 'ceph enterprise' repository"
       ;;
     disable)
-      msg_info "Disabling (commenting) 'ceph enterprise' repository"
+      msg_info "Disabling 'ceph enterprise' repository"
+      # Use Enabled: false instead of commenting to avoid malformed entry
       for file in /etc/apt/sources.list.d/*.sources; do
         if grep -q "enterprise.proxmox.com.*ceph" "$file"; then
-          sed -i '/^\s*Types:/,/^$/s/^\([^#].*\)$/# \1/' "$file"
+          if grep -q "^Enabled:" "$file"; then
+            sed -i 's/^Enabled:.*/Enabled: false/' "$file"
+          else
+            echo "Enabled: false" >>"$file"
+          fi
         fi
       done
       msg_ok "Disabled 'ceph enterprise' repository"
@@ -460,19 +488,35 @@ EOF
       "no" " " 3>&2 2>&1 1>&3)
     case $CHOICE in
     yes)
+      local CEPH_RELEASE
+      if ((PVE_MINOR >= 2)); then
+        CEPH_RELEASE="ceph-tentacle"
+      else
+        CEPH_RELEASE="ceph-squid"
+      fi
       msg_info "Adding 'ceph package repositories' (deb822)"
       cat >/etc/apt/sources.list.d/ceph.sources <<EOF
 Types: deb
-URIs: http://download.proxmox.com/debian/ceph-squid
+URIs: http://download.proxmox.com/debian/${CEPH_RELEASE}
 Suites: trixie
 Components: no-subscription
 Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
 EOF
-      msg_ok "Added 'ceph package repositories'"
+      msg_ok "Added 'ceph package repositories' (${CEPH_RELEASE})"
       ;;
     no)
       msg_error "Selected no to Adding 'ceph package repositories'"
-      find /etc/apt/sources.list.d/ -type f \( -name "*.sources" -o -name "*.list" \) \
+      # Use Enabled: false for .sources files, comment for .list files
+      for file in /etc/apt/sources.list.d/*.sources; do
+        if grep -q "enterprise.proxmox.com.*ceph" "$file" 2>/dev/null; then
+          if grep -q "^Enabled:" "$file"; then
+            sed -i 's/^Enabled:.*/Enabled: false/' "$file"
+          else
+            echo "Enabled: false" >>"$file"
+          fi
+        fi
+      done
+      find /etc/apt/sources.list.d/ -type f -name "*.list" \
         -exec sed -i '/enterprise.proxmox.com.*ceph/s/^/# /' {} \;
       msg_ok "Disabled all Ceph Enterprise repositories"
       ;;
@@ -491,11 +535,12 @@ EOF
     yes)
       msg_info "Adding 'pve-test' repository (deb822, disabled)"
       cat >/etc/apt/sources.list.d/pve-test.sources <<EOF
-# Types: deb
-# URIs: http://download.proxmox.com/debian/pve
-# Suites: trixie
-# Components: pve-test
-# Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+Types: deb
+URIs: http://download.proxmox.com/debian/pve
+Suites: trixie
+Components: pve-test
+Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+Enabled: false
 EOF
       msg_ok "Added 'pve-test' repository"
       ;;
@@ -575,7 +620,7 @@ EOF
   no)
     whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox --title "Support Subscriptions" "Supporting the software's development team is essential. Check their official website's Support Subscriptions for pricing. Without their dedicated work, we wouldn't have this exceptional software." 10 58
     msg_error "Selected no to Disabling subscription nag"
-    rm /etc/apt/apt.conf.d/no-nag-script 2>/dev/null
+    [[ -f /etc/apt/apt.conf.d/no-nag-script ]] && rm /etc/apt/apt.conf.d/no-nag-script
     ;;
   esac
   apt --reinstall install proxmox-widget-toolkit &>/dev/null || msg_error "Widget toolkit reinstall failed"
