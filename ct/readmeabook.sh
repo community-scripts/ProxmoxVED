@@ -34,15 +34,11 @@ function update_script() {
     systemctl stop readmeabook
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Configuration"
-    cp /opt/readmeabook/.env /opt/readmeabook.env.bak
-    msg_ok "Backed up Configuration"
+    create_backup /opt/readmeabook/.env
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "readmeabook" "kikootwo/ReadMeABook" "tarball"
 
-    msg_info "Restoring Configuration"
-    mv /opt/readmeabook.env.bak /opt/readmeabook/.env
-    msg_ok "Restored Configuration"
+    restore_backup
 
     msg_info "Building ReadMeABook (Patience)"
     cd /opt/readmeabook

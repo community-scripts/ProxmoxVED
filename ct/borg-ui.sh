@@ -34,15 +34,11 @@ function update_script() {
     systemctl stop borg-ui
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Configuration"
-    cp /opt/borg-ui/.env /opt/borg-ui.env.bak
-    msg_ok "Backed up Configuration"
+    create_backup /opt/borg-ui/.env
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "borg-ui" "karanhudia/borg-ui" "tarball"
 
-    msg_info "Restoring Configuration"
-    mv /opt/borg-ui.env.bak /opt/borg-ui/.env
-    msg_ok "Restored Configuration"
+    restore_backup
 
     msg_info "Building Frontend"
     cd /opt/borg-ui/frontend

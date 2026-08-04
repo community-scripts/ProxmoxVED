@@ -35,19 +35,11 @@ function update_script() {
     systemctl stop anythingllm anythingllm-collector
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Configuration"
-    cp /opt/anythingllm/server/.env /opt/anythingllm-server.env.bak
-    cp /opt/anythingllm/collector/.env /opt/anythingllm-collector.env.bak
-    cp /opt/anythingllm/frontend/.env /opt/anythingllm-frontend.env.bak
-    msg_ok "Backed up Configuration"
+    create_backup /opt/anythingllm/server/.env /opt/anythingllm/collector/.env /opt/anythingllm/frontend/.env
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "anythingllm" "Mintplex-Labs/anything-llm" "tarball"
 
-    msg_info "Restoring Configuration"
-    mv /opt/anythingllm-server.env.bak /opt/anythingllm/server/.env
-    mv /opt/anythingllm-collector.env.bak /opt/anythingllm/collector/.env
-    mv /opt/anythingllm-frontend.env.bak /opt/anythingllm/frontend/.env
-    msg_ok "Restored Configuration"
+    restore_backup
 
     msg_info "Building AnythingLLM (Patience)"
     cd /opt/anythingllm
