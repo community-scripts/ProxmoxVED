@@ -679,6 +679,16 @@ arm64** — the mere existence of an arm64 artifact is not verification:
 - *unset* — never tried. The user is told so and asked whether to attempt it
   anyway, with a pointer to report the result. Aborts non-interactively.
 
+Leave the line in place but commented out, so the option stays discoverable
+where someone would look for it:
+
+```bash
+#var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
+```
+
+When setting it to `no`, state the reason next to it — otherwise the value
+degrades back into "nobody checked".
+
 ### Update-Script Pattern
 
 ```bash
