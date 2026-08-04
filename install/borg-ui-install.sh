@@ -32,6 +32,8 @@ msg_info "Building Frontend"
 cd /opt/borg-ui/frontend
 $STD npm ci
 $STD npm run build
+mkdir -p /opt/borg-ui/app/static
+cp -r /opt/borg-ui/frontend/build/* /opt/borg-ui/app/static/
 msg_ok "Built Frontend"
 
 msg_info "Setting up Python Environment"

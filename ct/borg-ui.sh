@@ -44,6 +44,9 @@ function update_script() {
     cd /opt/borg-ui/frontend
     $STD npm ci
     $STD npm run build
+    rm -rf /opt/borg-ui/app/static
+    mkdir -p /opt/borg-ui/app/static
+    cp -r /opt/borg-ui/frontend/build/* /opt/borg-ui/app/static/
     msg_ok "Built Frontend"
 
     msg_info "Updating Python Environment"

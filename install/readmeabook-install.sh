@@ -50,7 +50,7 @@ set -a
 source /opt/readmeabook/.env
 set +a
 $STD npx prisma generate
-$STD npx prisma migrate deploy
+$STD npx prisma db push --skip-generate --accept-data-loss
 $STD npm run build
 msg_ok "Built ReadMeABook"
 

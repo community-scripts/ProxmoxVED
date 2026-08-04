@@ -24,7 +24,7 @@ fetch_and_deploy_gh_release "suggestarr" "giuseppe99barchetta/SuggestArr" "tarba
 
 msg_info "Building Frontend"
 cd /opt/suggestarr/client
-$STD npm ci
+$STD npm install
 $STD npm run build
 mkdir -p /opt/suggestarr/static
 cp -r /opt/suggestarr/client/dist/* /opt/suggestarr/static/
