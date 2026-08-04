@@ -19,10 +19,6 @@ variables
 color
 catch_errors
 
-# OVERRIDE: Tell the framework to fetch the installer from your personal fork
-# instead of community-scripts/ProxmoxVE
-GATEWAY_URL="https://raw.githubusercontent.com/leonardo091800/ProxmoxVED/main/install/${APP,,}-install.sh"
-
 function update_script() {
   header_info
   check_container_storage
