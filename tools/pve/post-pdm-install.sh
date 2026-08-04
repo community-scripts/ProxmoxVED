@@ -310,8 +310,10 @@ EOF
     cat <<'EOF' >/usr/local/bin/pdm-remove-nag.sh
 #!/bin/sh
 # PDM ships its web UI as a Yew/WASM app in a single JS bundle - there is no
-# proxmoxlib.js and no HTML template to patch, so the dialog is removed from the
-# DOM at runtime instead. Re-applied by the apt hook after every package update.
+# proxmoxlib.js and no HTML template to patch, so the dialog is confirmed at
+# runtime instead. The nag gates the update refresh: its on_close callback is
+# what sends RefreshAll, so it must be close()d, never removed from the DOM.
+# Re-applied by the apt hook after every package update.
 BUNDLE=/usr/share/javascript/proxmox-datacenter-manager/js/pdm-ui_bundle.js
 if [ -s "$BUNDLE" ] && ! grep -q PDM_NO_MORE_NAGGING "$BUNDLE"; then
     echo "Patching PDM subscription nag..."
@@ -319,16 +321,26 @@ if [ -s "$BUNDLE" ] && ! grep -q PDM_NO_MORE_NAGGING "$BUNDLE"; then
 
 // PDM_NO_MORE_NAGGING
 (function () {
-  var drop = function () {
+  var MARK = 'data-pdm-nag';
+  var dismiss = function (d) {
+    if (d.getAttribute(MARK)) return;
+    d.setAttribute(MARK, '1');
+    var tries = 12;
+    var tick = function () {
+      if (!d.isConnected || tries-- <= 0) return;
+      try { d.close(); } catch (e) {}
+      setTimeout(tick, 120);
+    };
+    requestAnimationFrame(tick);
+  };
+  var scan = function () {
     document.querySelectorAll('dialog.pwt-outer-dialog').forEach(function (d) {
-      if ((d.textContent || '').toLowerCase().indexOf('subscription') !== -1) {
-        d.remove();
-      }
+      if ((d.textContent || '').indexOf('pdm.proxmox.com') !== -1) dismiss(d);
     });
   };
   var start = function () {
-    drop();
-    new MutationObserver(drop).observe(document.body, { childList: true, subtree: true });
+    scan();
+    new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
   };
   if (document.body) { start(); } else {
     document.addEventListener('DOMContentLoaded', start);
