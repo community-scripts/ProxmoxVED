@@ -29,12 +29,12 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "rsshub" "DIYgod/RSSHub"; then
+  if check_for_gh_branch "rsshub" "DIYgod/RSSHub"; then
     msg_info "Stopping Service"
     systemctl stop rsshub
     msg_ok "Stopped Service"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rsshub" "DIYgod/RSSHub" "tarball"
+    fetch_and_deploy_gh_branch "rsshub" "DIYgod/RSSHub"
 
     msg_info "Building RSSHub (Patience)"
     cd /opt/rsshub

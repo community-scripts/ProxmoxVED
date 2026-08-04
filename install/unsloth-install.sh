@@ -21,18 +21,28 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 UV_PYTHON="3.12" setup_uv
+NODE_VERSION="22" setup_nodejs
 
 msg_info "Setting up Unsloth Studio (Patience)"
 mkdir -p /opt/unsloth_data
-$STD uv venv --python 3.12 /opt/unsloth/.venv
-$STD uv pip install --python /opt/unsloth/.venv --torch-backend=auto unsloth-zoo unsloth
+curl -fsSL https://unsloth.ai/install.sh -o /tmp/unsloth-install.sh
+export UNSLOTH_STUDIO_HOME=/opt/unsloth
+export UNSLOTH_SKIP_AUTOSTART=1
+export UNSLOTH_PYTHON=3.12
+$STD sh /tmp/unsloth-install.sh
+unset UNSLOTH_SKIP_AUTOSTART UNSLOTH_PYTHON
+rm -f /tmp/unsloth-install.sh
+[[ -x /opt/unsloth/unsloth_studio/bin/unsloth ]] || {
+  msg_error "Unsloth Studio was not installed to /opt/unsloth/unsloth_studio"
+  exit 1
+}
 msg_ok "Set up Unsloth Studio"
 
 msg_info "Configuring Unsloth Studio"
 UNSLOTH_PASSWORD=$(openssl rand -base64 18)
 cat <<EOF >/opt/unsloth.env
 UNSLOTH_STUDIO_PASSWORD=${UNSLOTH_PASSWORD}
-UNSLOTH_STUDIO_HOME=/opt/unsloth_data
+UNSLOTH_STUDIO_HOME=/opt/unsloth
 HF_HOME=/opt/unsloth_data/huggingface
 EOF
 chmod 600 /opt/unsloth.env
@@ -50,7 +60,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/unsloth_data
 EnvironmentFile=/opt/unsloth.env
-ExecStart=/opt/unsloth/.venv/bin/unsloth studio -H 0.0.0.0 -p 8888
+ExecStart=/opt/unsloth/unsloth_studio/bin/unsloth studio -H 0.0.0.0 -p 8888
 Restart=on-failure
 RestartSec=10
 

@@ -2955,6 +2955,133 @@ check_for_gh_tag() {
 # ------------------------------------------------------------------------------
 TOOLS_GH_REL_JSON=""
 
+# ------------------------------------------------------------------------------
+# Reports whether a branch-tracked app has upstream commits.
+#
+# Description:
+#   - Counterpart to check_for_gh_release for repositories that publish no
+#     releases or tags and are deployed straight from a branch.
+#   - Compares the short SHA in $HOME/.<app> against the branch tip.
+#
+# Arguments:
+#   $1 - app name (version file is $HOME/.<app>)
+#   $2 - owner/repo
+#   $3 - branch (optional, defaults to the repository default branch)
+#
+# Returns:
+#   0 - update available, short SHA exported as CHECK_UPDATE_RELEASE
+#   1 - already up to date
+#   6 - cannot resolve github.com
+# ------------------------------------------------------------------------------
+
+check_for_gh_branch() {
+  local app="$1"
+  local source="$2"
+  local branch="${3:-}"
+  local app_lc current latest ref
+  app_lc="$(echo "${app,,}" | tr -d ' ')"
+
+  msg_info "Checking for update: ${app}"
+
+  if ! getent hosts github.com >/dev/null 2>&1; then
+    msg_error "Network error: cannot resolve github.com"
+    return 6
+  fi
+
+  ensure_dependencies git
+
+  ref="HEAD"
+  [[ -n "$branch" ]] && ref="refs/heads/${branch}"
+
+  latest=$(git ls-remote "https://github.com/${source}" "$ref" 2>/dev/null | awk '{print substr($1,1,7); exit}')
+  if [[ -z "$latest" ]]; then
+    msg_error "Could not read ${ref} from ${source}"
+    return 22
+  fi
+
+  current=""
+  [[ -f "$HOME/.${app_lc}" ]] && current=$(<"$HOME/.${app_lc}")
+
+  if [[ "$current" != "$latest" ]]; then
+    CHECK_UPDATE_RELEASE="$latest"
+    msg_ok "Update available: ${app} ${current:-not installed} → ${latest}"
+    return 0
+  fi
+
+  msg_ok "No update available: ${app} (${latest})"
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+# Deploys an app from a git branch instead of a release.
+#
+# Description:
+#   - For repositories that publish no releases or tags (e.g. RSSHub, which is
+#     deployed continuously from master).
+#   - Shallow-clones on first run and fast-forwards on later runs, so an update
+#     does not re-download the whole history.
+#   - Records the short commit SHA in $HOME/.<app>, mirroring how
+#     fetch_and_deploy_gh_release records the version.
+#
+# Arguments:
+#   $1 - app name
+#   $2 - owner/repo
+#   $3 - branch (optional, defaults to the repository default branch)
+#   $4 - target directory (optional, defaults to /opt/<app>)
+#
+# Variables:
+#   CLEAN_INSTALL - set to 1 to wipe the target before cloning
+# ------------------------------------------------------------------------------
+
+fetch_and_deploy_gh_branch() {
+  local app="$1"
+  local source="$2"
+  local branch="${3:-}"
+  local target="${4:-/opt/${app}}"
+  local app_lc
+  app_lc="$(echo "${app,,}" | tr -d ' ')"
+
+  if [[ -z "$app" || -z "$source" ]]; then
+    msg_error "fetch_and_deploy_gh_branch: app name and owner/repo are required"
+    return 65
+  fi
+
+  ensure_dependencies git
+
+  local -a clone_args=(--depth 1)
+  [[ -n "$branch" ]] && clone_args+=(--branch "$branch")
+
+  if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+    rm -rf "$target"
+  fi
+
+  if [[ -d "$target/.git" ]]; then
+    msg_info "Updating ${app}"
+    local ref="HEAD"
+    [[ -n "$branch" ]] && ref="$branch"
+    $STD git -C "$target" fetch --depth 1 origin "$ref" || {
+      msg_error "Failed to fetch ${ref} from ${source}"
+      return 22
+    }
+    $STD git -C "$target" reset --hard FETCH_HEAD || {
+      msg_error "Failed to check out ${ref}"
+      return 22
+    }
+    $STD git -C "$target" clean -fd
+  else
+    msg_info "Fetching ${app}"
+    rm -rf "$target"
+    mkdir -p "$(dirname "$target")"
+    $STD git clone "${clone_args[@]}" "https://github.com/${source}" "$target" || {
+      msg_error "Failed to clone ${source}"
+      return 22
+    }
+  fi
+
+  git -C "$target" rev-parse --short=7 HEAD >"$HOME/.${app_lc}"
+  msg_ok "Deployed ${app} ($(<"$HOME/.${app_lc}"))"
+}
+
 check_for_gh_release() {
   local app="$1"
   local source="$2"
@@ -4962,7 +5089,7 @@ setup_dotnet() {
 
     setup_deb822_repo \
       "microsoft-prod" \
-      "https://packages.microsoft.com/keys/microsoft.asc" \
+      "https://packages.microsoft.com/keys/microsoft-2025.asc" \
       "$REPO_URL" \
       "$DISTRO_CODENAME" \
       "main" || return 100

@@ -17,13 +17,14 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
   python3 \
+  git \
   redis-server
 systemctl enable -q --now redis-server
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" NODE_MODULE="pnpm@^10" setup_nodejs
 
-fetch_and_deploy_gh_release "rsshub" "DIYgod/RSSHub" "tarball"
+fetch_and_deploy_gh_branch "rsshub" "DIYgod/RSSHub"
 
 msg_info "Building RSSHub (Patience)"
 cd /opt/rsshub

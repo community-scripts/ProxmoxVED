@@ -31,6 +31,18 @@ $STD yarn install --network-timeout 600000
 $STD yarn build
 msg_ok "Built Yopass"
 
+msg_info "Generating SSL Certificate"
+mkdir -p /opt/yopass/certificates
+openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+  -keyout /opt/yopass/certificates/key.pem \
+  -out /opt/yopass/certificates/cert.pem \
+  -subj "/C=US/ST=State/L=City/O=Yopass/CN=${LOCAL_IP}" \
+  -addext "subjectAltName=IP:${LOCAL_IP},DNS:localhost,IP:127.0.0.1" \
+  2>/dev/null
+chmod 600 /opt/yopass/certificates/key.pem
+chmod 644 /opt/yopass/certificates/cert.pem
+msg_ok "Generated SSL Certificate"
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/yopass.service
 [Unit]
@@ -42,7 +54,7 @@ After=network-online.target redis-server.service
 Type=simple
 User=root
 WorkingDirectory=/opt/yopass
-ExecStart=/opt/yopass/yopass-server --address 0.0.0.0 --port 1337 --database redis --redis redis://127.0.0.1:6379/0 --asset-path /opt/yopass/website/dist
+ExecStart=/opt/yopass/yopass-server --address 0.0.0.0 --port 1337 --tls-cert /opt/yopass/certificates/cert.pem --tls-key /opt/yopass/certificates/key.pem --database redis --redis redis://127.0.0.1:6379/0 --asset-path /opt/yopass/website/dist
 Restart=on-failure
 RestartSec=5
 
