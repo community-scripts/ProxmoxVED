@@ -664,6 +664,21 @@ var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 ```
 
+**Optional declarations**
+
+| Variable    | Values                  | Meaning                                                        |
+| ----------- | ----------------------- | -------------------------------------------------------------- |
+| `var_gpu`   | `yes` / `no`            | Offer GPU passthrough. Set for transcoding and AI workloads.    |
+| `var_arm64` | `yes` / `no` / *(unset)* | arm64 support — see below.                                      |
+
+`var_arm64` has three states. **Only claim `yes` when it has actually been run on
+arm64** — the mere existence of an arm64 artifact is not verification:
+
+- `yes` — verified working, proceeds silently
+- `no` — known broken (x64-only artifact, x86 dependency, CUDA), aborts
+- *unset* — never tried. The user is told so and asked whether to attempt it
+  anyway, with a pointer to report the result. Aborts non-interactively.
+
 ### Update-Script Pattern
 
 ```bash

@@ -341,7 +341,13 @@ pve_check() {
 #
 # - Validates system architecture is amd64/x86_64
 # - Exits with error message for unsupported architectures (e.g., ARM/PiMox)
-# - Provides link to ARM64-compatible scripts
+#
+# var_arm64 has three states:
+#   yes     - known to work, proceed silently
+#   no      - known to be broken (no arm64 artifact, x86-only dependency), abort
+#   unknown - never verified on arm64 (default). Explain the situation and let
+#             the user decide, since "no artifact exists" and "nobody tried"
+#             are very different things and only the latter is worth attempting.
 # ------------------------------------------------------------------------------
 arch_check() {
   local arch
@@ -351,11 +357,38 @@ arch_check() {
     sleep 2
     exit 106
   fi
-  if [[ "$arch" == "arm64" && "${var_arm64:-}" != "yes" ]]; then
-    msg_error "This script does not yet support arm64."
+  [[ "$arch" != "arm64" ]] && return 0
+
+  case "${var_arm64:-unknown}" in
+  yes)
+    return 0
+    ;;
+  no)
+    msg_error "This script does not support arm64."
     sleep 2
     exit 106
-  fi
+    ;;
+  *)
+    msg_warn "This script has not been verified on arm64."
+    echo -e "${TAB}It may work, or it may fail on an architecture-specific dependency."
+    echo -e "${TAB}If you try it, please report the outcome - success or failure:"
+    echo -e "${TAB}${BGN}https://github.com/community-scripts/ProxmoxVED/issues${CL}"
+    echo ""
+    if [[ ! -t 0 ]]; then
+      msg_error "Not running interactively - refusing to guess on arm64. Set var_arm64=yes to override."
+      sleep 2
+      exit 106
+    fi
+    read -r -p "${TAB}Continue anyway? (y/N): " arm64_prompt </dev/tty
+    if [[ "${arm64_prompt,,}" =~ ^(y|yes)$ ]]; then
+      msg_ok "Continuing on arm64 - thanks for testing"
+      return 0
+    fi
+    msg_error "Aborted on arm64."
+    sleep 2
+    exit 106
+    ;;
+  esac
 }
 
 # ------------------------------------------------------------------------------
@@ -691,7 +724,7 @@ msg_info() {
     # Pause mode: Wait for Enter after each step
     if [[ "${DEV_MODE_PAUSE:-false}" == "true" ]]; then
       echo -en "\n${YWB}[PAUSE]${CL} Press Enter to continue..." >&2
-      read -r
+      read -r </dev/tty
     fi
     return
   fi
@@ -706,7 +739,7 @@ msg_info() {
   if [[ "${DEV_MODE_PAUSE:-false}" == "true" ]]; then
     stop_spinner
     echo -en "\n${YWB}[PAUSE]${CL} Press Enter to continue..." >&2
-    read -r
+    read -r </dev/tty
   fi
 }
 
@@ -1116,7 +1149,7 @@ prompt_confirm() {
   # Interactive prompt with timeout
   echo -en "${YW}${message} ${hint} (auto-${default} in ${timeout}s): ${CL}"
 
-  if read -t "$timeout" -r response; then
+  if read -t "$timeout" -r response </dev/tty; then
     # User provided input
     response="${response,,}" # lowercase
     case "$response" in
@@ -1209,7 +1242,7 @@ prompt_input() {
   # Interactive prompt with timeout
   echo -en "${YW}${message}${hint} (auto-default in ${timeout}s): ${CL}" >&2
 
-  if read -t "$timeout" -r response; then
+  if read -t "$timeout" -r response </dev/tty; then
     # User provided input (or pressed Enter for empty)
     if [[ -n "$response" ]]; then
       echo "$response"
@@ -1311,7 +1344,7 @@ prompt_input_required() {
 
     echo -en "${YW}${message} (required, timeout ${timeout}s): ${CL}" >&2
 
-    if read -t "$timeout" -r response; then
+    if read -t "$timeout" -r response </dev/tty; then
       if [[ -z "$response" ]]; then
         echo -e "${YW}This field is required. Please enter a value. (attempt ${attempts}/3)${CL}" >&2
       fi
@@ -1405,7 +1438,7 @@ prompt_select() {
   echo -en "${YW}Select [1-${num_options}] (auto-select ${default} in ${timeout}s): ${CL}" >&2
 
   local response
-  if read -t "$timeout" -r response; then
+  if read -t "$timeout" -r response </dev/tty; then
     if [[ -z "$response" ]]; then
       # Empty response, use default
       echo "${options[$((default - 1))]}"
@@ -1488,7 +1521,7 @@ prompt_password() {
   # Interactive prompt with timeout (silent input)
   echo -en "${YW}${message}${hint} (timeout ${timeout}s): ${CL}" >&2
 
-  if read -t "$timeout" -rs response; then
+  if read -t "$timeout" -rs response </dev/tty; then
     echo "" >&2 # Newline after hidden input
     if [[ -n "$response" ]]; then
       # Validate minimum length

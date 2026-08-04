@@ -276,7 +276,7 @@ nvidia_passthrough_to_lxc() {
 install_vaapi_userland_interactive() {
   . /etc/os-release
   if [[ "$VERSION_CODENAME" == "trixie" ]]; then
-    read -r -p "${TAB3}Do you need the intel-media-va-driver-non-free driver for HW encoding (Debian 13 only)? <y/N> " prompt
+    read -r -p "${TAB3}Do you need the intel-media-va-driver-non-free driver for HW encoding (Debian 13 only)? <y/N> " prompt </dev/tty
     if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
       msg_info "Installing Intel Hardware Acceleration (non-free)"
       cat <<'EOF' >/etc/apt/sources.list.d/non-free.sources

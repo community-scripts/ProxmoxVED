@@ -109,7 +109,7 @@ network_check() {
     ipv4_status="${GN}✔${CL} IPv4"
   else
     ipv4_status="${RD}✖${CL} IPv4"
-    read -r -p "Internet NOT connected. Continue anyway? <y/N> " prompt
+    read -r -p "Internet NOT connected. Continue anyway? <y/N> " prompt </dev/tty
     if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
       echo -e "${INFO}${RD}Expect Issues Without Internet${CL}"
     else

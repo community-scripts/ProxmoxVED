@@ -811,7 +811,7 @@ fi
 
 # Example 7: Cleanup credentials file after user has noted password
 display_cloud_init_info "$VMID" "$HN"
-read -p "Have you saved the credentials? (y/N): " -r
+read -p "Have you saved the credentials? (y/N): " -r </dev/tty
 [[ $REPLY =~ ^[Yy]$ ]] && cleanup_cloud_init_credentials
 
 # Example 8: Validate IP before using

@@ -439,7 +439,7 @@ incus_msg_info() {
 
     if [[ "${DEV_MODE_PAUSE:-false}" == "true" ]]; then
       echo -en "\n${YWB}[PAUSE]${CL} Press Enter to continue..." >&2
-      read -r
+      read -r </dev/tty
     fi
     return
   fi
