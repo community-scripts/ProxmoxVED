@@ -41,7 +41,7 @@ msg_info "Installing PHP Dependencies (Patience)"
 cd /opt/dreeve
 export COMPOSER_ALLOW_SUPERUSER=1
 export APP_ENV=prod
-$STD /opt/frankenphp/frankenphp php-cli /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction
+$STD /opt/frankenphp/frankenphp php-cli /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 msg_ok "Installed PHP Dependencies"
 
 msg_info "Configuring Dreeve"
@@ -87,6 +87,7 @@ set -a
 source /opt/dreeve/.env.local
 set +a
 $STD /opt/frankenphp/frankenphp php-cli bin/console app:db:migrate --no-interaction
+$STD /opt/frankenphp/frankenphp php-cli bin/console assets:install public --no-interaction
 $STD /opt/frankenphp/frankenphp php-cli bin/console cache:warmup --env=prod
 msg_ok "Initialized Database"
 
