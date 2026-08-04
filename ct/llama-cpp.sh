@@ -5,7 +5,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/ggml-org/llama.cpp
 
-APP="llama.cpp"
+APP="llama-cpp"
 var_tags="${var_tags:-ai;llm}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-8192}"

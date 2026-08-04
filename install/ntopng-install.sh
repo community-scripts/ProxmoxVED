@@ -15,7 +15,7 @@ update_os
 
 msg_info "Adding ntop Repository"
 curl -fsSL "https://packages.ntop.org/apt-stable/$(get_os_info codename)/all/apt-ntop-stable.deb" -o /tmp/apt-ntop-stable.deb
-$STD dpkg -i /tmp/apt-ntop-stable.deb
+$STD apt install -y /tmp/apt-ntop-stable.deb
 rm -f /tmp/apt-ntop-stable.deb
 $STD apt update
 msg_ok "Added ntop Repository"
