@@ -34,7 +34,7 @@ function update_script() {
     exit
   fi
 
-  local new_tag new_ver old_target old_ver release_dir stamp backup_dir
+  local new_ver old_target old_ver release_dir stamp backup_dir
   new_ver="$(get_latest_github_release "andrewtryder/unifi-netwatcher")"
   [[ -n "$new_ver" ]] || {
     msg_error "Could not resolve latest NetWatcher release"
