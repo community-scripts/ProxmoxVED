@@ -35,12 +35,11 @@ function update_script() {
   fi
 
   local new_tag new_ver old_target old_ver release_dir stamp backup_dir
-  new_tag="$(get_latest_github_release "andrewtryder/unifi-netwatcher")"
-  [[ -n "$new_tag" ]] || {
+  new_ver="$(get_latest_github_release "andrewtryder/unifi-netwatcher")"
+  [[ -n "$new_ver" ]] || {
     msg_error "Could not resolve latest NetWatcher release"
     exit 1
   }
-  new_ver="${new_tag#v}"
   old_target="$(readlink -f /opt/netwatcher/current)"
   old_ver="$(basename "$old_target")"
 
@@ -55,7 +54,8 @@ function update_script() {
     rm -rf "$release_dir"
   fi
 
-  fetch_and_deploy_gh_release "netwatcher" "andrewtryder/unifi-netwatcher" "tarball" "$new_tag" "$release_dir"
+  # Use "latest" so GitHub resolves the real tag name (e.g. v0.3.0).
+  fetch_and_deploy_gh_release "netwatcher" "andrewtryder/unifi-netwatcher" "tarball" "latest" "$release_dir"
 
   if [[ ! -f "${release_dir}/app/web/static/app.css" ]] || [[ ! -f "${release_dir}/app/web/static/js/htmx.min.js" ]]; then
     msg_error "Release ${new_ver} is missing built static assets (app.css / htmx.min.js)"

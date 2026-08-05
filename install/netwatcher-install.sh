@@ -36,15 +36,15 @@ install -d -m 0700 -o netwatcher -g netwatcher /var/lib/netwatcher
 install -d -m 0700 -o netwatcher -g netwatcher /var/lib/netwatcher/backups
 msg_ok "Created NetWatcher user and directories"
 
-RELEASE_TAG="$(get_latest_github_release "andrewtryder/unifi-netwatcher")"
-[[ -n "$RELEASE_TAG" ]] || {
+RELEASE_VER="$(get_latest_github_release "andrewtryder/unifi-netwatcher")"
+[[ -n "$RELEASE_VER" ]] || {
   msg_error "Could not resolve latest NetWatcher release from GitHub"
   exit 1
 }
-RELEASE_VER="${RELEASE_TAG#v}"
 RELEASE_DIR="/opt/netwatcher/releases/${RELEASE_VER}"
 
-fetch_and_deploy_gh_release "netwatcher" "andrewtryder/unifi-netwatcher" "tarball" "$RELEASE_TAG" "$RELEASE_DIR"
+# Use "latest" so the helper resolves the real GitHub tag (e.g. v0.3.0).
+fetch_and_deploy_gh_release "netwatcher" "andrewtryder/unifi-netwatcher" "tarball" "latest" "$RELEASE_DIR"
 
 msg_info "Validating release assets"
 if [[ ! -f "${RELEASE_DIR}/app/web/static/app.css" ]]; then
