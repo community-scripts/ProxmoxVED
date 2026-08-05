@@ -1,0 +1,64 @@
+{
+  "name": "NetWatcher",
+  "slug": "netwatcher",
+  "categories": [
+    4,
+    6,
+    9
+  ],
+  "date_created": "2026-08-05",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 8080,
+  "documentation": "https://github.com/andrewtryder/unifi-netwatcher/blob/main/README.md",
+  "website": "https://github.com/andrewtryder/unifi-netwatcher",
+  "logo": "https://raw.githubusercontent.com/andrewtryder/unifi-netwatcher/main/docs/assets/netwatcher-logo.svg",
+  "config_path": "/etc/netwatcher/netwatcher.env",
+  "description": "NetWatcher monitors UniFi Network for unknown devices, stores history in SQLite, and sends pluggable alerts. Native Debian LXC install with uv-managed Python 3.14, systemd hardening, and safe in-place upgrades.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/netwatcher.sh",
+      "config_path": "/etc/netwatcher/netwatcher.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 6,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "admin"
+  },
+  "notes": [
+    {
+      "text": "Change the bootstrap Web UI password (admin/admin) immediately under Security after first login.",
+      "type": "warning"
+    },
+    {
+      "text": "NetWatcher starts in UniFi mock mode. Edit /etc/netwatcher/netwatcher.env with your UniFi URL and dedicated account, set UNIFI_MOCK_MODE=false, then run: systemctl restart netwatcher",
+      "type": "info"
+    },
+    {
+      "text": "Persistent data lives in /var/lib/netwatcher (SQLite DB + app-secret.key). Configuration is /etc/netwatcher/netwatcher.env. Always back up the database and app-secret.key together — restoring only the DB without the matching key makes encrypted notification settings unreadable.",
+      "type": "warning"
+    },
+    {
+      "text": "Trusted-host checks are enabled by default. Access via http://<container-ip>:8080 initially (private/loopback IP literals). Add DNS names under Security → Trusted Hosts. Prefer an HTTPS reverse proxy; do not expose NetWatcher directly to the public internet.",
+      "type": "info"
+    },
+    {
+      "text": "Update by re-running the Community Script inside the LXC. Updates preserve configuration, database, and encryption key, and roll back automatically on failure.",
+      "type": "info"
+    },
+    {
+      "text": "Logs: journalctl -u netwatcher -f — Status: systemctl status netwatcher",
+      "type": "info"
+    }
+  ]
+}
