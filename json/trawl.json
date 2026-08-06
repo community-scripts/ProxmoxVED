@@ -1,0 +1,55 @@
+{
+  "name": "TRAWL",
+  "slug": "trawl",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-08-06",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 8191,
+  "pin_reason": "Camoufox is pinned to the version required by the current TRAWL release and upstream browser compatibility; update this when TRAWL moves to a newer tested Camoufox release.",
+  "documentation": "https://trawl.germondai.com/",
+  "website": "https://trawl.germondai.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/trawl.webp",
+  "config_path": "/etc/trawl.env",
+  "description": "TRAWL is a self-hosted scraping engine with adaptive HTTP, browser, challenge-solving, CAPTCHA, and proxy tiers. It exposes a FlareSolverr-compatible API for Prowlarr, Jackett, Sonarr, and Radarr, plus a native scraping API.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/trawl.sh",
+      "config_path": "/etc/trawl.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The first start downloads the Camoufox browser and warms the browser pool; allow a few minutes before checking /health.",
+      "type": "info"
+    },
+    {
+      "text": "The optional MITM proxy is disabled and bound to localhost by default. If you enable it for another container, set MITM_PROXY_HOST=0.0.0.0 only on a trusted private network and install the CA certificate in the client.",
+      "type": "warning"
+    },
+    {
+      "text": "TRAWL has no built-in authentication. Keep port 8191 on a trusted private network or put it behind an authenticated reverse proxy.",
+      "type": "warning"
+    },
+    {
+      "text": "The default browser pool is one instance to fit the container defaults. Increase BROWSER_POOL_SIZE and the container RAM/CPU for concurrent scraping.",
+      "type": "info"
+    }
+  ]
+}
