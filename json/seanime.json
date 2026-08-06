@@ -12,6 +12,7 @@
   "interface_port": 43211,
   "documentation": "https://seanime.app/docs",
   "website": "https://seanime.app/",
+  "repository": "https://github.com/5rahim/seanime",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/seanime.webp",
   "description": "Seanime is a self-hosted server for an anime and manga library, built around AniList. It scans local media, tracks progress back to AniList, searches torrents through extension-based providers, downloads through qBittorrent, Transmission, Torbox, Real-Debrid, AllDebrid or Premiumize, streams torrent and debrid content straight to a player, auto-downloads airing episodes, and includes a manga reader and online streaming via extensions.",
   "install_methods": [

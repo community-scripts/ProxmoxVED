@@ -12,6 +12,7 @@
   "interface_port": 80,
   "documentation": "https://akaunting.com/hc/docs",
   "website": "https://akaunting.com/",
+  "repository": "https://github.com/akaunting/akaunting",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/akaunting.webp",
   "description": "Akaunting is a free, open-source online accounting software designed for small businesses and freelancers, featuring invoicing, expense tracking, and financial reporting.",
   "install_methods": [

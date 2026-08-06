@@ -12,6 +12,7 @@
     "interface_port": 4000,
     "documentation": "https://docs.chatto.run",
     "website": "https://chatto.run",
+    "repository": "https://github.com/chattocorp/chatto",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/chatto.webp",
     "config_path": "/opt/chatto_data/chatto.toml",
     "description": "Chatto is a fully-featured, privacy-first team and group chat application that is free and easy to self-host. It ships as a single binary with an embedded NATS/JetStream store (no external database) and supports voice/video calls and screensharing via an optional LiveKit server.",

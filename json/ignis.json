@@ -12,6 +12,7 @@
   "interface_port": 443,
   "documentation": "https://github.com/Nystik-gh/ignis",
   "website": "https://github.com/Nystik-gh/ignis",
+  "repository": "https://github.com/Nystik-gh/ignis",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/obsidian.webp",
   "config_path": "/etc/systemd/system/ignis.service",
   "description": "Ignis runs Obsidian in the browser by reimplementing the Electron APIs Obsidian uses, keeping your vaults on the server. It supports multiple vaults, plugins, file upload/download and sync across browser tabs, so you can access your Obsidian vault from any device without a desktop client.",

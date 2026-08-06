@@ -12,6 +12,7 @@
   "interface_port": 8181,
   "documentation": "https://github.com/StuffAnThings/qbit_manage/wiki",
   "website": "https://github.com/StuffAnThings/qbit_manage",
+  "repository": "https://github.com/StuffAnThings/qbit_manage",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/qbittorrent.webp",
   "config_path": "/opt/qbit-manage_data/config.yml",
   "description": "qBit Manage keeps a qBittorrent instance tidy: tagging by tracker, cross-seed handling, orphaned file cleanup, share-limit enforcement, recheck of paused torrents and automatic removal of unregistered ones. It runs on a schedule and ships a web UI to configure the rules and inspect runs.",

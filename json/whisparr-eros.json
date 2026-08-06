@@ -12,6 +12,7 @@
   "interface_port": 6969,
   "documentation": "https://wiki.servarr.com/whisparr",
   "website": "https://github.com/Whisparr/Whisparr-Eros",
+  "repository": "https://github.com/Whisparr/Whisparr-Eros",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/whisparr.webp",
   "config_path": "/var/lib/whisparr-eros/config.xml",
   "description": "Whisparr V3 (\"eros\") is an adult movie and scene collection manager for Usenet and BitTorrent users. It monitors RSS feeds for new items, interfaces with download clients and indexers to grab, sort and rename them, and can automatically upgrade existing files when a better quality release appears. V3 is the Radarr-based train and is developed in its own repository, separate from the Sonarr-based Whisparr V2.",

@@ -829,6 +829,9 @@ Every application requires a JSON metadata file in `json/<appname>.json`.
   "interface_port": 3000,
   "documentation": "https://docs.appname.com/",
   "website": "https://appname.com/",
+  "repository": "https://github.com/owner/appname",
+  "architectures": ["amd64"],
+  "platforms": ["pve"],
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/appname.webp",
   "description": "Short description of the application and its purpose.",
   "install_methods": [
@@ -867,11 +870,46 @@ Every application requires a JSON metadata file in `json/<appname>.json`.
 | `interface_port`      | number  | Primary web interface port (or `null`)             |
 | `documentation`       | string  | Link to official docs                              |
 | `website`             | string  | Link to official website                           |
+| `repository`          | string  | Upstream repository as a full URL. A bare `owner/repo` could only ever mean GitHub, and the release sync also reads GitLab, Gitea, Forgejo and Codeberg |
+| `architectures`       | array   | `["amd64"]` or `["amd64", "arm64"]`. Must agree with `var_arm64` in the CT script — that is the one `arch_check` obeys |
 | `logo`                | string  | URL to application logo (preferably selfhst icons) |
 | `description`         | string  | Brief description of the application               |
 | `install_methods`     | array   | Installation configurations                        |
 | `default_credentials` | object  | Default username/password (or null)                |
 | `notes`               | array   | Additional notes/warnings                          |
+
+### Optional Fields
+
+| Field       | Type  | Description                                                                 |
+| ----------- | ----- | --------------------------------------------------------------------------- |
+| `platforms` | array | `["pve"]`, `["incus"]` or both. Omit to mean Proxmox VE                      |
+| `app_vars`  | array | Values the install script accepts up front, so a deployment can run unattended |
+
+`app_vars` describes what the script already reads from the environment. Name
+each one `var_<something>`, read it before prompting, and export it from
+`ct/<app>.sh` — without the export it never reaches the container:
+
+```bash
+# ct/appname.sh
+export var_admin_user="${var_admin_user:-}"
+
+# install/appname-install.sh
+if [[ -z "${var_admin_user:-}" ]]; then
+  read -r -p "${TAB3}Admin username: " var_admin_user
+fi
+var_admin_user="${var_admin_user:-admin}"
+```
+
+```json
+"app_vars": [
+  { "name": "var_admin_user", "label": "Admin Username", "type": "text", "default": "admin" },
+  { "name": "var_admin_pass", "label": "Admin Password", "type": "password", "secret": true, "required": true }
+]
+```
+
+`type` is one of `text`, `password`, `number`, `boolean` (emits `yes`/`no`) or
+`select` (with `options`). A declaration whose `name` the script never reads
+produces a generated command that looks right and changes nothing.
 
 ### Categories
 

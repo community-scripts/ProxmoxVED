@@ -12,6 +12,7 @@
   "interface_port": 3000,
   "documentation": "https://portabase.io/docs",
   "website": "https://portabase.io",
+  "repository": "https://github.com/Portabase/portabase",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/portabase.webp",
   "config_path": "/opt/portabase/.env",
   "description": "Portabase is a self-hosted dashboard to schedule, run and restore database backups for PostgreSQL, MySQL, MariaDB, MsSQL, Firebird, SQLite, MongoDB, Redis and Docker volumes. It supports retention policies, notifications and multiple storage backends (local, S3, Azure, GCS).",

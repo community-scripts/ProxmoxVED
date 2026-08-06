@@ -12,6 +12,7 @@
   "interface_port": 80,
   "documentation": "https://v4-docs.chevereto.com/",
   "website": "https://chevereto.com/",
+  "repository": "https://github.com/chevereto/chevereto",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/chevereto.webp",
   "config_path": "/opt/chevereto/app/env.php",
   "description": "Chevereto is a self-hosted image and video hosting platform for building your own Flickr or Imgur style media sharing site with full control over content, data and platform rules. This installs the open-source AGPLv3 Free edition on nginx, PHP-FPM and MariaDB.",

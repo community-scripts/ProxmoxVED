@@ -12,6 +12,7 @@
   "interface_port": 8080,
   "documentation": "https://docs.safebucket.io",
   "website": "https://github.com/safebucket/safebucket",
+  "repository": "https://github.com/safebucket/safebucket",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/safebucket.webp",
   "description": "Open-source file sharing where files bypass the server via presigned URLs to a local Garage (S3-compatible) object store.",
   "install_methods": [

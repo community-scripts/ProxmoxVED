@@ -12,6 +12,7 @@
   "interface_port": 8080,
   "documentation": "https://github.com/Darkrock-Studios/hammer-editor/blob/develop/HOW-TO-RUN-A-SERVER.md",
   "website": "https://hammereditor.com",
+  "repository": "https://github.com/Darkrock-Studios/hammer-editor",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/hammer-editor.webp",
   "config_path": "/opt/hammer_data/config.toml",
   "description": "This installs the self-hosted sync server for Hammer, the offline-first story/novel writing app. The Kotlin/Ktor server lets you sync your Hammer projects across your own devices instead of using Dropbox or a third-party service. It ships with an in-process (embedded) PostgreSQL, so no external database is required. The server has no UI of its own - install the Hammer desktop/mobile client separately and point it at this server.",

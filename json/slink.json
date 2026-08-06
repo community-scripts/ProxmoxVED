@@ -12,6 +12,7 @@
   "interface_port": 3000,
   "documentation": "https://slink.pages.dev",
   "website": "https://github.com/andrii-kryvoviaz/slink",
+  "repository": "https://github.com/andrii-kryvoviaz/slink",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/slink.webp",
   "description": "Slink is a self-hosted image sharing platform built with Symfony and SvelteKit. It supports multi-file uploads, image compression, URL shortening, collections, tags, comments, SSO/OIDC, dark mode, and S3 storage.",
   "install_methods": [

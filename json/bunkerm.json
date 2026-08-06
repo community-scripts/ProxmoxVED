@@ -12,6 +12,7 @@
     "interface_port": 2000,
     "documentation": "https://bunkerai.dev/docs",
     "website": "https://bunkerai.dev/",
+    "repository": "https://github.com/bunkeriot/BunkerM",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/bunkerm.webp",
     "description": "All-in-one self-hosted MQTT broker management platform bundling Eclipse Mosquitto with a full-featured web dashboard, smart anomaly detection, local automation agents, and optional AI assistant.",
     "install_methods": [

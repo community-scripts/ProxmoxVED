@@ -12,6 +12,7 @@
   "interface_port": 3030,
   "documentation": "https://github.com/kikootwo/ReadMeABook#readme",
   "website": "https://github.com/kikootwo/ReadMeABook",
+  "repository": "https://github.com/kikootwo/ReadMeABook",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/readmeabook.webp",
   "config_path": "/opt/readmeabook/.env",
   "description": "ReadMeABook is a request and download platform for audiobooks - the audiobook counterpart to Sonarr and Radarr. Users request titles, ReadMeABook finds and fetches them, and the result drops into a library that Audiobookshelf or a similar player can serve.",

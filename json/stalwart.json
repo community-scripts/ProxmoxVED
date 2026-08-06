@@ -12,6 +12,7 @@
   "interface_port": 8080,
   "documentation": "https://stalw.art/docs/",
   "website": "https://stalw.art/",
+  "repository": "https://github.com/stalwartlabs/stalwart",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/stalwart.webp",
   "config_path": "/opt/stalwart_data/etc/config.json",
   "description": "Stalwart is an all-in-one mail and collaboration server written in Rust. A single binary provides SMTP, IMAP, POP3, JMAP, CalDAV, CardDAV and WebDAV plus spam filtering, DKIM/SPF/DMARC and a web admin interface, with no external database required for a default install.",

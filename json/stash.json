@@ -12,6 +12,7 @@
   "interface_port": 9999,
   "documentation": "https://docs.stashapp.cc/",
   "website": "https://stashapp.cc/",
+  "repository": "https://github.com/stashapp/stash",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/stash.webp",
   "config_path": "/opt/stash_data/config.yml",
   "description": "Stash is a self-hosted organizer for adult media collections. It scans your library, then enriches it with performers, studios, tags and scene metadata pulled from stash-box instances such as StashDB and from community scrapers, and serves everything through a web interface.",

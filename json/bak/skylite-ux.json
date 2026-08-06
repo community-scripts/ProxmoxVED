@@ -12,6 +12,7 @@
   "interface_port": 3000,
   "documentation": "https://github.com/Wetzel402/Skylite-UX",
   "website": "https://github.com/Wetzel402/Skylite-UX",
+  "repository": "https://github.com/Wetzel402/Skylite-UX",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/skylite-ux.webp",
   "description": "Skylite-UX is an open-source, self-hosted family management app with calendar, todos, shopping lists, and user management.",
   "install_methods": [

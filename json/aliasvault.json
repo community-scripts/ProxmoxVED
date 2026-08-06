@@ -12,6 +12,7 @@
     "interface_port": 443,
     "documentation": "https://docs.aliasvault.net/",
     "website": "https://aliasvault.net/",
+    "repository": "https://github.com/aliasvault/aliasvault",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/aliasvault.webp",
     "description": "AliasVault is an open-source, end-to-end encrypted password manager and email alias service. It features a zero-knowledge architecture where your master password never leaves your device, a built-in SMTP server for alias email addresses, browser extensions with autofill, and native iOS/Android apps.",
     "install_methods": [

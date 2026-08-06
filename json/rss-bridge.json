@@ -12,6 +12,7 @@
   "interface_port": 80,
   "documentation": "https://rss-bridge.github.io/rss-bridge/",
   "website": "https://rss-bridge.org/",
+  "repository": "https://github.com/RSS-Bridge/rss-bridge",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rss-bridge.webp",
   "description": "RSS-Bridge is a PHP web application that generates web feeds for websites that don't have one, supporting over 400 bridges for various platforms and services.",
   "install_methods": [

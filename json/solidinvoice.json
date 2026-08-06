@@ -12,6 +12,7 @@
   "interface_port": 8765,
   "documentation": "https://solidinvoice.co/docs",
   "website": "https://solidinvoice.co",
+  "repository": "https://github.com/SolidInvoice/SolidInvoice",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/solidinvoice.webp",
   "description": "SolidInvoice is an open-source invoicing application that helps small businesses and freelancers manage clients, create professional invoices, track payments, and handle recurring billing.",
   "install_methods": [

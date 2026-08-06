@@ -12,6 +12,7 @@
   "interface_port": 80,
   "documentation": "https://docs.logseq.com/",
   "website": "https://logseq.com/",
+  "repository": "https://github.com/logseq/logseq",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/logseq.webp",
   "description": "Logseq is a privacy-first, open-source knowledge base and outliner for organizing notes, tasks and connected thoughts with Markdown and a local-first graph. This deployment builds and serves the self-hosted web version behind Nginx.",
   "install_methods": [

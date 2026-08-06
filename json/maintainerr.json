@@ -13,6 +13,7 @@
   "interface_port": 6246,
   "documentation": "https://docs.maintainerr.info",
   "website": "https://maintainerr.info",
+  "repository": "https://github.com/Maintainerr/Maintainerr",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/maintainerr.webp",
   "description": "Maintainerr automates media-library cleanup by building rule-based collections of unwatched or unrequested titles, applying a grace period, then removing them from Plex/Jellyfin/Emby and the connected Radarr, Sonarr and Seerr apps.",
   "install_methods": [

@@ -12,6 +12,7 @@
     "interface_port": 3000,
     "documentation": "https://developers.chatwoot.com/self-hosted/",
     "website": "https://www.chatwoot.com/",
+    "repository": "https://github.com/chatwoot/chatwoot",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/chatwoot.webp",
     "config_path": "/opt/chatwoot/.env",
     "description": "Chatwoot is an open-source omnichannel customer-support platform for live chat, email, social media and messaging conversations.",

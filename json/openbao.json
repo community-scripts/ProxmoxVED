@@ -12,6 +12,7 @@
   "interface_port": 8200,
   "documentation": "https://openbao.org/docs/",
   "website": "https://openbao.org/",
+  "repository": "https://github.com/openbao/openbao",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openbao.webp",
   "description": "OpenBao is a community-driven, open-source fork of HashiCorp Vault for managing, storing and distributing secrets such as tokens, passwords, certificates and encryption keys.",
   "install_methods": [

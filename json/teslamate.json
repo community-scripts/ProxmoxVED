@@ -12,6 +12,7 @@
   "interface_port": 4000,
   "documentation": "https://docs.teslamate.org/",
   "website": "https://github.com/teslamate-org/teslamate",
+  "repository": "https://github.com/teslamate-org/teslamate",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/teslamate.webp",
   "config_path": "/opt/teslamate.env",
   "description": "TeslaMate is a self-hosted data logger for Tesla vehicles. It records drives, charges, battery health, efficiency and vehicle updates into PostgreSQL and visualizes everything through a set of prebuilt Grafana dashboards, with optional MQTT publishing for home automation.",

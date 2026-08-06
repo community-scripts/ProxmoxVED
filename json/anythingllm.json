@@ -12,6 +12,7 @@
   "interface_port": 3001,
   "documentation": "https://docs.anythingllm.com/",
   "website": "https://anythingllm.com/",
+  "repository": "https://github.com/Mintplex-Labs/anything-llm",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/anythingllm.webp",
   "config_path": "/opt/anythingllm/server/.env",
   "description": "AnythingLLM is an all-in-one AI application: turn documents, websites and other content into a chat-ready knowledge base with RAG, agents and multi-user workspaces. It connects to local model runners such as Ollama and LM Studio as well as OpenAI, Anthropic and other hosted providers.",
