@@ -21,10 +21,10 @@
 # ==============================================================================
 
 COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
-source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/api.func") 2>/dev/null
-source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/vm-core.func") 2>/dev/null
-source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/cloud-init.func") 2>/dev/null || true
-source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/vm-app.func") 2>/dev/null
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/shared/api.func") 2>/dev/null
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func") 2>/dev/null
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/shared/cloud-init.func") 2>/dev/null || true
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-app.func") 2>/dev/null
 load_functions
 
 # ==============================================================================
