@@ -8,7 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": true,
-    "has_arm": false,
+    "architectures": ["amd64"],
     "interface_port": null,
     "documentation": "https://help.ubuntu.com/",
     "website": "https://ubuntu.com/",

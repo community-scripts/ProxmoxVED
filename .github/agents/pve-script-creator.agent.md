@@ -66,7 +66,9 @@ Browser APIs like `crypto.subtle` (Web Crypto / PKCE), `navigator.storage.getDir
 - All `apt` / `npm` / build commands must be prefixed with `$STD`.
 
 ### JSON Metadata
-- Must include: `name`, `slug`, `categories`, `date_created`, `type`, `updateable`, `privileged`, `has_arm`, `interface_port`, `documentation`, `website`, `logo`, `config_path`, `description`, `install_methods`, `default_credentials`, `notes`.
+- Must include: `name`, `slug`, `categories`, `date_created`, `type`, `updateable`, `privileged`, `architectures`, `interface_port`, `documentation`, `website`, `logo`, `config_path`, `description`, `install_methods`, `default_credentials`, `notes`.
+- `architectures` is a list: `["amd64"]` or `["amd64", "arm64"]`. It replaced the `has_arm` boolean, which could say "also ARM" but not "ARM only" or "amd64 only".
+- Optional: `repository` (upstream repo as a full URL), `platforms` (`["pve"]`, `["incus"]`, omit for Proxmox VE), `app_vars` (values the install script accepts up front).
 - `date_created` uses today's date (YYYY-MM-DD).
 - Resources in `install_methods` must match `var_*` values in the CT script.
 - CT scripts must include `var_arm64="${var_arm64:-no}"` unless arm64 support has been verified.
@@ -89,8 +91,8 @@ Browser APIs like `crypto.subtle` (Web Crypto / PKCE), `navigator.storage.getDir
 - [ ] Persistent data/config lives in `/opt/<app>_data` (outside the wiped app dir); if unavoidable inside, backed up via `create_backup`/`restore_backup`
 - [ ] Footer: `motd_ssh`, `customize`, `cleanup_lxc`
 - [ ] JSON metadata file matches CT script resources
-- [ ] JSON `has_arm` accurately reflects arm64 support
-- [ ] CT `var_arm64` accurately reflects arm64 support
+- [ ] CT `var_arm64` accurately reflects arm64 support — this is the one the engine obeys, `arch_check` aborts on it
+- [ ] JSON `architectures` agrees with CT `var_arm64` (`yes` → `["amd64", "arm64"]`, `no` → `["amd64"]`)
 - [ ] Backups go to `/opt`, not `/tmp`
 - [ ] Multi-arch asset patterns use `arch_resolve` (no hardcoded arch)
 - [ ] 3rd-party APT repos via `setup_deb822_repo`; self-signed TLS via `create_self_signed_cert`

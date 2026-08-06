@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 4000,
   "documentation": "https://docs.teslamate.org/",
   "website": "https://github.com/teslamate-org/teslamate",

@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 13305,
   "documentation": "https://lemonade-server.ai/docs/",
   "website": "https://lemonade-server.ai/",

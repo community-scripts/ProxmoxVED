@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64", "arm64"],
   "interface_port": 8443,
   "documentation": "https://kanidm.github.io/kanidm/stable/",
   "website": "https://kanidm.com/",

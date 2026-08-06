@@ -8,7 +8,7 @@
   "type": "pve",
   "updateable": false,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": null,
   "documentation": "https://pdm.proxmox.com/docs/installation.html",
   "website": "https://pdm.proxmox.com/",

@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 3000,
   "documentation": "https://github.com/Yooooomi/your_spotify#readme",
   "website": "https://github.com/Yooooomi/your_spotify",

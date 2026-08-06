@@ -8,7 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "has_arm": true,
+    "architectures": ["amd64", "arm64"],
     "interface_port": 80,
     "documentation": "https://docs.castopod.org/main/en/",
     "website": "https://castopod.org/",

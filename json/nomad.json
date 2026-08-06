@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 4646,
   "documentation": "https://developer.hashicorp.com/nomad/docs",
   "website": "https://www.nomadproject.io/",

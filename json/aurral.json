@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 3001,
   "documentation": "https://github.com/lklynet/aurral",
   "website": "https://aurral.org",

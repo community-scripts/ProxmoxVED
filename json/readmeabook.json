@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 3030,
   "documentation": "https://github.com/kikootwo/ReadMeABook#readme",
   "website": "https://github.com/kikootwo/ReadMeABook",

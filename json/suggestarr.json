@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 5000,
   "documentation": "https://giuseppe99barchetta.github.io/SuggestArr/",
   "website": "https://github.com/giuseppe99barchetta/SuggestArr",

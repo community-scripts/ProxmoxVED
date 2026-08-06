@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64", "arm64"],
   "interface_port": 443,
   "documentation": "https://docs.godoxy.dev",
   "website": "https://github.com/yusing/godoxy",

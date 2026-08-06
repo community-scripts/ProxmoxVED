@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 8080,
   "documentation": "https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md",
   "website": "https://github.com/ggml-org/llama.cpp",

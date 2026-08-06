@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 8888,
   "documentation": "https://unsloth.ai/docs/new/studio",
   "website": "https://unsloth.ai/",
