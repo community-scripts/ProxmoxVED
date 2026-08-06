@@ -8,10 +8,11 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "has_arm": false,
+    "architectures": ["amd64", "arm64"],
     "interface_port": 3745,
     "documentation": "https://github.com/IliasHad/edit-mind",
     "website": "https://github.com/IliasHad/edit-mind",
+    "repository": "https://github.com/IliasHad/edit-mind",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/edit-mind.webp",
     "description": "AI-powered media management platform with semantic search, face recognition, video transcription, smart collections, and background job processing for your personal media library.",
     "install_methods": [

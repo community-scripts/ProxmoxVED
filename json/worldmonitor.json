@@ -8,10 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 8080,
   "documentation": "https://github.com/koala73/worldmonitor/blob/main/SELF_HOSTING.md",
   "website": "https://www.worldmonitor.app",
+  "repository": "https://github.com/koala73/worldmonitor",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/worldmonitor.webp",
   "description": "Real-time global intelligence dashboard with AI-powered news aggregation, geopolitical monitoring, and infrastructure tracking in a unified situational awareness interface.",
   "install_methods": [

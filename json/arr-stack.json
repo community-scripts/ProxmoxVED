@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 3010,
   "documentation": "community-scripts/ProxmoxVED/blob/main/tools/arr-stack.sh",
   "website": "https://community-scripts.org",

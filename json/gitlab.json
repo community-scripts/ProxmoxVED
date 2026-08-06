@@ -8,12 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 80,
   "documentation": "https://docs.gitlab.com/omnibus/",
   "website": "https://about.gitlab.com/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/gitlab.webp",
-  "config_path": "/etc/gitlab/gitlab.rb",
   "description": "GitLab CE is a complete DevOps platform: Git repository hosting, issue tracking, merge requests, CI/CD pipelines, a container registry and a package registry in one application. This installs the official Omnibus package, which bundles its own PostgreSQL, Redis, NGINX and Puma.",
   "install_methods": [
     {

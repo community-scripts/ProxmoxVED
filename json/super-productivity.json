@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 80,
   "documentation": "https://github.com/super-productivity/super-productivity",
   "website": "https://super-productivity.com/",
+  "repository": "https://github.com/super-productivity/super-productivity",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/super-productivity.webp",
-  "config_path": "/etc/nginx/sites-available/super-productivity.conf",
   "description": "Super Productivity is a privacy-focused, open-source to-do list, task manager and time tracker that helps you organize tasks, plan your day and track time. This deploys the self-hostable web (PWA) build as static files served by nginx.",
   "install_methods": [
     {

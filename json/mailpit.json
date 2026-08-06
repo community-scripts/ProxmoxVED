@@ -8,12 +8,12 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "has_arm": true,
+    "architectures": ["amd64", "arm64"],
     "interface_port": 8025,
     "documentation": "https://mailpit.axllent.org/docs/",
     "website": "https://mailpit.axllent.org/",
+    "repository": "https://github.com/axllent/mailpit",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/mailpit.webp",
-    "config_path": "/opt/mailpit/.env",
     "description": "Mailpit is a fast, lightweight email testing tool that captures SMTP messages and provides a web UI and API for viewing and testing them.",
     "install_methods": [
         {

@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 8282,
   "documentation": "https://sirrobot01.github.io/decypharr/",
   "website": "https://github.com/sirrobot01/decypharr",
+  "repository": "https://github.com/sirrobot01/decypharr",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/decypharr.webp",
-  "config_path": "/opt/decypharr_data/config.json",
   "description": "Decypharr exposes a mock qBittorrent and SABnzbd API in front of debrid services, so Sonarr, Radarr, Lidarr and friends can send downloads to Real-Debrid, Torbox, AllDebrid, Debrid-Link or Premiumize as if they were talking to a normal download client. It also supports direct Usenet streaming via NNTP without a separate download client.",
   "install_methods": [
     {

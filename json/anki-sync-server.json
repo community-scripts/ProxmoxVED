@@ -8,12 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64", "arm64"],
   "interface_port": 8080,
   "documentation": "https://docs.ankiweb.net/sync-server.html",
   "website": "https://apps.ankiweb.net/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/anki-sync-server.webp",
-  "config_path": "/opt/anki-sync-server/.env",
   "description": "The official self-hosted sync server for Anki flashcards, suitable for individual and family use.",
   "install_methods": [
     {

@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 1337,
   "documentation": "https://github.com/jhaals/yopass#readme",
   "website": "https://yopass.se/",
+  "repository": "https://github.com/jhaals/yopass",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/yopass.webp",
-  "config_path": "/etc/systemd/system/yopass.service",
   "description": "Yopass shares secrets through one-time links. The secret is encrypted in the browser before it is sent, so the server only ever stores an opaque blob with an expiry, and the decryption key travels in the URL fragment which is never transmitted. Opening the link destroys the secret.",
   "install_methods": [
     {

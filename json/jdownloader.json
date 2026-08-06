@@ -8,7 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "has_arm": false,
+    "architectures": ["amd64"],
     "interface_port": 3129,
     "documentation": "https://jdownloader.org/knowledge/wiki/setup",
     "website": "https://jdownloader.org/",

@@ -47,6 +47,10 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
+# Values the install script accepts up front (see "Application Settings").
+# Without the export they never reach the container.
+#export var_admin_user="${var_admin_user:-}"
+
 header_info "$APP"
 variables
 color
@@ -646,6 +650,34 @@ msg_ok "Installed Dependencies"
 
 **When to omit the dependency block entirely:** If the app only needs packages provided by `setup_*` helpers (e.g., Node.js, PostgreSQL, Go) or is a prebuilt binary with no native deps, skip the "Installing Dependencies" block completely.
 
+### 24. Prompting Without an Escape Hatch
+
+A `read` that always fires cannot be answered in advance, so the script can only
+ever be installed by hand. Read the variable first and prompt only when it is
+unset:
+
+```bash
+# ❌ WRONG - the environment is overwritten before it is ever read.
+# read assigns an empty string when stdin is closed, so the :- fallback
+# fires and whatever the caller passed is gone.
+read -rp "${TAB3}Admin username: " admin_user
+admin_user="${admin_user:-admin}"
+
+# ✅ CORRECT
+if [[ -z "${var_admin_user:-}" ]]; then
+  read -rp "${TAB3}Admin username: " var_admin_user
+fi
+var_admin_user="${var_admin_user:-admin}"
+```
+
+Name it `var_<something>` — the same namespace the container variables use —
+export it from `ct/<app>.sh`, and declare it in the JSON `app_vars`. All three
+are needed: without the export it never reaches the container, and without the
+declaration the website cannot offer it as a field.
+
+`install/forgejo-runner-install.sh` and `install/pangolin-install.sh` follow
+this.
+
 ---
 
 ## 📝 Important Rules
@@ -688,6 +720,34 @@ where someone would look for it:
 
 When setting it to `no`, state the reason next to it — otherwise the value
 degrades back into "nobody checked".
+
+**Application settings**
+
+Anything the install script should be able to receive up front is declared here
+too, and **must be exported** — `lxc-attach` carries the caller's environment,
+but only what was exported:
+
+```bash
+export var_admin_user="${var_admin_user:-}"
+export var_admin_token="${var_admin_token:-}"
+```
+
+Without the export the variable stays on the host, the install script finds it
+empty, and an unattended run stops at a prompt inside the container where
+nobody can answer it. Declare the same names in the JSON `app_vars` so the
+website can offer them as fields.
+
+If a value is required, fail early — checking it in the CT script costs the
+user seconds, checking it inside the container costs a full build:
+
+```bash
+if [[ -n "${mode:-}" ]]; then
+  if [[ -z "${var_admin_token:-}" ]]; then
+    msg_error "var_admin_token is required for unattended installs."
+    exit 1
+  fi
+fi
+```
 
 ### Update-Script Pattern
 
@@ -829,6 +889,9 @@ Every application requires a JSON metadata file in `json/<appname>.json`.
   "interface_port": 3000,
   "documentation": "https://docs.appname.com/",
   "website": "https://appname.com/",
+  "repository": "https://github.com/owner/appname",
+  "architectures": ["amd64"],
+  "platforms": ["pve"],
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/appname.webp",
   "description": "Short description of the application and its purpose.",
   "install_methods": [
@@ -867,11 +930,46 @@ Every application requires a JSON metadata file in `json/<appname>.json`.
 | `interface_port`      | number  | Primary web interface port (or `null`)             |
 | `documentation`       | string  | Link to official docs                              |
 | `website`             | string  | Link to official website                           |
+| `repository`          | string  | Upstream repository as a full URL. A bare `owner/repo` could only ever mean GitHub, and the release sync also reads GitLab, Gitea, Forgejo and Codeberg |
+| `architectures`       | array   | Must agree with `var_arm64` in the CT script — that is the one `arch_check` obeys. `yes` → `["amd64", "arm64"]`, `no` → `["amd64"]`, unset → omit the field. The site reads an absent field as amd64, so "known broken" and "never tried" look the same there; only `var_arm64` keeps them apart |
 | `logo`                | string  | URL to application logo (preferably selfhst icons) |
 | `description`         | string  | Brief description of the application               |
 | `install_methods`     | array   | Installation configurations                        |
 | `default_credentials` | object  | Default username/password (or null)                |
 | `notes`               | array   | Additional notes/warnings                          |
+
+### Optional Fields
+
+| Field       | Type  | Description                                                                 |
+| ----------- | ----- | --------------------------------------------------------------------------- |
+| `platforms` | array | `["pve"]`, `["incus"]` or both. Omit to mean Proxmox VE                      |
+| `app_vars`  | array | Values the install script accepts up front, so a deployment can run unattended |
+
+`app_vars` describes what the script already reads from the environment. Name
+each one `var_<something>`, read it before prompting, and export it from
+`ct/<app>.sh` — without the export it never reaches the container:
+
+```bash
+# ct/appname.sh
+export var_admin_user="${var_admin_user:-}"
+
+# install/appname-install.sh
+if [[ -z "${var_admin_user:-}" ]]; then
+  read -r -p "${TAB3}Admin username: " var_admin_user
+fi
+var_admin_user="${var_admin_user:-admin}"
+```
+
+```json
+"app_vars": [
+  { "name": "var_admin_user", "label": "Admin Username", "type": "text", "default": "admin" },
+  { "name": "var_admin_pass", "label": "Admin Password", "type": "password", "secret": true, "required": true }
+]
+```
+
+`type` is one of `text`, `password`, `number`, `boolean` (emits `yes`/`no`) or
+`select` (with `options`). A declaration whose `name` the script never reads
+produces a generated command that looks right and changes nothing.
 
 ### Categories
 

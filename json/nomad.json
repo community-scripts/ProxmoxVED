@@ -8,12 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 4646,
   "documentation": "https://developer.hashicorp.com/nomad/docs",
   "website": "https://www.nomadproject.io/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nomad.webp",
-  "config_path": "/etc/nomad.d/nomad.hcl",
   "description": "Nomad is a workload orchestrator from HashiCorp. It schedules containers, raw binaries, Java applications and VMs across a cluster from a single binary, and is a much lighter alternative to Kubernetes for homelab-scale deployments. This installs a single node running as both server and client.",
   "install_methods": [
     {

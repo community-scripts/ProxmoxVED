@@ -8,10 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 80,
   "documentation": "https://docs.ntfy.sh/",
   "website": "https://ntfy.sh/",
+  "platforms": ["pve", "incus"],
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ntfy.webp",
   "description": "ntfy is a simple HTTP-based pub-sub notification service that lets you send push notifications to your phone or desktop via scripts, without signup or cost.",
   "install_methods": [

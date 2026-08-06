@@ -8,10 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 41337,
   "documentation": "https://epicgames.github.io/lore/",
   "website": "https://epicgames.github.io/lore/",
+  "repository": "https://github.com/EpicGames/lore",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/lore.webp",
   "description": "Lore is Epic Games' open-source, centralized, self-hostable version control server. Teams push to, clone from, and resolve conflicts through the loreserver endpoint over QUIC and gRPC, backed by durable local-disk storage.",
   "install_methods": [

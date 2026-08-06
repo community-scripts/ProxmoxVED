@@ -8,12 +8,11 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "has_arm": false,
+    "architectures": ["amd64"],
     "interface_port": null,
     "documentation": "https://docs.rockylinux.org/",
     "website": "https://rockylinux.org/",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rocky-linux.webp",
-    "config_path": null,
     "description": "Rocky Linux is an enterprise-grade Linux distribution compatible with Red Hat Enterprise Linux.",
     "install_methods": [
         {

@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 80,
   "documentation": "https://github.com/teelur/budget-board",
   "website": "https://budgetboard.net",
+  "repository": "https://github.com/teelur/budget-board",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/budget-board.webp",
-  "config_path": "/opt/budget-board/server/.env",
   "description": "Budget-Board is a simple self-hosted app for tracking monthly spending and working towards financial goals. It pairs a .NET web API with a web client backed by PostgreSQL.",
   "install_methods": [
     {

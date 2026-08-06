@@ -9,7 +9,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64", "arm64"],
   "interface_port": null,
   "documentation": "https://orb.net/docs",
   "website": "https://orb.net/",

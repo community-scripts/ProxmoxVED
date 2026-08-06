@@ -11,6 +11,7 @@
   "interface_port": 4848,
   "documentation": "https://github.com/meeb/tubesync/blob/main/README.md",
   "website": "https://github.com/meeb/tubesync",
+  "repository": "https://github.com/meeb/tubesync",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/tubesync.webp",
   "description": "TubeSync is a PVR (personal video recorder) for YouTube. It synchronizes channels and playlists to your local storage, downloading media automatically via yt-dlp so you can keep an offline library and watch it in your media player of choice.",
   "install_methods": [
