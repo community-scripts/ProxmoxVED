@@ -34,8 +34,12 @@
   },
   "notes": [
     {
-      "text": "The generated UI password is stored as UNSLOTH_STUDIO_PASSWORD in /opt/unsloth.env. Without it Unsloth Studio would prompt for one on the terminal, which a systemd service cannot answer.",
-      "type": "warning"
+      "text": "Log in as the user 'unsloth'; the generated password is in ~/unsloth.creds inside the container. Rotate it with 'unsloth studio reset-password', which prints a new one and needs no restart.",
+      "type": "info"
+    },
+    {
+      "text": "Web search only works with an external provider (OpenAI, Anthropic, OpenRouter, Gemini or Kimi) configured in the settings, because the search runs server-side at the provider. Local GGUF models do not offer it and the search button stays hidden for them.",
+      "type": "info"
     },
     {
       "text": "Fine-tuning requires an NVIDIA GPU. Without one, inference, model management, export and the OpenAI-compatible API work, but training does not. Pass a card through and install the NVIDIA driver in the container to enable it.",
