@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": false,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 3000,
   "documentation": "https://github.com/ente-io/ente",
   "website": "https://ente.io/",
