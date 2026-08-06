@@ -14,7 +14,6 @@
   "website": "https://github.com/securo-finance/securo",
   "repository": "https://github.com/securo-finance/securo",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/securo.webp",
-  "config_path": "/opt/securo_data/.env",
   "description": "Securo is a self-hosted personal finance manager for tracking accounts, transactions, budgets and assets. It ships a FastAPI backend with PostgreSQL and Celery, a React frontend, optional bank synchronization (Pluggy, Enable Banking, SimpleFIN), OIDC login and optional AI agents. All data stays on your own infrastructure.",
   "install_methods": [
     {

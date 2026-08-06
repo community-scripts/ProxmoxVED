@@ -13,7 +13,6 @@
     "documentation": "https://docs.openeuler.org/",
     "website": "https://www.openeuler.org/",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openeuler.webp",
-    "config_path": null,
     "description": "openEuler is an open-source Linux distribution designed for servers and cloud computing.",
     "install_methods": [
         {

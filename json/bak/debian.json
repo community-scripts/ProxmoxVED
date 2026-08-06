@@ -13,7 +13,6 @@
     "website": "https://www.debian.org/",
     "platforms": ["pve", "incus"],
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/debian.webp",
-    "config_path": "",
     "description": "Debian is a free operating system (OS) that comes with over 59000 packages. It's known for its stability, security, and extensive software repository.",
     "install_methods": [
         {

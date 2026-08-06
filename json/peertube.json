@@ -14,7 +14,6 @@
   "website": "https://joinpeertube.org/",
   "repository": "https://github.com/Chocobozzz/PeerTube",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/peertube.webp",
-  "config_path": "/opt/peertube_data/config/production.yaml",
   "description": "PeerTube is a federated, self-hosted video platform. Videos are distributed peer-to-peer via WebTorrent to reduce bandwidth on the origin server, and instances federate over ActivityPub so users can follow channels across the fediverse, including Mastodon.",
   "install_methods": [
     {

@@ -12,7 +12,6 @@
     "documentation": "https://docs.umbraco.com/",
     "website": "https://umbraco.com/",
     "logo": "https://umbraco.com/media/54xnncgt/umbraco_logo_blue05.webp?rmode=pad&width=680&quality=85&v=1dad6b6701b24f0",
-    "config_path": "",
     "description": "Umbraco is a free, open-source .NET CMS with a friendly editing experience, beautiful backoffice, and powerful customization options. Automatically setup a Umbraco server up, as well as a FTP server so you can publish to this container from Visual Studio.",
     "install_methods": [
         {

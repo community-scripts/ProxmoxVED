@@ -13,7 +13,6 @@
     "website": "https://ubuntu.com/",
     "platforms": ["pve", "incus"],
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ubuntu.webp",
-    "config_path": "",
     "description": "Ubuntu is a popular Linux distribution based on Debian. Known for its ease of use and regular release cycle with LTS versions.",
     "install_methods": [
         {

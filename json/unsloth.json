@@ -13,7 +13,6 @@
   "documentation": "https://unsloth.ai/docs/new/studio",
   "website": "https://unsloth.ai/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/unsloth.webp",
-  "config_path": "/opt/unsloth.env",
   "description": "Unsloth Studio is a local web UI for running and fine-tuning language models. It can search, download and serve GGUF, LoRA and safetensors models, compare two models side by side, export to other formats, and expose OpenAI- and Anthropic-compatible endpoints so local models can be used from Claude Code, Codex and similar tools. Fine-tuning with LoRA is configured entirely through the UI.",
   "install_methods": [
     {

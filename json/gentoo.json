@@ -13,7 +13,6 @@
     "documentation": "https://wiki.gentoo.org/",
     "website": "https://www.gentoo.org/",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/gentoo.webp",
-    "config_path": null,
     "description": "Gentoo is a highly customizable source-based Linux distribution.",
     "install_methods": [
         {

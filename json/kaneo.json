@@ -14,7 +14,6 @@
   "website": "https://kaneo.app/",
   "repository": "https://github.com/usekaneo/kaneo",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/kaneo.webp",
-  "config_path": "/opt/kaneo/.env",
   "description": "Kaneo is an open source project management platform with kanban boards, task tracking, time tracking and team workspaces.",
   "install_methods": [
     {

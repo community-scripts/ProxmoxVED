@@ -14,7 +14,6 @@
     "website": "https://ubuntu.com/",
     "platforms": ["pve", "incus"],
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ubuntu.webp",
-    "config_path": null,
     "description": "Ubuntu is a popular Debian-based Linux distribution with regular releases and long-term support editions.",
     "install_methods": [
         {

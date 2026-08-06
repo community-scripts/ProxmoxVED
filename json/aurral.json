@@ -14,7 +14,6 @@
   "website": "https://aurral.org",
   "repository": "https://github.com/lklynet/aurral",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/aurral.webp",
-  "config_path": "/opt/aurral/aurral.env",
   "description": "Aurral is a self-hosted music discovery and artist request companion for Lidarr. It provides personalized recommendations, trends, tags and recent releases, playlist flows with streaming-service imports, and playback via Navidrome or Plex, while integrating with an existing Lidarr instance rather than replacing it.",
   "install_methods": [
     {

@@ -13,7 +13,6 @@
   "documentation": "https://docs.defguard.net/",
   "website": "https://defguard.net/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/defguard.webp",
-  "config_path": "/etc/defguard/core.conf",
   "description": "Defguard is a WireGuard VPN server combined with an identity provider. It adds user enrollment, multi-factor authentication, OpenID Connect SSO and per-user access control on top of WireGuard, all managed from a web interface. This installs the Defguard Core service; gateways are deployed separately on the machines that terminate the VPN tunnels.",
   "install_methods": [
     {

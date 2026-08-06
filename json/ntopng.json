@@ -13,7 +13,6 @@
   "documentation": "https://www.ntop.org/guides/ntopng/",
   "website": "https://www.ntop.org/products/traffic-analysis/ntop/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ntopng.webp",
-  "config_path": "/etc/ntopng/ntopng.conf",
   "description": "ntopng is a network traffic probe and analyser. It shows who is talking to whom, which protocols and applications are in use, and keeps historical traffic statistics, with alerting and flow export on top. This installs the free Community Edition from the official ntop repository.",
   "install_methods": [
     {

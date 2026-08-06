@@ -13,7 +13,6 @@
   "documentation": "https://docs.haproxy.org/",
   "website": "https://www.haproxy.org/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/haproxy.webp",
-  "config_path": "/etc/haproxy/haproxy.cfg",
   "description": "HAProxy is a TCP and HTTP load balancer and reverse proxy, known for handling very high connection counts with low latency. Unlike the UI-driven proxies it is configured entirely through a single text file, which makes it a good fit for layer-4 balancing, health checking and failover setups where a GUI proxy is not enough.",
   "install_methods": [
     {

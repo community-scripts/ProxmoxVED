@@ -14,7 +14,6 @@
   "website": "https://github.com/ggml-org/llama.cpp",
   "repository": "https://github.com/ggml-org/llama.cpp",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/llama-cpp.webp",
-  "config_path": "/opt/llama-cpp.env",
   "description": "llama.cpp runs GGUF language models directly in C/C++ with no Python runtime. This installs llama-server, which serves a built-in web chat UI plus an OpenAI-compatible API on the same port, so it can back tools like AnythingLLM, Open WebUI or Claude Code. Lighter and closer to the metal than Ollama.",
   "install_methods": [
     {

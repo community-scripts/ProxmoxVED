@@ -13,7 +13,6 @@
   "documentation": "https://docs.vllm.ai/",
   "website": "https://vllm.ai/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/vllm.webp",
-  "config_path": "/opt/vllm/vllm.env",
   "description": "vLLM is a high-throughput, memory-efficient inference and serving engine for LLMs. It exposes an OpenAI-compatible HTTP API (/v1) so existing OpenAI clients can serve local models.",
   "install_methods": [
     {

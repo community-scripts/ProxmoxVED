@@ -13,7 +13,6 @@
   "documentation": "https://www.mumble.info/documentation/administration/",
   "website": "https://www.mumble.info/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/mumble.webp",
-  "config_path": "/etc/mumble/mumble-server.ini",
   "description": "Mumble is an open-source, encrypted, low-latency voice chat server for communities, gaming, and teams.",
   "install_methods": [
     {

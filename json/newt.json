@@ -8,10 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "architectures": ["amd64"],
+  "architectures": [
+    "amd64"
+  ],
   "interface_port": null,
   "documentation": "https://docs.pangolin.net/manage/sites/install-site",
-  "config_path": "/etc/newt/newt.env",
   "website": "https://pangolin.net",
   "repository": "https://github.com/fosrl/newt",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/pangolin.webp",
@@ -26,7 +27,8 @@
         "hdd": 2,
         "os": "debian",
         "version": "13"
-      }
+      },
+      "config_path": "/etc/newt/newt.env"
     }
   ],
   "default_credentials": {

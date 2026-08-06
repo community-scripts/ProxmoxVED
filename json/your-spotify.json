@@ -14,7 +14,6 @@
   "website": "https://github.com/Yooooomi/your_spotify",
   "repository": "https://github.com/Yooooomi/your_spotify",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/your-spotify.webp",
-  "config_path": "/opt/your-spotify.env",
   "description": "Your Spotify records your Spotify listening history and turns it into statistics: top tracks, artists and albums over any period, listening habits by time of day, and long-term trends. Past history can be imported from a Spotify privacy data export.",
   "install_methods": [
     {

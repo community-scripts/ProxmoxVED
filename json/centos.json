@@ -13,7 +13,6 @@
     "documentation": "https://docs.centos.org/",
     "website": "https://www.centos.org/centos-stream/",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/centos.webp",
-    "config_path": null,
     "description": "CentOS Stream is a continuously delivered Linux distribution that tracks just ahead of RHEL development.",
     "install_methods": [
         {

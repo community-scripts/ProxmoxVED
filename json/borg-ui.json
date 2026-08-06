@@ -14,7 +14,6 @@
   "website": "https://github.com/karanhudia/borg-ui",
   "repository": "https://github.com/karanhudia/borg-ui",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/borgbackup.webp",
-  "config_path": "/opt/borg-ui/.env",
   "description": "Borg-UI is a web frontend for BorgBackup. It replaces the borg command line for everyday work: creating and browsing repositories, scheduling backups, inspecting archives and restoring files, all from the browser. BorgBackup itself is installed alongside it.",
   "install_methods": [
     {
