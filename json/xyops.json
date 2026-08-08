@@ -13,7 +13,6 @@
   "documentation": "https://docs.xyops.io/",
   "website": "https://xyops.io/",
   "repository": "https://github.com/pixlcore/xyops",
-  "architectures": ["amd64"],
   "platforms": ["pve"],
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/xyops.webp",
   "description": "xyOps is a next-generation workflow automation system with job scheduling, server monitoring, alerting, and ticketing all built in. It is the spiritual successor to Cronicle, by the same author. This script installs the conductor (web UI, API, scheduler) plus a local xySat worker so jobs can run immediately after install.",

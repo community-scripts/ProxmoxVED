@@ -37,9 +37,9 @@ function update_script() {
     systemctl stop xyops
     msg_ok "Stopped xyOps"
 
-    create_backup /opt/xyops/.env /opt/xyops/conf /opt/xyops/data
+    create_backup /opt/xyops/.env /opt/xyops/conf /opt/xyops/data /opt/xyops/satellite
 
-    fetch_and_deploy_gh_release "xyops" "pixlcore/xyops" "tarball"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "xyops" "pixlcore/xyops" "tarball"
 
     restore_backup
 
