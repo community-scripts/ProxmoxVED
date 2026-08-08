@@ -30,10 +30,55 @@ function update_script() {
     exit
   fi
 
-  msg_info "Updating ${APP}"
-  /usr/local/sbin/mynetwork-update
-  msg_ok "Updated ${APP}"
+  msg_info "Stopping ${APP}"
+  systemctl stop mynetwork
+  msg_ok "Stopped ${APP}"
 
+  msg_info "Updating Repository"
+  cd /opt/mynetwork
+  git fetch origin main
+  git reset --hard origin/main
+  git clean -fd
+  msg_ok "Updated Repository"
+
+  msg_info "Building Frontend"
+  cd /opt/mynetwork/frontend
+
+  if [[ -f package-lock.json ]]; then
+    $STD npm ci
+  else
+    $STD npm install
+  fi
+
+  $STD npm run build
+
+  mkdir -p /opt/mynetwork/backend/internal/web/public/assets
+  rsync -a --delete \
+    /opt/mynetwork/frontend/dist/assets/ \
+    /opt/mynetwork/backend/internal/web/public/assets/
+
+  msg_ok "Built Frontend"
+
+  msg_info "Building Backend"
+  cd /opt/mynetwork/backend
+
+  $STD go mod download
+
+  CGO_ENABLED=0 go build \
+    -trimpath \
+    -ldflags="-s -w" \
+    -o /usr/local/bin/mynetwork.new \
+    ./cmd/myNetwork
+
+  mv /usr/local/bin/mynetwork.new /usr/local/bin/mynetwork
+  chmod 0755 /usr/local/bin/mynetwork
+  msg_ok "Built Backend"
+
+  msg_info "Starting ${APP}"
+  systemctl start mynetwork
+  msg_ok "Started ${APP}"
+
+  msg_ok "Updated successfully!"
   exit
 }
 
