@@ -1,0 +1,52 @@
+{
+  "name": "xyOps",
+  "slug": "xyops",
+  "categories": [
+    19,
+    9
+  ],
+  "date_created": "2026-08-08",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 5522,
+  "documentation": "https://docs.xyops.io/",
+  "website": "https://xyops.io/",
+  "repository": "https://github.com/pixlcore/xyops",
+  "architectures": ["amd64"],
+  "platforms": ["pve"],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/xyops.webp",
+  "description": "xyOps is a next-generation workflow automation system with job scheduling, server monitoring, alerting, and ticketing all built in. It is the spiritual successor to Cronicle, by the same author. This script installs the conductor (web UI, API, scheduler) plus a local xySat worker so jobs can run immediately after install.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/xyops.sh",
+      "config_path": "/opt/xyops/conf/config.json",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "admin"
+  },
+  "notes": [
+    {
+      "text": "Change the default admin/admin password on first login - the account is otherwise wide open until you do.",
+      "type": "warning"
+    },
+    {
+      "text": "A local xySat worker is installed and registered automatically, so the container can run jobs on itself immediately. Add remote workers from the UI under Servers > Add Server the same way.",
+      "type": "info"
+    },
+    {
+      "text": "By default the conductor identifies itself by its LAN IP (XYOPS_hostname/XYOPS_masters/XYOPS_base_app_url in /opt/xyops/.env). Change these to a stable hostname before adding remote workers or putting this behind a reverse proxy - see https://docs.xyops.io/#Docs/hosting/quick-start.",
+      "type": "info"
+    }
+  ]
+}
