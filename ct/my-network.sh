@@ -6,7 +6,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../misc/build.func" 2>/dev/null || source
 # Source: https://github.com/VRB95/WatchYourLAN-MobileUI
 
 APP="myNetwork"
-var_tags="${var_tags:-network;monitoring;lan}"
+var_tags="${var_tags:-}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-10}"
