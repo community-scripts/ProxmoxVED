@@ -594,7 +594,7 @@ EOF
         exit 1
       fi
     }
-  elif [[ "$var_os" =~ ^(debian|ubuntu|devuan)$ ]]; then
+  elif [[ "$var_os" =~ ^(debian|ubuntu|devuan|kali)$ ]]; then
     sleep 3
     LANG=${LANG:-en_US.UTF-8}
 
@@ -635,6 +635,11 @@ EOF
       _base_pkgs+=" openssh-server wget gcc"
     fi
 
+	# needed utilities "ping" and "sysctl" in kali container
+	if [ "$var_os" == "kali" ]; then
+	  _base_pkgs+=" ca-certificates iputils-ping procps whiptail"
+    fi
+
     # Detect broken DNS resolver (e.g. Tailscale MagicDNS) and inject public DNS
     if ! pct exec "$CTID" -- bash -c "${_ct_env} getent hosts deb.debian.org >/dev/null 2>&1 && getent hosts archive.ubuntu.com >/dev/null 2>&1"; then
       msg_warn "APT repository DNS resolution failed in container, injecting public DNS servers"
@@ -642,6 +647,10 @@ EOF
     fi
 
     pct exec "$CTID" -- bash -c "${_ct_env} apt-get update >/dev/null 2>&1 && apt-get install -y ${_base_pkgs} >/dev/null 2>&1" || {
+	  if [[ "$var_os" == "kali" ]]; then
+		msg_error "Kali APT bootstrap failed. Refusing to replace Kali repositories with Debian mirrors."
+		exit 100
+	  fi
       local failed_mirror
       failed_mirror=$(pct exec "$CTID" -- bash -c "grep -m1 -oP '(?<=URIs: https?://)[^/]+' /etc/apt/sources.list.d/debian.sources 2>/dev/null || grep -m1 -oP '(?<=deb https?://)[^/]+' /etc/apt/sources.list 2>/dev/null" 2>/dev/null || echo "unknown")
       msg_warn "apt-get update failed (${failed_mirror}), trying alternate mirrors..."
@@ -1784,9 +1793,79 @@ create_lxc_container() {
     msg_ok "Downloaded ARM64 LXC template"
   }
 
+   # INFO: I tried to generalize the function above to support linuxcontainer (https://jenkins.linuxcontainers.org/) with different architectures.
+   download_linuxcontainers_template() {
+    local dest="${1:?Template destination required}"
+	# local release="${2:?Template release required}"
+	local release="current"
+	#local variant="${3:-default}"
+	local variant="default"
+	local url=""
+	local api_response=""
+	local temporary_file="${dest}.tmp"
+
+	mkdir -p -- "$(dirname -- "$dest")" || {
+		msg_error "Cannot create template directory."
+		exit 207
+	}
+
+	case "${PCT_OSTYPE}:${ARCH}" in
+	debian:arm64)
+		# CASE 1: Github Releases
+		if ! api_response="$(
+		curl -fsSL \
+			"https://api.github.com/repos/community-scripts/debian-arm64-lxc/releases/latest"
+		)"; then
+		msg_error "Could not query Debian ARM64 template release."
+		exit 207
+		fi
+
+		url="$(
+		jq -r --arg release "$release" '
+			.assets[].browser_download_url
+			| select(
+				endswith(
+				"debian-" + $release + "-arm64-rootfs.tar.xz"
+				)
+			)
+		' <<<"$api_response"
+		)"
+
+		[[ -n "$url" ]] || {
+		msg_error "Could not find Debian ${release} ARM64 template URL."
+		exit 207
+		}
+		;;
+
+	*)
+		# ELSE: Regular Jenkins LinuxContainer Images
+		url="https://jenkins.linuxcontainers.org/job/image-${PCT_OSTYPE}/architecture=${ARCH},release=${release},variant=${variant}/lastStableBuild/artifact/rootfs.tar.xz"
+		;;
+	esac
+
+	msg_info "Downloading ${PCT_OSTYPE^} ${release} ${ARCH}/${variant} template"
+
+	if ! curl -fsSL -o "$temporary_file" "$url"; then
+		rm -f -- "$temporary_file"
+		msg_error "Failed to download template from: $url"
+		exit 208
+	fi
+
+	if ! tar -tf "$temporary_file" &>/dev/null; then
+		rm -f -- "$temporary_file"
+		msg_error "Downloaded template is not a valid tar archive."
+		exit 208
+	fi
+
+	mv -- "$temporary_file" "$dest"
+	msg_ok "Downloaded ${PCT_OSTYPE^} ${release} ${ARCH}/${variant} template"
+  }
+
   download_template() {
     local dest="${1:-$TEMPLATE_PATH}"
-    if [[ "$ARCH" == "arm64" ]]; then
+    if [[ "${TEMPLATE_SOURCE:-}" == "linuxcontainers" ]]; then
+    	download_linuxcontainers_template "$dest"
+    elif [[ "$ARCH" == "arm64" ]]; then
       download_arm64_template "$dest"
     else
       pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >>"${BUILD_LOG:-/dev/null}" 2>&1 || {
@@ -1910,8 +1989,37 @@ create_lxc_container() {
   # Template discovery & validation
   # ------------------------------------------------------------------------------
   CUSTOM_TEMPLATE_VARIANT=""
+  ONLINE_TEMPLATE=""
 
-  if [[ "$ARCH" == "arm64" ]]; then
+  if [[ "${var_template_source:-}" == "linuxcontainers" ]]; then
+	local template_variant="${var_template_variant:-default}"
+
+	TEMPLATE="${PCT_OSTYPE}-${PCT_OSVERSION}-${ARCH}-${template_variant}-rootfs.tar.xz"
+	TEMPLATE_SOURCE="linuxcontainers"
+
+	TEMPLATE_PATH="$(
+		pvesm path "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" 2>/dev/null ||
+		true
+	)"
+
+	if [[ -z "$TEMPLATE_PATH" ]]; then
+		TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '
+		$0 ~ "^[^:]+:[[:space:]]*" s "$" {f=1; next}
+		f && /^[^[:space:]]/ {f=0}
+		f && $1 == "path" {print $2; exit}
+		' /etc/pve/storage.cfg)
+
+		TEMPLATE_PATH="${TEMPLATE_BASE:-/var/lib/vz}/template/cache/$TEMPLATE"
+	fi
+
+	[[ -n "$TEMPLATE_PATH" ]] || {
+		msg_error "Could not resolve template storage path."
+		exit 220
+	}
+
+	msg_ok "Template ${BL}${TEMPLATE}${CL} [LinuxContainers]"
+
+  elif [[ "$ARCH" == "arm64" ]]; then
     # ARM64: use custom template download from linuxcontainers.org / GitHub
     msg_info "Preparing ARM64 template"
 
@@ -2267,7 +2375,7 @@ create_lxc_container() {
     download_template
     msg_ok "Template downloaded"
   elif ! tar -tf "$TEMPLATE_PATH" &>/dev/null; then
-    if [[ "$ARCH" == "arm64" || -n "$ONLINE_TEMPLATE" ]]; then
+    if [[ "$TEMPLATE_SOURCE" == "linuxcontainers" || "$ARCH" == "arm64" || -n "$ONLINE_TEMPLATE" ]]; then
       msg_info "Template appears corrupted – re-downloading"
       rm -f "$TEMPLATE_PATH"
       download_template
@@ -2330,7 +2438,9 @@ create_lxc_container() {
         if [[ ! -f "$LOCAL_TEMPLATE_PATH" ]]; then
           msg_ok "Trying local storage fallback"
           msg_info "Downloading template to local"
-          if [[ "$ARCH" == "arm64" ]]; then
+          if [[ "$TEMPLATE_SOURCE" == "linuxcontainers" ]]; then
+ 		    download_linuxcontainers_template "$LOCAL_TEMPLATE_PATH"
+		  elif [[ "$ARCH" == "arm64" ]]; then
             download_arm64_template "$LOCAL_TEMPLATE_PATH"
           else
             pveam download local "$TEMPLATE" >/dev/null 2>&1

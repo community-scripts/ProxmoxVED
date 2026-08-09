@@ -1,0 +1,41 @@
+{
+  "name": "Kali Linux",
+  "slug": "kali",
+  "categories": [2],
+  "type": "ct",
+  "date_created": "2026-07-29",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": null,
+  "documentation": "https://www.kali.org/docs/",
+  "website": "https://www.kali.org",
+  "logo": "https://www.kali.org/docs/policy/trademark/kali-tm.png",
+  "config_path": null,
+  "description": "Kali Linux is an open-source, Debian-based Linux distribution geared towards various information security tasks, such as Penetration Testing, Security Research, Computer Forensics and Reverse Engineering.",
+  "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/kali.sh",
+            "config_path": null,
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 20,
+                "os": "Kali Linux",
+                "version": "current"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "kali",
+        "password": "kali"
+    },
+    "notes": [
+        {
+            "text": "Kali Linux is a rolling-release distribution. Run 'apt upgrade --full-upgrade' regularly to keep the system up to date.",
+            "type": "info"
+        }
+    ]
+
+}

@@ -139,6 +139,11 @@ detect_os() {
     OS_FAMILY="gentoo"
     PKG_MANAGER="emerge"
     ;;
+  kali | kalilinux)
+    OS_TYPE="kali"
+    OS_FAMILY="debian"
+    PKG_MANAGER="apt"
+    ;;
   *)
     OS_FAMILY="unknown"
     PKG_MANAGER="unknown"
@@ -285,6 +290,9 @@ pkg_update() {
         eu_mirrors="de.archive.ubuntu.com fr.archive.ubuntu.com se.archive.ubuntu.com nl.archive.ubuntu.com it.archive.ubuntu.com ch.archive.ubuntu.com mirrors.xtom.de"
         us_mirrors="us.archive.ubuntu.com archive.ubuntu.com mirrors.edge.kernel.org mirror.csclub.uwaterloo.ca mirrors.ocf.berkeley.edu mirror.math.princeton.edu"
         ap_mirrors="au.archive.ubuntu.com jp.archive.ubuntu.com kr.archive.ubuntu.com tw.archive.ubuntu.com mirror.aarnet.edu.au"
+	  elif [[ "$distro" == "kali" ]]; then
+  		msg_error "Kali repository update failed. Refusing to substitute Debian mirrors."
+  		return 1
       else
         eu_mirrors="ftp.de.debian.org ftp.fr.debian.org ftp.nl.debian.org ftp.uk.debian.org ftp.ch.debian.org ftp.se.debian.org ftp.it.debian.org ftp.fau.de ftp.halifax.rwth-aachen.de debian.mirror.lrz.de mirror.init7.net debian.ethz.ch mirrors.dotsrc.org debian.mirrors.ovh.net"
         us_mirrors="ftp.us.debian.org ftp.ca.debian.org debian.csail.mit.edu mirrors.ocf.berkeley.edu mirrors.wikimedia.org debian.osuosl.org mirror.cogentco.com"
