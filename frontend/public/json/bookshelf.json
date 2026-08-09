@@ -1,0 +1,35 @@
+{
+    "name": "Bookshelf",
+    "slug": "bookshelf",
+    "categories": [
+        14
+    ],
+    "date_created": "2026-08-09",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8787,
+    "documentation": "https://github.com/pennydreadful/bookshelf/blob/develop/README.md",
+    "config_path": "/var/lib/bookshelf",
+    "website": "https://github.com/pennydreadful/bookshelf",
+    "logo": null,
+    "description": "Bookshelf is a revival of Readarr - an ebook and audiobook collection manager for Usenet and BitTorrent users. It monitors RSS feeds for new books from your favorite authors and will grab, sort, and rename them. This LXC builds Bookshelf from source and is configured with the Hardcover metadata provider.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/bookshelf.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 8,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": []
+}
