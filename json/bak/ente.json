@@ -8,10 +8,11 @@
   "type": "ct",
   "updateable": false,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 3000,
   "documentation": "https://github.com/ente-io/ente",
   "website": "https://ente.io/",
+  "repository": "https://github.com/ente-io/ente",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ente-photos.webp",
   "description": "Ente is a service that provides a fully open source, end-to-end encrypted platform for you to store your data in the cloud without needing to trust the service provider. On top of this platform, we have built two apps so far: Ente Photos (an alternative to Apple and Google Photos) and Ente Auth (a 2FA alternative to the deprecated Authy).",
   "install_methods": [

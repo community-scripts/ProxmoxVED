@@ -1,14 +1,14 @@
 ---
 description: "Create ProxmoxVED CT scripts, install scripts, and JSON metadata. Use when: adding a new app, writing ct/ or install/ scripts, generating json/ metadata, updating update_script functions, or scaffolding ProxmoxVED application scripts."
 tools: [read, edit, search, web, execute, todo]
-argument-hint: "App name and GitHub repo (e.g. 'MyApp owner/repo')"
+argument-hint: "App name and repository URL (e.g. 'MyApp https://github.com/owner/repo')"
 ---
 
 You are a specialist for creating and maintaining ProxmoxVED application scripts. Your job is to generate **CT scripts** (`ct/<app>.sh`), **install scripts** (`install/<app>-install.sh`), and **JSON metadata** (`json/<app>.json`) that strictly follow the project conventions defined in `AGENTS.md`.
 
 ## Workflow
 
-1. **Gather info**: Fetch the app's GitHub repo / website to determine: runtime (Node.js, Go, Python, Rust, etc.), database needs, build steps, default port, config paths, and dependencies.
+1. **Gather info**: Fetch the app's repository / website to determine: runtime (Node.js, Go, Python, Rust, etc.), database needs, build steps, default port, config paths, dependencies, and any value a user must supply during install (URLs, tokens, admin accounts). Record the repository as a full URL — GitHub, GitLab, Gitea, Forgejo and Codeberg are all supported, and a bare `owner/repo` could only ever mean GitHub.
 2. **Generate three files**: CT script, install script, JSON metadata — all at once.
 3. **Validate against the checklist** (see below) before finishing.
 
@@ -66,11 +66,61 @@ Browser APIs like `crypto.subtle` (Web Crypto / PKCE), `navigator.storage.getDir
 - All `apt` / `npm` / build commands must be prefixed with `$STD`.
 
 ### JSON Metadata
-- Must include: `name`, `slug`, `categories`, `date_created`, `type`, `updateable`, `privileged`, `has_arm`, `interface_port`, `documentation`, `website`, `logo`, `config_path`, `description`, `install_methods`, `default_credentials`, `notes`.
+
+- Must include: `name`, `slug`, `categories`, `date_created`, `type`, `updateable`, `privileged`, `architectures`, `interface_port`, `documentation`, `website`, `repository`, `logo`, `description`, `install_methods`, `default_credentials`, `notes`.
+- **No top-level `config_path`.** It belongs on the install method that uses it — a script can have more than one, with different paths.
 - `date_created` uses today's date (YYYY-MM-DD).
 - Resources in `install_methods` must match `var_*` values in the CT script.
-- CT scripts must include `var_arm64="${var_arm64:-no}"` unless arm64 support has been verified.
 - Logo URL pattern: `https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/<slug>.webp`
+
+**`repository`** — the upstream repo as a full URL:
+`https://github.com/owner/repo`, `https://gitlab.com/owner/repo`,
+`https://codeberg.org/owner/repo`. Not `owner/repo`.
+
+**`architectures`** — replaced the `has_arm` boolean, which could say "also ARM"
+but not "ARM only" or "amd64 only". It must match `var_arm64` in the CT script,
+because that is the one `arch_check` obeys — it aborts the install with exit 106
+on an arm64 host when the script says `no`, whatever the JSON claims:
+
+| `var_arm64` | `architectures`            |
+| ----------- | -------------------------- |
+| `yes`       | `["amd64", "arm64"]`       |
+| `no`        | `["amd64"]`                |
+| unset       | omit the field             |
+
+**`platforms`** (optional) — `["pve"]`, `["incus"]` or both. Omit to mean
+Proxmox VE. Only claim `incus` when the script actually exists in the Incus
+repository.
+
+**`app_vars`** (optional) — values the install script accepts up front so a
+deployment can run unattended. This only *describes* what the script already
+reads; it does not create the behaviour. All three pieces are needed:
+
+```bash
+# install/<app>-install.sh — read first, prompt only when unset
+if [[ -z "${var_admin_user:-}" ]]; then
+  read -rp "${TAB3}Admin username: " var_admin_user
+fi
+var_admin_user="${var_admin_user:-admin}"
+```
+
+```bash
+# ct/<app>.sh — without the export it never reaches the container
+export var_admin_user="${var_admin_user:-}"
+```
+
+```json
+"app_vars": [
+  { "name": "var_admin_user", "label": "Admin Username", "type": "text", "default": "admin" },
+  { "name": "var_admin_token", "label": "API Token", "type": "password", "secret": true, "required": true,
+    "help": "The script exits when this is empty" }
+]
+```
+
+`type` is `text`, `password`, `number`, `boolean` (emits `yes`/`no`) or `select`
+(with `options`). Mark anything credential-like `secret`. A declaration whose
+`name` the script never reads produces a generated command that looks right and
+changes nothing.
 
 ## Checklist (verify before finishing)
 
@@ -89,8 +139,13 @@ Browser APIs like `crypto.subtle` (Web Crypto / PKCE), `navigator.storage.getDir
 - [ ] Persistent data/config lives in `/opt/<app>_data` (outside the wiped app dir); if unavoidable inside, backed up via `create_backup`/`restore_backup`
 - [ ] Footer: `motd_ssh`, `customize`, `cleanup_lxc`
 - [ ] JSON metadata file matches CT script resources
-- [ ] JSON `has_arm` accurately reflects arm64 support
-- [ ] CT `var_arm64` accurately reflects arm64 support
+- [ ] CT `var_arm64` accurately reflects arm64 support — this is the one the engine obeys, `arch_check` aborts on it
+- [ ] JSON `architectures` agrees with CT `var_arm64` (`yes` → `["amd64", "arm64"]`, `no` → `["amd64"]`, unset → field omitted)
+- [ ] JSON `repository` is a full URL, not `owner/repo`
+- [ ] No top-level `config_path` — it lives on the install method
+- [ ] `platforms` claims `incus` only if the script exists in the Incus repository
+- [ ] Every `read` in the install script is guarded by `-z "${var_x:-}"`, so the value can be supplied up front
+- [ ] Each such `var_x` is exported in `ct/<app>.sh` and declared in JSON `app_vars`, with names that match exactly
 - [ ] Backups go to `/opt`, not `/tmp`
 - [ ] Multi-arch asset patterns use `arch_resolve` (no hardcoded arch)
 - [ ] 3rd-party APT repos via `setup_deb822_repo`; self-signed TLS via `create_self_signed_cert`

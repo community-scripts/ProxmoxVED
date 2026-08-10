@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64", "arm64"],
   "interface_port": 443,
   "documentation": "https://docs.godoxy.dev",
   "website": "https://github.com/yusing/godoxy",
+  "repository": "https://github.com/yusing/godoxy",
   "logo": "https://cdn.jsdelivr.net/gh/yusing/godoxy@main/assets/godoxy.png",
-  "config_path": "/opt/godoxy/config/config.yml",
   "description": "GoDoxy is a lightweight, performant reverse proxy with an embedded WebUI, file-based routes, automatic certificates, and Proxmox integration.",
   "install_methods": [
     {

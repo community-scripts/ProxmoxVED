@@ -8,10 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 4100,
   "documentation": "https://docs.puter.com/",
   "website": "https://puter.com/",
+  "repository": "https://github.com/HeyPuter/puter",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/puter.webp",
   "description": "Puter is an open-source personal cloud and web desktop environment that runs in your browser, providing a full desktop experience with file management, app ecosystem, and cloud storage.",
   "install_methods": [

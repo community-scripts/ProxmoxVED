@@ -8,10 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64", "arm64"],
   "interface_port": 8443,
   "documentation": "https://kanidm.github.io/kanidm/stable/",
   "website": "https://kanidm.com/",
+  "repository": "https://github.com/kanidm/kanidm",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/kanidm.webp",
   "description": "Kanidm is a modern, simple and secure identity management platform written in Rust. It provides OAuth2/OIDC, LDAP, RADIUS and Unix (PAM/nsswitch) authentication, WebAuthn/passkey support and a self-service web portal for managing people, groups and service accounts.",
   "install_methods": [

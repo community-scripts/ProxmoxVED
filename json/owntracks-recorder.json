@@ -8,12 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 8083,
   "documentation": "https://github.com/owntracks/recorder#readme",
   "website": "https://owntracks.org/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/owntracks.webp",
-  "config_path": "/etc/default/ot-recorder",
   "description": "OwnTracks Recorder stores and serves the location data published by the OwnTracks apps for iOS and Android. It subscribes to an MQTT broker, keeps the history in a local LMDB store, and provides a web interface plus an HTTP API for maps, tracks and friend positions - a self-hosted alternative to commercial location sharing.",
   "install_methods": [
     {

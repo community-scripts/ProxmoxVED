@@ -8,10 +8,11 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "has_arm": false,
+    "architectures": ["amd64"],
     "interface_port": 4000,
     "documentation": "https://github.com/colanode/colanode/blob/main/hosting/docker",
     "website": "https://colanode.com/",
+    "repository": "https://github.com/colanode/colanode",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/colanode.webp",
     "description": "Open-source, local-first collaboration workspace — a self-hosted Slack and Notion alternative with real-time chat, rich text pages, customizable databases, and file management.",
     "install_methods": [

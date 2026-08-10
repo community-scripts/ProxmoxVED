@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 8482,
   "documentation": "https://riddix.github.io/home-assistant-matter-hub",
   "website": "https://github.com/RiDDiX/home-assistant-matter-hub",
+  "repository": "https://github.com/RiDDiX/home-assistant-matter-hub",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/home-assistant.webp",
-  "config_path": "/opt/matter-hub.env",
   "description": "Home Assistant Matter Hub publishes your Home Assistant entities as Matter devices, so Apple Home, Google Home, Amazon Alexa and any other Matter controller can see and control them. It acts as a Matter bridge in front of Home Assistant and needs only a long-lived access token to connect. This installs the actively maintained RiDDiX fork - the original t0bst4r project reached end of maintenance in January 2026.",
   "install_methods": [
     {

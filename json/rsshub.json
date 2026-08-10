@@ -8,12 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 1200,
   "documentation": "https://docs.rsshub.app/",
   "website": "https://rsshub.app/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rsshub.webp",
-  "config_path": "/opt/rsshub.env",
   "description": "RSSHub generates RSS feeds for sites that do not offer them - social networks, video platforms, shops, forums, news outlets and hundreds more, through community-maintained route definitions. Feed the resulting URLs into any reader such as FreshRSS, Miniflux or CommaFeed.",
   "install_methods": [
     {

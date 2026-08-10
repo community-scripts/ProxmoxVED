@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 9876,
   "documentation": "https://lingarr.com/",
   "website": "https://github.com/lingarr-translate/lingarr",
+  "repository": "https://github.com/lingarr-translate/lingarr",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/lingarr.webp",
-  "config_path": "/opt/lingarr.env",
   "description": "Lingarr translates subtitles in your Radarr and Sonarr libraries. It watches for media without subtitles in the languages you want and translates existing ones automatically, using either a self-hosted LibreTranslate instance or a hosted provider such as DeepL, OpenAI, Anthropic or Gemini.",
   "install_methods": [
     {

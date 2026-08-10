@@ -114,7 +114,7 @@ Documentation for Proxmox VE management utilities, administration helpers, and o
 
 ### Function Libraries
 
-Technical documentation for the shared Bash libraries under `misc/`.
+Technical documentation for the shared Bash libraries, which live in [community-scripts/core](https://github.com/community-scripts/core).
 
 The documented libraries include:
 

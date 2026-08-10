@@ -8,12 +8,11 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "has_arm": true,
+    "architectures": ["amd64", "arm64"],
     "interface_port": 80,
     "documentation": "https://docs.castopod.org/main/en/",
     "website": "https://castopod.org/",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/castopod.webp",
-    "config_path": "/opt/castopod/.env",
     "description": "Castopod is a free and open-source podcast hosting platform with Podcasting 2.0, analytics and ActivityPub federation features.",
     "install_methods": [
         {

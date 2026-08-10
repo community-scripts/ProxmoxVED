@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 8000,
   "documentation": "https://github.com/NeptuneHub/AudioMuse-AI/tree/main/docs",
   "website": "https://github.com/NeptuneHub/AudioMuse-AI",
+  "repository": "https://github.com/NeptuneHub/AudioMuse-AI",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/audiomuse-ai.webp",
-  "config_path": "/opt/audiomuse-ai_data/audiomuse.env",
   "description": "AudioMuse-AI is a self-hosted tool that uses sonic analysis to rediscover forgotten songs and generate groove-aware playlists for your music library, without external APIs. It integrates with Jellyfin, Navidrome, Emby, Lyrion or Plex and runs a Flask web UI backed by Redis Queue workers and PostgreSQL.",
   "install_methods": [
     {

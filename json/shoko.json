@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 8111,
   "documentation": "https://docs.shokoanime.com/",
   "website": "https://shokoanime.com/",
+  "repository": "https://github.com/ShokoAnime/ShokoServer",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/shoko.webp",
-  "config_path": "/opt/shoko_data/.shoko",
   "description": "Shoko Server organizes anime collections. It identifies files by hash against AniDB, pulls in metadata from TvDB, TMDB and Trakt, and tracks watched state and series relations. Plugins expose the result to Plex, Jellyfin and Kodi, so the library stays correct even with inconsistently named files.",
   "install_methods": [
     {

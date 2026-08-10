@@ -8,10 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": true,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 8080,
   "documentation": "https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki",
   "website": "https://github.com/automatic-ripping-machine/automatic-ripping-machine",
+  "repository": "https://github.com/automatic-ripping-machine/automatic-ripping-machine",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/arm.webp",
   "description": "Automatic Ripping Machine (ARM) automatically detects and rips Blu-rays, DVDs, and CDs. It identifies disc type, retrieves metadata, and handles transcoding with MakeMKV and HandBrake.",
   "install_methods": [

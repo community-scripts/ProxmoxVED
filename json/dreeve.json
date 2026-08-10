@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 8080,
   "documentation": "https://docs.dreeve.app/",
   "website": "https://dreeve.app/",
+  "repository": "https://github.com/dreeveapp/dreeve",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/dreeve.webp",
-  "config_path": "/opt/dreeve/.env.local",
   "description": "Dreeve is a self-hosted dashboard for sports and fitness data. It imports your Strava activities and turns them into statistics, heatmaps, gear tracking, training analysis and yearly overviews - formerly known as Statistics for Strava.",
   "install_methods": [
     {

@@ -8,10 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 80,
   "documentation": "https://github.com/simple-login/app/blob/master/docs/",
   "website": "https://simplelogin.io/",
+  "repository": "https://github.com/simple-login/app",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/simplelogin.webp",
   "description": "SimpleLogin is an open-source email alias solution that lets you create anonymous email aliases to protect your real email address from spam, trackers and data breaches.",
   "install_methods": [

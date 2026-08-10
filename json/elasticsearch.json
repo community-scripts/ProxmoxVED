@@ -8,12 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 9200,
   "documentation": "https://www.elastic.co/docs/",
   "website": "https://www.elastic.co/elasticsearch",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/elasticsearch.webp",
-  "config_path": "/etc/elasticsearch/elasticsearch.yml",
   "description": "Elasticsearch is a distributed search and analytics engine. It is mostly deployed as the backend for something else - log aggregation, full-text search in an application, or as the storage layer for Graylog and similar tools. This installs a single node from the official Elastic repository.",
   "install_methods": [
     {

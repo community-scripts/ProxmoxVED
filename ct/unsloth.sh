@@ -40,7 +40,13 @@ function update_script() {
   msg_ok "Stopped Service"
 
   msg_info "Updating ${APP} (Patience)"
-  $STD uv pip install --python /opt/unsloth/.venv --upgrade --torch-backend=auto unsloth-zoo unsloth
+  curl -fsSL https://unsloth.ai/install.sh -o /tmp/unsloth-install.sh
+  export UNSLOTH_STUDIO_HOME=/opt/unsloth
+  export UNSLOTH_SKIP_AUTOSTART=1
+  export UNSLOTH_PYTHON=3.12
+  $STD sh /tmp/unsloth-install.sh
+  unset UNSLOTH_SKIP_AUTOSTART UNSLOTH_PYTHON
+  rm -f /tmp/unsloth-install.sh
   msg_ok "Updated ${APP}"
 
   msg_info "Starting Service"
@@ -58,4 +64,4 @@ msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW}Access it using the following URL:${CL}"
 echo -e "${GATEWAY}${BGN}http://${IP}:8888${CL}"
-echo -e "${INFO}${YW}The generated UI password is in /opt/unsloth.env${CL}"
+echo -e "${INFO}${YW}Login credentials: ~/unsloth.creds (inside the container)${CL}"

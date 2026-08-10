@@ -39,13 +39,26 @@ rm -f /tmp/unsloth-install.sh
 msg_ok "Set up Unsloth Studio"
 
 msg_info "Configuring Unsloth Studio"
-UNSLOTH_PASSWORD=$(openssl rand -base64 18)
 cat <<EOF >/opt/unsloth.env
-UNSLOTH_STUDIO_PASSWORD=${UNSLOTH_PASSWORD}
 UNSLOTH_STUDIO_HOME=/opt/unsloth
 HF_HOME=/opt/unsloth_data/huggingface
 EOF
 chmod 600 /opt/unsloth.env
+
+UNSLOTH_PASSWORD=$(UNSLOTH_STUDIO_HOME=/opt/unsloth \
+  /opt/unsloth/unsloth_studio/bin/unsloth studio reset-password |
+  sed -n "s/^New password for 'unsloth': //p")
+[[ -n "$UNSLOTH_PASSWORD" ]] || {
+  msg_error "Could not set the initial Unsloth admin password"
+  exit 1
+}
+
+cat <<EOF >~/unsloth.creds
+Unsloth Studio
+Username: unsloth
+Password: ${UNSLOTH_PASSWORD}
+EOF
+chmod 600 ~/unsloth.creds
 msg_ok "Configured Unsloth Studio"
 
 msg_info "Creating Service"

@@ -8,12 +8,12 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "architectures": ["amd64"],
   "interface_port": 5000,
   "documentation": "https://giuseppe99barchetta.github.io/SuggestArr/",
   "website": "https://github.com/giuseppe99barchetta/SuggestArr",
+  "repository": "https://github.com/giuseppe99barchetta/SuggestArr",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/suggestarr.webp",
-  "config_path": "/opt/suggestarr_data",
   "description": "SuggestArr watches what you actually play on Jellyfin, Plex or Emby, looks up similar titles on TMDB, and automatically files requests for them in Jellyseerr or Overseerr. It turns your viewing history into an automatically growing library without manual searching.",
   "install_methods": [
     {
