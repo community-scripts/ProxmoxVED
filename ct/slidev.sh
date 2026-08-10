@@ -17,6 +17,7 @@ var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
+#var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
 
 header_info "$APP"
 variables
@@ -33,10 +34,17 @@ function update_script() {
     exit
   fi
 
+  msg_info "Stopping ${APP}"
+  systemctl stop slidev
+  msg_ok "Stopped ${APP}"
+
   msg_info "Updating ${APP}"
-  su - slidev -c "cd my-slides && npm install"
-  systemctl restart slidev
+  su - slidev -c "cd my-slides && npm install" </dev/null
   msg_ok "Updated ${APP}"
+
+  msg_info "Starting ${APP}"
+  systemctl start slidev
+  msg_ok "Started ${APP}"
   exit
 }
 

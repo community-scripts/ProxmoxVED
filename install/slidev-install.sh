@@ -23,15 +23,19 @@ NODE_VERSION="22" setup_nodejs
 
 msg_info "Creating slidev user"
 useradd -m -s /bin/bash slidev
+SLIDEV_SSH_PASS=""
 if [[ -s /root/.ssh/authorized_keys ]]; then
   mkdir -p /home/slidev/.ssh
   cp /root/.ssh/authorized_keys /home/slidev/.ssh/authorized_keys
   chmod 700 /home/slidev/.ssh
   chmod 600 /home/slidev/.ssh/authorized_keys
   chown -R slidev:slidev /home/slidev/.ssh
+else
+  # No key to inherit — fall back to a password, otherwise the account is
+  # unreachable over SSH and the MCP entrypoint has no way in.
+  SLIDEV_SSH_PASS="$(openssl rand -base64 18)"
+  echo "slidev:${SLIDEV_SSH_PASS}" | chpasswd
 fi
-SLIDEV_SSH_PASS="$(openssl rand -base64 18)"
-echo "slidev:${SLIDEV_SSH_PASS}" | chpasswd
 msg_ok "Created slidev user"
 
 msg_info "Scaffolding Slidev project"
@@ -43,7 +47,6 @@ su - slidev -c "cd my-slides && npm install" </dev/null
 msg_ok "Installed npm dependencies"
 
 msg_info "Creating service"
-NODE_BIN_DIR=$(su - slidev -c 'dirname "$(which node)"')
 cat <<EOF >/etc/systemd/system/slidev.service
 [Unit]
 Description=Slidev Presentation Server
@@ -53,8 +56,7 @@ After=network.target
 Type=simple
 User=slidev
 WorkingDirectory=/home/slidev/my-slides
-Environment=PATH=${NODE_BIN_DIR}:/usr/bin:/bin
-ExecStart=${NODE_BIN_DIR}/npm run dev -- --remote --port 3030
+ExecStart=/usr/bin/npm run dev -- --remote --port 3030
 Restart=on-failure
 RestartSec=5
 
@@ -78,5 +80,9 @@ msg_ok "Installed Slidev MCP server helper"
 motd_ssh
 customize
 
-msg_ok "SSH login for slidev user: slidev / ${SLIDEV_SSH_PASS}"
+if [[ -n "$SLIDEV_SSH_PASS" ]]; then
+  msg_ok "SSH login for slidev user: slidev / ${SLIDEV_SSH_PASS}"
+else
+  msg_ok "SSH login for slidev user: key-based (root's authorized_keys)"
+fi
 cleanup_lxc
