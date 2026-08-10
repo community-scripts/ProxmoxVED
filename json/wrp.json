@@ -13,6 +13,7 @@
   "documentation": "https://github.com/tenox7/wrp#readme",
   "website": "https://github.com/tenox7/wrp",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/chromium.webp",
+  "config_path": "/etc/systemd/system/wrp.service",
   "description": "WRP (Web Rendering Proxy) is a browser-in-browser proxy server that lets historical and vintage web browsers use the modern web. It drives a headless Chromium instance and renders pages back as clickable images or simplified HTML, so clients as old as Mosaic can browse today's HTTPS-only web.",
   "install_methods": [
     {
