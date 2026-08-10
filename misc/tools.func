@@ -5461,6 +5461,7 @@ setup_go() {
 
 setup_gs() {
   local TMP_DIR=$(mktemp -d)
+  local PREV_DIR="$PWD"
   local CURRENT_VERSION=$(gs --version 2>/dev/null || echo "0")
 
   ensure_dependencies jq
@@ -8887,6 +8888,7 @@ setup_ruby() {
   local BASH_PROFILE_FILE="$HOME/.bash_profile"
   local BASHRC_FILE="$HOME/.bashrc"
   local TMP_DIR=$(mktemp -d)
+  local PREV_DIR="$PWD"
 
   # Ensure HOME exists: callers may pass a not-yet-created home (e.g. a service
   # user that is created later in the install), so the profile writes below do
@@ -9426,6 +9428,7 @@ EOF
 
 setup_yq() {
   local TMP_DIR=$(mktemp -d)
+  local PREV_DIR="$PWD"
   local BINARY_PATH="/usr/local/bin/yq"
   local GITHUB_REPO="mikefarah/yq"
 
