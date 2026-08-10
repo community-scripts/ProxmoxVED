@@ -43,6 +43,8 @@ function update_script() {
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "airtrail" "johanohly/AirTrail" "tarball" "latest" "/opt/airtrail"
 
+    restore_backup
+
     msg_info "Rebuilding AirTrail (Patience)"
     cd /opt/airtrail
     $STD bun install --frozen-lockfile
@@ -51,8 +53,6 @@ function update_script() {
     $STD bun install --frozen-lockfile --production
     $STD bun run db:migrate-deploy
     msg_ok "Rebuilt AirTrail"
-
-    restore_backup
 
     msg_info "Starting Service"
     systemctl start airtrail
