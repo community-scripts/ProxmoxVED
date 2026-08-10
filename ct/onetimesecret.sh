@@ -55,8 +55,8 @@ function update_script() {
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "onetimesecret" "onetimesecret/onetimesecret" "tarball"
 
-    RUBY_VERSION=$(sed -n "s/^ruby '>= \([0-9.]*\)'.*/\1/p" /opt/onetimesecret/Gemfile)
-    RUBY_VERSION="${RUBY_VERSION:-3.4.7}" setup_ruby
+    RUBY_VERSION=$(tr -d ' \n' </opt/onetimesecret/.ruby-version 2>/dev/null)
+    RUBY_VERSION="${RUBY_VERSION:-3.4.10}" setup_ruby
 
     PNPM_VERSION=$(sed -n 's/.*"packageManager": "pnpm@\([^"]*\)".*/\1/p' /opt/onetimesecret/package.json)
     NODE_VERSION=$(tr -d ' \n' </opt/onetimesecret/.nvmrc 2>/dev/null)
