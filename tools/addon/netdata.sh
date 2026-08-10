@@ -73,7 +73,11 @@ pve_check() {
   fi
 
   msg_error "Unsupported Proxmox VE version: $PVE_VER"
-  msg_error "Supported versions: 8.0 – 8.9 or 9.0 – 9.2"() {
+  msg_error "Supported versions: 8.0 – 8.9 or 9.0 – 9.2"
+  exit 1
+}
+
+detect_codename() {
   source /etc/os-release
   if [[ "$ID" != "debian" ]]; then
     msg_error "Unsupported base OS: $ID (only Proxmox VE / Debian supported)."
