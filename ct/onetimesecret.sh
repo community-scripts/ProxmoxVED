@@ -64,7 +64,7 @@ function update_script() {
     systemctl enable -q --now redis-server
     cd /opt/onetimesecret
     mkdir -p tmp/pids log
-    $STD bash ./install.sh reconcile
+    $STD bash bin/setup reconcile
     msg_ok "Reconciled Application"
 
     msg_info "Building Frontend"

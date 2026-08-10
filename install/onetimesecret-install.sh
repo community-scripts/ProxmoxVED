@@ -56,7 +56,7 @@ esac
 msg_info "Configuring Application"
 systemctl enable -q --now redis-server
 cd /opt/onetimesecret
-$STD bash ./install.sh init
+$STD bash bin/setup init
 sed -i \
   -e "s|^REDIS_URL=.*|REDIS_URL=redis://127.0.0.1:6379/0|" \
   -e "s|^HOST=.*|HOST=${HOST_VALUE//&/\\&}|" \
@@ -81,7 +81,7 @@ msg_ok "Configured Application"
 
 msg_info "Reconciling Application"
 cd /opt/onetimesecret
-$STD bash ./install.sh reconcile
+$STD bash bin/setup reconcile
 msg_ok "Reconciled Application"
 
 msg_info "Building Frontend"
