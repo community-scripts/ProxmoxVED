@@ -35,14 +35,7 @@ function update_script() {
     systemctl stop wrp
     msg_ok "Stopped Service"
 
-    local wrp_asset
-    case "$(dpkg --print-architecture)" in
-      amd64) wrp_asset="wrp-amd64-linux" ;;
-      arm64) wrp_asset="wrp-arm64-linux" ;;
-      armhf) wrp_asset="wrp-arm-linux" ;;
-      *) msg_error "Unsupported architecture: $(dpkg --print-architecture)"; exit ;;
-    esac
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wrp" "tenox7/wrp" "singlefile" "latest" "/opt/wrp" "$wrp_asset"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wrp" "tenox7/wrp" "singlefile" "latest" "/opt/wrp" "$(arch_resolve "wrp-amd64-linux" "wrp-arm64-linux")"
 
     msg_info "Starting Service"
     systemctl start wrp

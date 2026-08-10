@@ -17,14 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt install -y chromium fonts-liberation
 msg_ok "Installed Dependencies"
 
-wrp_asset=""
-case "$(dpkg --print-architecture)" in
-amd64) wrp_asset="wrp-amd64-linux" ;;
-arm64) wrp_asset="wrp-arm64-linux" ;;
-armhf) wrp_asset="wrp-arm-linux" ;;
-*) msg_error "Unsupported architecture: $(dpkg --print-architecture)" && exit 1 ;;
-esac
-fetch_and_deploy_gh_release "wrp" "tenox7/wrp" "singlefile" "latest" "/opt/wrp" "$wrp_asset"
+fetch_and_deploy_gh_release "wrp" "tenox7/wrp" "singlefile" "latest" "/opt/wrp" "$(arch_resolve "wrp-amd64-linux" "wrp-arm64-linux")"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/wrp.service
