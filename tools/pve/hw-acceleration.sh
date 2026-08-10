@@ -8,7 +8,7 @@
 # Author: MickLesk (CanbiZ)
 # Repo: https://github.com/community-scripts/ProxmoxVED
 #
-# Usage: bash -c "$(wget -qLO - https://github.com/community-scripts/ProxmoxVED/raw/main/misc/hw-acceleration.sh)"
+# Usage: bash -c "$(wget -qLO - https://github.com/community-scripts/ProxmoxVED/raw/main/tools/pve/hw-acceleration.sh)"
 #
 # Requires:
 #   - Proxmox VE 8.1+

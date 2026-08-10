@@ -3,17 +3,23 @@ name: Bash Syntax Check
 on:
   pull_request:
     paths:
-      - "misc/**/*.func"
       - "ct/**/*.sh"
       - "install/**/*.sh"
+      - "vm/**/*.sh"
+      - "tools/**/*.sh"
       - ".github/workflows/bash-syntax.yml"
   push:
     branches: [main]
     paths:
-      - "misc/**/*.func"
       - "ct/**/*.sh"
       - "install/**/*.sh"
+      - "vm/**/*.sh"
+      - "tools/**/*.sh"
       - ".github/workflows/bash-syntax.yml"
+
+# The engine moved to community-scripts/core, which syntax-checks its own
+# .func files. This repo ships scripts, so that is what gets checked here —
+# all of them, not the three-file sample the old job used.
 
 jobs:
   bash-n:
@@ -21,28 +27,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Syntax-check misc functions
+      - name: Syntax-check every script
         run: |
           set -euo pipefail
           fail=0
+          checked=0
           while IFS= read -r -d '' f; do
+            checked=$((checked + 1))
             if ! bash -n "$f"; then
               echo "::error file=$f::bash -n failed"
               fail=1
             fi
-          done < <(find misc -type f -name '*.func' -print0 | sort -z)
-          exit "$fail"
-
-      - name: Syntax-check sample CT scripts
-        run: |
-          set -euo pipefail
-          samples=(ct/debian.sh ct/alpine.sh ct/ubuntu.sh)
-          fail=0
-          for f in "${samples[@]}"; do
-            [[ -f "$f" ]] || continue
-            if ! bash -n "$f"; then
-              echo "::error file=$f::bash -n failed"
-              fail=1
-            fi
-          done
+          done < <(find ct install vm tools -type f -name '*.sh' -print0 2>/dev/null | sort -z)
+          echo "checked $checked scripts"
           exit "$fail"

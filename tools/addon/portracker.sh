@@ -4,9 +4,9 @@
 # Author: tremor021 (Slaviša Arežina)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/mostafa-wahied/portracker
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/error_handler.func)
+source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/shared/core.func)
+source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/shared/tools.func)
+source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/shared/error_handler.func)
 
 set -Eeuo pipefail
 trap 'error_handler' ERR
@@ -252,7 +252,7 @@ echo -e "\${BL}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Source tools.func for update functions
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func) 2>/dev/null || {
+source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/shared/tools.func) 2>/dev/null || {
   echo -e "\${RD}Failed to load tools.func\${CL}"
   exit 1
 }
