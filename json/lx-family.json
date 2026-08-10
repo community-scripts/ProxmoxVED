@@ -1,0 +1,49 @@
+{
+  "name": "LX Family",
+  "slug": "lx-family",
+  "categories": [10, 12, 19],
+  "date_created": "2026-08-10",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3001,
+  "documentation": "https://github.com/laxxx-lab/lx-family-planner#readme",
+  "website": "https://github.com/laxxx-lab/lx-family-planner",
+  "repository": "https://github.com/laxxx-lab/lx-family-planner",
+  "architectures": ["amd64"],
+  "platforms": ["pve"],
+  "logo": "https://raw.githubusercontent.com/laxxx-lab/lx-family-planner/main/public/icon-512.png",
+  "description": "LX Family is a private, self-hosted Family OS for calendars, chores, shopping, meals, chat, reminders and shared family files.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/lx-family.sh",
+      "config_path": "/opt/lx-family/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Open http://<LXC-IP>:3001 and create the first family in LX Family onboarding. Further public registration is protected by default.",
+      "type": "info"
+    },
+    {
+      "text": "This Helper Script uses a native Node.js service inside an unprivileged Debian LXC. It intentionally does not install Docker, Nextcloud or other optional integrations.",
+      "type": "info"
+    },
+    {
+      "text": "Family data and local database backups live in /opt/lx-family/data and /opt/lx-family/backups. Include both paths in your Proxmox backup plan.",
+      "type": "warning"
+    }
+  ]
+}
