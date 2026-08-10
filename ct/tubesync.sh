@@ -32,7 +32,7 @@ function update_script() {
 
   if check_for_gh_release "tubesync" "meeb/tubesync"; then
     msg_info "Stopping Services"
-    systemctl stop tubesync tubesync-worker@database tubesync-worker@network tubesync-worker@limited tubesync-worker@filesystem
+    systemctl stop tubesync-syslog tubesync tubesync-worker@database tubesync-worker@network tubesync-worker@limited tubesync-worker@filesystem
     msg_ok "Stopped Services"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "tubesync" "meeb/tubesync" "tarball"
@@ -54,6 +54,12 @@ function update_script() {
     cp /opt/tubesync/tubesync/tubesync/local_settings.py.container /opt/tubesync/tubesync/tubesync/local_settings.py
     sed -i "s|CONFIG_BASE_DIR = ROOT_DIR / 'config'|CONFIG_BASE_DIR = Path('/opt/tubesync-config')|" /opt/tubesync/tubesync/tubesync/local_settings.py
     sed -i "s|DOWNLOADS_BASE_DIR = ROOT_DIR / 'downloads'|DOWNLOADS_BASE_DIR = Path('/opt/tubesync-downloads')|" /opt/tubesync/tubesync/tubesync/local_settings.py
+    sed -i \
+      -e "s|^user = .*|user = 'root'|" \
+      -e "s|^group = .*|group = 'root'|" \
+      -e "s|^chdir = .*|chdir = '/opt/tubesync/tubesync'|" \
+      -e "s|^pidfile = .*|pidfile = '/run/tubesync/gunicorn.pid'|" \
+      /opt/tubesync/tubesync/tubesync/gunicorn.py
 
     set -a
     source /opt/tubesync.env
@@ -65,7 +71,7 @@ function update_script() {
     msg_ok "Updated TubeSync"
 
     msg_info "Starting Services"
-    systemctl start tubesync tubesync-worker@database tubesync-worker@network tubesync-worker@limited tubesync-worker@filesystem
+    systemctl start tubesync-syslog tubesync tubesync-worker@database tubesync-worker@network tubesync-worker@limited tubesync-worker@filesystem
     msg_ok "Started Services"
     msg_ok "Updated successfully!"
   fi

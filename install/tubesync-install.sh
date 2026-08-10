@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y ffmpeg
+$STD apt install -y ffmpeg nginx
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.12" setup_uv
@@ -41,19 +41,28 @@ cp -rf /opt/tubesync/patches/yt_dlp/. "$SITE_PACKAGES/yt_dlp/"
 msg_ok "Applied TubeSync patches"
 
 msg_info "Configuring TubeSync"
-mkdir -p /opt/tubesync-config /opt/tubesync-downloads
+mkdir -p /opt/tubesync-config/hat /opt/tubesync-downloads
 # Derive local_settings.py from the upstream container example and point the
 # config/downloads directories at persistent paths outside the app directory.
 cp /opt/tubesync/tubesync/tubesync/local_settings.py.container /opt/tubesync/tubesync/tubesync/local_settings.py
 sed -i "s|CONFIG_BASE_DIR = ROOT_DIR / 'config'|CONFIG_BASE_DIR = Path('/opt/tubesync-config')|" /opt/tubesync/tubesync/tubesync/local_settings.py
 sed -i "s|DOWNLOADS_BASE_DIR = ROOT_DIR / 'downloads'|DOWNLOADS_BASE_DIR = Path('/opt/tubesync-downloads')|" /opt/tubesync/tubesync/tubesync/local_settings.py
+# The upstream gunicorn config hardcodes Docker-only values (user/group "app",
+# chdir "/app", pidfile under /run/app). Point them at our bare-metal paths.
+sed -i \
+  -e "s|^user = .*|user = 'root'|" \
+  -e "s|^group = .*|group = 'root'|" \
+  -e "s|^chdir = .*|chdir = '/opt/tubesync/tubesync'|" \
+  -e "s|^pidfile = .*|pidfile = '/run/tubesync/gunicorn.pid'|" \
+  /opt/tubesync/tubesync/tubesync/gunicorn.py
 
 SECRET_KEY=$(openssl rand -hex 32)
 cat <<EOF >/opt/tubesync.env
 DJANGO_SECRET_KEY=${SECRET_KEY}
 TUBESYNC_HOSTS=*
-LISTEN_HOST=0.0.0.0
-LISTEN_PORT=4848
+# gunicorn listens locally; nginx (port 4848) proxies to it.
+LISTEN_HOST=127.0.0.1
+LISTEN_PORT=8080
 GUNICORN_WORKERS=3
 TZ=UTC
 PYTHONPATH=/opt/tubesync/tubesync
@@ -89,12 +98,7 @@ Type=simple
 WorkingDirectory=/opt/tubesync/tubesync
 EnvironmentFile=/opt/tubesync.env
 RuntimeDirectory=tubesync
-ExecStart=/opt/tubesync/.venv/bin/gunicorn \\
-    --config /opt/tubesync/tubesync/tubesync/gunicorn.py \\
-    --chdir /opt/tubesync/tubesync \\
-    --user root --group root \\
-    --pid /run/tubesync/gunicorn.pid \\
-    tubesync.wsgi:application
+ExecStart=/opt/tubesync/.venv/bin/gunicorn --config /opt/tubesync/tubesync/tubesync/gunicorn.py
 Restart=always
 RestartSec=10
 
@@ -119,8 +123,70 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q --now tubesync tubesync-worker@database tubesync-worker@network tubesync-worker@limited tubesync-worker@filesystem
+cat <<EOF >/etc/systemd/system/tubesync-syslog.service
+[Unit]
+Description=TubeSync hat-syslog log server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/tubesync/tubesync
+EnvironmentFile=/opt/tubesync.env
+ExecStart=/opt/tubesync/.venv/bin/hat-syslog-server --log-level INFO --db-enable-archive --db-path /opt/tubesync-config/hat/syslog.db
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable -q --now tubesync-syslog tubesync tubesync-worker@database tubesync-worker@network tubesync-worker@limited tubesync-worker@filesystem
 msg_ok "Created Services"
+
+msg_info "Configuring Nginx"
+# nginx owns port 4848: proxies / to gunicorn, serves downloaded media at
+# /media-data/, and proxies /web-logs/ to the hat-syslog web UI (port 23020).
+cat <<'EOF' >/etc/nginx/conf.d/tubesync.conf
+server {
+    listen 4848;
+    listen [::]:4848;
+    server_name _;
+    client_max_body_size 0;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_redirect off;
+    }
+
+    location /media-data/ {
+        alias /opt/tubesync-downloads/;
+    }
+
+    location /web-logs/ {
+        proxy_pass http://127.0.0.1:23020/;
+        proxy_set_header Host $host;
+        proxy_redirect / /web-logs/;
+    }
+
+    location /ws {
+        proxy_pass http://127.0.0.1:23020/ws;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 86400s;
+    }
+}
+EOF
+rm -f /etc/nginx/sites-enabled/default
+$STD nginx -t
+systemctl enable -q nginx
+$STD systemctl restart nginx
+msg_ok "Configured Nginx"
 
 motd_ssh
 customize
