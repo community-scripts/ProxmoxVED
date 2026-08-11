@@ -1,0 +1,54 @@
+{
+  "name": "Chaptarr",
+  "slug": "chaptarr",
+  "categories": [
+    14
+  ],
+  "date_created": "2026-08-10",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": ["amd64"],
+  "interface_port": 8789,
+  "documentation": "https://github.com/Chaptarr/chaptarr",
+  "website": "https://github.com/Chaptarr/chaptarr",
+  "repository": "https://github.com/Chaptarr/chaptarr",
+  "logo": "https://raw.githubusercontent.com/Chaptarr/chaptarr/main/Logo/chaptarr.png",
+  "description": "Chaptarr is a Readarr fork built to manage both audiobook and eBook libraries in one instance, with narrator, multi-edition and series-aware organization.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/chaptarr.sh",
+      "config_path": "/opt/chaptarr_data/config.xml",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Chaptarr is beta software with no stable GitHub releases yet - only source tarballs marked as prereleases. This script builds it from source on every install/update, which needs the .NET 10 SDK and Node.js/Yarn and can take several minutes.",
+      "type": "warning"
+    },
+    {
+      "text": "Source tree lives in /opt/chaptarr, the published app in /opt/chaptarr_app, and application data (including the SQLite database) in /opt/chaptarr_data.",
+      "type": "info"
+    },
+    {
+      "text": "Chaptarr can use an external PostgreSQL database instead of the default SQLite file - set the Chaptarr__Postgres__* environment variables in the systemd unit if needed.",
+      "type": "info"
+    },
+    {
+      "text": "MP3-to-M4B conversion (m4b-tool) is not installed by this script since it requires Docker-only pinned mp4v2 binaries; ffmpeg/ffprobe metadata extraction works normally.",
+      "type": "info"
+    }
+  ]
+}
