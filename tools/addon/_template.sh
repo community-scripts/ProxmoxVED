@@ -9,8 +9,8 @@
 # ADDON TEMPLATE - Use this as starting point for new addon scripts
 # ==============================================================================
 
-source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/shared/core.func)
-source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/shared/tools.func)
+source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/core.func)
+source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/lib/tools.func)
 
 # ==============================================================================
 # CONFIGURATION
@@ -291,7 +291,7 @@ echo -e "\${BL}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Source tools.func for update functions
-source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/shared/tools.func) 2>/dev/null || {
+source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/lib/tools.func) 2>/dev/null || {
   echo -e "\${RD}Failed to load tools.func\${CL}"
   exit 1
 }

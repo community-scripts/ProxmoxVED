@@ -249,7 +249,7 @@ CL=$(echo "\033[m")
 
 # Telemetry
 # shellcheck disable=SC1090
-source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/shared/api.func) 2>/dev/null || true
+source <(curl -fsSL ${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/api/api.func) 2>/dev/null || true
 declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "pve-lxc-system-admin" "pve"
 
 NODE=$(hostname)
