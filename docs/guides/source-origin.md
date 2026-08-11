@@ -7,7 +7,7 @@ other without editing a URL in 89 files.
 
 | What | Directory override | URL override |
 | ---- | ------------------ | ------------ |
-| Engine (`shared/`, `pve/`, `incus/`) | `COMMUNITY_SCRIPTS_CORE_DIR` | `COMMUNITY_SCRIPTS_CORE_URL` |
+| Engine (`core/`, `ui/`, `lib/`, `lxc/`, `host/`, `api/`, `vm/`, `pve/`, `incus/`) | `COMMUNITY_SCRIPTS_CORE_DIR` | `COMMUNITY_SCRIPTS_CORE_URL` |
 | Scripts (`ct/`, `install/`, `vm/`) | `COMMUNITY_SCRIPTS_ROOT` | `COMMUNITY_SCRIPTS_URL` |
 
 ## How it works
@@ -23,7 +23,7 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
    no network. `COMMUNITY_SCRIPTS_CORE_DIR` overrides where to look.
 2. Otherwise the engine comes from `COMMUNITY_SCRIPTS_CORE_URL`, defaulting to
    upstream `core@main`.
-3. `shared/build.func` then finds the **scripts** root by walking up from the
+3. `core/build.func` then finds the **scripts** root by walking up from the
    running script to the first directory holding both `ct/` and `install/`, and
    derives `COMMUNITY_SCRIPTS_URL` from that checkout's git remote and branch —
    so in-container fetches and `/usr/bin/update` follow your fork once the

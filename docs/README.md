@@ -118,15 +118,15 @@ Technical documentation for the shared Bash libraries, which live in [community-
 
 The documented libraries include:
 
-* `build.func`
-* `core.func`
-* `error_handler.func`
-* `api.func`
-* `install.func`
-* `tools.func`
-* `alpine-install.func`
-* `alpine-tools.func`
-* `cloud-init.func`
+* `core/build.func`
+* `core/core.func`
+* `core/error_handler.func`
+* `api/api.func`
+* `lxc/install.func`
+* `lib/tools.func`
+* `lxc/alpine-install.func`
+* `lib/alpine.func`
+* `vm/cloud-init.func`
 
 The documentation explains individual functions, dependencies between libraries, execution flows, error handling, telemetry, logging, package management, and provisioning behavior.
 

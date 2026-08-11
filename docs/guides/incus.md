@@ -1,6 +1,6 @@
 # Incus Host Setup (Community Scripts)
 
-Proxmox VE and Incus share the same `ct/` and `install/` scripts. On an Incus host, `shared/build.func` in community-scripts/core detects the platform and loads the Incus backend. There is no separate `Incus/` script tree.
+Proxmox VE and Incus share the same `ct/` and `install/` scripts. On an Incus host, `core/build.func` in community-scripts/core detects the platform and loads the Incus backend. There is no separate `Incus/` script tree.
 
 ## Requirements
 
@@ -88,9 +88,9 @@ Inside an existing CT, run the same `ct/<app>.sh` script. Detection switches to 
 ## Architecture
 
 ```
-ct/*.sh → core: shared/build.func
+ct/*.sh → core: core/build.func
             ├─ Incus  → incus/build.func
-            │             ├─ shared/build-ui.func
+            │             ├─ ui/build-ui.func
             │             └─ incus/backend.func
-            └─ PVE    → shared/build-ui.func + pve/backend.func
+            └─ PVE    → ui/build-ui.func + pve/backend.func
 ```
