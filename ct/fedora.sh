@@ -19,6 +19,7 @@ var_os="${var_os:-fedora}"
 var_version="${var_version:-43}"
 #var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
 var_unprivileged="${var_unprivileged:-1}"
+var_testurl="${var_testurl:-https://github.com/community-scripts/ProxmoxVED/issues/1751}"
 
 header_info "$APP"
 variables
