@@ -18,6 +18,7 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 #var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
 var_unprivileged="${var_unprivileged:-1}"
+var_testurl="${var_testurl:-https://github.com/community-scripts/ProxmoxVED/issues/1748}"
 
 header_info "$APP"
 variables
@@ -40,7 +41,7 @@ function update_script() {
     msg_ok "Stopped Services"
 
     create_backup /opt/akaunting/.env \
-                  /opt/akaunting/storage
+      /opt/akaunting/storage
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "akaunting" "akaunting/akaunting" "tarball"
 

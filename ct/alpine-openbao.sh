@@ -18,6 +18,7 @@ var_os="${var_os:-alpine}"
 var_version="${var_version:-3.24}"
 var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
+var_testurl="${var_testurl:-https://github.com/community-scripts/ProxmoxVED/issues/2082}"
 
 header_info "$APP"
 variables
