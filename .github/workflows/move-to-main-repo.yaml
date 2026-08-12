@@ -226,6 +226,13 @@ jobs:
               cp ../ct/headers/${script_name} ct/headers/ 2>/dev/null || true
               cp ../install/${script_name}-install.sh install/
 
+              # var_testurl points at the testing issue in ProxmoxVED. A script
+              # arriving here has finished testing, so the request goes away
+              # with it. This has to happen BEFORE the ProxmoxVED -> ProxmoxVE
+              # rewrite below, which would otherwise turn the link into an
+              # issue number that does not exist in this repository.
+              sed -i '/^[[:space:]]*var_testurl=/d' ct/${script_name}.sh
+
               # Update URLs in ct script
               sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
               sed -i "s|https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
