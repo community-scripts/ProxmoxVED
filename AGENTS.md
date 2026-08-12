@@ -703,10 +703,31 @@ var_unprivileged="${var_unprivileged:-1}"
 
 **Optional declarations**
 
-| Variable    | Values                  | Meaning                                                        |
-| ----------- | ----------------------- | -------------------------------------------------------------- |
-| `var_gpu`   | `yes` / `no`            | Offer GPU passthrough. Set for transcoding and AI workloads.    |
-| `var_arm64` | `yes` / `no` / *(unset)* | arm64 support — see below.                                      |
+| Variable      | Values                   | Meaning                                                      |
+| ------------- | ------------------------ | ------------------------------------------------------------ |
+| `var_gpu`     | `yes` / `no`             | Offer GPU passthrough. Set for transcoding and AI workloads. |
+| `var_arm64`   | `yes` / `no` / *(unset)* | arm64 support — see below.                                   |
+| `var_testurl` | an `https://` URL        | Where feedback for this script goes — see below.             |
+
+`var_testurl` names the thread collecting feedback for a script that is still
+being tested. Create the issue, then point the script at it:
+
+```bash
+var_testurl="${var_testurl:-https://github.com/community-scripts/ProxmoxVED/issues/2135}"
+```
+
+The container then asks for feedback on every login, in its Proxmox description,
+through a `testing` tag, and on the last line of the install — always with that
+one link, so a tester never has to work out where to report.
+
+Leaving it out changes nothing: a script here still gets the generic development
+warning. Only `https://` URLs are accepted, and a rejected value falls back to
+that generic warning rather than failing the build. It is not settable from a
+`.vars` file, because it describes the script rather than the user's
+preferences.
+
+Keep it set if the script is promoted to ProxmoxVE while feedback is still
+wanted — the request follows the script and stops naming ProxmoxVED.
 
 `var_arm64` has three states. **Only claim `yes` when it has actually been run on
 arm64** — the mere existence of an arm64 artifact is not verification:
