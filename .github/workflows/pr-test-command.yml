@@ -1,0 +1,97 @@
+name: PR test command
+
+# Posts a ready-to-paste command for every script a pull request touches, so
+# trying it out is a copy and a paste rather than a URL assembly exercise.
+#
+# pull_request_target so it works for PRs from forks, which is most of them.
+# Nothing from the pull request is checked out or executed: the branch name and
+# the changed files come from the API, and the comment is built in JavaScript,
+# so no attacker-controlled string ever reaches a shell.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "ct/**"
+      - "install/**"
+      - "vm/**"
+      - "tools/**"
+
+permissions:
+  pull-requests: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const head = pr.head.repo;               // null if the fork is gone
+            if (!head) return;
+
+            const base = `https://raw.githubusercontent.com/${head.full_name}/${pr.head.ref}`;
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: pr.number,
+            });
+            const paths = files.filter(f => f.status !== 'removed').map(f => f.filename);
+
+            // An install script has no entry point of its own, so it is tested
+            // through the ct/ script that pulls it in.
+            const entries = new Set();
+            for (const p of paths) {
+              let m;
+              if ((m = p.match(/^(ct\/.*)\.sh$/))) entries.add(`${m[1]}.sh`);
+              else if ((m = p.match(/^install\/(.*)-install\.sh$/))) entries.add(`ct/${m[1]}.sh`);
+              else if ((m = p.match(/^(vm\/.*)\.sh$/))) entries.add(`${m[1]}.sh`);
+              else if ((m = p.match(/^(tools\/(?:pve|addon)\/.*)\.sh$/))) entries.add(`${m[1]}.sh`);
+            }
+            if (entries.size === 0) return;
+
+            const blocks = [...entries].sort().map(e => [
+              '```bash',
+              `COMMUNITY_SCRIPTS_URL=${base} \\`,
+              `bash -c "$(curl -fsSL ${base}/${e})"`,
+              '```',
+            ].join('\n'));
+
+            const body = [
+              '<!-- pr-test-command -->',
+              `### Try ${entries.size === 1 ? 'this script' : 'these scripts'}`,
+              '',
+              ...blocks,
+              '',
+              '`COMMUNITY_SCRIPTS_URL` is not optional. Fetching the `ct/` script from a branch',
+              'does not tell the engine where that branch is — with `bash -c "$(curl …)"` there',
+              'is no file on disk for the scripts root to be derived from, so it would fall back',
+              'to upstream `main` and look for the install script there.',
+              '',
+              '<details><summary>Against a core branch as well</summary>',
+              '',
+              'Add `COMMUNITY_SCRIPTS_CORE_URL=https://raw.githubusercontent.com/OWNER/core/BRANCH`',
+              'to test an engine change at the same time. The two resolve independently.',
+              '</details>',
+              '',
+              '<details><summary>Useful flags while testing</summary>',
+              '',
+              '`dev_mode=net` logs every fetch with status and duration, so you can confirm the',
+              'branch is really being used. `dev_mode=keep` stops a failed build from deleting',
+              'the container along with the evidence.',
+              '</details>',
+            ].join('\n');
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number,
+            });
+            const mine = comments.find(c => c.body.includes('<!-- pr-test-command -->'));
+            if (mine) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo, comment_id: mine.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number, body,
+              });
+            }
