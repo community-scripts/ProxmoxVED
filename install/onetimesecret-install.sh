@@ -21,6 +21,7 @@ $STD apt install -y \
   libgmp-dev \
   libpq-dev \
   libreadline-dev \
+  libsodium23 \
   libsqlite3-dev \
   libssl-dev \
   libxml2-dev \
