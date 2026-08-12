@@ -1,0 +1,69 @@
+name: Sync var_testurl into scripts
+
+# A script under test asks its users for feedback, and var_testurl is the
+# address that request points at. Setting it by hand means remembering to, for
+# every script -- so it is derived from the testing issue instead, the moment
+# that issue is labelled.
+#
+# The single-issue run happens on the label. The bulk run exists to catch up
+# with issues that were labelled before this workflow existed, and is safe to
+# repeat: a script that already carries the variable is left alone.
+#
+# Nothing here removes the variable. That happens in move-to-main-repo.yaml,
+# when the script leaves for ProxmoxVE and testing is over.
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      all:
+        description: "Process every open 'Ready For Testing' issue, not just one"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  issues: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    if: >-
+      github.repository == 'community-scripts/ProxmoxVED' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.label.name == 'Ready For Testing')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Add var_testurl where it is missing
+        id: sync
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          # Through the environment, never interpolated into the script body:
+          # an issue title is attacker-controlled text, and ${{ }} would paste
+          # it into the shell verbatim.
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          chmod +x .github/workflows/scripts/sync-testurl.sh
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            .github/workflows/scripts/sync-testurl.sh --all
+          else
+            .github/workflows/scripts/sync-testurl.sh "$ISSUE_NUMBER" "$ISSUE_TITLE"
+          fi
+
+      - name: Commit
+        if: steps.sync.outputs.changed != '0'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add ct/
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: point ${{ steps.sync.outputs.changed }} script(s) at their testing issue [skip ci]"
+          git pull --rebase origin main
+          git push origin main
