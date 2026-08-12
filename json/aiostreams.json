@@ -1,0 +1,53 @@
+{
+  "name": "AIOStreams",
+  "slug": "aiostreams",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-08-10",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 3000,
+  "documentation": "https://docs.aiostreams.viren070.me/",
+  "website": "https://github.com/Viren070/AIOStreams",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/aiostreams.webp",
+  "description": "AIOStreams consolidates multiple Stremio addons and debrid services into a single, highly customisable super-addon, with filtering, sorting, and formatting of results.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/aiostreams.sh",
+      "config_path": "/opt/aiostreams/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "No authentication is enabled by default. Set AIOSTREAMS_AUTH in /opt/aiostreams/.env to secure the dashboard.",
+      "type": "warning"
+    },
+    {
+      "text": "SECRET_KEY is generated automatically and cannot be changed after first run without invalidating existing encrypted configs. Back up /opt/aiostreams/.env.",
+      "type": "warning"
+    },
+    {
+      "text": "Uses SQLite by default. Edit DATABASE_URI in /opt/aiostreams/.env to use PostgreSQL instead.",
+      "type": "info"
+    },
+    {
+      "text": "Most configuration (addons, presets, formatting, proxying) is done from the dashboard Settings page after deployment, not via the .env file.",
+      "type": "info"
+    }
+  ]
+}
