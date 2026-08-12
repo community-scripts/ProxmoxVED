@@ -1,0 +1,49 @@
+{
+  "name": "fwupd-webui",
+  "slug": "fwupd-webui",
+  "categories": [9],
+  "date_created": "2026-08-12",
+  "type": "ct",
+  "updateable": true,
+  "privileged": true,
+  "interface_port": 8099,
+  "documentation": "https://github.com/yuzi-co/fwupd-webui#readme",
+  "website": "https://github.com/yuzi-co/fwupd-webui",
+  "repository": "https://github.com/yuzi-co/fwupd-webui",
+  "architectures": ["amd64"],
+  "platforms": ["pve"],
+  "logo": "https://raw.githubusercontent.com/yuzi-co/fwupd-webui/main/unraid/icon.png",
+  "description": "Web UI for fwupd. Lists every device fwupd can enumerate on the Proxmox host - NVMe drives, SATA disks, HBAs, network cards, Thunderbolt controllers - with current firmware versions and any updates available from LVFS. Read-only by default; firmware flashing is off unless explicitly enabled.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/fwupd-webui.sh",
+      "config_path": "/etc/fwupd-webui/env",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Privileged by design. Enumerating firmware means issuing NVMe admin commands and SCSI ioctls against the host's disks. Measured: 8 devices privileged, 2 with --cap-add=ALL plus seccomp and AppArmor unconfined.",
+      "type": "warning"
+    },
+    {
+      "text": "Reports the firmware of the Proxmox host, not of the container. An LXC shares the host kernel, so /sys and /dev describe the real machine.",
+      "type": "info"
+    },
+    {
+      "text": "Firmware flashing is disabled by default. Set FWUPD_WEBUI_ENABLE_FLASHING=true in /etc/fwupd-webui/env and restart the service. Even then, every flash requires typing the device name, and BIOS, UEFI capsule and SPI flash writes are refused outright.",
+      "type": "info"
+    }
+  ]
+}
