@@ -21,6 +21,7 @@ $STD apt install -y \
   libgmp-dev \
   libpq-dev \
   libreadline-dev \
+  libsodium23 \
   libsqlite3-dev \
   libssl-dev \
   libxml2-dev \
@@ -115,6 +116,16 @@ msg_ok "Created Service"
 
 msg_info "Configuring Nginx"
 cat <<'EOF' >/etc/nginx/sites-available/onetimesecret
+# Preserve X-Forwarded-Proto from an upstream TLS-terminating reverse proxy.
+# Without this, nginx always reports its own scheme (http, since it only
+# listens on port 80), which clobbers a proxy-supplied "https" value, causes
+# secure session cookies to be dropped, and breaks account creation (CSRF
+# session-continuity failures) when this container sits behind another proxy.
+map $http_x_forwarded_proto $ots_forwarded_proto {
+  default $http_x_forwarded_proto;
+  ''      $scheme;
+}
+
 server {
   listen 80 default_server;
   server_name _;
@@ -127,7 +138,7 @@ server {
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Proto $ots_forwarded_proto;
   }
 }
 EOF
