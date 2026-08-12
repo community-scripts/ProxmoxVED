@@ -40,7 +40,16 @@ function update_script() {
     systemctl stop llama-cpp
     msg_ok "Stopped Service"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "llama-cpp" "ggml-org/llama.cpp" "prebuild" "latest" "/opt/llama-cpp" "llama-*-bin-ubuntu-$(arch_resolve x64 arm64).tar.gz"
+    # Keep the build variant the install picked; the CPU tarball would otherwise
+    # overwrite a Vulkan or ROCm install and quietly end GPU offload.
+    LLAMA_BACKEND="$(cat /opt/llama-cpp_data/.backend 2>/dev/null || echo cpu)"
+    case "$LLAMA_BACKEND" in
+    vulkan) LLAMA_ASSET="llama-*-bin-ubuntu-vulkan-$(arch_resolve x64 arm64).tar.gz" ;;
+    rocm) LLAMA_ASSET="llama-*-bin-ubuntu-rocm-*-x64.tar.gz" ;;
+    *) LLAMA_ASSET="llama-*-bin-ubuntu-$(arch_resolve x64 arm64).tar.gz" ;;
+    esac
+
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "llama-cpp" "ggml-org/llama.cpp" "prebuild" "latest" "/opt/llama-cpp" "$LLAMA_ASSET"
     chmod +x /opt/llama-cpp/llama-*
 
     msg_info "Starting Service"

@@ -33,17 +33,68 @@
     "username": null,
     "password": null
   },
+  "app_vars": [
+    {
+      "name": "var_backend",
+      "label": "Build Variant",
+      "type": "select",
+      "options": ["auto", "cpu", "vulkan", "rocm"],
+      "default": "auto",
+      "help": "auto takes rocm for an AMD card, vulkan for any other passed-through GPU, cpu otherwise"
+    },
+    {
+      "name": "var_model_repo",
+      "label": "Model Repository",
+      "type": "text",
+      "default": "ggml-org/gemma-3-1b-it-GGUF",
+      "help": "GGUF repo on HuggingFace, downloaded on first service start"
+    },
+    {
+      "name": "var_ctx_size",
+      "label": "Context Size",
+      "type": "number",
+      "default": "4096",
+      "help": "The KV cache for this has to fit next to the model"
+    },
+    {
+      "name": "var_offload_layers",
+      "label": "GPU Layers",
+      "type": "number",
+      "default": "",
+      "help": "Empty offloads every layer on a GPU build and none on cpu"
+    },
+    {
+      "name": "var_api_key",
+      "label": "API Key",
+      "type": "password",
+      "secret": true,
+      "help": "Clients must send it as a bearer token. Empty means no authentication"
+    },
+    {
+      "name": "var_port",
+      "label": "Port",
+      "type": "number",
+      "default": "8080"
+    },
+    {
+      "name": "INSTALL_NVIDIA_DRIVERS",
+      "label": "Install NVIDIA driver libraries",
+      "type": "boolean",
+      "default": "yes",
+      "help": "Set to no when you install a matching driver in the container yourself"
+    }
+  ],
   "notes": [
     {
       "text": "On first start llama-server downloads the model set in LLAMA_ARG_HF_REPO (default: ggml-org/gemma-3-1b-it-GGUF, roughly 800 MB) into /opt/llama-cpp_data/models, so the container is usable straight away. Swap it for any GGUF repo, or point LLAMA_ARG_MODEL at a local file, then restart.",
       "type": "info"
     },
     {
-      "text": "The web UI and the OpenAI-compatible API share port 8080: /v1/chat/completions, /v1/models and friends. There is no authentication - set LLAMA_ARG_API_KEY in /opt/llama-cpp.env or keep it off untrusted networks.",
+      "text": "The web UI and the OpenAI-compatible API share port 8080: /v1/chat/completions, /v1/models and friends. There is no authentication unless an API key is set - supply one at install time or set LLAMA_ARG_API_KEY in /opt/llama-cpp.env.",
       "type": "warning"
     },
     {
-      "text": "This is the CPU build (LLAMA_ARG_N_GPU_LAYERS=0). For GPU offload pass a card through and install the matching build - the release also ships vulkan, rocm and sycl variants. Adjust the asset name in the script accordingly.",
+      "text": "The build variant is chosen at install time: cpu, vulkan or rocm, or auto to follow the passed-through GPU. Upstream publishes no Linux CUDA build, so an NVIDIA card is served by the vulkan build and needs NVIDIA's Vulkan driver in the container. The choice is remembered in /opt/llama-cpp_data/.backend so updates keep it.",
       "type": "info"
     },
     {
