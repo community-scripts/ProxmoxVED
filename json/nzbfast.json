@@ -1,0 +1,53 @@
+{
+  "name": "nzbfast",
+  "slug": "nzbfast",
+  "categories": [
+    11
+  ],
+  "date_created": "2026-08-15",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 6789,
+  "documentation": "https://nzbfast.github.io/nzbfast/MANUAL.html",
+  "website": "https://nzbfast.github.io/nzbfast/",
+  "repository": "https://github.com/nzbfast/nzbfast",
+  "logo": "https://raw.githubusercontent.com/nzbfast/unraid-templates/main/icons/nzbfast.png",
+  "description": "nzbfast is a speed-focused Usenet (NZB) downloader written in Rust. It is one statically linked binary that saturates a fast line with a handful of connections and keeps its memory footprint small. Articles are verified as they arrive, so most jobs finish with no separate verify pass, and repair and unpack run only when they are needed. The web dashboard also serves a SABnzbd-compatible API, plus an NZBGet JSON-RPC facade, so Sonarr, Radarr, Prowlarr and the mobile remotes connect with no extra glue.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/nzbfast.sh",
+      "config_path": "/opt/nzbfast_data/config.json",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Open http://<IP>:6789 and add your Usenet provider in the Welcome panel. There is no config file to edit first, and the settings apply live.",
+      "type": "info"
+    },
+    {
+      "text": "An API key is generated on the first start. Read it with 'cat /opt/nzbfast_data/apikey', or copy it from Settings > Security in the dashboard, and paste it into Sonarr/Radarr when you add nzbfast as a SABnzbd download client.",
+      "type": "info"
+    },
+    {
+      "text": "Settings, the API key, the queue, the watch folder and the index all live in /opt/nzbfast_data, deliberately outside the program directory, so an update replaces only the binary and never the install.",
+      "type": "info"
+    },
+    {
+      "text": "Downloads land in /opt/nzbfast_data/downloads on the container disk. Mount a share or a larger volume there before you start pulling releases, or size the container disk for what you download.",
+      "type": "warning"
+    }
+  ]
+}
