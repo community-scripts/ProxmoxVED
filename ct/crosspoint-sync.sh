@@ -9,7 +9,7 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/crosspoint-reader/crosspoint-sync
 
-APP="Crosspoint-Sync"
+APP="CrossPoint-Sync"
 var_tags="${var_tags:-ebook;koreader;sync}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
@@ -42,12 +42,12 @@ function update_script() {
 
     fetch_and_deploy_gh_branch "crosspoint-sync" "crosspoint-reader/crosspoint-sync"
 
-    msg_info "Building Crosspoint-Sync"
+    msg_info "Building CrossPoint-Sync"
     cd /opt/crosspoint-sync
     $STD npm ci
     $STD npm run build
     $STD npm prune --omit=dev
-    msg_ok "Built Crosspoint-Sync"
+    msg_ok "Built CrossPoint-Sync"
 
     msg_info "Starting Service"
     systemctl start crosspoint-sync

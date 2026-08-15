@@ -17,14 +17,14 @@ NODE_VERSION="24" setup_nodejs
 
 fetch_and_deploy_gh_branch "crosspoint-sync" "crosspoint-reader/crosspoint-sync"
 
-msg_info "Building Crosspoint-Sync"
+msg_info "Building CrossPoint-Sync"
 cd /opt/crosspoint-sync
 $STD npm ci
 $STD npm run build
 $STD npm prune --omit=dev
-msg_ok "Built Crosspoint-Sync"
+msg_ok "Built CrossPoint-Sync"
 
-msg_info "Configuring Crosspoint-Sync"
+msg_info "Configuring CrossPoint-Sync"
 mkdir -p /opt/crosspoint-sync-data
 cat <<EOF >/opt/crosspoint-sync.env
 NODE_ENV=production
@@ -33,7 +33,7 @@ DATABASE_PATH=/opt/crosspoint-sync-data/crosspoint.db
 REGISTRATION_DISABLED=false
 EOF
 chmod 600 /opt/crosspoint-sync.env
-msg_ok "Configured Crosspoint-Sync"
+msg_ok "Configured CrossPoint-Sync"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/crosspoint-sync.service
