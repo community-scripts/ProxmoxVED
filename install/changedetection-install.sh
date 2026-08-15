@@ -78,7 +78,7 @@ $STD apt-get install -y \
   fonts-freefont-ttf \
   fonts-gfs-neohellenic \
   fonts-indic fonts-ipafont-gothic \
-  fonts-kacst fonts-liberation \
+  fonts-kacst-one fonts-liberation \
   fonts-noto-cjk \
   fonts-noto-color-emoji \
   fonts-roboto \
