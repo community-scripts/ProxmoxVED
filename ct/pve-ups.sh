@@ -43,7 +43,7 @@ function update_script() {
 
     msg_info "Updating Application"
     cd /opt/pve-usv
-    $STD uv venv venv
+    $STD uv venv --clear venv
     $STD uv pip install --python venv/bin/python .
     chown -R pveusv:pveusv /opt/pve-usv
     chmod 0755 deploy/pve-usv-agent.sh
