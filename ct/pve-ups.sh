@@ -29,7 +29,7 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f ~/.pve-usv ]]; then
+  if [[ ! -d /opt/pve-usv ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
