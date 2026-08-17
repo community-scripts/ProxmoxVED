@@ -20,6 +20,7 @@ msg_info "Installing Valkey"
 if [[ "$IS_ALPINE" == "1" ]]; then
   $STD apk add valkey valkey-openrc valkey-cli
 else
+  $STD apt update
   $STD apt install -y valkey openssl
 fi
 sed -i 's/^bind .*/bind 0.0.0.0/' /etc/valkey/valkey.conf

@@ -12,12 +12,7 @@ var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
 
 if [[ -z "${var_os:-}" ]]; then
-  echo -n "Install on (D)ebian or (A)lpine? [D/a] (auto-Debian in 15s): "
-  read -r -t 15 os_choice </dev/tty || os_choice=""
-  case "${os_choice,,}" in
-  a | alpine) var_os="alpine" ;;
-  *) var_os="debian" ;;
-  esac
+  var_os=$(msg_menu "Choose the container OS" "debian" "Debian 13 (TLS supported)" "alpine" "Alpine 3.24 (smaller, no TLS)")
 fi
 
 if [[ "$var_os" == "alpine" ]]; then
