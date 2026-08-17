@@ -10,11 +10,9 @@ var_tags="${var_tags:-database}"
 var_cpu="${var_cpu:-1}"
 var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
-
 if [[ -z "${var_os:-}" ]]; then
   var_os=$(msg_menu "Choose the container OS" "debian" "Debian 13 (TLS supported)" "alpine" "Alpine 3.24 (smaller, no TLS)")
 fi
-
 if [[ "$var_os" == "alpine" ]]; then
   var_ram="${var_ram:-256}"
   var_disk="${var_disk:-1}"
