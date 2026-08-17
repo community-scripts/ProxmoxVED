@@ -8,12 +8,27 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 APP="Valkey"
 var_tags="${var_tags:-database}"
 var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-1024}"
-var_disk="${var_disk:-4}"
-var_os="${var_os:-debian}"
-var_version="${var_version:-13}"
 var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
+
+if [[ -z "${var_os:-}" ]]; then
+  echo -n "Install on (D)ebian or (A)lpine? [D/a] (auto-Debian in 15s): "
+  read -r -t 15 os_choice </dev/tty || os_choice=""
+  case "${os_choice,,}" in
+  a | alpine) var_os="alpine" ;;
+  *) var_os="debian" ;;
+  esac
+fi
+
+if [[ "$var_os" == "alpine" ]]; then
+  var_ram="${var_ram:-256}"
+  var_disk="${var_disk:-1}"
+  var_version="${var_version:-3.24}"
+else
+  var_ram="${var_ram:-1024}"
+  var_disk="${var_disk:-4}"
+  var_version="${var_version:-13}"
+fi
 
 header_info "$APP"
 variables
