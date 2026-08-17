@@ -1,0 +1,54 @@
+{
+  "name": "Valheim",
+  "slug": "valheim",
+  "categories": [24],
+  "date_created": "2026-08-17",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://valheim.fandom.com/wiki/Valheim_Dedicated_Server",
+  "website": "https://www.valheimgame.com/",
+  "architectures": ["amd64"],
+  "platforms": ["pve"],
+  "logo": "https://cdn.cloudflare.steamstatic.com/steam/apps/892970/logo.png",
+  "description": "Valheim Dedicated Server lets you host a persistent co-op world for the brutal exploration and survival game Valheim. Installed bare-metal via SteamCMD with automatic startup, graceful world saves on shutdown, and world backups before every update.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/valheim.sh",
+      "config_path": "/opt/valheim/valheim.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "app_vars": [
+    { "name": "var_server_name", "label": "Server Name", "type": "text", "default": "Valheim Server" },
+    { "name": "var_world_name", "label": "World Name", "type": "text", "default": "Dedicated" },
+    { "name": "var_server_password", "label": "Server Password (min 5 chars)", "type": "password", "secret": true },
+    { "name": "var_crossplay", "label": "Enable Crossplay", "type": "boolean", "default": "no" }
+  ],
+  "notes": [
+    {
+      "text": "The server has no web interface. Players join via <container-ip>:2456; forward UDP ports 2456-2457 for access from the internet.",
+      "type": "info"
+    },
+    {
+      "text": "The server password is stored in /opt/valheim/valheim.env. It must be at least 5 characters and must not be part of the server name.",
+      "type": "info"
+    },
+    {
+      "text": "World saves live in /opt/valheim/data and are backed up automatically before every update.",
+      "type": "info"
+    }
+  ]
+}
