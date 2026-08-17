@@ -37,6 +37,7 @@ function update_script() {
   check_container_storage
   check_container_resources
   run_os_update
+  exit 0
 }
 
 update_deb_based() {
