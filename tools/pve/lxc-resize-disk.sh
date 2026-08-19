@@ -777,12 +777,62 @@ do_resize() {
       log "STEP3_STARTING ctid=$ctid"
       pct start "$ctid" &
       spinner $! "Starting container"
-      sleep 3
+      sleep 5
       echo -e "${GN}${TAB}✔${CL} ${GN}Container started${CL}"
       log "STEP3_OK"
 
-      log "SUCCESS CTID=$ctid DISK_KEY=$disk_key OLD=$current_size NEW=$target_size MODE=refquota"
-      return 0
+      # Step 4: Verify
+      echo -e "${BL}[Info]${GN} Verifying resize...${CL}"
+      sleep 2
+      local actual_size
+      actual_size=$(pct df "$ctid" 2>/dev/null | awk '$1 == "rootfs" {print $3}')
+      local actual_status
+      actual_status=$(pct status "$ctid" 2>/dev/null)
+
+      if [[ "$actual_status" == "status: running" ]]; then
+        echo -e "${GN}${TAB}✔${CL} ${GN}Container is running${CL}"
+        log "VERIFY_OK status=running"
+      else
+        echo -e "${RD}${TAB}✘${CL} ${RD}Container is not running!${CL}"
+        log "VERIFY_FAIL status=$actual_status"
+      fi
+
+      if [[ -n "$actual_size" ]]; then
+        echo -e "${GN}${TAB}✔${CL} ${GN}Disk size: ${actual_size}${CL}"
+        log "VERIFY_OK size=$actual_size expected=$target_size"
+
+        # Check if size actually changed (allow 5% tolerance for rounding)
+        local actual_bytes expected_bytes diff pct_diff
+        actual_bytes=$(parse_size_to_bytes "$actual_size")
+        expected_bytes=$(parse_size_to_bytes "$target_size")
+        if ((actual_bytes > expected_bytes)); then
+          diff=$((actual_bytes - expected_bytes))
+        else
+          diff=$((expected_bytes - actual_bytes))
+        fi
+        pct_diff=$((diff * 100 / expected_bytes))
+        if ((pct_diff > 5)); then
+          echo -e "${RD}${TAB}✘${CL} ${RD}Size mismatch: expected ${target_size}, got ${actual_size}${CL}"
+          log "VERIFY_FAIL size_mismatch expected=$target_size actual=$actual_size"
+          echo -e "${YW}${TAB}Would you like to retry with dd copy instead? (y/N)${CL}"
+          read -rp "${TAB}Choice: " dd_retry
+          if [[ "$dd_retry" =~ ^[Yy]$ ]]; then
+            echo -e "${BL}[Info]${GN} Falling back to dd copy approach...${CL}"
+            log "FALLBACK_DD"
+            # Fall through to dd approach below
+          else
+            log "FALLBACK_DECLINED"
+            return 1
+          fi
+        else
+          log "SUCCESS CTID=$ctid DISK_KEY=$disk_key OLD=$current_size NEW=$target_size MODE=refquota"
+          return 0
+        fi
+      else
+        echo -e "${RD}${TAB}✘${CL} ${RD}Could not read disk size${CL}"
+        log "VERIFY_FAIL size_unknown"
+        return 1
+      fi
     fi
 
     # ZFS zvol: fall through to dd-based approach below
