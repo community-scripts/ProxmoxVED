@@ -58,11 +58,11 @@ spinner() {
   local delay=0.1
   local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
   while ps -p "$pid" >/dev/null 2>&1; do
-    printf "\r%s[Info]%s %s... %s%s" "$BL" "$GN" "$msg" "${spinstr:0:1}" "$CL"
+    echo -ne "\r\033[36m[Info]\033[1;92m ${msg}... ${spinstr:0:1}\033[m"
     spinstr=${spinstr#?}${spinstr%"${spinstr#?}"}
     sleep "$delay"
   done
-  printf "\r\033[K"
+  echo -ne "\r\033[K"
 }
 
 run_with_spinner() {
