@@ -29,6 +29,25 @@ TAB="  "
 
 LOGFILE="/var/log/lxc-resize.log"
 
+# Ctrl+C handling: safe during menus, blocked during critical operations
+INTERRUPT_BLOCKED=0
+
+trap_exit() {
+  if [[ "$INTERRUPT_BLOCKED" -eq 1 ]]; then
+    echo -e "\n${RD}Cannot interrupt — critical operation in progress. Wait for it to finish.${CL}"
+    log "INTERRUPT_BLOCKED"
+    return
+  fi
+  echo -e "\n${RD}Interrupted by user.${CL}"
+  log "INTERRUPTED by user"
+  exit 130
+}
+
+block_interrupts() { INTERRUPT_BLOCKED=1; }
+allow_interrupts() { INTERRUPT_BLOCKED=0; }
+
+trap trap_exit INT TERM
+
 log() {
   echo "$(date '+%Y-%m-%d %H:%M:%S') | $1" >>"$LOGFILE"
 }
@@ -555,7 +574,7 @@ select_container() {
     menu_items+=("$cid" "$desc" "OFF")
   done
 
-  echo -e "${BL}[Info]${GN} Loading containers...${CL}"
+  echo -e "${BL}[Info]${GN} Loading containers...${CL}" >&2
   local selected
   selected=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
     --title "Select Container" \
@@ -575,7 +594,7 @@ select_disk() {
     exit 1
   fi
 
-  echo -e "${BL}[Info]${GN} Loading disks...${CL}"
+  echo -e "${BL}[Info]${GN} Loading disks...${CL}" >&2
   local menu_items=()
   while IFS= read -r line; do
     local key
@@ -624,7 +643,7 @@ get_target_size() {
     default_size=1
   fi
 
-  echo -e "${BL}[Info]${GN} Calculating disk usage...${CL}"
+  echo -e "${BL}[Info]${GN} Calculating disk usage...${CL}" >&2
   local hint=""
   if ((used_bytes > 0)); then
     hint="Current: $(bytes_to_human "$max_bytes") | Used: $(bytes_to_human "$used_bytes")\nMust be > $(bytes_to_human "$used_bytes") and < $(bytes_to_human "$max_bytes")"
@@ -694,6 +713,7 @@ do_resize() {
   local disk_key=$2
   local target_size=$3
 
+  block_interrupts
   log "START CTID=$ctid DISK_KEY=$disk_key TARGET=$target_size"
   echo -e "${BL}[Info]${GN} Detecting storage type...${CL}"
 
@@ -872,6 +892,8 @@ do_resize() {
   else
     post_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
   fi
+
+  allow_interrupts
 }
 
 post_operation() {
