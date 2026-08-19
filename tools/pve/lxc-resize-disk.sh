@@ -605,61 +605,76 @@ get_target_size() {
   used_bytes=$(get_used_bytes "$ctid" "$disk_key")
   max_bytes=$(get_max_bytes "$ctid" "$disk_key")
 
-  local used_gb max_gb default_size
+  local used_gb max_gb suggested_gb
   used_gb=$((used_bytes / 1073741824))
   max_gb=$((max_bytes / 1073741824))
 
-  # Default = used * 1.2, rounded up, clamped below max
+  # Suggest used * 1.2
   if ((used_gb > 0)); then
-    default_size=$((used_gb + used_gb / 5 + 1))
+    suggested_gb=$((used_gb + used_gb / 5 + 1))
   else
-    default_size=2
+    suggested_gb=2
   fi
-  if ((default_size >= max_gb)) && ((max_gb > 0)); then
-    default_size=$((max_gb - 1))
+  if ((suggested_gb >= max_gb)) && ((max_gb > 0)); then
+    suggested_gb=$((max_gb - 1))
   fi
-  if ((default_size < 1)); then
-    default_size=1
+  if ((suggested_gb < 1)); then
+    suggested_gb=1
   fi
 
+  # Build menu options: common sizes below max
+  local menu_items=()
+  local marked_off="OFF"
+  local max_menu=$((max_gb > 20 ? 20 : max_gb))
+
+  for ((i = 1; i < max_menu; i++)); do
+    if ((i == suggested_gb)); then
+      marked_off="ON"
+    else
+      marked_off="OFF"
+    fi
+    local label="${i} GB"
+    local desc=""
+    if ((i == suggested_gb)); then
+      desc="(suggested)"
+    fi
+    menu_items+=("$label" "$desc" "$marked_off")
+  done
+
+  # Add a custom option at the end
+  menu_items+=("custom" "Enter custom size" "OFF")
+
+  local hint=""
+  if ((used_bytes > 0)); then
+    hint="Current: $(bytes_to_human "$max_bytes") | Used: $(bytes_to_human "$used_bytes")\nMust be > $(bytes_to_human "$used_bytes") and < $(bytes_to_human "$max_bytes")"
+  else
+    hint="Current: $(bytes_to_human "$max_bytes")\nMust be < $(bytes_to_human "$max_bytes")"
+  fi
 
   while true; do
-    local size_hint unit_hint
-    if ((used_bytes > 0)); then
-      size_hint="Current: $(bytes_to_human "$max_bytes") | Used: $(bytes_to_human "$used_bytes")"
-      unit_hint="Must be > $(bytes_to_human "$used_bytes") and < $(bytes_to_human "$max_bytes")"
-    else
-      size_hint="Current: $(bytes_to_human "$max_bytes")"
-      unit_hint="Must be < $(bytes_to_human "$max_bytes")"
-    fi
+    local choice
+    choice=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "Target Size" \
+      --menu "\n${hint}\n\nSelect target size:" \
+      22 60 12 "${menu_items[@]}" 3>&1 1>&2 2>&3) || exit 0
 
-    # Step 1: Enter numeric value
-    local target_num
-    target_num=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "Target Size — Step 1 of 2" \
-      --inputbox "\n${size_hint}\n${unit_hint}\n\nEnter target size (number only):" \
-      12 60 "$default_size" 3>&1 1>&2 2>&3) || exit 0
-
-    if [[ -z "$target_num" ]] || ! [[ "$target_num" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-      whiptail --title "Invalid" --msgbox "Please enter a valid number." 8 40
+    if [[ -z "$choice" ]]; then
       continue
     fi
 
-    # Step 2: Select unit
-    local target_unit
-    target_unit=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "Target Size — Step 2 of 2" \
-      --radiolist "\nSelect unit for ${target_num}:" \
-      15 50 4 \
-      "GB" "Gigabytes" "ON" \
-      "MB" "Megabytes" "OFF" \
-      "TB" "Terabytes" "OFF" \
-      "KB" "Kilobytes" "OFF" \
-      3>&1 1>&2 2>&3) || exit 0
-
-    [[ -z "$target_unit" ]] && continue
-
-    local target_size="${target_num}${target_unit}"
+    local target_size
+    if [[ "$choice" == "custom" ]]; then
+      # Custom: ask for number + unit on one screen
+      local custom_val
+      custom_val=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+        --title "Custom Size" \
+        --inputbox "\nEnter size with unit (e.g. 3G, 500M, 1500MB):" \
+        10 50 "" 3>&1 1>&2 2>&3) || continue
+      [[ -z "$custom_val" ]] && continue
+      target_size="$custom_val"
+    else
+      target_size="$choice"
+    fi
 
     if validate_inputs "$ctid" "$disk_key" "$target_size" >/dev/null 2>&1; then
       echo "$target_size"
