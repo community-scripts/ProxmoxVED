@@ -1055,8 +1055,11 @@ if [[ $CLI_MODE -eq 1 ]]; then
 fi
 
 # Interactive mode
-CTID=$(select_container)
-DISK_KEY=$(select_disk "$CTID")
-TARGET_SIZE=$(get_target_size "$CTID" "$DISK_KEY")
-confirm_operation "$CTID" "$DISK_KEY" "$TARGET_SIZE"
+CTID=$(select_container) || exit 0
+[[ -z "$CTID" ]] && exit 0
+DISK_KEY=$(select_disk "$CTID") || exit 0
+[[ -z "$DISK_KEY" ]] && exit 0
+TARGET_SIZE=$(get_target_size "$CTID" "$DISK_KEY") || exit 0
+[[ -z "$TARGET_SIZE" ]] && exit 0
+confirm_operation "$CTID" "$DISK_KEY" "$TARGET_SIZE" || exit 0
 do_resize "$CTID" "$DISK_KEY" "$TARGET_SIZE"
