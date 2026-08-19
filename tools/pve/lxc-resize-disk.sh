@@ -605,44 +605,22 @@ get_target_size() {
   used_bytes=$(get_used_bytes "$ctid" "$disk_key")
   max_bytes=$(get_max_bytes "$ctid" "$disk_key")
 
-  local used_gb max_gb suggested_gb
+  local used_gb max_gb default_size
   used_gb=$((used_bytes / 1073741824))
   max_gb=$((max_bytes / 1073741824))
 
   # Suggest used * 1.2
   if ((used_gb > 0)); then
-    suggested_gb=$((used_gb + used_gb / 5 + 1))
+    default_size=$((used_gb + used_gb / 5 + 1))
   else
-    suggested_gb=2
+    default_size=2
   fi
-  if ((suggested_gb >= max_gb)) && ((max_gb > 0)); then
-    suggested_gb=$((max_gb - 1))
+  if ((default_size >= max_gb)) && ((max_gb > 0)); then
+    default_size=$((max_gb - 1))
   fi
-  if ((suggested_gb < 1)); then
-    suggested_gb=1
+  if ((default_size < 1)); then
+    default_size=1
   fi
-
-  # Build menu options: common sizes below max
-  local menu_items=()
-  local marked_off="OFF"
-  local max_menu=$((max_gb > 20 ? 20 : max_gb))
-
-  for ((i = 1; i < max_menu; i++)); do
-    if ((i == suggested_gb)); then
-      marked_off="ON"
-    else
-      marked_off="OFF"
-    fi
-    local label="${i} GB"
-    local desc=""
-    if ((i == suggested_gb)); then
-      desc="(suggested)"
-    fi
-    menu_items+=("$label" "$desc" "$marked_off")
-  done
-
-  # Add a custom option at the end
-  menu_items+=("custom" "Enter custom size" "OFF")
 
   local hint=""
   if ((used_bytes > 0)); then
@@ -652,28 +630,20 @@ get_target_size() {
   fi
 
   while true; do
-    local choice
-    choice=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "Target Size" \
-      --menu "\n${hint}\n\nSelect target size:" \
-      22 60 12 "${menu_items[@]}" 3>&1 1>&2 2>&3) || exit 0
-
-    if [[ -z "$choice" ]]; then
-      continue
-    fi
-
     local target_size
-    if [[ "$choice" == "custom" ]]; then
-      # Custom: ask for number + unit on one screen
-      local custom_val
-      custom_val=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-        --title "Custom Size" \
-        --inputbox "\nEnter size with unit (e.g. 3G, 500M, 1500MB):" \
-        10 50 "" 3>&1 1>&2 2>&3) || continue
-      [[ -z "$custom_val" ]] && continue
-      target_size="$custom_val"
-    else
-      target_size="$choice"
+    target_size=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "Target Size" \
+      --inputbox "\n${hint}\n\nExamples: 3G, 500M, 1500MB, 2 (defaults to GB)" \
+      14 60 "$default_size" 3>&1 1>&2 2>&3) || exit 0
+
+    [[ -z "$target_size" ]] && continue
+
+    # Strip spaces
+    target_size="${target_size// /}"
+
+    # Bare number = GB
+    if [[ "$target_size" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+      target_size="${target_size}G"
     fi
 
     if validate_inputs "$ctid" "$disk_key" "$target_size" >/dev/null 2>&1; then
