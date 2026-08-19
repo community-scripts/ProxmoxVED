@@ -3,23 +3,17 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-# LXC Disk Resize — shrink LXC container disks safely via dd copy + checksum verification.
-# Supports LVM, LVM-thin, ZFS, and directory-based storage.
+# LXC Disk Resize — shrink LXC container disks safely via dd copy + checksum
+# verification for LVM/LVM-thin/directory storage, or refquota adjustment for
+# ZFS subvolumes.  Supports both interactive (whiptail) and non-interactive
+# (CLI) modes.
 
 set -eEuo pipefail
 export PERL_BADLANG=0
 
-function header_info() {
-  clear
-  cat <<"EOF"
-    _   ___  ________   ____       __     __
-   / | / / / /_  __/  / __ \___  / /__  / /____
-  /  |/ / / / / /    / / / / _ \/ / _ \/ __/ _ \
- / /|  / /_/ / /    / /_/ /  __/ /  __/ /_/  __/
-/_/ |_/\____/_/    /____/\___/_/\___/\__/\___/
-            DISK RESIZE
-EOF
-}
+# =============================================================================
+# Constants and color codes
+# =============================================================================
 
 BL="\033[36m"
 RD="\033[01;31m"
@@ -29,8 +23,23 @@ CL="\033[m"
 TAB="  "
 
 LOGFILE="/var/log/lxc-resize.log"
+META_DIR="/var/lib/lxc-resize"
 
-# Ctrl+C handling: safe during menus, blocked during critical operations
+# =============================================================================
+# Logging
+# =============================================================================
+
+# Append a timestamped line to the log file.
+log() {
+  echo "$(date '+%Y-%m-%d %H:%M:%S') | $1" >>"$LOGFILE"
+}
+
+# =============================================================================
+# Interrupt handling
+# =============================================================================
+
+# During critical operations (dd copy, volume swap) Ctrl+C must be blocked to
+# prevent data loss.  This flag is toggled by block_interrupts/allow_interrupts.
 INTERRUPT_BLOCKED=0
 
 trap_exit() {
@@ -49,10 +58,24 @@ allow_interrupts() { INTERRUPT_BLOCKED=0; }
 
 trap trap_exit INT TERM
 
-log() {
-  echo "$(date '+%Y-%m-%d %H:%M:%S') | $1" >>"$LOGFILE"
+# =============================================================================
+# UI helpers
+# =============================================================================
+
+function header_info() {
+  clear
+  cat <<"EOF"
+    _   ___  ________   ____       __     __
+   / | / / / /_  __/  / __ \___  / /__  / /____
+  /  |/ / / / / /    / / / / _ \/ / _ \/ __/ _ \
+ / /|  / /_/ / /    / /_/ /  __/ /  __/ /_/  __/
+/_/ |_/\____/_/    /____/\___/_/\___/\__/\___/
+            DISK RESIZE
+EOF
 }
 
+# Display a spinner animation while a background process runs.
+# Usage: spinner $PID "Message"
 spinner() {
   local pid=$1
   local msg=${2:-"Working"}
@@ -66,6 +89,7 @@ spinner() {
   echo -ne "\r\033[K"
 }
 
+# Run a command in the background with a spinner and report success/failure.
 run_with_spinner() {
   local msg=$1
   shift
@@ -86,6 +110,8 @@ run_with_spinner() {
   return $rc
 }
 
+# Stream progress percentages from stdin and render a visual progress bar.
+# Used by dd's status=progress output piped into this function.
 progress_bar() {
   local label=$1
   local total=$2
@@ -108,8 +134,12 @@ progress_bar() {
   log "PROGRESS_DONE $label"
 }
 
-# --- Size helpers ---
+# =============================================================================
+# Size conversion helpers
+# =============================================================================
 
+# Convert a human-readable size string (e.g. "3G", "500M", "1.5T") to bytes.
+# Accepts optional unit suffixes: T, G, M, K, B, or bare number (treated as bytes).
 parse_size_to_bytes() {
   local size="$1"
   local num="${size%%[KMGTPkmgtp]*}"
@@ -126,6 +156,7 @@ parse_size_to_bytes() {
   esac
 }
 
+# Convert a byte count to the largest human-readable unit (G, M, K, or B).
 bytes_to_human() {
   local bytes=$1
   if ((bytes >= 1073741824)); then
@@ -139,29 +170,34 @@ bytes_to_human() {
   fi
 }
 
-# --- Storage helpers ---
+# =============================================================================
+# Proxmox / storage query helpers
+# =============================================================================
 
+# Return the storage backend type for a Proxmox storage ID (e.g. "local-zfs" -> "zfspool").
 get_storage_type() {
   local storage="$1"
   pvesm status | awk -v st="$storage" '$1 == st {print $2}'
 }
 
+# Return the absolute path for a Proxmox volume reference (e.g. "local-lvm:vm-100-disk-0").
 get_volume_path() {
   local vol="$1"
   pvesm path "$vol" 2>/dev/null
 }
 
-# Get the ZFS pool name for a Proxmox storage ID (e.g. "local-zfs" -> "rpool/data")
+# Parse /etc/pve/storage.cfg and return the ZFS pool name for a given storage ID.
+# Example: get_zfs_pool "local-zfs" -> "rpool/data"
 get_zfs_pool() {
   local storage="$1"
-  # Parse /etc/pve/storage.cfg for the pool line under this zfspool entry
   awk -v st="$storage" '
     /^zfspool:/ { match_name = ($2 == st) }
     match_name && /^[\t ]+pool / { print $2; exit }
   ' /etc/pve/storage.cfg 2>/dev/null
 }
 
-# Get full ZFS dataset path (e.g. "rpool/data/subvol-999-disk-0")
+# Build the full ZFS dataset path by combining pool and volume name.
+# Example: get_zfs_dataset "local-zfs" "subvol-999-disk-0" -> "rpool/data/subvol-999-disk-0"
 get_zfs_dataset() {
   local storage="$1"
   local vol_name="$2"
@@ -174,27 +210,34 @@ get_zfs_dataset() {
   fi
 }
 
-# Get the LV name for a ctid + disk key from pct config
-get_lv_name() {
+# =============================================================================
+# Container config query helpers
+# =============================================================================
+
+# Extract the volume name from a container's pct config line for a given disk key.
+# Works for all storage types — not limited to LVM despite the original name.
+# Config format: "rootfs: local-zfs:subvol-999-disk-0,size=4G"
+# Returns: "subvol-999-disk-0"
+get_volume_name() {
   local ctid=$1
   local disk_key=$2
   local config_line
   config_line=$(pct config "$ctid" | awk "/^${disk_key}:/ {print}")
-  # Config format: "rootfs: local-zfs:subvol-999-disk-0,size=4G"
-  # Extract volume name: field 3 after splitting by colon, then strip options after comma
   echo "$config_line" | cut -d: -f3 | cut -d, -f1
 }
 
+# Extract the storage ID for a given disk key from the container config.
+# Config format: "rootfs: local-zfs:subvol-999-disk-0,size=4G"
+# Returns: "local-zfs"
 get_storage_for_disk() {
   local ctid=$1
   local disk_key=$2
   local config_line
   config_line=$(pct config "$ctid" | awk "/^${disk_key}:/ {print}")
-  # Config format: "rootfs: local-zfs:subvol-999-disk-0,size=4G"
-  # Extract storage: after first ": ", before next ":"
   echo "$config_line" | awk -F": " '{print $2}' | cut -d: -f1
 }
 
+# Extract the declared size string (e.g. "4G") from the container config.
 get_size_from_config() {
   local ctid=$1
   local disk_key=$2
@@ -203,11 +246,11 @@ get_size_from_config() {
   echo "$config_line" | grep -oP 'size=\K[^ ,]+'
 }
 
+# Return the actually-used bytes for a disk, as reported by `pct df`.
 get_used_bytes() {
   local ctid=$1
   local disk_key=$2
-  # pct df gives: MP Volume Size Used Avail Use% Path
-  # rootfs local-zfs:subvol-108-disk-0 10.0G 2.4G 7.6G 23.9 /
+  # pct df output columns: MP Volume Size Used Avail Use% Path
   local used
   used=$(pct df "$ctid" 2>/dev/null | awk -v dk="$disk_key" '$1 == dk {print $4}')
   if [[ -n "$used" ]]; then
@@ -217,6 +260,7 @@ get_used_bytes() {
   fi
 }
 
+# Return the declared maximum size in bytes for a disk from the container config.
 get_max_bytes() {
   local ctid=$1
   local disk_key=$2
@@ -229,18 +273,65 @@ get_max_bytes() {
   fi
 }
 
-# --- Volume operations per storage type ---
+# =============================================================================
+# LVM volume group resolution
+# =============================================================================
 
-create_new_volume() {
-  local ctid=$1
-  local disk_key=$2
-  local new_size=$3
-  local storage
-  storage=$(get_storage_for_disk "$ctid" "$disk_key")
+# Resolve the LVM volume group name for a given logical volume name.
+# First tries a direct lookup by LV name; falls back to the first VG on the system.
+resolve_vg_name() {
+  local vol_name="$1"
+  local vg_name
+  vg_name=$(lvs --noheadings -o vg_name 2>/dev/null | awk -v lv="$vol_name" '$1 == lv {print $1}')
+  if [[ -z "$vg_name" ]]; then
+    vg_name=$(lvs --noheadings -o vg_name 2>/dev/null | head -1 | tr -d ' ')
+  fi
+  echo "$vg_name"
+}
+
+# =============================================================================
+# Device path resolution
+# =============================================================================
+
+# Return the /dev/ path for a Proxmox volume, dispatching by storage type.
+#   LVM/LVM-thin: /dev/<vg>/<lv>
+#   ZFS:          /dev/zvol/<pool>/<vol>
+#   dir/nfs/cifs: resolved via pvesm path
+get_device_path() {
+  local vol="$1"
+  local storage="${vol%%:*}"
+  local vol_name="${vol#*:}"
   local storage_type
   storage_type=$(get_storage_type "$storage")
 
-  # Find next available disk number for this container
+  case $storage_type in
+    lvmthin|lvm)
+      local vg_name
+      vg_name=$(resolve_vg_name "$vol_name")
+      echo "/dev/${vg_name}/${vol_name}"
+      ;;
+    zfs)
+      local zfs_pool
+      zfs_pool=$(get_zfs_pool "$storage")
+      echo "/dev/zvol/${zfs_pool}/${vol_name}"
+      ;;
+    dir|nfs|cifs)
+      pvesm path "$vol" 2>/dev/null
+      ;;
+    *)
+      echo ""
+      ;;
+  esac
+}
+
+# =============================================================================
+# Volume lifecycle operations (create / remove)
+# =============================================================================
+
+# Determine the next available disk number for a container by scanning its config.
+# Example: if container has disk-0 and disk-1, returns 2.
+get_next_disk_number() {
+  local ctid=$1
   local max_disk=-1
   local vol
   for vol in $(pct config "$ctid" 2>/dev/null | awk -F'[: ,]' '/^(rootfs|mp[0-9]+)/ {print $4}'); do
@@ -250,7 +341,22 @@ create_new_volume() {
       max_disk=$disk_num
     fi
   done
-  local next_disk=$((max_disk + 1))
+  echo $((max_disk + 1))
+}
+
+# Create a new volume of the specified size on the same storage backend as the disk.
+# Returns the Proxmox volume reference (e.g. "local-lvm:vm-100-disk-2").
+# Returns empty string and exits non-zero on unsupported storage types.
+create_new_volume() {
+  local ctid=$1
+  local disk_key=$2
+  local new_size=$3
+  local storage
+  storage=$(get_storage_for_disk "$ctid" "$disk_key")
+  local storage_type
+  storage_type=$(get_storage_type "$storage")
+  local next_disk
+  next_disk=$(get_next_disk_number "$ctid")
 
   case $storage_type in
     lvmthin|lvm)
@@ -282,36 +388,9 @@ create_new_volume() {
   esac
 }
 
-get_device_path() {
-  local vol="$1"
-  local storage="${vol%%:*}"
-  local vol_name="${vol#*:}"
-  local storage_type
-  storage_type=$(get_storage_type "$storage")
-
-  case $storage_type in
-    lvmthin|lvm)
-      local vg_name
-      vg_name=$(lvs --noheadings -o vg_name 2>/dev/null | awk -v lv="$vol_name" '$1 == lv {print $1}')
-      if [[ -z "$vg_name" ]]; then
-        vg_name=$(lvs --noheadings -o vg_name 2>/dev/null | head -1 | tr -d ' ')
-      fi
-      echo "/dev/${vg_name}/${vol_name}"
-      ;;
-    zfs)
-      local zfs_pool
-      zfs_pool=$(get_zfs_pool "$storage")
-      echo "/dev/zvol/${zfs_pool}/${vol_name}"
-      ;;
-    dir|nfs|cifs)
-      pvesm path "$vol" 2>/dev/null
-      ;;
-    *)
-      echo ""
-      ;;
-  esac
-}
-
+# Remove a volume from its storage backend.
+# Errors are silently ignored (|| true) since the caller may invoke this during rollback
+# when the volume might already be gone.
 remove_volume() {
   local vol="$1"
   local storage="${vol%%:*}"
@@ -322,10 +401,7 @@ remove_volume() {
   case $storage_type in
     lvmthin|lvm)
       local vg_name
-      vg_name=$(lvs --noheadings -o vg_name 2>/dev/null | awk -v lv="$vol_name" '$1 == lv {print $1}')
-      if [[ -z "$vg_name" ]]; then
-        vg_name=$(lvs --noheadings -o vg_name 2>/dev/null | head -1 | tr -d ' ')
-      fi
+      vg_name=$(resolve_vg_name "$vol_name")
       lvremove -f "/dev/${vg_name}/${vol_name}" 2>/dev/null || true
       ;;
     zfs)
@@ -341,30 +417,44 @@ remove_volume() {
   esac
 }
 
+# =============================================================================
+# Data copy and verification
+# =============================================================================
+
+# Compute the standard dd block size (1M) and block count for a given byte size.
+# Both copy_data and verify_checksum need identical parameters, so they share this.
+get_dd_params() {
+  local source_size=$1
+  local bs=1M
+  local count=$((source_size / 1048576))
+  if ((count < 1)); then
+    count=1
+  fi
+  echo "$bs" "$count"
+}
+
+# Copy data from source device to destination using dd.
+# Only copies source_size bytes (not the entire device) to avoid copying
+# beyond what the container actually uses.
 copy_data() {
   local source_dev="$1"
   local dest_dev="$2"
   local source_size=$3
 
-  local bs=1M
-  local count=$((source_size / 1048576))
-  if ((count < 1)); then
-    count=1
-  fi
-
+  local bs count
+  read -r bs count <<< "$(get_dd_params "$source_size")"
   dd if="$source_dev" of="$dest_dev" bs="$bs" count="$count" status=progress 2>&1
 }
 
+# Compare MD5 checksums of source and destination to detect corruption.
+# Returns 0 on match, 1 on mismatch.
 verify_checksum() {
   local source_dev="$1"
   local dest_dev="$2"
   local source_size=$3
 
-  local bs=1M
-  local count=$((source_size / 1048576))
-  if ((count < 1)); then
-    count=1
-  fi
+  local bs count
+  read -r bs count <<< "$(get_dd_params "$source_size")"
 
   local source_hash dest_hash
   source_hash=$(dd if="$source_dev" bs="$bs" count="$count" 2>/dev/null | md5sum | awk '{print $1}')
@@ -377,6 +467,12 @@ verify_checksum() {
   fi
 }
 
+# =============================================================================
+# Container config manipulation
+# =============================================================================
+
+# Replace a disk entry in the container's pct config with a new volume reference.
+# For mount points (mp0, mp1, ...) the existing mount options are preserved.
 replace_volume_in_config() {
   local ctid=$1
   local disk_key=$2
@@ -386,22 +482,21 @@ replace_volume_in_config() {
   local storage="${new_vol%%:*}"
   local vol_name="${new_vol#*:}"
 
-  # Build the value for pct set with size
+  # Build the value string for pct set, optionally including size
   local vol_value="${storage}:${vol_name}"
   if [[ -n "$new_size" ]]; then
     vol_value="${vol_value},size=${new_size}"
   fi
 
-  # Remove old disk config
+  # Remove the old disk entry first
   pct set "$ctid" --delete "$disk_key"
 
-  # Re-add with new volume
+  # Re-add with the new volume, preserving mount options for mp* keys
   case $disk_key in
     rootfs)
       pct set "$ctid" --rootfs "${vol_value}"
       ;;
     mp[0-9]*)
-      # Preserve mount options from old config
       local old_mp_opts
       old_mp_opts=$(pct config "$ctid" 2>/dev/null | awk "/^${disk_key}:/ {sub(/^[^ ]+ [^ ]+ [^ ]+ /, \"\"); print}" || true)
       if [[ -n "$old_mp_opts" ]]; then
@@ -413,6 +508,12 @@ replace_volume_in_config() {
   esac
 }
 
+# =============================================================================
+# Rollback metadata and operations
+# =============================================================================
+
+# Save the pre-operation state so that rollback can restore it later.
+# Stored as a simple KEY=VALUE file in META_DIR.
 save_rollback_metadata() {
   local ctid=$1
   local disk_key=$2
@@ -420,9 +521,8 @@ save_rollback_metadata() {
   local new_vol=$4
   local old_size=${5:-}
 
-  local meta_dir="/var/lib/lxc-resize"
-  mkdir -p "$meta_dir"
-  cat >"${meta_dir}/${ctid}.meta" <<EOF
+  mkdir -p "$META_DIR"
+  cat >"${META_DIR}/${ctid}.meta" <<EOF
 CTID=$ctid
 DISK_KEY=$disk_key
 OLD_VOL=$old_vol
@@ -432,15 +532,8 @@ TIMESTAMP=$(date +%s)
 EOF
 }
 
-load_rollback_metadata() {
-  local ctid=$1
-  local meta_dir="/var/lib/lxc-resize"
-  if [[ -f "${meta_dir}/${ctid}.meta" ]]; then
-    # shellcheck source=/dev/null
-    source "${meta_dir}/${ctid}.meta"
-  fi
-}
-
+# Roll back a resize operation: remove the new volume and restore the old config.
+# For ZFS subvolumes, the refquota is restored instead of performing a volume swap.
 rollback_operation() {
   local ctid=$1
   local disk_key=$2
@@ -450,22 +543,21 @@ rollback_operation() {
   echo -e "${BL}[Info]${YW} Rolling back operation...${CL}"
   log "ROLLBACK CTID=$ctid DISK_KEY=$disk_key OLD_VOL=$old_vol NEW_VOL=$new_vol"
 
-  # Load metadata for old size
+  # Load the old size from saved metadata
   local old_size=""
-  local meta_dir="/var/lib/lxc-resize"
-  if [[ -f "${meta_dir}/${ctid}.meta" ]]; then
+  if [[ -f "${META_DIR}/${ctid}.meta" ]]; then
     # shellcheck source=/dev/null
-    source "${meta_dir}/${ctid}.meta"
+    source "${META_DIR}/${ctid}.meta"
     old_size="${OLD_SIZE:-}"
   fi
 
-  # Stop container if running
+  # Stop the container if it is currently running
   if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
     pct stop "$ctid"
     sleep 3
   fi
 
-  # ZFS subvol rollback: restore refquota
+  # ZFS subvol rollback: restore the original refquota value
   local storage="${old_vol%%:*}"
   local vol_name="${old_vol#*:}"
   local stype
@@ -488,11 +580,10 @@ rollback_operation() {
     fi
   fi
 
-  # LVM / zvol / dir rollback: remove new volume, restore config
+  # LVM / zvol / directory rollback: remove the new volume, restore old config
   remove_volume "$new_vol"
   replace_volume_in_config "$ctid" "$disk_key" "$old_vol" "$old_size"
 
-  # Start container
   pct start "$ctid"
   sleep 3
 
@@ -500,20 +591,23 @@ rollback_operation() {
   log "ROLLBACK_OK CTID=$ctid"
 }
 
-# --- Validation ---
+# =============================================================================
+# Input validation
+# =============================================================================
 
+# Validate all inputs before starting a resize operation.
+# Checks: container existence, disk key in config, size format, and that the
+# target size is between used space and current maximum.
 validate_inputs() {
   local ctid=$1
   local disk_key=$2
   local target_size=$3
 
-  # Validate container exists
   if ! pct status "$ctid" >/dev/null 2>&1; then
     echo "Error: Container $ctid does not exist."
     return 1
   fi
 
-  # Validate disk key exists
   local config_line
   config_line=$(pct config "$ctid" 2>/dev/null | awk "/^${disk_key}:/ {print}")
   if [[ -z "$config_line" ]]; then
@@ -521,13 +615,11 @@ validate_inputs() {
     return 1
   fi
 
-  # Validate target size format
   if ! [[ "$target_size" =~ ^[0-9]+(\.[0-9]+)?[KMGTPkmgtp]?$ ]]; then
     echo "Error: Invalid size format '$target_size'. Use e.g. 3G, 500M, 1500MB, or a bare number for GB."
     return 1
   fi
 
-  # Get current sizes
   local used_bytes max_bytes new_bytes
   used_bytes=$(get_used_bytes "$ctid" "$disk_key")
   max_bytes=$(get_max_bytes "$ctid" "$disk_key")
@@ -553,8 +645,11 @@ validate_inputs() {
   return 0
 }
 
-# --- Interactive UI ---
+# =============================================================================
+# Interactive UI (whiptail menus)
+# =============================================================================
 
+# Present a radio-list of all LXC containers and return the selected CTID.
 select_container() {
   mapfile -t containers < <(pct list | tail -n +2)
 
@@ -585,6 +680,7 @@ select_container() {
   echo "$selected"
 }
 
+# Present a radio-list of disks for the given container and return the selected disk key.
 select_disk() {
   local ctid=$1
   local config_lines
@@ -619,6 +715,8 @@ select_disk() {
   echo "$selected"
 }
 
+# Prompt for target size interactively, with validation loop and sensible defaults.
+# Default suggestion: used_space * 1.2 (with minimum of 1G and maximum of current_size - 1).
 get_target_size() {
   local ctid=$1
   local disk_key=$2
@@ -631,7 +729,6 @@ get_target_size() {
   used_gb=$((used_bytes / 1073741824))
   max_gb=$((max_bytes / 1073741824))
 
-  # Suggest used * 1.2
   if ((used_gb > 0)); then
     default_size=$((used_gb + used_gb / 5 + 1))
   else
@@ -661,10 +758,10 @@ get_target_size() {
 
     [[ -z "$target_size" ]] && continue
 
-    # Strip spaces
+    # Strip whitespace
     target_size="${target_size// /}"
 
-    # Bare number = GB
+    # Bare number is treated as gigabytes
     if [[ "$target_size" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
       target_size="${target_size}G"
     fi
@@ -682,6 +779,7 @@ get_target_size() {
   done
 }
 
+# Show a confirmation dialog with all operation details before proceeding.
 confirm_operation() {
   local ctid=$1
   local disk_key=$2
@@ -709,246 +807,7 @@ confirm_operation() {
     --yesno "$msg" 16 60 || exit 0
 }
 
-# --- Main resize operation ---
-
-do_resize() {
-  local ctid=$1
-  local disk_key=$2
-  local target_size=$3
-
-  block_interrupts
-  log "START CTID=$ctid DISK_KEY=$disk_key TARGET=$target_size"
-  echo -e "${BL}[Info]${GN} Detecting storage type...${CL}"
-
-  local storage
-  storage=$(get_storage_for_disk "$ctid" "$disk_key")
-  local stype
-  stype=$(get_storage_type "$storage")
-  local vol_name
-  vol_name=$(get_lv_name "$ctid" "$disk_key")
-  local old_vol="${storage}:${vol_name}"
-  local current_size
-  current_size=$(get_size_from_config "$ctid" "$disk_key")
-
-  echo -e "${BL}[Info]${GN} Resizing ${disk_key} on container ${ctid} from ${current_size} to ${target_size}${CL}"
-  log "INFO old_vol=$old_vol storage_type=$stype current_size=$current_size"
-
-  # --- ZFS subvol: use refquota (no dd copy needed) ---
-  if [[ "$stype" == "zfspool" ]]; then
-    echo -e "${BL}[Info]${GN} Probing ZFS dataset...${CL}"
-    local zfs_ds ds_type
-    zfs_ds=$(get_zfs_dataset "$storage" "$vol_name")
-    ds_type=$(zfs get -H -o value type "$zfs_ds" 2>/dev/null || echo "")
-
-    if [[ "$ds_type" == "filesystem" ]]; then
-      # ZFS subvol: shrink via refquota
-      echo -e "${BL}[Info]${GN} ZFS subvol — shrinking via refquota${CL}"
-      log "MODE=refquota zfs_ds=$zfs_ds"
-
-      # Validate: used must fit in new quota
-      local used_bytes target_bytes
-      used_bytes=$(zfs get -H -o value used "$zfs_ds" 2>/dev/null || echo "0")
-      used_bytes=$(parse_size_to_bytes "$used_bytes")
-      target_bytes=$(parse_size_to_bytes "$target_size")
-
-      if ((used_bytes >= target_bytes)); then
-        echo -e "${RD}Error: Used space ($(bytes_to_human "$used_bytes")) >= target size (${target_size})${CL}"
-        log "ERROR used_space_exceeds_target"
-        return 1
-      fi
-
-      # Step 1: Stop container
-      echo -e "${BL}[Info]${GN} Step 1/3: Stopping container...${CL}"
-      log "STEP1_STOPPING ctid=$ctid"
-      if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
-        pct stop "$ctid" &
-        spinner $! "Stopping container"
-      fi
-      echo -e "${GN}${TAB}✔${CL} ${GN}Container stopped${CL}"
-      log "STEP1_OK"
-
-      # Step 2: Set new refquota
-      echo -e "${BL}[Info]${GN} Step 2/3: Setting refquota to ${target_size}...${CL}"
-      log "STEP2_REFQUOTA ds=$zfs_ds size=$target_size"
-      zfs set refquota="${target_size}" "$zfs_ds" &
-      spinner $! "Setting refquota"
-      echo -e "${GN}${TAB}✔${CL} ${GN}refquota updated${CL}"
-      log "STEP2_OK refquota=$target_size"
-
-      # Step 3: Start container
-      echo -e "${BL}[Info]${GN} Step 3/3: Starting container...${CL}"
-      log "STEP3_STARTING ctid=$ctid"
-      pct start "$ctid" &
-      spinner $! "Starting container"
-      sleep 5
-      echo -e "${GN}${TAB}✔${CL} ${GN}Container started${CL}"
-      log "STEP3_OK"
-
-      # Step 4: Verify
-      echo -e "${BL}[Info]${GN} Verifying resize...${CL}"
-      sleep 2
-      local actual_size
-      actual_size=$(pct df "$ctid" 2>/dev/null | awk '$1 == "rootfs" {print $3}')
-      local actual_status
-      actual_status=$(pct status "$ctid" 2>/dev/null)
-
-      if [[ "$actual_status" == "status: running" ]]; then
-        echo -e "${GN}${TAB}✔${CL} ${GN}Container is running${CL}"
-        log "VERIFY_OK status=running"
-      else
-        echo -e "${RD}${TAB}✘${CL} ${RD}Container is not running!${CL}"
-        log "VERIFY_FAIL status=$actual_status"
-      fi
-
-      if [[ -n "$actual_size" ]]; then
-        echo -e "${GN}${TAB}✔${CL} ${GN}Disk size: ${actual_size}${CL}"
-        log "VERIFY_OK size=$actual_size expected=$target_size"
-
-        # Check if size actually changed (allow 5% tolerance for rounding)
-        local actual_bytes expected_bytes diff pct_diff
-        actual_bytes=$(parse_size_to_bytes "$actual_size")
-        expected_bytes=$(parse_size_to_bytes "$target_size")
-        if ((actual_bytes > expected_bytes)); then
-          diff=$((actual_bytes - expected_bytes))
-        else
-          diff=$((expected_bytes - actual_bytes))
-        fi
-        pct_diff=$((diff * 100 / expected_bytes))
-        if ((pct_diff > 5)); then
-          echo -e "${RD}${TAB}✘${CL} ${RD}Size mismatch: expected ${target_size}, got ${actual_size}${CL}"
-          log "VERIFY_FAIL size_mismatch expected=$target_size actual=$actual_size"
-          echo -e "${YW}${TAB}Would you like to retry with dd copy instead? (y/N)${CL}"
-          read -rp "${TAB}Choice: " dd_retry
-          if [[ "$dd_retry" =~ ^[Yy]$ ]]; then
-            echo -e "${BL}[Info]${GN} Falling back to dd copy approach...${CL}"
-            log "FALLBACK_DD"
-            # Fall through to dd approach below
-          else
-            log "FALLBACK_DECLINED"
-            return 1
-          fi
-        else
-          log "SUCCESS CTID=$ctid DISK_KEY=$disk_key OLD=$current_size NEW=$target_size MODE=refquota"
-          return 0
-        fi
-      else
-        echo -e "${RD}${TAB}✘${CL} ${RD}Could not read disk size${CL}"
-        log "VERIFY_FAIL size_unknown"
-        return 1
-      fi
-    fi
-
-    # ZFS zvol: fall through to dd-based approach below
-    echo -e "${BL}[Info]${GN} ZFS zvol detected — using dd copy approach${CL}"
-  fi
-
-  # --- LVM / ZFS-zvol / directory: dd copy approach ---
-
-  # Step 1: Create new volume
-  echo -e "${BL}[Info]${GN} Step 1/7: Creating new volume...${CL}"
-  log "STEP1_CREATE_VOL ctid=$ctid disk=$disk_key size=$target_size"
-  local new_vol
-  new_vol=$(create_new_volume "$ctid" "$disk_key" "$target_size")
-  if [[ -z "$new_vol" ]]; then
-    echo -e "${RD}Error: Failed to create new volume${CL}"
-    log "ERROR create_new_volume failed"
-    return 1
-  fi
-  echo -e "${GN}${TAB}✔${CL} ${GN}New volume created: ${new_vol}${CL}"
-  log "STEP1_OK new_vol=$new_vol"
-
-  # Step 2: Stop container
-  echo -e "${BL}[Info]${GN} Step 2/7: Stopping container...${CL}"
-  log "STEP2_STOPPING ctid=$ctid"
-  if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
-    pct stop "$ctid" &
-    spinner $! "Stopping container"
-  fi
-  echo -e "${GN}${TAB}✔${CL} ${GN}Container stopped${CL}"
-  log "STEP2_OK"
-
-  # Step 3: Copy data
-  echo -e "${BL}[Info]${GN} Step 3/7: Copying data...${CL}"
-  local source_dev dest_dev
-  source_dev=$(get_device_path "$old_vol")
-  dest_dev=$(get_device_path "$new_vol")
-
-  if [[ -z "$source_dev" || -z "$dest_dev" ]]; then
-    echo -e "${RD}Error: Could not resolve device paths${CL}"
-    echo -e "${RD}Source: ${source_dev:-<none>}, Dest: ${dest_dev:-<none>}${CL}"
-    log "ERROR device_path source=$source_dev dest=$dest_dev"
-    rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
-    return 1
-  fi
-
-  local source_bytes
-  source_bytes=$(get_max_bytes "$ctid" "$disk_key")
-
-  echo -e "${TAB}Source: ${source_dev} ($(bytes_to_human "$source_bytes"))"
-  echo -e "${TAB}Dest:   ${dest_dev} (${target_size})"
-  log "STEP3_COPY src=$source_dev dst=$dest_dev bytes=$source_bytes"
-
-  if ! copy_data "$source_dev" "$dest_dev" "$source_bytes"; then
-    echo -e "${RD}Error: Data copy failed${CL}"
-    log "ERROR copy_data failed"
-    rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
-    return 1
-  fi
-  echo -e "${GN}${TAB}✔${CL} ${GN}Data copied${CL}"
-  log "STEP3_OK"
-
-  # Step 4: Verify checksum
-  echo -e "${BL}[Info]${GN} Step 4/7: Verifying checksum...${CL}"
-  log "STEP4_CHECKSUM src=$source_dev dst=$dest_dev"
-  if ! verify_checksum "$source_dev" "$dest_dev" "$source_bytes"; then
-    echo -e "${RD}Error: Checksum mismatch — data corruption detected${CL}"
-    log "ERROR checksum_mismatch"
-    rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
-    return 1
-  fi
-  echo -e "${GN}${TAB}✔${CL} ${GN}Checksum verified${CL}"
-  log "STEP4_OK"
-
-  # Step 5: Replace volume in config
-  echo -e "${BL}[Info]${GN} Step 5/7: Replacing volume in config...${CL}"
-  log "STEP5_REPLACE ctid=$ctid disk=$disk_key new=$new_vol size=$target_size"
-  save_rollback_metadata "$ctid" "$disk_key" "$old_vol" "$new_vol" "$current_size"
-  replace_volume_in_config "$ctid" "$disk_key" "$new_vol" "$target_size"
-  echo -e "${GN}${TAB}✔${CL} ${GN}Volume replaced${CL}"
-  log "STEP5_OK"
-
-  # Step 6: Start container
-  echo -e "${BL}[Info]${GN} Step 6/7: Starting container...${CL}"
-  log "STEP6_STARTING ctid=$ctid"
-  pct start "$ctid" &
-  spinner $! "Starting container"
-  sleep 3
-  echo -e "${GN}${TAB}✔${CL} ${GN}Container started${CL}"
-  log "STEP6_OK"
-
-  # Step 7: Verify health
-  echo -e "${BL}[Info]${GN} Step 7/7: Verifying container health...${CL}"
-  if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
-    echo -e "${GN}${TAB}✔${CL} ${GN}Container is running${CL}"
-    log "STEP7_OK status=running"
-  else
-    echo -e "${RD}Warning: Container is not running after start${CL}"
-    log "STEP7_WARN status=$(pct status "$ctid" 2>/dev/null)"
-  fi
-
-  log "SUCCESS CTID=$ctid DISK_KEY=$disk_key OLD=$current_size NEW=$target_size OLD_VOL=$old_vol NEW_VOL=$new_vol"
-
-  # Post-operation: ask about old volume (or auto-rollback if --rollback was passed)
-  if [[ "${AUTO_ROLLBACK:-0}" -eq 1 ]]; then
-    echo -e "${BL}[Info]${GN} Auto-rollback requested, reverting to original...${CL}"
-    rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
-  else
-    post_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
-  fi
-
-  allow_interrupts
-}
-
+# Show a post-operation menu: delete old volume, keep it, or rollback.
 post_operation() {
   local ctid=$1
   local disk_key=$2
@@ -982,7 +841,304 @@ post_operation() {
   esac
 }
 
-# --- CLI ---
+# =============================================================================
+# Resize strategies
+# =============================================================================
+
+# Resize a ZFS subvolume by adjusting its refquota.
+# This is the fast path — no data copy needed, just a metadata update.
+# Falls back to the dd-based approach if the refquota change fails verification
+# and the user opts in.
+#
+# Returns 0 on success, 1 on failure.
+resize_zfs_subvol() {
+  local ctid=$1
+  local disk_key=$2
+  local target_size=$3
+  local storage=$4
+  local vol_name=$5
+  local current_size=$6
+
+  local zfs_ds ds_type
+  zfs_ds=$(get_zfs_dataset "$storage" "$vol_name")
+  ds_type=$(zfs get -H -o value type "$zfs_ds" 2>/dev/null || echo "")
+
+  # Only proceed if this is a ZFS filesystem (subvol), not a zvol
+  if [[ "$ds_type" != "filesystem" ]]; then
+    return 1  # Signal caller to fall through to dd approach
+  fi
+
+  echo -e "${BL}[Info]${GN} ZFS subvol — shrinking via refquota${CL}"
+  log "MODE=refquota zfs_ds=$zfs_ds"
+
+  # Validate: current used space must fit within the new quota
+  local used_bytes target_bytes
+  used_bytes=$(zfs get -H -o value used "$zfs_ds" 2>/dev/null || echo "0")
+  used_bytes=$(parse_size_to_bytes "$used_bytes")
+  target_bytes=$(parse_size_to_bytes "$target_size")
+
+  if ((used_bytes >= target_bytes)); then
+    echo -e "${RD}Error: Used space ($(bytes_to_human "$used_bytes")) >= target size (${target_size})${CL}"
+    log "ERROR used_space_exceeds_target"
+    return 1
+  fi
+
+  # Step 1: Stop the container
+  echo -e "${BL}[Info]${GN} Step 1/4: Stopping container...${CL}"
+  log "STEP1_STOPPING ctid=$ctid"
+  if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
+    pct stop "$ctid" &
+    spinner $! "Stopping container"
+  fi
+  echo -e "${GN}${TAB}✔${CL} ${GN}Container stopped${CL}"
+  log "STEP1_OK"
+
+  # Step 2: Set the new refquota
+  echo -e "${BL}[Info]${GN} Step 2/4: Setting refquota to ${target_size}...${CL}"
+  log "STEP2_REFQUOTA ds=$zfs_ds size=$target_size"
+  zfs set refquota="${target_size}" "$zfs_ds" &
+  spinner $! "Setting refquota"
+  echo -e "${GN}${TAB}✔${CL} ${GN}refquota updated${CL}"
+  log "STEP2_OK refquota=$target_size"
+
+  # Step 3: Start the container
+  echo -e "${BL}[Info]${GN} Step 3/4: Starting container...${CL}"
+  log "STEP3_STARTING ctid=$ctid"
+  pct start "$ctid" &
+  spinner $! "Starting container"
+  sleep 5
+  echo -e "${GN}${TAB}✔${CL} ${GN}Container started${CL}"
+  log "STEP3_OK"
+
+  # Step 4: Verify the resize took effect
+  echo -e "${BL}[Info]${GN} Step 4/4: Verifying resize...${CL}"
+  sleep 2
+  local actual_size
+  actual_size=$(pct df "$ctid" 2>/dev/null | awk '$1 == "rootfs" {print $3}')
+  local actual_status
+  actual_status=$(pct status "$ctid" 2>/dev/null)
+
+  if [[ "$actual_status" == "status: running" ]]; then
+    echo -e "${GN}${TAB}✔${CL} ${GN}Container is running${CL}"
+    log "VERIFY_OK status=running"
+  else
+    echo -e "${RD}${TAB}✘${CL} ${RD}Container is not running!${CL}"
+    log "VERIFY_FAIL status=$actual_status"
+  fi
+
+  if [[ -n "$actual_size" ]]; then
+    echo -e "${GN}${TAB}✔${CL} ${GN}Disk size: ${actual_size}${CL}"
+    log "VERIFY_OK size=$actual_size expected=$target_size"
+
+    # Allow 5% tolerance for unit rounding
+    local actual_bytes expected_bytes diff pct_diff
+    actual_bytes=$(parse_size_to_bytes "$actual_size")
+    expected_bytes=$(parse_size_to_bytes "$target_size")
+    if ((actual_bytes > expected_bytes)); then
+      diff=$((actual_bytes - expected_bytes))
+    else
+      diff=$((expected_bytes - actual_bytes))
+    fi
+    pct_diff=$((diff * 100 / expected_bytes))
+    if ((pct_diff > 5)); then
+      echo -e "${RD}${TAB}✘${CL} ${RD}Size mismatch: expected ${target_size}, got ${actual_size}${CL}"
+      log "VERIFY_FAIL size_mismatch expected=$target_size actual=$actual_size"
+      echo -e "${YW}${TAB}Would you like to retry with dd copy instead? (y/N)${CL}"
+      read -rp "${TAB}Choice: " dd_retry
+      if [[ "$dd_retry" =~ ^[Yy]$ ]]; then
+        echo -e "${BL}[Info]${GN} Falling back to dd copy approach...${CL}"
+        log "FALLBACK_DD"
+        return 1  # Signal caller to fall through to dd approach
+      else
+        log "FALLBACK_DECLINED"
+        return 1
+      fi
+    else
+      log "SUCCESS CTID=$ctid DISK_KEY=$disk_key OLD=$current_size NEW=$target_size MODE=refquota"
+      return 0
+    fi
+  else
+    echo -e "${RD}${TAB}✘${CL} ${RD}Could not read disk size${CL}"
+    log "VERIFY_FAIL size_unknown"
+    return 1
+  fi
+}
+
+# Resize via the dd copy approach: create a smaller volume, copy data, verify,
+# swap the config, and start the container.
+#
+# This is the universal fallback for LVM, LVM-thin, ZFS zvols, and directory
+# storage.  On any failure during the critical section, the operation is
+# automatically rolled back.
+#
+# Returns 0 on success, 1 on failure.
+resize_via_dd() {
+  local ctid=$1
+  local disk_key=$2
+  local target_size=$3
+  local storage=$4
+  local vol_name=$5
+  local current_size=$6
+  local old_vol="${storage}:${vol_name}"
+
+  echo -e "${BL}[Info]${GN} Using dd copy approach${CL}"
+  log "MODE=dd old_vol=$old_vol"
+
+  # Step 1: Create the new smaller volume
+  echo -e "${BL}[Info]${GN} Step 1/7: Creating new volume...${CL}"
+  log "STEP1_CREATE_VOL ctid=$ctid disk=$disk_key size=$target_size"
+  local new_vol
+  new_vol=$(create_new_volume "$ctid" "$disk_key" "$target_size")
+  if [[ -z "$new_vol" ]]; then
+    echo -e "${RD}Error: Failed to create new volume${CL}"
+    log "ERROR create_new_volume failed"
+    return 1
+  fi
+  echo -e "${GN}${TAB}✔${CL} ${GN}New volume created: ${new_vol}${CL}"
+  log "STEP1_OK new_vol=$new_vol"
+
+  # Step 2: Stop the container
+  echo -e "${BL}[Info]${GN} Step 2/7: Stopping container...${CL}"
+  log "STEP2_STOPPING ctid=$ctid"
+  if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
+    pct stop "$ctid" &
+    spinner $! "Stopping container"
+  fi
+  echo -e "${GN}${TAB}✔${CL} ${GN}Container stopped${CL}"
+  log "STEP2_OK"
+
+  # Step 3: Copy data from old volume to new volume
+  echo -e "${BL}[Info]${GN} Step 3/7: Copying data...${CL}"
+  local source_dev dest_dev
+  source_dev=$(get_device_path "$old_vol")
+  dest_dev=$(get_device_path "$new_vol")
+
+  if [[ -z "$source_dev" || -z "$dest_dev" ]]; then
+    echo -e "${RD}Error: Could not resolve device paths${CL}"
+    echo -e "${RD}Source: ${source_dev:-<none>}, Dest: ${dest_dev:-<none>}${CL}"
+    log "ERROR device_path source=$source_dev dest=$dest_dev"
+    rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
+    return 1
+  fi
+
+  local source_bytes
+  source_bytes=$(get_max_bytes "$ctid" "$disk_key")
+
+  echo -e "${TAB}Source: ${source_dev} ($(bytes_to_human "$source_bytes"))"
+  echo -e "${TAB}Dest:   ${dest_dev} (${target_size})"
+  log "STEP3_COPY src=$source_dev dst=$dest_dev bytes=$source_bytes"
+
+  if ! copy_data "$source_dev" "$dest_dev" "$source_bytes"; then
+    echo -e "${RD}Error: Data copy failed${CL}"
+    log "ERROR copy_data failed"
+    rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
+    return 1
+  fi
+  echo -e "${GN}${TAB}✔${CL} ${GN}Data copied${CL}"
+  log "STEP3_OK"
+
+  # Step 4: Verify data integrity via MD5 checksum comparison
+  echo -e "${BL}[Info]${GN} Step 4/7: Verifying checksum...${CL}"
+  log "STEP4_CHECKSUM src=$source_dev dst=$dest_dev"
+  if ! verify_checksum "$source_dev" "$dest_dev" "$source_bytes"; then
+    echo -e "${RD}Error: Checksum mismatch — data corruption detected${CL}"
+    log "ERROR checksum_mismatch"
+    rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
+    return 1
+  fi
+  echo -e "${GN}${TAB}✔${CL} ${GN}Checksum verified${CL}"
+  log "STEP4_OK"
+
+  # Step 5: Swap the volume reference in the container config
+  echo -e "${BL}[Info]${GN} Step 5/7: Replacing volume in config...${CL}"
+  log "STEP5_REPLACE ctid=$ctid disk=$disk_key new=$new_vol size=$target_size"
+  save_rollback_metadata "$ctid" "$disk_key" "$old_vol" "$new_vol" "$current_size"
+  replace_volume_in_config "$ctid" "$disk_key" "$new_vol" "$target_size"
+  echo -e "${GN}${TAB}✔${CL} ${GN}Volume replaced${CL}"
+  log "STEP5_OK"
+
+  # Step 6: Start the container
+  echo -e "${BL}[Info]${GN} Step 6/7: Starting container...${CL}"
+  log "STEP6_STARTING ctid=$ctid"
+  pct start "$ctid" &
+  spinner $! "Starting container"
+  sleep 3
+  echo -e "${GN}${TAB}✔${CL} ${GN}Container started${CL}"
+  log "STEP6_OK"
+
+  # Step 7: Verify the container is healthy and running
+  echo -e "${BL}[Info]${GN} Step 7/7: Verifying container health...${CL}"
+  if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
+    echo -e "${GN}${TAB}✔${CL} ${GN}Container is running${CL}"
+    log "STEP7_OK status=running"
+  else
+    echo -e "${RD}Warning: Container is not running after start${CL}"
+    log "STEP7_WARN status=$(pct status "$ctid" 2>/dev/null)"
+  fi
+
+  log "SUCCESS CTID=$ctid DISK_KEY=$disk_key OLD=$current_size NEW=$target_size OLD_VOL=$old_vol NEW_VOL=$new_vol"
+
+  # Handle the old volume: auto-rollback, interactive prompt, or keep
+  if [[ "${AUTO_ROLLBACK:-0}" -eq 1 ]]; then
+    echo -e "${BL}[Info]${GN} Auto-rollback requested, reverting to original...${CL}"
+    rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
+  else
+    post_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
+  fi
+
+  return 0
+}
+
+# =============================================================================
+# Main resize orchestrator
+# =============================================================================
+
+# Entry point for the resize operation.  Detects the storage type and delegates
+# to the appropriate strategy (ZFS refquota or dd copy).
+do_resize() {
+  local ctid=$1
+  local disk_key=$2
+  local target_size=$3
+
+  block_interrupts
+  log "START CTID=$ctid DISK_KEY=$disk_key TARGET=$target_size"
+  echo -e "${BL}[Info]${GN} Detecting storage type...${CL}"
+
+  local storage
+  storage=$(get_storage_for_disk "$ctid" "$disk_key")
+  local stype
+  stype=$(get_storage_type "$storage")
+  local vol_name
+  vol_name=$(get_volume_name "$ctid" "$disk_key")
+  local current_size
+  current_size=$(get_size_from_config "$ctid" "$disk_key")
+
+  echo -e "${BL}[Info]${GN} Resizing ${disk_key} on container ${ctid} from ${current_size} to ${target_size}${CL}"
+  log "INFO storage_type=$stype current_size=$current_size"
+
+  local rc=0
+
+  # Try ZFS subvol (refquota) path first for zfspool storage
+  if [[ "$stype" == "zfspool" ]]; then
+    echo -e "${BL}[Info]${GN} Probing ZFS dataset...${CL}"
+    if resize_zfs_subvol "$ctid" "$disk_key" "$target_size" "$storage" "$vol_name" "$current_size"; then
+      allow_interrupts
+      return 0
+    fi
+    echo -e "${BL}[Info]${GN} ZFS zvol or refquota fallback — switching to dd copy${CL}"
+  fi
+
+  # Universal dd copy path for LVM, ZFS zvol, and directory storage
+  resize_via_dd "$ctid" "$disk_key" "$target_size" "$storage" "$vol_name" "$current_size"
+  rc=$?
+
+  allow_interrupts
+  return $rc
+}
+
+# =============================================================================
+# CLI help
+# =============================================================================
 
 show_help() {
   cat <<EOF
@@ -1008,7 +1164,9 @@ CLI mode requires --ctid, --disk, and --size.
 EOF
 }
 
-# --- Entry point ---
+# =============================================================================
+# Entry point
+# =============================================================================
 
 CTID=""
 DISK_KEY=""
@@ -1035,7 +1193,7 @@ fi
 
 header_info
 
-# Validate CLI inputs
+# Non-interactive (CLI) mode: all three parameters were provided on the command line
 if [[ $CLI_MODE -eq 1 ]]; then
   # Normalize bare number to GB
   if [[ "$TARGET_SIZE" =~ ^[0-9]+$ ]]; then
@@ -1054,7 +1212,7 @@ if [[ $CLI_MODE -eq 1 ]]; then
   exit $?
 fi
 
-# Interactive mode
+# Interactive mode: guide the user through selection menus
 CTID=$(select_container) || exit 0
 [[ -z "$CTID" ]] && exit 0
 DISK_KEY=$(select_disk "$CTID") || exit 0
