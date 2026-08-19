@@ -21,9 +21,13 @@ GN="\033[1;92m"
 YW="\033[33m"
 CL="\033[m"
 TAB="  "
+CM="${TAB}✔${TAB}"
 
 LOGFILE="/var/log/lxc-resize.log"
-META_DIR="/var/lib/lxc-resize"
+
+msg_info() { echo -e "${BL}[Info]${GN} $1${CL}"; }
+msg_ok()   { echo -e "${GN}${TAB}${CM}${CL} ${GN}$1${CL}"; }
+msg_error(){ echo -e "${RD}[Error]${CL} $1"; }
 
 # =============================================================================
 # Logging
@@ -93,7 +97,7 @@ spinner() {
 run_with_spinner() {
   local msg=$1
   shift
-  echo -e "${BL}[Info]${GN} ${msg}...${CL}"
+  msg_info "${msg}..."
   log "SPINNER $msg"
   "$@" &
   local pid=$!
@@ -101,10 +105,10 @@ run_with_spinner() {
   wait "$pid"
   local rc=$?
   if [[ $rc -eq 0 ]]; then
-    echo -e "${GN}${TAB}✔${CL} ${GN}${msg} — done${CL}"
+    msg_ok "${msg} — done"
     log "DONE $msg"
   else
-    echo -e "${RD}${TAB}✘${CL} ${RD}${msg} — failed (exit $rc)${CL}"
+    msg_error "${msg} — failed (exit $rc)"
     log "FAIL $msg exit=$rc"
   fi
   return $rc
@@ -117,7 +121,7 @@ progress_bar() {
   local total=$2
   local current=0
   local width=40
-  echo -e "${BL}[Info]${GN} ${label}...${CL}"
+  msg_info "${label}..."
   log "PROGRESS_START $label total=$total"
   while IFS= read -r line; do
     local pct
@@ -130,7 +134,7 @@ progress_bar() {
     fi
   done
   printf "\r\033[K"
-  echo -e "${GN}${TAB}✔${CL} ${GN}${label} — done${CL}"
+  msg_ok "${label} — done"
   log "PROGRESS_DONE $label"
 }
 
@@ -540,7 +544,7 @@ rollback_operation() {
   local old_vol=$3
   local new_vol=$4
 
-  echo -e "${BL}[Info]${YW} Rolling back operation...${CL}"
+  msg_info "Rolling back operation..."
   log "ROLLBACK CTID=$ctid DISK_KEY=$disk_key OLD_VOL=$old_vol NEW_VOL=$new_vol"
 
   # Load the old size from saved metadata
@@ -568,13 +572,13 @@ rollback_operation() {
     zfs_ds=$(get_zfs_dataset "$storage" "$vol_name")
     ds_type=$(zfs get -H -o value type "$zfs_ds" 2>/dev/null || echo "")
     if [[ "$ds_type" == "filesystem" && -n "$old_size" ]]; then
-      echo -e "${BL}[Info]${GN} Restoring refquota to ${old_size}...${CL}"
+      msg_info "Restoring refquota to ${old_size}..."
       zfs set refquota="${old_size}" "$zfs_ds"
-      echo -e "${GN}${TAB}✔${CL} ${GN}refquota restored${CL}"
+      msg_ok "refquota restored"
       log "ROLLBACK_REFQUOTA old_size=$old_size"
       pct start "$ctid"
       sleep 3
-      echo -e "${GN}${TAB}✔${CL} ${GN}Rollback completed${CL}"
+      msg_ok "Rollback completed"
       log "ROLLBACK_OK CTID=$ctid"
       return 0
     fi
@@ -587,7 +591,7 @@ rollback_operation() {
   pct start "$ctid"
   sleep 3
 
-  echo -e "${GN}${TAB}✔${CL} ${GN}Rollback completed${CL}"
+  msg_ok "Rollback completed"
   log "ROLLBACK_OK CTID=$ctid"
 }
 
@@ -670,7 +674,7 @@ select_container() {
     menu_items+=("$cid" "$desc" "OFF")
   done
 
-  echo -e "${BL}[Info]${GN} Loading containers...${CL}" >&2
+  msg_info "Loading containers..." >&2
   local selected
   selected=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
     --title "Select Container" \
@@ -691,7 +695,7 @@ select_disk() {
     exit 1
   fi
 
-  echo -e "${BL}[Info]${GN} Loading disks...${CL}" >&2
+  msg_info "Loading disks..." >&2
   local menu_items=()
   while IFS= read -r line; do
     local key
@@ -741,7 +745,7 @@ get_target_size() {
     default_size=1
   fi
 
-  echo -e "${BL}[Info]${GN} Calculating disk usage...${CL}" >&2
+  msg_info "Calculating disk usage..." >&2
   local hint=""
   if ((used_bytes > 0)); then
     hint="Current: $(bytes_to_human "$max_bytes") | Used: $(bytes_to_human "$used_bytes")\nMust be > $(bytes_to_human "$used_bytes") and < $(bytes_to_human "$max_bytes")"
@@ -772,7 +776,7 @@ get_target_size() {
       return 0
     else
       log "VALIDATION_FAIL size=$target_size error=$validation_error"
-      echo -e "${RD}${TAB}✘ ${validation_error}${CL}" >&2
+      msg_error "${TAB}✘ ${validation_error}" >&2
       whiptail --backtitle "Proxmox VE Helper Scripts" \
         --title "Error" --msgbox "\n${validation_error}" 10 60 2>/dev/null || true
     fi
@@ -826,16 +830,16 @@ post_operation() {
 
   case "$choice" in
     1)
-      echo -e "${BL}[Info]${GN} Deleting old volume...${CL}"
+      msg_info "Deleting old volume..."
       remove_volume "$old_vol"
-      echo -e "${GN}${TAB}✔${CL} ${GN}Old volume deleted${CL}"
+      msg_ok "Old volume deleted"
       log "POST_DELETE old_vol=$old_vol"
       ;;
     3)
       rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
       ;;
     *)
-      echo -e "${BL}[Info]${GN} Old volume kept${CL}"
+      msg_info "Old volume kept"
       log "POST_KEEP old_vol=$old_vol"
       ;;
   esac
@@ -868,7 +872,7 @@ resize_zfs_subvol() {
     return 1  # Signal caller to fall through to dd approach
   fi
 
-  echo -e "${BL}[Info]${GN} ZFS subvol — shrinking via refquota${CL}"
+  msg_info "ZFS subvol — shrinking via refquota"
   log "MODE=refquota zfs_ds=$zfs_ds"
 
   # Validate: current used space must fit within the new quota
@@ -878,40 +882,40 @@ resize_zfs_subvol() {
   target_bytes=$(parse_size_to_bytes "$target_size")
 
   if ((used_bytes >= target_bytes)); then
-    echo -e "${RD}Error: Used space ($(bytes_to_human "$used_bytes")) >= target size (${target_size})${CL}"
+    msg_error "Error: Used space ($(bytes_to_human "$used_bytes")) >= target size (${target_size})"
     log "ERROR used_space_exceeds_target"
     return 1
   fi
 
   # Step 1: Stop the container
-  echo -e "${BL}[Info]${GN} Step 1/4: Stopping container...${CL}"
+  msg_info "Step 1/4: Stopping container..."
   log "STEP1_STOPPING ctid=$ctid"
   if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
     pct stop "$ctid" &
     spinner $! "Stopping container"
   fi
-  echo -e "${GN}${TAB}✔${CL} ${GN}Container stopped${CL}"
+  msg_ok "Container stopped"
   log "STEP1_OK"
 
   # Step 2: Set the new refquota
-  echo -e "${BL}[Info]${GN} Step 2/4: Setting refquota to ${target_size}...${CL}"
+  msg_info "Step 2/4: Setting refquota to ${target_size}..."
   log "STEP2_REFQUOTA ds=$zfs_ds size=$target_size"
   zfs set refquota="${target_size}" "$zfs_ds" &
   spinner $! "Setting refquota"
-  echo -e "${GN}${TAB}✔${CL} ${GN}refquota updated${CL}"
+  msg_ok "refquota updated"
   log "STEP2_OK refquota=$target_size"
 
   # Step 3: Start the container
-  echo -e "${BL}[Info]${GN} Step 3/4: Starting container...${CL}"
+  msg_info "Step 3/4: Starting container..."
   log "STEP3_STARTING ctid=$ctid"
   pct start "$ctid" &
   spinner $! "Starting container"
   sleep 5
-  echo -e "${GN}${TAB}✔${CL} ${GN}Container started${CL}"
+  msg_ok "Container started"
   log "STEP3_OK"
 
   # Step 4: Verify the resize took effect
-  echo -e "${BL}[Info]${GN} Step 4/4: Verifying resize...${CL}"
+  msg_info "Step 4/4: Verifying resize..."
   sleep 2
   local actual_size
   actual_size=$(pct df "$ctid" 2>/dev/null | awk '$1 == "rootfs" {print $3}')
@@ -919,15 +923,15 @@ resize_zfs_subvol() {
   actual_status=$(pct status "$ctid" 2>/dev/null)
 
   if [[ "$actual_status" == "status: running" ]]; then
-    echo -e "${GN}${TAB}✔${CL} ${GN}Container is running${CL}"
+    msg_ok "Container is running"
     log "VERIFY_OK status=running"
   else
-    echo -e "${RD}${TAB}✘${CL} ${RD}Container is not running!${CL}"
+    msg_error "Container is not running!"
     log "VERIFY_FAIL status=$actual_status"
   fi
 
   if [[ -n "$actual_size" ]]; then
-    echo -e "${GN}${TAB}✔${CL} ${GN}Disk size: ${actual_size}${CL}"
+    msg_ok "Disk size: ${actual_size}"
     log "VERIFY_OK size=$actual_size expected=$target_size"
 
     # Allow 5% tolerance for unit rounding
@@ -941,12 +945,12 @@ resize_zfs_subvol() {
     fi
     pct_diff=$((diff * 100 / expected_bytes))
     if ((pct_diff > 5)); then
-      echo -e "${RD}${TAB}✘${CL} ${RD}Size mismatch: expected ${target_size}, got ${actual_size}${CL}"
+      msg_error "Size mismatch: expected ${target_size}, got ${actual_size}"
       log "VERIFY_FAIL size_mismatch expected=$target_size actual=$actual_size"
       echo -e "${YW}${TAB}Would you like to retry with dd copy instead? (y/N)${CL}"
       read -rp "${TAB}Choice: " dd_retry
       if [[ "$dd_retry" =~ ^[Yy]$ ]]; then
-        echo -e "${BL}[Info]${GN} Falling back to dd copy approach...${CL}"
+        msg_info "Falling back to dd copy approach..."
         log "FALLBACK_DD"
         return 1  # Signal caller to fall through to dd approach
       else
@@ -958,7 +962,7 @@ resize_zfs_subvol() {
       return 0
     fi
   else
-    echo -e "${RD}${TAB}✘${CL} ${RD}Could not read disk size${CL}"
+    msg_error "Could not read disk size"
     log "VERIFY_FAIL size_unknown"
     return 1
   fi
@@ -981,41 +985,41 @@ resize_via_dd() {
   local current_size=$6
   local old_vol="${storage}:${vol_name}"
 
-  echo -e "${BL}[Info]${GN} Using dd copy approach${CL}"
+  msg_info "Using dd copy approach"
   log "MODE=dd old_vol=$old_vol"
 
   # Step 1: Create the new smaller volume
-  echo -e "${BL}[Info]${GN} Step 1/7: Creating new volume...${CL}"
+  msg_info "Step 1/7: Creating new volume..."
   log "STEP1_CREATE_VOL ctid=$ctid disk=$disk_key size=$target_size"
   local new_vol
   new_vol=$(create_new_volume "$ctid" "$disk_key" "$target_size")
   if [[ -z "$new_vol" ]]; then
-    echo -e "${RD}Error: Failed to create new volume${CL}"
+    msg_error "Error: Failed to create new volume"
     log "ERROR create_new_volume failed"
     return 1
   fi
-  echo -e "${GN}${TAB}✔${CL} ${GN}New volume created: ${new_vol}${CL}"
+  msg_ok "New volume created: ${new_vol}"
   log "STEP1_OK new_vol=$new_vol"
 
   # Step 2: Stop the container
-  echo -e "${BL}[Info]${GN} Step 2/7: Stopping container...${CL}"
+  msg_info "Step 2/7: Stopping container..."
   log "STEP2_STOPPING ctid=$ctid"
   if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
     pct stop "$ctid" &
     spinner $! "Stopping container"
   fi
-  echo -e "${GN}${TAB}✔${CL} ${GN}Container stopped${CL}"
+  msg_ok "Container stopped"
   log "STEP2_OK"
 
   # Step 3: Copy data from old volume to new volume
-  echo -e "${BL}[Info]${GN} Step 3/7: Copying data...${CL}"
+  msg_info "Step 3/7: Copying data..."
   local source_dev dest_dev
   source_dev=$(get_device_path "$old_vol")
   dest_dev=$(get_device_path "$new_vol")
 
   if [[ -z "$source_dev" || -z "$dest_dev" ]]; then
-    echo -e "${RD}Error: Could not resolve device paths${CL}"
-    echo -e "${RD}Source: ${source_dev:-<none>}, Dest: ${dest_dev:-<none>}${CL}"
+    msg_error "Error: Could not resolve device paths"
+    msg_error "Source: ${source_dev:-<none>}, Dest: ${dest_dev:-<none>}"
     log "ERROR device_path source=$source_dev dest=$dest_dev"
     rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
     return 1
@@ -1029,50 +1033,50 @@ resize_via_dd() {
   log "STEP3_COPY src=$source_dev dst=$dest_dev bytes=$source_bytes"
 
   if ! copy_data "$source_dev" "$dest_dev" "$source_bytes"; then
-    echo -e "${RD}Error: Data copy failed${CL}"
+    msg_error "Error: Data copy failed"
     log "ERROR copy_data failed"
     rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
     return 1
   fi
-  echo -e "${GN}${TAB}✔${CL} ${GN}Data copied${CL}"
+  msg_ok "Data copied"
   log "STEP3_OK"
 
   # Step 4: Verify data integrity via MD5 checksum comparison
-  echo -e "${BL}[Info]${GN} Step 4/7: Verifying checksum...${CL}"
+  msg_info "Step 4/7: Verifying checksum..."
   log "STEP4_CHECKSUM src=$source_dev dst=$dest_dev"
   if ! verify_checksum "$source_dev" "$dest_dev" "$source_bytes"; then
-    echo -e "${RD}Error: Checksum mismatch — data corruption detected${CL}"
+    msg_error "Error: Checksum mismatch — data corruption detected"
     log "ERROR checksum_mismatch"
     rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
     return 1
   fi
-  echo -e "${GN}${TAB}✔${CL} ${GN}Checksum verified${CL}"
+  msg_ok "Checksum verified"
   log "STEP4_OK"
 
   # Step 5: Swap the volume reference in the container config
-  echo -e "${BL}[Info]${GN} Step 5/7: Replacing volume in config...${CL}"
+  msg_info "Step 5/7: Replacing volume in config..."
   log "STEP5_REPLACE ctid=$ctid disk=$disk_key new=$new_vol size=$target_size"
   save_rollback_metadata "$ctid" "$disk_key" "$old_vol" "$new_vol" "$current_size"
   replace_volume_in_config "$ctid" "$disk_key" "$new_vol" "$target_size"
-  echo -e "${GN}${TAB}✔${CL} ${GN}Volume replaced${CL}"
+  msg_ok "Volume replaced"
   log "STEP5_OK"
 
   # Step 6: Start the container
-  echo -e "${BL}[Info]${GN} Step 6/7: Starting container...${CL}"
+  msg_info "Step 6/7: Starting container..."
   log "STEP6_STARTING ctid=$ctid"
   pct start "$ctid" &
   spinner $! "Starting container"
   sleep 3
-  echo -e "${GN}${TAB}✔${CL} ${GN}Container started${CL}"
+  msg_ok "Container started"
   log "STEP6_OK"
 
   # Step 7: Verify the container is healthy and running
-  echo -e "${BL}[Info]${GN} Step 7/7: Verifying container health...${CL}"
+  msg_info "Step 7/7: Verifying container health..."
   if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
-    echo -e "${GN}${TAB}✔${CL} ${GN}Container is running${CL}"
+    msg_ok "Container is running"
     log "STEP7_OK status=running"
   else
-    echo -e "${RD}Warning: Container is not running after start${CL}"
+    msg_error "Warning: Container is not running after start"
     log "STEP7_WARN status=$(pct status "$ctid" 2>/dev/null)"
   fi
 
@@ -1080,7 +1084,7 @@ resize_via_dd() {
 
   # Handle the old volume: auto-rollback, interactive prompt, or keep
   if [[ "${AUTO_ROLLBACK:-0}" -eq 1 ]]; then
-    echo -e "${BL}[Info]${GN} Auto-rollback requested, reverting to original...${CL}"
+    msg_info "Auto-rollback requested, reverting to original..."
     rollback_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
   else
     post_operation "$ctid" "$disk_key" "$old_vol" "$new_vol"
@@ -1102,7 +1106,7 @@ do_resize() {
 
   block_interrupts
   log "START CTID=$ctid DISK_KEY=$disk_key TARGET=$target_size"
-  echo -e "${BL}[Info]${GN} Detecting storage type...${CL}"
+  msg_info "Detecting storage type..."
 
   local storage
   storage=$(get_storage_for_disk "$ctid" "$disk_key")
@@ -1113,19 +1117,19 @@ do_resize() {
   local current_size
   current_size=$(get_size_from_config "$ctid" "$disk_key")
 
-  echo -e "${BL}[Info]${GN} Resizing ${disk_key} on container ${ctid} from ${current_size} to ${target_size}${CL}"
+  msg_info "Resizing ${disk_key} on container ${ctid} from ${current_size} to ${target_size}"
   log "INFO storage_type=$stype current_size=$current_size"
 
   local rc=0
 
   # Try ZFS subvol (refquota) path first for zfspool storage
   if [[ "$stype" == "zfspool" ]]; then
-    echo -e "${BL}[Info]${GN} Probing ZFS dataset...${CL}"
+    msg_info "Probing ZFS dataset..."
     if resize_zfs_subvol "$ctid" "$disk_key" "$target_size" "$storage" "$vol_name" "$current_size"; then
       allow_interrupts
       return 0
     fi
-    echo -e "${BL}[Info]${GN} ZFS zvol or refquota fallback — switching to dd copy${CL}"
+    msg_info "ZFS zvol or refquota fallback — switching to dd copy"
   fi
 
   # Universal dd copy path for LVM, ZFS zvol, and directory storage
