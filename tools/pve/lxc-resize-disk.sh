@@ -7,6 +7,7 @@
 # Supports LVM, LVM-thin, ZFS, and directory-based storage.
 
 set -eEuo pipefail
+export PERL_BADLANG=0
 
 function header_info() {
   clear
@@ -514,7 +515,7 @@ validate_inputs() {
 
   # Validate disk key exists
   local config_line
-  config_line=$(pct config "$ctid" | awk "/^${disk_key}:/ {print}")
+  config_line=$(pct config "$ctid" 2>/dev/null | awk "/^${disk_key}:/ {print}")
   if [[ -z "$config_line" ]]; then
     echo "Error: Disk '$disk_key' not found in container $ctid."
     return 1
@@ -673,8 +674,10 @@ get_target_size() {
       echo "$target_size"
       return 0
     else
+      log "VALIDATION_FAIL size=$target_size error=$validation_error"
+      echo -e "${RD}${TAB}✘ ${validation_error}${CL}" >&2
       whiptail --backtitle "Proxmox VE Helper Scripts" \
-        --title "Error" --msgbox "\n${validation_error}" 10 60
+        --title "Error" --msgbox "\n${validation_error}" 10 60 2>/dev/null || true
     fi
   done
 }
