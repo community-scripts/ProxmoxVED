@@ -1,0 +1,49 @@
+{
+  "name": "LXC Disk Resize",
+  "slug": "lxc-resize-disk",
+  "categories": [
+    1
+  ],
+  "date_created": "2026-08-19",
+  "type": "pve",
+  "updateable": false,
+  "privileged": false,
+  "architectures": ["amd64"],
+  "interface_port": null,
+  "documentation": null,
+  "website": "https://github.com/community-scripts/ProxmoxVED",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/proxmox.webp",
+  "description": "Shrink LXC container disks safely. Supports LVM, LVM-thin, ZFS subvol/zvol, and directory-based storage. Provides interactive whiptail UI and CLI mode for automation. ZFS subvols use refquota, LVM uses dd copy with checksum verification. Includes rollback support and full logging.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "tools/pve/lxc-resize-disk.sh",
+      "config_path": null,
+      "resources": {
+        "cpu": null,
+        "ram": null,
+        "hdd": null,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Must be run as root on the Proxmox VE host. The script stops the target container during the resize operation.",
+      "type": "warning"
+    },
+    {
+      "text": "CLI mode: lxc-resize-disk.sh --ctid <ID> --disk rootfs --size <SIZE> --yes",
+      "type": "info"
+    },
+    {
+      "text": "All operations are logged to /var/log/lxc-resize.log.",
+      "type": "info"
+    }
+  ]
+}
