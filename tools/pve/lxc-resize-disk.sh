@@ -33,6 +33,61 @@ log() {
   echo "$(date '+%Y-%m-%d %H:%M:%S') | $1" >>"$LOGFILE"
 }
 
+spinner() {
+  local pid=$1
+  local msg=${2:-"Working"}
+  local delay=0.1
+  local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+  while ps -p "$pid" >/dev/null 2>&1; do
+    printf "\r%s[Info]%s %s... %s%s" "$BL" "$GN" "$msg" "${spinstr:0:1}" "$CL"
+    spinstr=${spinstr#?}${spinstr%"${spinstr#?}"}
+    sleep "$delay"
+  done
+  printf "\r\033[K"
+}
+
+run_with_spinner() {
+  local msg=$1
+  shift
+  echo -e "${BL}[Info]${GN} ${msg}...${CL}"
+  log "SPINNER $msg"
+  "$@" &
+  local pid=$!
+  spinner "$pid" "$msg"
+  wait "$pid"
+  local rc=$?
+  if [[ $rc -eq 0 ]]; then
+    echo -e "${GN}${TAB}✔${CL} ${GN}${msg} — done${CL}"
+    log "DONE $msg"
+  else
+    echo -e "${RD}${TAB}✘${CL} ${RD}${msg} — failed (exit $rc)${CL}"
+    log "FAIL $msg exit=$rc"
+  fi
+  return $rc
+}
+
+progress_bar() {
+  local label=$1
+  local total=$2
+  local current=0
+  local width=40
+  echo -e "${BL}[Info]${GN} ${label}...${CL}"
+  log "PROGRESS_START $label total=$total"
+  while IFS= read -r line; do
+    local pct
+    pct=$(echo "$line" | grep -oP '\d+(?=%)' || echo "0")
+    if [[ -n "$pct" && "$pct" -gt "$current" ]] 2>/dev/null; then
+      current=$pct
+      local filled=$((current * width / 100))
+      local empty=$((width - filled))
+      printf "\r  [${GN}%${filled}s${CL}%${empty}s${CL}] ${current}%%" | tr ' ' '█' | tr ' ' '░'
+    fi
+  done
+  printf "\r\033[K"
+  echo -e "${GN}${TAB}✔${CL} ${GN}${label} — done${CL}"
+  log "PROGRESS_DONE $label"
+}
+
 # --- Size helpers ---
 
 parse_size_to_bytes() {
@@ -567,27 +622,44 @@ get_target_size() {
     default_size=1
   fi
 
+
   while true; do
-    local target_size
-    local hint=""
+    local size_hint unit_hint
     if ((used_bytes > 0)); then
-      hint="Must be > $(bytes_to_human "$used_bytes") and < $(bytes_to_human "$max_bytes")"
+      size_hint="Current: $(bytes_to_human "$max_bytes") | Used: $(bytes_to_human "$used_bytes")"
+      unit_hint="Must be > $(bytes_to_human "$used_bytes") and < $(bytes_to_human "$max_bytes")"
     else
-      hint="Must be < $(bytes_to_human "$max_bytes")"
+      size_hint="Current: $(bytes_to_human "$max_bytes")"
+      unit_hint="Must be < $(bytes_to_human "$max_bytes")"
     fi
-    target_size=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "Target Size" \
-      --inputbox "\nEnter target size (current: $(bytes_to_human "$max_bytes"), used: $(bytes_to_human "$used_bytes")):\n${hint}" \
+
+    # Step 1: Enter numeric value
+    local target_num
+    target_num=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "Target Size — Step 1 of 2" \
+      --inputbox "\n${size_hint}\n${unit_hint}\n\nEnter target size (number only):" \
       12 60 "$default_size" 3>&1 1>&2 2>&3) || exit 0
 
-    if [[ -z "$target_size" ]]; then
+    if [[ -z "$target_num" ]] || ! [[ "$target_num" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+      whiptail --title "Invalid" --msgbox "Please enter a valid number." 8 40
       continue
     fi
 
-    # Normalize: add G suffix if bare number
-    if [[ "$target_size" =~ ^[0-9]+$ ]]; then
-      target_size="${target_size}G"
-    fi
+    # Step 2: Select unit
+    local target_unit
+    target_unit=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "Target Size — Step 2 of 2" \
+      --radiolist "\nSelect unit for ${target_num}:" \
+      15 50 4 \
+      "GB" "Gigabytes" "ON" \
+      "MB" "Megabytes" "OFF" \
+      "TB" "Terabytes" "OFF" \
+      "KB" "Kilobytes" "OFF" \
+      3>&1 1>&2 2>&3) || exit 0
+
+    [[ -z "$target_unit" ]] && continue
+
+    local target_size="${target_num}${target_unit}"
 
     if validate_inputs "$ctid" "$disk_key" "$target_size" >/dev/null 2>&1; then
       echo "$target_size"
@@ -656,7 +728,8 @@ do_resize() {
 
     if [[ "$ds_type" == "filesystem" ]]; then
       # ZFS subvol: shrink via refquota
-      echo -e "${BL}[Info]${GN} ZFS subvol detected — shrinking via refquota${CL}"
+      echo -e "${BL}[Info]${GN} ZFS subvol — shrinking via refquota${CL}"
+      log "MODE=refquota zfs_ds=$zfs_ds"
 
       # Validate: used must fit in new quota
       local used_bytes target_bytes
@@ -672,23 +745,28 @@ do_resize() {
 
       # Step 1: Stop container
       echo -e "${BL}[Info]${GN} Step 1/3: Stopping container...${CL}"
+      log "STEP1_STOPPING ctid=$ctid"
       if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
-        pct stop "$ctid"
-        sleep 3
+        pct stop "$ctid" &
+        spinner $! "Stopping container"
       fi
       echo -e "${GN}${TAB}✔${CL} ${GN}Container stopped${CL}"
       log "STEP1_OK"
 
       # Step 2: Set new refquota
       echo -e "${BL}[Info]${GN} Step 2/3: Setting refquota to ${target_size}...${CL}"
-      zfs set refquota="${target_size}" "$zfs_ds"
+      log "STEP2_REFQUOTA ds=$zfs_ds size=$target_size"
+      zfs set refquota="${target_size}" "$zfs_ds" &
+      spinner $! "Setting refquota"
       echo -e "${GN}${TAB}✔${CL} ${GN}refquota updated${CL}"
       log "STEP2_OK refquota=$target_size"
 
       # Step 3: Start container
       echo -e "${BL}[Info]${GN} Step 3/3: Starting container...${CL}"
-      pct start "$ctid"
-      sleep 5
+      log "STEP3_STARTING ctid=$ctid"
+      pct start "$ctid" &
+      spinner $! "Starting container"
+      sleep 3
       echo -e "${GN}${TAB}✔${CL} ${GN}Container started${CL}"
       log "STEP3_OK"
 
@@ -704,6 +782,7 @@ do_resize() {
 
   # Step 1: Create new volume
   echo -e "${BL}[Info]${GN} Step 1/7: Creating new volume...${CL}"
+  log "STEP1_CREATE_VOL ctid=$ctid disk=$disk_key size=$target_size"
   local new_vol
   new_vol=$(create_new_volume "$ctid" "$disk_key" "$target_size")
   if [[ -z "$new_vol" ]]; then
@@ -716,9 +795,10 @@ do_resize() {
 
   # Step 2: Stop container
   echo -e "${BL}[Info]${GN} Step 2/7: Stopping container...${CL}"
+  log "STEP2_STOPPING ctid=$ctid"
   if [[ "$(pct status "$ctid" 2>/dev/null)" == "status: running" ]]; then
-    pct stop "$ctid"
-    sleep 3
+    pct stop "$ctid" &
+    spinner $! "Stopping container"
   fi
   echo -e "${GN}${TAB}✔${CL} ${GN}Container stopped${CL}"
   log "STEP2_OK"
@@ -742,6 +822,7 @@ do_resize() {
 
   echo -e "${TAB}Source: ${source_dev} ($(bytes_to_human "$source_bytes"))"
   echo -e "${TAB}Dest:   ${dest_dev} (${target_size})"
+  log "STEP3_COPY src=$source_dev dst=$dest_dev bytes=$source_bytes"
 
   if ! copy_data "$source_dev" "$dest_dev" "$source_bytes"; then
     echo -e "${RD}Error: Data copy failed${CL}"
@@ -754,6 +835,7 @@ do_resize() {
 
   # Step 4: Verify checksum
   echo -e "${BL}[Info]${GN} Step 4/7: Verifying checksum...${CL}"
+  log "STEP4_CHECKSUM src=$source_dev dst=$dest_dev"
   if ! verify_checksum "$source_dev" "$dest_dev" "$source_bytes"; then
     echo -e "${RD}Error: Checksum mismatch — data corruption detected${CL}"
     log "ERROR checksum_mismatch"
@@ -765,6 +847,7 @@ do_resize() {
 
   # Step 5: Replace volume in config
   echo -e "${BL}[Info]${GN} Step 5/7: Replacing volume in config...${CL}"
+  log "STEP5_REPLACE ctid=$ctid disk=$disk_key new=$new_vol size=$target_size"
   save_rollback_metadata "$ctid" "$disk_key" "$old_vol" "$new_vol" "$current_size"
   replace_volume_in_config "$ctid" "$disk_key" "$new_vol" "$target_size"
   echo -e "${GN}${TAB}✔${CL} ${GN}Volume replaced${CL}"
@@ -772,8 +855,10 @@ do_resize() {
 
   # Step 6: Start container
   echo -e "${BL}[Info]${GN} Step 6/7: Starting container...${CL}"
-  pct start "$ctid"
-  sleep 5
+  log "STEP6_STARTING ctid=$ctid"
+  pct start "$ctid" &
+  spinner $! "Starting container"
+  sleep 3
   echo -e "${GN}${TAB}✔${CL} ${GN}Container started${CL}"
   log "STEP6_OK"
 
