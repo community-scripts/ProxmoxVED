@@ -571,7 +571,7 @@ select_container() {
     cstatus=$(echo "$line" | awk '{print $3}')
     cos=$(echo "$line" | awk '{print $4}')
     local desc
-    desc=$(printf "%-8s %-20s %-10s %-15s" "$cid" "$cname" "$cstatus" "$cos")
+    desc=$(printf "%-20s %-10s %-15s" "$cname" "$cstatus" "$cos")
     menu_items+=("$cid" "$desc" "OFF")
   done
 
