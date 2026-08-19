@@ -489,7 +489,7 @@ validate_inputs() {
 
   # Validate container exists
   if ! pct status "$ctid" >/dev/null 2>&1; then
-    echo -e "${RD}Error: Container $ctid does not exist${CL}"
+    echo "Error: Container $ctid does not exist."
     return 1
   fi
 
@@ -497,13 +497,13 @@ validate_inputs() {
   local config_line
   config_line=$(pct config "$ctid" | awk "/^${disk_key}:/ {print}")
   if [[ -z "$config_line" ]]; then
-    echo -e "${RD}Error: Disk '$disk_key' not found in container $ctid${CL}"
+    echo "Error: Disk '$disk_key' not found in container $ctid."
     return 1
   fi
 
   # Validate target size format
-  if ! [[ "$target_size" =~ ^[0-9]+[KMGTPkmgtp]?$ ]]; then
-    echo -e "${RD}Error: Invalid size format '$target_size' (use e.g. 8G, 500M, 16)${CL}"
+  if ! [[ "$target_size" =~ ^[0-9]+(\.[0-9]+)?[KMGTPkmgtp]?$ ]]; then
+    echo "Error: Invalid size format '$target_size'. Use e.g. 3G, 500M, 1500MB, or a bare number for GB."
     return 1
   fi
 
@@ -514,19 +514,19 @@ validate_inputs() {
   new_bytes=$(parse_size_to_bytes "$target_size")
 
   if ((new_bytes == 0)); then
-    echo -e "${RD}Error: Target size resolves to 0 bytes${CL}"
+    echo "Error: Target size resolves to 0 bytes."
     return 1
   fi
 
   # Target must be strictly less than current max (we are shrinking)
   if ((new_bytes >= max_bytes)) && ((max_bytes > 0)); then
-    echo -e "${RD}Error: Target size $(bytes_to_human "$new_bytes") must be less than current size $(bytes_to_human "$max_bytes")${CL}"
+    echo "Error: Target size ($(bytes_to_human "$new_bytes")) must be less than current size ($(bytes_to_human "$max_bytes"))."
     return 1
   fi
 
   # Target must be strictly greater than used space
   if ((new_bytes <= used_bytes)) && ((used_bytes > 0)); then
-    echo -e "${RD}Error: Target size $(bytes_to_human "$new_bytes") must be greater than used space $(bytes_to_human "$used_bytes")${CL}"
+    echo "Error: Target size ($(bytes_to_human "$new_bytes")) must be greater than used space ($(bytes_to_human "$used_bytes"))."
     return 1
   fi
 
@@ -555,6 +555,7 @@ select_container() {
     menu_items+=("$cid" "$desc" "OFF")
   done
 
+  echo -e "${BL}[Info]${GN} Loading containers...${CL}"
   local selected
   selected=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
     --title "Select Container" \
@@ -574,6 +575,7 @@ select_disk() {
     exit 1
   fi
 
+  echo -e "${BL}[Info]${GN} Loading disks...${CL}"
   local menu_items=()
   while IFS= read -r line; do
     local key
@@ -622,6 +624,7 @@ get_target_size() {
     default_size=1
   fi
 
+  echo -e "${BL}[Info]${GN} Calculating disk usage...${CL}"
   local hint=""
   if ((used_bytes > 0)); then
     hint="Current: $(bytes_to_human "$max_bytes") | Used: $(bytes_to_human "$used_bytes")\nMust be > $(bytes_to_human "$used_bytes") and < $(bytes_to_human "$max_bytes")"
@@ -646,11 +649,13 @@ get_target_size() {
       target_size="${target_size}G"
     fi
 
-    if validate_inputs "$ctid" "$disk_key" "$target_size" >/dev/null 2>&1; then
+    local validation_error
+    if validation_error=$(validate_inputs "$ctid" "$disk_key" "$target_size" 2>&1); then
       echo "$target_size"
       return 0
     else
-      whiptail --title "Invalid Size" --msgbox "$(validate_inputs "$ctid" "$disk_key" "$target_size" 2>&1)" 10 60
+      whiptail --backtitle "Proxmox VE Helper Scripts" \
+        --title "Error" --msgbox "\n${validation_error}" 10 60
     fi
   done
 }
@@ -690,6 +695,7 @@ do_resize() {
   local target_size=$3
 
   log "START CTID=$ctid DISK_KEY=$disk_key TARGET=$target_size"
+  echo -e "${BL}[Info]${GN} Detecting storage type...${CL}"
 
   local storage
   storage=$(get_storage_for_disk "$ctid" "$disk_key")
@@ -706,7 +712,7 @@ do_resize() {
 
   # --- ZFS subvol: use refquota (no dd copy needed) ---
   if [[ "$stype" == "zfspool" ]]; then
-    # Check if it's a subvol (filesystem) or zvol
+    echo -e "${BL}[Info]${GN} Probing ZFS dataset...${CL}"
     local zfs_ds ds_type
     zfs_ds=$(get_zfs_dataset "$storage" "$vol_name")
     ds_type=$(zfs get -H -o value type "$zfs_ds" 2>/dev/null || echo "")
