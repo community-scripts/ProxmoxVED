@@ -40,11 +40,12 @@ parse_size_to_bytes() {
   local num="${size%%[KMGTPkmgtp]*}"
   local unit="${size##*[0-9]}"
   unit="${unit^^}"
+  # Use awk for floating point support (e.g. 2.4G)
   case "$unit" in
-    T) echo "$((num * 1024 * 1024 * 1024 * 1024))" ;;
-    G) echo "$((num * 1024 * 1024 * 1024))" ;;
-    M) echo "$((num * 1024 * 1024))" ;;
-    K) echo "$((num * 1024))" ;;
+    T) awk "BEGIN { printf \"%.0f\", $num * 1024 * 1024 * 1024 * 1024 }" ;;
+    G) awk "BEGIN { printf \"%.0f\", $num * 1024 * 1024 * 1024 }" ;;
+    M) awk "BEGIN { printf \"%.0f\", $num * 1024 * 1024 }" ;;
+    K) awk "BEGIN { printf \"%.0f\", $num * 1024 }" ;;
     B|"") echo "$num" ;;
     *) echo "0" ;;
   esac
@@ -130,51 +131,15 @@ get_size_from_config() {
 get_used_bytes() {
   local ctid=$1
   local disk_key=$2
-  local storage
-  storage=$(get_storage_for_disk "$ctid" "$disk_key")
-  local storage_type
-  storage_type=$(get_storage_type "$storage")
-  local vol_name
-  vol_name=$(get_lv_name "$ctid" "$disk_key")
-
-  case $storage_type in
-    lvmthin)
-      local data_pct
-      data_pct=$(lvs --noheadings -o data_percent 2>/dev/null | awk -v lv="$vol_name" '$1 == lv {gsub(/%/, "", $2); print $2}')
-      if [[ -n "$data_pct" ]]; then
-        local total_bytes
-        total_bytes=$(lvs --noheadings -o lv_size --units b 2>/dev/null | awk -v lv="$vol_name" '$1 == lv {gsub(/[^0-9]/, "", $2); print $2}')
-        echo "$((total_bytes * ${data_pct%.*} / 100))"
-      else
-        echo "0"
-      fi
-      ;;
-    lvm)
-      lvs --noheadings -o lv_size --units b 2>/dev/null | awk -v lv="$vol_name" '$1 == lv {gsub(/[^0-9]/, "", $2); print $2}'
-      ;;
-    zfs)
-      local zfs_used zfs_ds
-      zfs_ds=$(get_zfs_dataset "$storage" "$vol_name")
-      zfs_used=$(zfs list -o used -H "$zfs_ds" 2>/dev/null || echo "")
-      if [[ -n "$zfs_used" ]]; then
-        parse_size_to_bytes "$zfs_used"
-      else
-        echo "0"
-      fi
-      ;;
-    dir|nfs|cifs)
-      local vol_path
-      vol_path=$(get_volume_path "${storage}:${vol_name}")
-      if [[ -n "$vol_path" && -f "$vol_path" ]]; then
-        stat -c %s "$vol_path" 2>/dev/null || echo "0"
-      else
-        echo "0"
-      fi
-      ;;
-    *)
-      echo "0"
-      ;;
-  esac
+  # pct df gives: MP Volume Size Used Avail Use% Path
+  # rootfs local-zfs:subvol-108-disk-0 10.0G 2.4G 7.6G 23.9 /
+  local used
+  used=$(pct df "$ctid" 2>/dev/null | awk -v dk="$disk_key" '$1 == dk {print $4}')
+  if [[ -n "$used" ]]; then
+    parse_size_to_bytes "$used"
+  else
+    echo "0"
+  fi
 }
 
 get_max_bytes() {
@@ -604,9 +569,15 @@ get_target_size() {
 
   while true; do
     local target_size
+    local hint=""
+    if ((used_bytes > 0)); then
+      hint="Must be > $(bytes_to_human "$used_bytes") and < $(bytes_to_human "$max_bytes")"
+    else
+      hint="Must be < $(bytes_to_human "$max_bytes")"
+    fi
     target_size=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
       --title "Target Size" \
-      --inputbox "\nEnter target size (current: $(bytes_to_human "$max_bytes"), used: $(bytes_to_human "$used_bytes")):\nMust be > $(bytes_to_human "$used_bytes") and < $(bytes_to_human "$max_bytes")" \
+      --inputbox "\nEnter target size (current: $(bytes_to_human "$max_bytes"), used: $(bytes_to_human "$used_bytes")):\n${hint}" \
       12 60 "$default_size" 3>&1 1>&2 2>&3) || exit 0
 
     if [[ -z "$target_size" ]]; then
