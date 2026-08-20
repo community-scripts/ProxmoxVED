@@ -38,9 +38,9 @@
       "name": "var_backend",
       "label": "Build Variant",
       "type": "select",
-      "options": ["auto", "cpu", "vulkan", "rocm"],
+      "options": ["auto", "cpu", "vulkan"],
       "default": "auto",
-      "help": "auto takes rocm for an AMD card, vulkan for any other passed-through GPU, cpu otherwise"
+      "help": "auto takes vulkan for any passed-through GPU (AMD via RADV, NVIDIA and Intel too), cpu otherwise. Upstream ships no Linux ROCm or CUDA build."
     },
     {
       "name": "var_model_repo",

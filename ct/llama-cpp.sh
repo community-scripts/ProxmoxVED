@@ -42,11 +42,14 @@ function update_script() {
     msg_ok "Stopped Service"
 
     # Keep the build variant the install picked; the CPU tarball would otherwise
-    # overwrite a Vulkan or ROCm install and quietly end GPU offload.
+    # overwrite a Vulkan install and quietly end GPU offload.
+    #
+    # rocm reads as vulkan: upstream publishes no Linux ROCm build, so anything
+    # recorded as rocm predates that being noticed and would otherwise fail
+    # every update on an asset that does not exist.
     LLAMA_BACKEND="$(cat /opt/llama-cpp_data/.backend 2>/dev/null || echo cpu)"
     case "$LLAMA_BACKEND" in
-    vulkan) LLAMA_ASSET="llama-*-bin-ubuntu-vulkan-$(arch_resolve x64 arm64).tar.gz" ;;
-    rocm) LLAMA_ASSET="llama-*-bin-ubuntu-rocm-*-x64.tar.gz" ;;
+    vulkan | rocm) LLAMA_ASSET="llama-*-bin-ubuntu-vulkan-$(arch_resolve x64 arm64).tar.gz" ;;
     *) LLAMA_ASSET="llama-*-bin-ubuntu-$(arch_resolve x64 arm64).tar.gz" ;;
     esac
 

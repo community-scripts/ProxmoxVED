@@ -23,27 +23,35 @@ var_ctx_size="${var_ctx_size:-4096}"
 var_offload_layers="${var_offload_layers:-}"
 var_api_key="${var_api_key:-}"
 
-# Which prebuilt upstream ships decides what the container can offload to.
-# Upstream has no Linux CUDA build, so Vulkan is the GPU path for NVIDIA too.
+# Which prebuilt upstream ships decides what the container can offload to, and
+# for Linux that list is short: ubuntu-x64, ubuntu-arm64, ubuntu-vulkan-x64,
+# ubuntu-vulkan-arm64, plus the Intel sycl and openvino builds. There is no
+# Linux CUDA build and no Linux ROCm build either -- the only ROCm asset
+# upstream publishes is win-rocm-*-x64.zip. Vulkan is therefore the GPU path for
+# every vendor here, AMD included, and it reaches an AMD card through RADV.
+#
+# Asking for a ubuntu-rocm asset failed the install outright with "No asset
+# matching 'llama--bin-ubuntu-rocm--x64.tar.gz' found" on any host where the
+# engine had set up /dev/kfd.
 if [[ "$var_backend" == "auto" ]]; then
-  if [[ -e /dev/kfd ]]; then
-    var_backend="rocm"
-  elif [[ -e /dev/nvidia0 || -d /dev/dri ]]; then
+  if [[ -e /dev/kfd || -e /dev/nvidia0 || -d /dev/dri ]]; then
     var_backend="vulkan"
   else
     var_backend="cpu"
   fi
 fi
 
-LLAMA_ARCH="$(arch_resolve x64 arm64)"
-if [[ "$LLAMA_ARCH" == "arm64" && "$var_backend" == "rocm" ]]; then
-  msg_warn "No arm64 ROCm build is published - falling back to the CPU build"
-  var_backend="cpu"
+# rocm was a documented value, so keep accepting it rather than failing anyone
+# who pinned it -- but say where they are actually being sent.
+if [[ "$var_backend" == "rocm" ]]; then
+  msg_warn "llama.cpp publishes no Linux ROCm build - using the Vulkan build, which drives an AMD card through RADV"
+  var_backend="vulkan"
 fi
+
+LLAMA_ARCH="$(arch_resolve x64 arm64)"
 
 case "$var_backend" in
 vulkan) LLAMA_ASSET="llama-*-bin-ubuntu-vulkan-${LLAMA_ARCH}.tar.gz" ;;
-rocm) LLAMA_ASSET="llama-*-bin-ubuntu-rocm-*-x64.tar.gz" ;;
 *)
   var_backend="cpu"
   LLAMA_ASSET="llama-*-bin-ubuntu-${LLAMA_ARCH}.tar.gz"
