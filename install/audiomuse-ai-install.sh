@@ -27,13 +27,13 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
 PG_DB_NAME="audiomuse" PG_DB_USER="audiomuse" setup_postgresql_db
-UV_PYTHON="3.11" setup_uv
+UV_PYTHON="3.12" setup_uv
 
 fetch_and_deploy_gh_release "audiomuse-ai" "NeptuneHub/AudioMuse-AI" "tarball"
 
 msg_info "Setting up Python Environment (Patience)"
 cd /opt/audiomuse-ai
-$STD uv venv --seed --python 3.11 /opt/audiomuse-ai/.venv
+$STD uv venv --seed --python 3.12 /opt/audiomuse-ai/.venv
 $STD uv pip install --python /opt/audiomuse-ai/.venv \
   -r /opt/audiomuse-ai/requirements/common.txt \
   -r /opt/audiomuse-ai/requirements/cpu.txt

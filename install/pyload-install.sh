@@ -40,7 +40,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/pyload
 ExecStart=/opt/pyload/.venv/bin/pyload --userdir /opt/pyload_data/userdir --storagedir /opt/pyload_data/downloads
-Restart=on-failure
+Restart=always
 RestartSec=5
 
 [Install]
@@ -55,6 +55,10 @@ for _ in {1..30}; do
   sleep 1
 done
 sed -i 's|^\([[:space:]]*ip host : "IP address"\) = localhost$|\1 = 0.0.0.0|' /opt/pyload_data/userdir/settings/pyload.cfg
+
+# pyLoad rewrites storage_folder from --storagedir on every start; the first start seeded it.
+sed -i 's| --storagedir /opt/pyload_data/downloads||' /etc/systemd/system/pyload.service
+systemctl daemon-reload
 systemctl restart pyload
 msg_ok "Configured Web Interface"
 

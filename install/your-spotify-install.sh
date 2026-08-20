@@ -25,12 +25,17 @@ $STD pnpm --filter @your_spotify/server build
 $STD pnpm --filter @your_spotify/client build
 msg_ok "Built Your Spotify"
 
+var_api_endpoint="${var_api_endpoint:-http://${LOCAL_IP}:8080}"
+var_client_endpoint="${var_client_endpoint:-http://${LOCAL_IP}:3000}"
+var_spotify_public="${var_spotify_public:-CHANGE_ME}"
+var_spotify_secret="${var_spotify_secret:-CHANGE_ME}"
+
 msg_info "Configuring Your Spotify"
 cat <<EOF >/opt/your-spotify.env
-API_ENDPOINT=http://${LOCAL_IP}:8080
-CLIENT_ENDPOINT=http://${LOCAL_IP}:3000
-SPOTIFY_PUBLIC=CHANGE_ME
-SPOTIFY_SECRET=CHANGE_ME
+API_ENDPOINT=${var_api_endpoint}
+CLIENT_ENDPOINT=${var_client_endpoint}
+SPOTIFY_PUBLIC=${var_spotify_public}
+SPOTIFY_SECRET=${var_spotify_secret}
 MONGO_ENDPOINT=mongodb://127.0.0.1:27017/your_spotify
 TIMEZONE=UTC
 LOG_LEVEL=info
@@ -39,8 +44,8 @@ EOF
 chmod 600 /opt/your-spotify.env
 
 cp /opt/your-spotify/apps/client/build/variables-template.js /opt/your-spotify/apps/client/build/variables.js
-sed -i "s;__API_ENDPOINT__;http://${LOCAL_IP}:8080;g" /opt/your-spotify/apps/client/build/variables.js
-sed -i "s#connect-src \(.*\);#connect-src 'self' http://${LOCAL_IP}:8080/;#g" /opt/your-spotify/apps/client/build/index.html
+sed -i "s;__API_ENDPOINT__;${var_api_endpoint};g" /opt/your-spotify/apps/client/build/variables.js
+sed -i "s#connect-src \(.*\);#connect-src 'self' ${var_api_endpoint}/;#g" /opt/your-spotify/apps/client/build/index.html
 msg_ok "Configured Your Spotify"
 
 msg_info "Creating Services"

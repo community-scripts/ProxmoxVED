@@ -40,6 +40,10 @@ function update_script() {
   systemctl stop unsloth
   msg_ok "Stopped Service"
 
+  if [[ -d /dev/dri || -e /dev/nvidia0 || -e /dev/kfd ]]; then
+    ENABLE_GPU="yes" setup_hwaccel
+  fi
+
   msg_info "Updating ${APP} (Patience)"
   curl -fsSL https://unsloth.ai/install.sh -o /tmp/unsloth-install.sh
   export UNSLOTH_STUDIO_HOME=/opt/unsloth

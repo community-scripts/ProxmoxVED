@@ -13,9 +13,6 @@ setting_up_container
 network_check
 update_os
 
-# Settings the caller may supply up front, declared in json/llama-cpp.json as
-# app_vars. Every one of them self-defaults, so passing nothing installs the
-# same CPU build as before on a container without a GPU.
 var_backend="${var_backend:-auto}"
 var_model_repo="${var_model_repo:-ggml-org/gemma-3-1b-it-GGUF}"
 var_port="${var_port:-8080}"
@@ -64,7 +61,6 @@ LLAMA_DEPS=(libgomp1)
 $STD apt install -y "${LLAMA_DEPS[@]}"
 msg_ok "Installed Dependencies"
 
-# Pulls in the userland the vulkan and rocm builds need; a no-op without a GPU.
 setup_hwaccel
 
 fetch_and_deploy_gh_release "llama-cpp" "ggml-org/llama.cpp" "prebuild" "latest" "/opt/llama-cpp" "$LLAMA_ASSET"
@@ -72,8 +68,6 @@ fetch_and_deploy_gh_release "llama-cpp" "ggml-org/llama.cpp" "prebuild" "latest"
 msg_info "Configuring llama.cpp"
 chmod +x /opt/llama-cpp/llama-*
 mkdir -p /opt/llama-cpp_data/models
-# The update path reads this back: a CPU tarball over a Vulkan install would
-# silently drop GPU offload on the next update.
 echo "$var_backend" >/opt/llama-cpp_data/.backend
 if [[ -z "$var_offload_layers" ]]; then
   [[ "$var_backend" == "cpu" ]] && var_offload_layers=0 || var_offload_layers=999
@@ -91,8 +85,7 @@ LLAMA_CACHE=/opt/llama-cpp_data/models
 LLAMA_ARG_CTX_SIZE=${var_ctx_size}
 LLAMA_ARG_N_GPU_LAYERS=${var_offload_layers}
 EOF
-# An empty LLAMA_ARG_API_KEY is not "no key" to llama-server - it demands an
-# empty bearer token from every client - so it is left commented out instead.
+# An empty LLAMA_ARG_API_KEY makes llama-server demand an empty bearer token.
 if [[ -n "$var_api_key" ]]; then
   echo "LLAMA_ARG_API_KEY=${var_api_key}" >>/opt/llama-cpp.env
 else
@@ -101,8 +94,6 @@ fi
 chmod 600 /opt/llama-cpp.env
 msg_ok "Configured llama.cpp (${var_backend} build)"
 
-# A GPU build that cannot see its libraries or its device still starts and then
-# runs on the CPU, so say so here rather than let it look like it worked.
 if [[ "$var_backend" != "cpu" ]]; then
   if LD_LIBRARY_PATH=/opt/llama-cpp ldd /opt/llama-cpp/llama-server 2>/dev/null | grep -q "not found"; then
     msg_warn "The ${var_backend} build is missing shared libraries in this container - it will fall back to the CPU"

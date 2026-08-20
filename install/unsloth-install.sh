@@ -23,6 +23,8 @@ msg_ok "Installed Dependencies"
 UV_PYTHON="3.12" setup_uv
 NODE_VERSION="22" setup_nodejs
 
+setup_hwaccel
+
 msg_info "Setting up Unsloth Studio (Patience)"
 mkdir -p /opt/unsloth_data
 curl -fsSL https://unsloth.ai/install.sh -o /tmp/unsloth-install.sh

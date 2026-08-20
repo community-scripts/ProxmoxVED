@@ -13,8 +13,6 @@ setting_up_container
 network_check
 update_os
 
-# Settings the caller may supply up front, declared in json/vllm.json as app_vars.
-# Every one of them self-defaults, so a run that passes nothing behaves as before.
 var_model="${var_model:-Qwen/Qwen2.5-0.5B-Instruct}"
 var_port="${var_port:-8000}"
 var_dtype="${var_dtype:-auto}"
@@ -50,9 +48,8 @@ VLLM_HOST=0.0.0.0
 VLLM_PORT=${var_port}
 HF_HOME=/opt/vllm/models
 HF_TOKEN=${var_hf_token}
-# Set this and clients have to send it as a bearer token; empty means no auth.
 VLLM_API_KEY=${var_api_key}
-# Appended to 'vllm serve' verbatim, so any other flag can go here too.
+# Appended to 'vllm serve' verbatim.
 VLLM_SERVE_ARGS=${VLLM_SERVE_ARGS}
 EOF
 chmod 600 /opt/vllm/vllm.env
@@ -69,7 +66,6 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=/opt/vllm
 EnvironmentFile=/opt/vllm/vllm.env
-# \$VLLM_SERVE_ARGS without braces on purpose: systemd only word-splits that form.
 ExecStart=/opt/vllm/bin/vllm serve \${VLLM_MODEL} --host \${VLLM_HOST} --port \${VLLM_PORT} \$VLLM_SERVE_ARGS
 Restart=on-failure
 RestartSec=10
