@@ -49,18 +49,19 @@ function update_script() {
     $STD pnpm --filter @your_spotify/client build
     msg_ok "Built Your Spotify"
 
-    msg_info "Restoring Client Configuration"
-    API_ENDPOINT=$(grep '^API_ENDPOINT=' /opt/your-spotify.env | cut -d= -f2-)
-    cp /opt/your-spotify/apps/client/build/variables-template.js /opt/your-spotify/apps/client/build/variables.js
-    sed -i "s;__API_ENDPOINT__;${API_ENDPOINT};g" /opt/your-spotify/apps/client/build/variables.js
-    sed -i "s#connect-src \(.*\);#connect-src 'self' ${API_ENDPOINT}/;#g" /opt/your-spotify/apps/client/build/index.html
-    msg_ok "Restored Client Configuration"
-
-    msg_info "Starting Services"
-    systemctl start your-spotify your-spotify-web
-    msg_ok "Started Services"
-    msg_ok "Updated successfully!"
   fi
+
+  msg_info "Applying Client Configuration"
+  API_ENDPOINT=$(grep '^API_ENDPOINT=' /opt/your-spotify.env | cut -d= -f2-)
+  cp /opt/your-spotify/apps/client/build/variables-template.js /opt/your-spotify/apps/client/build/variables.js
+  sed -i "s;__API_ENDPOINT__;${API_ENDPOINT};g" /opt/your-spotify/apps/client/build/variables.js
+  sed -i "s#connect-src \(.*\);#connect-src 'self' ${API_ENDPOINT}/;#g" /opt/your-spotify/apps/client/build/index.html
+  msg_ok "Applied Client Configuration"
+
+  msg_info "Restarting Services"
+  systemctl restart your-spotify your-spotify-web
+  msg_ok "Restarted Services"
+  msg_ok "Updated successfully!"
   exit
 }
 

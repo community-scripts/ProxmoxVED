@@ -8,7 +8,9 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "architectures": ["amd64"],
+  "architectures": [
+    "amd64"
+  ],
   "interface_port": 8080,
   "documentation": "https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md",
   "website": "https://github.com/ggml-org/llama.cpp",
@@ -38,7 +40,11 @@
       "name": "var_backend",
       "label": "Build Variant",
       "type": "select",
-      "options": ["auto", "cpu", "vulkan"],
+      "options": [
+        "auto",
+        "cpu",
+        "vulkan"
+      ],
       "default": "auto",
       "help": "auto takes vulkan for any passed-through GPU (AMD via RADV, NVIDIA and Intel too), cpu otherwise. Upstream ships no Linux ROCm or CUDA build."
     },
@@ -94,7 +100,7 @@
       "type": "warning"
     },
     {
-      "text": "The build variant is chosen at install time: cpu, vulkan or rocm, or auto to follow the passed-through GPU. Upstream publishes no Linux CUDA build, so an NVIDIA card is served by the vulkan build and needs NVIDIA's Vulkan driver in the container. The choice is remembered in /opt/llama-cpp_data/.backend so updates keep it.",
+      "text": "The build variant is chosen at install time: cpu or vulkan, or auto to follow the passed-through GPU. Upstream publishes no Linux CUDA or ROCm build, so every GPU is served by the vulkan build - AMD through RADV, NVIDIA through the driver's Vulkan ICD, which has to be present in the container. The choice is remembered in /opt/llama-cpp_data/.backend so updates keep it.",
       "type": "info"
     },
     {

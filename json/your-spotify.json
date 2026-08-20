@@ -8,7 +8,9 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "architectures": ["amd64"],
+  "architectures": [
+    "amd64"
+  ],
   "interface_port": 3000,
   "documentation": "https://github.com/Yooooomi/your_spotify#readme",
   "website": "https://github.com/Yooooomi/your_spotify",
@@ -33,13 +35,41 @@
     "username": null,
     "password": null
   },
+  "app_vars": [
+    {
+      "name": "var_spotify_public",
+      "label": "Spotify Client ID",
+      "type": "text",
+      "help": "From your app at developer.spotify.com/dashboard"
+    },
+    {
+      "name": "var_spotify_secret",
+      "label": "Spotify Client Secret",
+      "type": "password",
+      "secret": true
+    },
+    {
+      "name": "var_api_endpoint",
+      "label": "API Endpoint",
+      "type": "text",
+      "default": "",
+      "help": "Public https URL of the API. Empty uses http://<container-ip>:8080, which Spotify rejects for login"
+    },
+    {
+      "name": "var_client_endpoint",
+      "label": "Client Endpoint",
+      "type": "text",
+      "default": "",
+      "help": "Public https URL of the web UI. Empty uses http://<container-ip>:3000"
+    }
+  ],
   "notes": [
     {
       "text": "Spotify only accepts https redirect URIs (loopback excepted), so the Spotify login cannot be completed on the container's plain IP - it fails with 'redirect_uri: Insecure'. A TLS reverse proxy with a real domain is required for normal use.",
       "type": "warning"
     },
     {
-      "text": "Create an app at https://developer.spotify.com/dashboard, put its client ID and secret into SPOTIFY_PUBLIC and SPOTIFY_SECRET in /opt/your-spotify.env, set API_ENDPOINT and CLIENT_ENDPOINT to your https URLs, and register <API_ENDPOINT>/oauth/spotify/callback in the dashboard. The API endpoint is baked into the built frontend, so run the update after changing it.",
+      "text": "Create an app at https://developer.spotify.com/dashboard, put its client ID and secret into SPOTIFY_PUBLIC and SPOTIFY_SECRET in /opt/your-spotify.env, set API_ENDPOINT and CLIENT_ENDPOINT to your https URLs, and register <API_ENDPOINT>/oauth/spotify/callback in the dashboard. The API endpoint is baked into the built frontend; set both endpoints at install time, or change them in /opt/your-spotify.env and run 'update' inside the container, which re-applies them.",
       "type": "warning"
     },
     {

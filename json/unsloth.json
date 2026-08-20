@@ -8,7 +8,9 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "architectures": ["amd64"],
+  "architectures": [
+    "amd64"
+  ],
   "interface_port": 8888,
   "documentation": "https://unsloth.ai/docs/new/studio",
   "website": "https://unsloth.ai/",
@@ -33,6 +35,10 @@
     "password": null
   },
   "notes": [
+    {
+      "text": "The generated web UI password is saved to /root/unsloth.creds inside the container (user: unsloth). Run 'unsloth studio reset-password' to issue a new one.",
+      "type": "info"
+    },
     {
       "text": "Log in as the user 'unsloth'; the generated password is in ~/unsloth.creds inside the container. Rotate it with 'unsloth studio reset-password', which prints a new one and needs no restart.",
       "type": "info"
