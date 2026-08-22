@@ -1,0 +1,52 @@
+{
+  "name": "Dockora",
+  "slug": "dockora",
+  "categories": [3],
+  "date_created": "2026-08-22",
+  "type": "addon",
+  "updateable": true,
+  "privileged": false,
+  "architectures": ["amd64"],
+  "interface_port": 8080,
+  "documentation": "https://github.com/MarcelRuh/dockora",
+  "website": "https://github.com/MarcelRuh/dockora",
+  "repository": "https://github.com/MarcelRuh/dockora",
+  "logo": "https://raw.githubusercontent.com/MarcelRuh/dockora/main/apps/web/public/logo.png",
+  "description": "Self-hosted Docker management suite for Compose stacks, image updates, backups, and Discord notifications. Install as an addon on an existing Docker LXC.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "tools/addon/dockora.sh",
+      "config_path": "/opt/dockora/.env",
+      "resources": {
+        "cpu": null,
+        "ram": null,
+        "hdd": null,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin@dockora.local",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Run this addon inside an existing Docker LXC (Helper Script: Docker). It will not create a new container.",
+      "type": "warning"
+    },
+    {
+      "text": "The UI is published on port 8080 through Dockora's nginx same-origin proxy (SSE/WebSocket).",
+      "type": "info"
+    },
+    {
+      "text": "Login email is admin@dockora.local. The generated password is printed once at install and stored in /opt/dockora/.env.",
+      "type": "info"
+    },
+    {
+      "text": "After install, update with `update_dockora` or by re-running this addon script.",
+      "type": "info"
+    }
+  ]
+}
