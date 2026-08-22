@@ -8,6 +8,15 @@ source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent
 APP="Ubuntu 26.04 VM"
 APP_TYPE="vm"
 NSAPP="ubuntu2604-vm"
+# The Ubuntu 26.04 header is repository-owned and is not available in core.
+# Load it explicitly so streamed execution does not make core's header lookup
+# fail before the script reaches its normal setup flow.
+_ubuntu_header_url="${COMMUNITY_SCRIPTS_REPO_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/vm/headers/ubuntu2604-vm"
+_ubuntu_header_content="$(curl -fsSL "$_ubuntu_header_url" 2>/dev/null || true)"
+header_info() {
+  clear 2>/dev/null || true
+  printf '%s\n' "$_ubuntu_header_content"
+}
 load_functions
 _ubuntu_cloud_init_func="$(dirname "${BASH_SOURCE[0]:-.}")/ubuntu-cloud-init.func"
 if [[ -f "$_ubuntu_cloud_init_func" ]]; then
@@ -20,6 +29,7 @@ if ! declare -f ubuntu_get_valid_nextid >/dev/null 2>&1; then
   exit 1
 fi
 unset _ubuntu_cloud_init_func
+unset _ubuntu_header_url
 
 function get_valid_nextid() {
   ubuntu_get_valid_nextid
