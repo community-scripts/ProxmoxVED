@@ -6,6 +6,17 @@
 
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
 load_functions
+_ubuntu_cloud_init_func="$(dirname "${BASH_SOURCE[0]:-.}")/ubuntu-cloud-init.func"
+if [[ -f "$_ubuntu_cloud_init_func" ]]; then
+  source "$_ubuntu_cloud_init_func"
+else
+  source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/vm/ubuntu-cloud-init.func")
+fi
+unset _ubuntu_cloud_init_func
+
+function get_valid_nextid() {
+  ubuntu_get_valid_nextid
+}
 
 APP="Ubuntu 26.04 VM"
 APP_TYPE="vm"
@@ -41,7 +52,6 @@ check_root
 arch_check
 pve_check
 ssh_check
-vm_prompt_cloud_init "ubuntu"
 
 function default_settings() {
   VMID=$(get_valid_nextid)
@@ -58,6 +68,7 @@ function default_settings() {
   MTU=""
   START_VM="yes"
   METHOD="default"
+  ubuntu_configure_cloud_init_default
 
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$(vm_machine_type_label "$MACHINE_TYPE")${CL}"
@@ -78,7 +89,7 @@ function default_settings() {
 
 function advanced_settings() {
   METHOD="advanced"
-  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
+  ubuntu_configure_cloud_init_advanced || exit_script
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
   vm_prompt_disk_size "${DISK_SIZE:-7G}" "Set Disk Size in GiB (e.g., 10, 20)"
@@ -130,6 +141,8 @@ echo -en "\e[1A\e[0K"
 FILE="$(basename "$URL")"
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
+ubuntu_configure_image_access "$FILE"
+
 msg_info "Creating a Ubuntu 26.04 VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
@@ -145,30 +158,14 @@ set_description
 msg_info "Resizing disk to $DISK_SIZE"
 qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
 
-if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f setup_cloud_init >/dev/null 2>&1; then
-  setup_cloud_init \
-    "$VMID" \
-    "$STORAGE" \
-    "$HN" \
-    "yes" \
-    "${CLOUDINIT_USER:-ubuntu}" \
-    "${CLOUDINIT_NETWORK_MODE:-dhcp}" \
-    "${CLOUDINIT_IP:-}" \
-    "${CLOUDINIT_GW:-}" \
-    "${CLOUDINIT_DNS:-${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}}"
-
-  if [[ "${CLOUDINIT_NETWORK_MODE:-dhcp}" == "static" ]]; then
-    setup_cloud_init_network_no_rename \
-      "$VMID" \
-      "$MAC" \
-      "$CLOUDINIT_IP" \
-      "$CLOUDINIT_GW" \
-      "${CLOUDINIT_DNS:-${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}}" \
-      "${CLOUDINIT_SEARCH_DOMAIN:-local}"
-  fi
+if [ "${CLOUDINIT_ENABLE:-no}" = "yes" ]; then
+  CLOUDINIT_NEEDS_NETWORK_NO_RENAME="yes"
+  ubuntu_setup_cloud_init "$MAC"
 fi
 
 msg_ok "Created a Ubuntu 26.04 VM ${CL}${BL}(${HN})"
+ubuntu_display_cloud_init_info
+ubuntu_cleanup_cloud_init
 if [ "$START_VM" = "yes" ]; then
   msg_info "Starting Ubuntu 26.04 VM"
   qm start $VMID
@@ -177,8 +174,3 @@ fi
 
 post_update_to_api "done" "none"
 msg_ok "Completed successfully!\n"
-if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f display_cloud_init_info >/dev/null 2>&1; then
-  display_cloud_init_info "$VMID" "$HN"
-else
-  echo -e "Cloud-Init is disabled. The VM disk was resized on the Proxmox side only.\nIf the guest does not auto-expand its root filesystem after first boot, expand it manually inside the VM.\n\nMore info at https://github.com/community-scripts/ProxmoxVED/discussions/272 \n"
-fi

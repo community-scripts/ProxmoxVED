@@ -1,0 +1,541 @@
+#!/usr/bin/env bash
+
+# Shared Cloud-Init setup for Ubuntu cloud-image VM scripts.
+
+if ! declare -f setup_cloud_init >/dev/null 2>&1; then
+  _ubuntu_core_dir="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]:-.}")/../../core}"
+  if [[ -f "${_ubuntu_core_dir}/vm/cloud-init.func" ]]; then
+    source "${_ubuntu_core_dir}/vm/cloud-init.func"
+  else
+    source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/vm/cloud-init.func")
+  fi
+  unset _ubuntu_core_dir
+fi
+
+ubuntu_vmid_has_storage_volume() {
+  local vmid="$1"
+  local storage
+
+  while IFS= read -r storage; do
+    [[ -n "$storage" ]] || continue
+    if pvesm list "$storage" 2>/dev/null | awk -v vmid="$vmid" \
+      'NR > 1 && ($1 ~ ("vm-" vmid "-disk-[0-9]+") || $5 == vmid) {found=1} END {exit !found}'; then
+      return 0
+    fi
+  done < <(pvesm status -content images 2>/dev/null | awk 'NR > 1 {print $1}')
+
+  if command -v zfs >/dev/null 2>&1 && zfs list -H -t volume -o name 2>/dev/null | \
+    awk -v vmid="$vmid" '$0 ~ ("/vm-" vmid "-disk-[0-9]+(\\.|$)") {found=1} END {exit !found}'; then
+    return 0
+  fi
+  return 1
+}
+
+ubuntu_get_valid_nextid() {
+  local try_id
+
+  try_id=$(pvesh get /cluster/nextid)
+  while true; do
+    if [[ -f "/etc/pve/qemu-server/${try_id}.conf" ]] ||
+      [[ -f "/etc/pve/lxc/${try_id}.conf" ]] ||
+      lvs --noheadings -o lv_name 2>/dev/null | grep -qE "(^|[-_])${try_id}($|[-_])" ||
+      ubuntu_vmid_has_storage_volume "$try_id"; then
+      try_id=$((try_id + 1))
+      continue
+    fi
+    echo "$try_id"
+    return 0
+  done
+}
+
+ubuntu_configure_storage_layout() {
+  local storage_type="$1"
+  local storage_name="${2:-}"
+
+  if [[ "$storage_name" == "local-zfs" || "$storage_type" == "zfspool" ]]; then
+    DISK_EXT=""
+    DISK_REF=""
+    DISK_IMPORT="-format raw"
+    FORMAT=",efitype=4m"
+    THIN=""
+  elif [[ "$storage_type" == "btrfs" ]]; then
+    DISK_EXT=".raw"
+    DISK_REF="$VMID/"
+    DISK_IMPORT="-format raw"
+    FORMAT=",efitype=4m"
+    THIN=""
+  elif [[ "$storage_type" == "nfs" || "$storage_type" == "dir" || "$storage_type" == "cifs" ]]; then
+    DISK_EXT=".qcow2"
+    DISK_REF="$VMID/"
+    DISK_IMPORT="-format qcow2"
+    THIN=""
+  else
+    DISK_EXT=""
+    DISK_REF=""
+    DISK_IMPORT="-format raw"
+  fi
+}
+
+ubuntu_validate_cloud_init_user() {
+  local user="$1"
+  [[ "$user" =~ ^[a-z_][a-z0-9_-]*$ ]] && [[ "${#user}" -le 32 ]]
+}
+
+ubuntu_extract_ssh_key() {
+  local value="$1"
+  local key
+
+  key=$(printf '%s\n' "$value" | awk '{for (i = 1; i <= NF; i++) if ($i ~ /^(ssh-(rsa|ed25519|dss|ecdsa)|ecdsa-sha2-)/) {print substr($0, index($0, $i)); exit}}')
+  [[ -n "$key" ]] && printf '%s\n' "$key"
+}
+
+ubuntu_validate_ssh_key_file() {
+  local key_file="$1"
+  local line
+  local key
+  local count=0
+
+  command -v ssh-keygen >/dev/null 2>&1 || return 1
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "${line//[[:space:]]/}" || "$line" == \#* ]] && continue
+    key=$(ubuntu_extract_ssh_key "$line")
+    [[ -n "$key" ]] || return 1
+    printf '%s\n' "$key" | ssh-keygen -lf - >/dev/null 2>&1 || return 1
+    count=$((count + 1))
+  done <"$key_file"
+  [[ "$count" -gt 0 ]]
+}
+
+ubuntu_normalize_ssh_key_file() {
+  local key_file="$1"
+  local normalized_file="${key_file}.normalized"
+  local line
+  local key
+
+  : >"$normalized_file"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "${line//[[:space:]]/}" || "$line" == \#* ]] && continue
+    key=$(ubuntu_extract_ssh_key "$line")
+    [[ -n "$key" ]] && printf '%s\n' "$key" >>"$normalized_file"
+  done <"$key_file"
+  mv -f "$normalized_file" "$key_file"
+}
+
+ubuntu_discover_host_ssh_keys() {
+  local discovered_file="${TEMP_DIR:-/tmp}/cloud-init-host-sshkeys"
+  local key_file
+  local line
+  local key
+
+  : >"$discovered_file"
+  for key_file in /root/.ssh/authorized_keys /root/.ssh/authorized_keys2 /root/.ssh/*.pub \
+    /etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*; do
+    [[ -f "$key_file" && -r "$key_file" ]] || continue
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      [[ -z "${line//[[:space:]]/}" || "$line" == \#* ]] && continue
+      key=$(ubuntu_extract_ssh_key "$line")
+      [[ -n "$key" ]] || continue
+      printf '%s\n' "$key" | ssh-keygen -lf - >/dev/null 2>&1 || continue
+      printf '%s\n' "$key" >>"$discovered_file"
+    done <"$key_file"
+  done
+
+  if [[ -s "$discovered_file" ]]; then
+    ubuntu_normalize_ssh_key_file "$discovered_file"
+    printf '%s\n' "$discovered_file"
+    return 0
+  fi
+  rm -f "$discovered_file"
+  return 1
+}
+
+ubuntu_select_host_ssh_keys() {
+  local key_file
+  local line
+  local key
+  local key_type
+  local key_comment
+  local fingerprint
+  local selection
+  local tag
+  local key_index
+  local selected_count=0
+  local selected_file="${TEMP_DIR:-/tmp}/cloud-init-sshkeys"
+  local -a key_files=()
+  local -a keys=()
+  local -a choices=()
+
+  if [[ "$#" -gt 0 ]]; then
+    key_files=("$@")
+  else
+    for key_file in /root/.ssh/authorized_keys /root/.ssh/authorized_keys2 /root/.ssh/*.pub \
+      /etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*; do
+      [[ -f "$key_file" && -r "$key_file" ]] && key_files+=("$key_file")
+    done
+  fi
+
+  for key_file in "${key_files[@]}"; do
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      [[ -z "${line//[[:space:]]/}" || "$line" == \#* ]] && continue
+      key=$(ubuntu_extract_ssh_key "$line")
+      [[ -n "$key" ]] || continue
+      printf '%s\n' "$key" | ssh-keygen -lf - >/dev/null 2>&1 || continue
+      read -r key_type _ key_comment <<<"$key"
+      fingerprint=$(printf '%s\n' "$key" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')
+      keys+=("$key")
+      choices+=("K${#keys[@]}" "[$key_type] ${fingerprint:-unknown} ${key_comment:-} - $(basename -- "$key_file")" "OFF")
+    done <"$key_file"
+  done
+
+  if [[ "${#keys[@]}" -eq 0 ]]; then
+    whiptail --backtitle "Proxmox VE Helper Scripts" --title "NO HOST SSH KEYS" \
+      --msgbox "No valid public SSH keys were found on the Proxmox host." 8 64
+    return 65
+  fi
+
+  selection=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT PROXMOX HOST SSH KEYS" \
+    --checklist "Select the public keys to copy into the VM." 20 110 10 "${choices[@]}" 3>&1 1>&2 2>&3) || return 1
+
+  rm -f "$selected_file"
+  : >"$selected_file"
+  for tag in $selection; do
+    tag="${tag%\"}"
+    tag="${tag#\"}"
+    key_index="${tag#K}"
+    if [[ "$key_index" =~ ^[0-9]+$ ]] && [[ -n "${keys[$((key_index - 1))]:-}" ]]; then
+      printf '%s\n' "${keys[$((key_index - 1))]}" >>"$selected_file"
+      selected_count=$((selected_count + 1))
+    fi
+  done
+
+  if [[ "$selected_count" -eq 0 ]]; then
+    rm -f "$selected_file"
+    CLOUDINIT_SSH_KEYS=""
+    CLOUDINIT_SSH_KEYS_TEMP=""
+    echo -e "${ROOTSSH:-${TAB:-  }[SSH]${TAB:-  }${CL:-}}${BOLD:-}${DGN:-}SSH Keys: ${BGN:-}none selected${CL:-}"
+    return 0
+  fi
+
+  CLOUDINIT_SSH_KEYS="$selected_file"
+  CLOUDINIT_SSH_KEYS_TEMP="$selected_file"
+  chmod 600 "$selected_file"
+  echo -e "${ROOTSSH:-${TAB:-  }[SSH]${TAB:-  }${CL:-}}${BOLD:-}${DGN:-}SSH Keys: ${BGN:-}${selected_count} selected${CL:-}"
+}
+
+ubuntu_configure_ssh_keys() {
+  local key_source
+  local key_value
+  local key_file="${TEMP_DIR:-/tmp}/cloud-init-sshkeys"
+  local candidate
+  local line
+
+  rm -f "$key_file"
+  key_source=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SSH KEY" --menu \
+    "Choose how to configure an SSH public key." 16 76 5 \
+    "host" "Select individual keys from the Proxmox host" \
+    "paste" "Paste an OpenSSH public key" \
+    "url" "Download keys from an HTTPS URL" \
+    "folder" "Read keys from a file, folder, or glob" \
+    "none" "Do not configure an SSH key" 3>&1 1>&2 2>&3) || return 1
+
+  case "$key_source" in
+  host)
+    ubuntu_select_host_ssh_keys
+    return $?
+    ;;
+  paste)
+    key_value=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PASTE SSH PUBLIC KEY" \
+      --inputbox "Paste an OpenSSH public key exactly as provided." 10 76 --cancel-button Exit-Script 3>&1 1>&2 2>&3) || return 1
+    [[ -n "$key_value" ]] || return 0
+    printf '%s\n' "$key_value" >"$key_file"
+    ;;
+  url)
+    key_value=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SSH KEY URL" \
+      --inputbox "Enter an HTTPS URL returning one or more OpenSSH public keys." 10 76 --cancel-button Exit-Script 3>&1 1>&2 2>&3) || return 1
+    [[ "$key_value" =~ ^https://[^/[:space:]]+(/[^[:space:]]*)?$ ]] || {
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID URL" \
+        --msgbox "Only HTTPS URLs are supported for SSH key downloads." 8 58
+      return 65
+    }
+    curl -f#L --proto '=https' --proto-redir '=https' --max-time 30 --max-filesize 1048576 \
+      --retry 2 -o "$key_file" "$key_value" || {
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "SSH KEY DOWNLOAD FAILED" \
+        --msgbox "Unable to download SSH keys from:\n\n$key_value" 10 70
+      return 65
+    }
+    ;;
+  folder)
+    key_value=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SSH KEY FILE" \
+      --inputbox "Enter a key file, folder, or glob (e.g. /root/.ssh/*.pub)." 10 72 --cancel-button Exit-Script 3>&1 1>&2 2>&3) || return 1
+    local -a key_files=()
+    shopt -s nullglob
+    if [[ -d "$key_value" ]]; then
+      key_files=("$key_value"/*.pub "$key_value"/authorized_keys "$key_value"/authorized_keys2)
+    else
+      key_files=($key_value)
+    fi
+    shopt -u nullglob
+    for candidate in "${key_files[@]}"; do
+      [[ -f "$candidate" ]] || continue
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        printf '%s\n' "$line" >>"$key_file"
+      done <"$candidate"
+    done
+    ;;
+  none)
+    return 0
+    ;;
+  esac
+
+  if ! ubuntu_validate_ssh_key_file "$key_file"; then
+    whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID SSH KEY" \
+      --msgbox "The input did not contain valid OpenSSH public keys." 8 70
+    rm -f "$key_file"
+    return 65
+  fi
+  ubuntu_normalize_ssh_key_file "$key_file"
+  CLOUDINIT_SSH_KEYS="$key_file"
+  CLOUDINIT_SSH_KEYS_TEMP="$key_file"
+  chmod 600 "$key_file"
+  echo -e "${ROOTSSH:-${TAB:-  }[SSH]${TAB:-  }${CL:-}}${BOLD:-}${DGN:-}SSH Keys: ${BGN:-}configured${CL:-}"
+}
+
+ubuntu_configure_cloud_init_credentials() {
+  local password_confirm
+  local key_status
+
+  CLOUDINIT_SSH_KEYS_TEMP=""
+  while true; do
+    CLOUDINIT_PASSWORD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --passwordbox \
+      "Set a password for ${CLOUDINIT_USER}. Leave blank for console-only access." \
+      10 70 --title "CLOUD-INIT PASSWORD" --cancel-button Exit-Script 3>&1 1>&2 2>&3) || return 1
+    if [[ -n "$CLOUDINIT_PASSWORD" ]]; then
+      password_confirm=$(whiptail --backtitle "Proxmox VE Helper Scripts" --passwordbox \
+        "Confirm the Cloud-Init password." 8 70 --title "CONFIRM PASSWORD" --cancel-button Exit-Script 3>&1 1>&2 2>&3) || return 1
+      [[ "$CLOUDINIT_PASSWORD" == "$password_confirm" ]] || {
+        whiptail --backtitle "Proxmox VE Helper Scripts" --title "PASSWORD MISMATCH" \
+          --msgbox "The passwords do not match. Please try again." 8 58
+        continue
+      }
+    fi
+
+    CLOUDINIT_SSH_KEYS=""
+    key_status=0
+    ubuntu_configure_ssh_keys || key_status=$?
+    [[ "$key_status" -eq 65 ]] && continue
+    [[ "$key_status" -eq 0 ]] || return "$key_status"
+    break
+  done
+
+  if [[ -n "${CLOUDINIT_SSH_KEYS:-}" ]]; then
+    CLOUDINIT_SSH_PWAUTH="no"
+    CLOUDINIT_ACCESS_MODE="ssh-key"
+  elif [[ -n "$CLOUDINIT_PASSWORD" ]]; then
+    CLOUDINIT_SSH_PWAUTH="yes"
+    CLOUDINIT_ACCESS_MODE="password"
+  else
+    CLOUDINIT_SSH_PWAUTH="no"
+    CLOUDINIT_ACCESS_MODE="console"
+  fi
+  export CLOUDINIT_PASSWORD CLOUDINIT_SSH_PWAUTH CLOUDINIT_ACCESS_MODE
+}
+
+ubuntu_configure_cloud_init_default() {
+  CLOUDINIT_ENABLE="yes"
+  USE_CLOUD_INIT="yes"
+  CLOUDINIT_USER="ubuntu"
+  CLOUDINIT_NETWORK_MODE="dhcp"
+  CLOUDINIT_IP=""
+  CLOUDINIT_GW=""
+  CLOUDINIT_DNS=""
+  CLOUDINIT_PASSWORD=""
+  CLOUDINIT_SSH_KEYS_TEMP=""
+
+  if ubuntu_discover_host_ssh_keys >/dev/null; then
+    CLOUDINIT_SSH_KEYS="${TEMP_DIR:-/tmp}/cloud-init-host-sshkeys"
+    CLOUDINIT_SSH_KEYS_TEMP="$CLOUDINIT_SSH_KEYS"
+    CLOUDINIT_SSH_PWAUTH="no"
+    CLOUDINIT_ACCESS_MODE="ssh-key"
+    echo -e "${ROOTSSH:-${TAB:-  }[SSH]${TAB:-  }${CL:-}}${BOLD:-}${DGN:-}SSH Keys: ${BGN:-}host keys selected${CL:-}"
+  else
+    CLOUDINIT_SSH_KEYS=""
+    CLOUDINIT_SSH_PWAUTH="no"
+    CLOUDINIT_ACCESS_MODE="console"
+    echo -e "${ROOTSSH:-${TAB:-  }[SSH]${TAB:-  }${CL:-}}${BOLD:-}${DGN:-}SSH Keys: ${BGN:-}none found; console-only access${CL:-}"
+  fi
+  export CLOUDINIT_ENABLE USE_CLOUD_INIT CLOUDINIT_USER CLOUDINIT_NETWORK_MODE CLOUDINIT_IP \
+    CLOUDINIT_GW CLOUDINIT_DNS CLOUDINIT_PASSWORD CLOUDINIT_SSH_PWAUTH CLOUDINIT_ACCESS_MODE
+}
+
+ubuntu_configure_cloud_init_advanced() {
+  if ! whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT" \
+    --yesno "Configure the VM with Cloud-Init?" 10 58; then
+    CLOUDINIT_ENABLE="no"
+    USE_CLOUD_INIT="no"
+    CLOUDINIT_ACCESS_MODE="console"
+    export CLOUDINIT_ENABLE USE_CLOUD_INIT CLOUDINIT_ACCESS_MODE
+    echo -e "${CLOUD:-${TAB:-  }[Cloud-Init]${TAB:-  }${CL:-}}${BOLD:-}${DGN:-}Cloud-Init: ${BGN:-}no${CL:-}"
+    return 0
+  fi
+
+  CLOUDINIT_ENABLE="yes"
+  USE_CLOUD_INIT="yes"
+  echo -e "${CLOUD:-${TAB:-  }[Cloud-Init]${TAB:-  }${CL:-}}${BOLD:-}${DGN:-}Cloud-Init: ${BGN:-}yes${CL:-}"
+  while true; do
+    CLOUDINIT_USER=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT USER" \
+      --inputbox "Set the Cloud-Init login username." 10 70 "ubuntu" --cancel-button Exit-Script 3>&1 1>&2 2>&3) || return 1
+    CLOUDINIT_USER="${CLOUDINIT_USER:-ubuntu}"
+    ubuntu_validate_cloud_init_user "$CLOUDINIT_USER" && break
+    whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID USERNAME" \
+      --msgbox "Use 1-32 lowercase letters, numbers, underscores, or hyphens." 10 70
+  done
+
+  if whiptail --backtitle "Proxmox VE Helper Scripts" --title "NETWORK MODE" \
+    --yesno "Use DHCP for network configuration?" 10 58; then
+    CLOUDINIT_NETWORK_MODE="dhcp"
+    CLOUDINIT_IP=""
+    CLOUDINIT_GW=""
+    CLOUDINIT_DNS=""
+  else
+    CLOUDINIT_NETWORK_MODE="static"
+    while true; do
+      CLOUDINIT_IP=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "IP ADDRESS" \
+        --inputbox "Static IP Address (CIDR format), e.g. 192.168.1.100/24" 9 70 "" --cancel-button Exit-Script 3>&1 1>&2 2>&3) || return 1
+      validate_ip_cidr "$CLOUDINIT_IP" && break
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID IP" --msgbox "Please use CIDR format: x.x.x.x/xx" 8 58
+    done
+    while true; do
+      CLOUDINIT_GW=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "GATEWAY" \
+        --inputbox "Gateway IP Address, e.g. 192.168.1.1" 8 70 "" --cancel-button Exit-Script 3>&1 1>&2 2>&3) || return 1
+      validate_ip "$CLOUDINIT_GW" && break
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID GATEWAY" --msgbox "Please use format: x.x.x.x" 8 58
+    done
+    CLOUDINIT_DNS=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DNS SERVERS" \
+      --inputbox "DNS Servers (space-separated)" 8 70 "1.1.1.1 8.8.8.8" --cancel-button Exit-Script 3>&1 1>&2 2>&3) || return 1
+    CLOUDINIT_DNS="${CLOUDINIT_DNS:-1.1.1.1 8.8.8.8}"
+  fi
+
+  ubuntu_configure_cloud_init_credentials
+}
+
+ubuntu_ensure_virt_customize() {
+  if ! command -v virt-customize >/dev/null 2>&1; then
+    msg_info "Installing libguestfs-tools"
+    ${STD:-} apt update >/dev/null 2>&1
+    ${STD:-} apt install -y libguestfs-tools >/dev/null 2>&1
+    msg_ok "Installed libguestfs-tools"
+  fi
+}
+
+ubuntu_configure_image_access() {
+  local image="$1"
+  ubuntu_ensure_virt_customize
+
+  if [[ "${CLOUDINIT_ACCESS_MODE:-console}" != "console" ]]; then
+    virt-customize -q -a "$image" --run-command \
+      "mkdir -p /etc/cloud/cloud.cfg.d && printf 'ssh_pwauth: ${CLOUDINIT_SSH_PWAUTH:-no}\\n' > /etc/cloud/cloud.cfg.d/99-community-scripts-ssh-pwauth.cfg" \
+      >/dev/null 2>&1
+  else
+    virt-customize -q -a "$image" --run-command 'mkdir -p /etc/cloud/cloud.cfg.d /etc/systemd/system/serial-getty@ttyS0.service.d /etc/systemd/system/getty@tty1.service.d && printf "ssh_pwauth: false\n" > /etc/cloud/cloud.cfg.d/99-community-scripts-ssh-pwauth.cfg && cat > /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf << "EOF"
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
+EOF
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << "EOF"
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
+EOF' >/dev/null 2>&1
+  fi
+}
+
+ubuntu_setup_cloud_init() {
+  local selected_password="${CLOUDINIT_PASSWORD:-}"
+  local mac_address="${1:-}"
+
+  if [[ "${CLOUDINIT_ACCESS_MODE:-}" == "console" ]]; then
+    qm set "$VMID" --ide2 "${STORAGE}:cloudinit" >/dev/null 2>&1 || qm set "$VMID" --scsi1 "${STORAGE}:cloudinit" >/dev/null
+    qm set "$VMID" --ipconfig0 "ip=dhcp" >/dev/null
+    qm set "$VMID" --delete ciuser >/dev/null 2>&1 || true
+    qm set "$VMID" --delete cipassword >/dev/null 2>&1 || true
+    qm set "$VMID" --delete sshkeys >/dev/null 2>&1 || true
+    qm set "$VMID" --delete nameserver >/dev/null 2>&1 || true
+  else
+    setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" "$CLOUDINIT_USER" \
+      "$CLOUDINIT_NETWORK_MODE" "${CLOUDINIT_IP:-}" "${CLOUDINIT_GW:-}" "${CLOUDINIT_DNS:-}"
+    if [[ -n "$selected_password" ]]; then
+      qm set "$VMID" --cipassword "$selected_password" >/dev/null
+    else
+      qm set "$VMID" --delete cipassword >/dev/null 2>&1 || true
+    fi
+    if [[ "${CLOUDINIT_NETWORK_MODE:-dhcp}" == "dhcp" ]]; then
+      qm set "$VMID" --delete nameserver >/dev/null 2>&1 || true
+    elif [[ "${CLOUDINIT_NEEDS_NETWORK_NO_RENAME:-no}" == "yes" && -n "$mac_address" ]] && declare -f setup_cloud_init_network_no_rename >/dev/null 2>&1; then
+      setup_cloud_init_network_no_rename "$VMID" "$mac_address" "$CLOUDINIT_IP" "$CLOUDINIT_GW" "$CLOUDINIT_DNS" "${CLOUDINIT_SEARCH_DOMAIN:-local}"
+    fi
+  fi
+
+  CLOUDINIT_CRED_FILE="/tmp/${HN}-${VMID}-cloud-init-credentials.txt"
+  local network_summary="DHCP"
+  local access_summary="${CLOUDINIT_ACCESS_MODE:-not configured}"
+  local configured_user="${CLOUDINIT_USER:-not configured}"
+  [[ "${CLOUDINIT_NETWORK_MODE:-dhcp}" == "static" ]] && network_summary="static (IP: ${CLOUDINIT_IP}, GW: ${CLOUDINIT_GW})"
+  if [[ "$access_summary" == "console" ]]; then
+    access_summary="Proxmox console root auto-login (SSH disabled)"
+    configured_user="not configured"
+  fi
+  umask 077
+  cat >"$CLOUDINIT_CRED_FILE" <<EOF
+Cloud-Init Access
+=================
+VM ID:    ${VMID}
+Hostname: ${HN}
+Username: ${configured_user}
+Password: ${selected_password:-not configured}
+Access:   ${access_summary}
+Network:  ${network_summary}
+
+SSH Access:
+  $([[ "${CLOUDINIT_ACCESS_MODE:-}" == "console" ]] && echo "unavailable (console-only)" || echo "ssh ${CLOUDINIT_USER}@<vm-ip>")
+
+Delete this file after noting the credentials:
+  rm -f ${CLOUDINIT_CRED_FILE}
+EOF
+  chmod 600 "$CLOUDINIT_CRED_FILE"
+  export CLOUDINIT_CRED_FILE CLOUDINIT_PASSWORD="$selected_password"
+}
+
+ubuntu_cleanup_cloud_init() {
+  [[ -n "${CLOUDINIT_SSH_KEYS_TEMP:-}" ]] && rm -f "$CLOUDINIT_SSH_KEYS_TEMP" 2>/dev/null || true
+  unset CLOUDINIT_SSH_KEYS_TEMP
+}
+
+ubuntu_display_cloud_init_info() {
+  local access_mode="${CLOUDINIT_ACCESS_MODE:-not configured}"
+  local access_summary="$access_mode"
+  case "$access_mode" in
+  ssh-key) access_summary="SSH key authentication" ;;
+  password) access_summary="password authentication" ;;
+  console) access_summary="Proxmox console root auto-login (SSH disabled)" ;;
+  esac
+  if [[ "${CLOUDINIT_ENABLE:-no}" == "yes" ]]; then
+    local configured_user="${CLOUDINIT_USER:-not configured}"
+    [[ "$access_mode" == "console" ]] && configured_user="not configured"
+    echo -e "Cloud-Init configured for user ${configured_user}.\n
+Access: ${access_summary}\n
+Password: ${CLOUDINIT_PASSWORD:-not configured}\n
+SSH key authentication: $([ -n "${CLOUDINIT_SSH_KEYS:-}" ] && echo configured || echo not configured)\n
+Credentials: ${CLOUDINIT_CRED_FILE:-not created}\n"
+  else
+    echo -e "Cloud-Init was not configured.\n
+Console auto-login is enabled for root.\n"
+  fi
+}
+
+export -f ubuntu_vmid_has_storage_volume ubuntu_get_valid_nextid ubuntu_configure_storage_layout \
+  ubuntu_validate_cloud_init_user ubuntu_extract_ssh_key ubuntu_validate_ssh_key_file \
+  ubuntu_normalize_ssh_key_file ubuntu_discover_host_ssh_keys ubuntu_select_host_ssh_keys \
+  ubuntu_configure_ssh_keys ubuntu_configure_cloud_init_credentials \
+  ubuntu_configure_cloud_init_default ubuntu_configure_cloud_init_advanced \
+  ubuntu_ensure_virt_customize ubuntu_configure_image_access ubuntu_setup_cloud_init \
+  ubuntu_cleanup_cloud_init ubuntu_display_cloud_init_info
