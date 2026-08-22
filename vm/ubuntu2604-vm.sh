@@ -96,7 +96,7 @@ function advanced_settings() {
   ubuntu_configure_cloud_init_advanced || exit_script
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
-  vm_prompt_disk_size "${DISK_SIZE:-7G}" "Set Disk Size in GiB (e.g., 10, 20)"
+  vm_prompt_disk_size "${DISK_SIZE:-7G}" "Please provide disk size in GiB (e.g., 10G, 20G)"
   vm_prompt_disk_cache "none"
   vm_prompt_hostname "ubuntu"
   vm_prompt_cpu_model "kvm64"

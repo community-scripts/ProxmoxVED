@@ -326,6 +326,7 @@ function validate_env_settings() {
 
 function advanced_settings() {
   METHOD="advanced"
+  DISK_SIZE="${DISK_SIZE:-8G}"
   ubuntu_configure_cloud_init_advanced || exit-script
   [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
   while true; do
@@ -362,7 +363,8 @@ function advanced_settings() {
     exit-script
   fi
 
-  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Please provide disk size in GiB (e.g., 10G, 20G)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    DISK_SIZE="${DISK_SIZE:-8G}"
     DISK_SIZE=$(echo "$DISK_SIZE" | tr -d ' ')
     if [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
       DISK_SIZE="${DISK_SIZE}G"
