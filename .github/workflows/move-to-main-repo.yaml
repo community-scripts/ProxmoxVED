@@ -238,6 +238,19 @@ jobs:
               sed -i "s|https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
               sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" ct/${script_name}.sh
               sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" install/${script_name}-install.sh
+
+              # A script on the core engine resolves its scripts base at runtime
+              # rather than naming a repo in a URL, so every rewrite above finds
+              # nothing to change in it and it keeps the engine's default --
+              # which is ProxmoxVED. It then looks for its own install/ script in
+              # the repo it has just left and 404s. State the base explicitly:
+              # once a user fetches the ct/ script with curl there is nothing
+              # left for the engine to infer it from.
+              if grep -q "community-scripts/core/main" ct/${script_name}.sh &&
+                 ! grep -q "^_CS_DEFAULT_URL=" ct/${script_name}.sh; then
+                sed -i "1a _CS_DEFAULT_URL=\"https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main\"" ct/${script_name}.sh
+                echo "Set the scripts base to ProxmoxVE in ct/${script_name}.sh"
+              fi
               ;;
             vm)
               cp ../vm/${script_name}.sh vm/
