@@ -137,7 +137,7 @@ vm_define_disk_references 2
 DISK_IMPORT="-format ${DISK_IMPORT_FORMAT}"
 
 msg_info "Retrieving the URL for the Ubuntu 26.04 Disk Image"
-URL="https://cloud-images.ubuntu.com/releases/server/26.04/release/ubuntu-26.04-server-cloudimg-amd64.img"
+URL="https://cloud-images.ubuntu.com/releases/26.04/release/ubuntu-26.04-server-cloudimg-amd64.img"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$(basename "$URL")" "$URL"
