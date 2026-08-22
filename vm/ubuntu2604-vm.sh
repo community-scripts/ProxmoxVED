@@ -8,16 +8,7 @@ source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent
 APP="Ubuntu 26.04 VM"
 APP_TYPE="vm"
 NSAPP="ubuntu2604-vm"
-_ubuntu_header_url="${COMMUNITY_SCRIPTS_REPO_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/vm/headers/ubuntu2604-vm"
-_ubuntu_header_content="$(curl -fsSL "$_ubuntu_header_url" 2>/dev/null || true)"
-header_info() {
-  clear 2>/dev/null || true
-  printf '%s\n' "$_ubuntu_header_content"
-}
 load_functions
-set_description() {
-  qm set "$VMID" -description "Ubuntu 26.04 VM created by Community Scripts" >/dev/null
-}
 _ubuntu_cloud_init_func="$(dirname "${BASH_SOURCE[0]:-.}")/ubuntu-cloud-init.func"
 if [[ -f "$_ubuntu_cloud_init_func" ]]; then
   source "$_ubuntu_cloud_init_func"
@@ -34,7 +25,6 @@ function get_valid_nextid() {
   ubuntu_get_valid_nextid
 }
 
-unset _ubuntu_header_url
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
