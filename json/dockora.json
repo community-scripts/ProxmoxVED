@@ -41,7 +41,7 @@
       "type": "info"
     },
     {
-      "text": "Login email is admin@dockora.local. The generated password is printed once at install and stored in /opt/dockora/.env.",
+      "text": "Login email is admin@dockora.local. The generated password is printed once at install and stored in /opt/dockora/.env and /root/dockora.creds.",
       "type": "info"
     },
     {
