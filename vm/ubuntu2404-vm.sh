@@ -11,7 +11,11 @@ _ubuntu_cloud_init_func="$(dirname "${BASH_SOURCE[0]:-.}")/ubuntu-cloud-init.fun
 if [[ -f "$_ubuntu_cloud_init_func" ]]; then
   source "$_ubuntu_cloud_init_func"
 else
-  source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL}/vm/ubuntu-cloud-init.func")
+  source <(curl -fsSL "${COMMUNITY_SCRIPTS_REPO_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/vm/ubuntu-cloud-init.func")
+fi
+if ! declare -f ubuntu_get_valid_nextid >/dev/null 2>&1; then
+  echo "Unable to load the Ubuntu Cloud-Init helper." >&2
+  exit 1
 fi
 unset _ubuntu_cloud_init_func
 
