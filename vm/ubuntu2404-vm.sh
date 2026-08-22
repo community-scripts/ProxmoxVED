@@ -515,7 +515,7 @@ ubuntu_display_cloud_init_info
 ubuntu_cleanup_cloud_init
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Ubuntu 24.04 VM"
-  qm start $VMID
+  qm start $VMID >/dev/null
   msg_ok "Started Ubuntu 24.04 VM"
 fi
 post_update_to_api "done" "none"

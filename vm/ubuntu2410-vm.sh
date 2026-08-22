@@ -648,7 +648,7 @@ ubuntu_display_cloud_init_info
 ubuntu_cleanup_cloud_init
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting $APP"
-  qm start $VMID
+  qm start $VMID >/dev/null
   msg_ok "Started $APP"
 fi
 post_update_to_api "done" "none"

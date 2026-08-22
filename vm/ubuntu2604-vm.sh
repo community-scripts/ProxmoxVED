@@ -15,6 +15,9 @@ header_info() {
   printf '%s\n' "$_ubuntu_header_content"
 }
 load_functions
+set_description() {
+  qm set "$VMID" -description "Ubuntu 26.04 VM created by Community Scripts" >/dev/null
+}
 _ubuntu_cloud_init_func="$(dirname "${BASH_SOURCE[0]:-.}")/ubuntu-cloud-init.func"
 if [[ -f "$_ubuntu_cloud_init_func" ]]; then
   source "$_ubuntu_cloud_init_func"
@@ -179,7 +182,7 @@ ubuntu_display_cloud_init_info
 ubuntu_cleanup_cloud_init
 if [ "$START_VM" = "yes" ]; then
   msg_info "Starting Ubuntu 26.04 VM"
-  qm start $VMID
+  qm start $VMID >/dev/null
   msg_ok "Started Ubuntu 26.04 VM"
 fi
 
