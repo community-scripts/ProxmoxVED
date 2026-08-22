@@ -32,21 +32,21 @@
       "label": "Provider CLIs",
       "type": "text",
       "default": "",
-      "help": "Optional comma-separated values: codex, claude, grok, opencode. Authentication is always manual. Cursor is supported by T3 Code but is not installed automatically because its upstream installer is not compatible with community-scripts helper requirements."
+      "help": "Optional comma-separated values: codex, claude, grok, opencode. Advanced installs show a selection menu. Authentication is always manual. Cursor is supported by T3 Code but is not installed automatically because its upstream installer is not compatible with community-scripts helper requirements."
     },
     {
       "name": "var_t3_version_control",
       "label": "Version Control",
       "type": "text",
       "default": "git",
-      "help": "Set to none to skip Git installation."
+      "help": "Advanced installs show a selection menu. Set to none to skip Git installation."
     },
     {
       "name": "var_t3_source_control",
       "label": "Source Control CLIs",
       "type": "text",
       "default": "",
-      "help": "Optional comma-separated values: github, gitlab, azure. Authentication is always manual."
+      "help": "Optional comma-separated values: github, gitlab, azure. Advanced installs show a selection menu. Authentication is always manual."
     }
   ],
   "default_credentials": {
