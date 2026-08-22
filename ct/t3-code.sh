@@ -29,6 +29,92 @@ variables
 color
 catch_errors
 
+t3_list_values() {
+  local value="${1:-}"
+  [[ -z "$value" || "$value" == "none" ]] && {
+    printf 'none'
+    return
+  }
+  printf '%s' "${value//,/", "}"
+}
+
+advanced_settings_app_configure() {
+  local selected
+  local git_state="off"
+  local codex_state="off"
+  local claude_state="off"
+  local grok_state="off"
+  local opencode_state="off"
+  local github_state="off"
+  local gitlab_state="off"
+  local azure_state="off"
+
+  [[ ",${var_t3_version_control,,}," == *,git,* ]] && git_state="on"
+  [[ ",${var_t3_providers,,}," == *,codex,* ]] && codex_state="on"
+  [[ ",${var_t3_providers,,}," == *,claude,* ]] && claude_state="on"
+  [[ ",${var_t3_providers,,}," == *,grok,* ]] && grok_state="on"
+  [[ ",${var_t3_providers,,}," == *,opencode,* ]] && opencode_state="on"
+  [[ ",${var_t3_source_control,,}," == *,github,* ]] && github_state="on"
+  [[ ",${var_t3_source_control,,}," == *,gitlab,* ]] && gitlab_state="on"
+  [[ ",${var_t3_source_control,,}," == *,azure,* ]] && azure_state="on"
+
+  selected=$(whiptail \
+    --backtitle "Proxmox VE Helper Scripts" \
+    --title "T3 Code Version Control" \
+    --ok-button "Continue" \
+    --cancel-button "Skip Version Control" \
+    --separate-output \
+    --checklist "\nSelect version-control tools to install for the t3 user.\n\nUse Space to toggle and Enter to continue.\nGit is selected by default." \
+    15 86 1 \
+    git "Git" "$git_state" \
+    3>&1 1>&2 2>&3) || selected=""
+  var_t3_version_control="${selected//$'\n'/,}"
+  var_t3_version_control="${var_t3_version_control//[[:space:]]/}"
+  [[ -z "$var_t3_version_control" ]] && var_t3_version_control="none"
+  export var_t3_version_control
+
+  selected=$(whiptail \
+    --backtitle "Proxmox VE Helper Scripts" \
+    --title "T3 Code Agent Providers" \
+    --ok-button "Continue" \
+    --cancel-button "Skip Providers" \
+    --separate-output \
+    --checklist "\nSelect provider CLIs to install for the t3 user.\n\nUse Space to toggle and Enter to continue.\nAuthentication is not performed automatically.\nCursor is not installed by this script." \
+    20 86 4 \
+    codex "OpenAI Codex CLI" "$codex_state" \
+    claude "Claude Code CLI" "$claude_state" \
+    grok "Grok Build CLI" "$grok_state" \
+    opencode "OpenCode CLI" "$opencode_state" \
+    3>&1 1>&2 2>&3) || selected=""
+  var_t3_providers="${selected//$'\n'/,}"
+  var_t3_providers="${var_t3_providers//[[:space:]]/}"
+  export var_t3_providers
+
+  selected=$(whiptail \
+    --backtitle "Proxmox VE Helper Scripts" \
+    --title "T3 Code Source Control" \
+    --ok-button "Continue" \
+    --cancel-button "Skip Source Control" \
+    --separate-output \
+    --checklist "\nSelect source-control CLIs to install for the t3 user.\n\nUse Space to toggle and Enter to continue.\nAuthentication is not performed automatically." \
+    18 86 3 \
+    github "GitHub CLI (gh)" "$github_state" \
+    gitlab "GitLab CLI (glab)" "$gitlab_state" \
+    azure "Azure CLI + DevOps extension" "$azure_state" \
+    3>&1 1>&2 2>&3) || selected=""
+  var_t3_source_control="${selected//$'\n'/,}"
+  var_t3_source_control="${var_t3_source_control//[[:space:]]/}"
+  [[ -z "$var_t3_source_control" ]] && var_t3_source_control="none"
+  export var_t3_source_control
+}
+
+advanced_settings_app_summary() {
+  printf 'T3 Code:\n'
+  printf '  Version Control: %s\n' "$(t3_list_values "${var_t3_version_control:-none}")"
+  printf '  Agent CLIs: %s\n' "$(t3_list_values "${var_t3_providers:-none}")"
+  printf '  Source Control: %s' "$(t3_list_values "${var_t3_source_control:-none}")"
+}
+
 t3_exec() {
   $STD runuser --user "$t3_user" -- env \
     HOME="$t3_home" \
