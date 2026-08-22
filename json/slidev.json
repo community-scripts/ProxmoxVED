@@ -1,0 +1,44 @@
+{
+  "name": "Slidev",
+  "slug": "slidev",
+  "categories": [12],
+  "date_created": "2026-08-10",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": ["amd64"],
+  "interface_port": 3030,
+  "documentation": "https://sli.dev/",
+  "website": "https://sli.dev/",
+  "repository": "https://github.com/slidevjs/slidev",
+  "logo": "https://sli.dev/favicon.png",
+  "description": "Slidev is a markdown-based slide deck maker and presenter, built for developers. Self-hosted instance runs a live dev server with hot reload, plus an MCP server entrypoint so AI agents (Claude Code/Desktop) can edit slides directly.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/slidev.sh",
+      "config_path": "/home/slidev/my-slides/slides.md",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "slidev",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Dev server binds 0.0.0.0:3030, no auth built in — restrict to LAN/firewall.",
+      "type": "warning"
+    },
+    {
+      "text": "MCP server entrypoint at /home/slidev/mcp-start.sh, invoke over SSH from client-side Claude Code config.",
+      "type": "info"
+    }
+  ]
+}
