@@ -10,13 +10,13 @@
   "documentation": "https://github.com/pingdotgg/t3code/blob/main/docs/user/install.md",
   "website": "https://t3.codes/",
   "repository": "https://github.com/pingdotgg/t3code",
-  "logo": "https://t3.codes/icon.webp",
-  "description": "T3 Code is an open-source control surface for coding agents. It provides a web interface for orchestrating local Claude Code, Codex, Cursor, Grok Build and OpenCode sessions from remote devices.",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/t3-code.webp",
+  "description": "T3 Code is an open-source control surface for coding agents. It provides a web interface for orchestrating Claude Code, Codex, Grok Build and OpenCode sessions from remote devices.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/t3-code.sh",
-      "config_path": "",
+      "config_path": "/opt/t3-code_data/userdata/settings.json",
       "resources": {
         "cpu": 4,
         "ram": 4096,
@@ -32,21 +32,21 @@
       "label": "Provider CLIs",
       "type": "text",
       "default": "",
-      "help": "Optional comma-separated values: codex, claude, cursor, grok, opencode. Advanced installs show a multi-select menu with none selected by default. Authentication is always manual."
+      "help": "Optional comma-separated values: codex, claude, grok, opencode. Authentication is always manual. Cursor is supported by T3 Code but is not installed automatically because its upstream installer is not compatible with community-scripts helper requirements."
     },
     {
       "name": "var_t3_version_control",
       "label": "Version Control",
       "type": "text",
       "default": "git",
-      "help": "Git is selected by default in Advanced setup. Jujutsu support is coming soon. Set to none to skip Git installation."
+      "help": "Set to none to skip Git installation."
     },
     {
       "name": "var_t3_source_control",
-      "label": "Source Control Providers",
+      "label": "Source Control CLIs",
       "type": "text",
       "default": "",
-      "help": "Optional comma-separated values: github, gitlab, azure, bitbucket. Advanced installs show a multi-select menu with none selected by default. Authentication is always manual; Bitbucket uses T3CODE_BITBUCKET_ACCESS_TOKEN or T3CODE_BITBUCKET_EMAIL and T3CODE_BITBUCKET_API_TOKEN."
+      "help": "Optional comma-separated values: github, gitlab, azure. Authentication is always manual."
     }
   ],
   "default_credentials": {
@@ -55,23 +55,19 @@
   },
   "notes": [
     {
-      "text": "The service runs as the dedicated non-root t3 user. Add projects and authenticate provider CLIs as that user; provider authentication is never performed automatically.",
+      "text": "The service runs as the dedicated non-root t3 user. T3 Code data and runtime state are stored in /opt/t3-code_data so updates do not remove user data.",
       "type": "info"
     },
     {
-      "text": "During Advanced setup, optionally select provider CLIs from the multi-select menu. All providers are unselected by default. Selected CLIs are installed for the t3 user but are not authenticated automatically; the required pct exec commands are printed after installation.",
+      "text": "Provider and source-control CLIs are optional. Selected CLIs are installed for the t3 user but are not authenticated automatically; the required pct exec commands are printed after installation.",
       "type": "info"
     },
     {
-      "text": "After provider installation, the T3 Code provider health check may initially show an unauthenticated or disabled state. Authenticate selected providers with the pct exec commands printed by the installer, then refresh provider status in T3 Code. Cursor, Grok and OpenCode are disabled by default in T3 Code and must be enabled in Settings.",
+      "text": "Cursor is supported by T3 Code but is not installed by this script because its upstream installer is a remote shell script. Install Cursor CLI separately for the t3 user if required.",
       "type": "info"
     },
     {
-      "text": "During Advanced setup, optionally select GitHub, GitLab, Azure DevOps, or Bitbucket under Source Control Providers. No source-control integrations are selected by default. GitHub installs gh, GitLab installs glab, Azure DevOps installs az with the azure-devops extension, and Bitbucket uses T3CODE_BITBUCKET_ACCESS_TOKEN or T3CODE_BITBUCKET_EMAIL and T3CODE_BITBUCKET_API_TOKEN. Authentication is always manual.",
-      "type": "info"
-    },
-    {
-      "text": "A one-time pairing URL with a one-hour lifetime is generated and printed at the end of installation. Generate another one inside the container with npx --yes t3@latest pair --base-dir /home/t3/.t3 --ttl 1h. Treat pairing links as passwords.",
+      "text": "A one-time pairing URL with a one-hour lifetime is generated and printed at the end of installation. Generate another one inside the container with npx --yes t3@latest pair --base-dir /opt/t3-code_data --ttl 1h. Treat pairing links as passwords.",
       "type": "info"
     },
     {
