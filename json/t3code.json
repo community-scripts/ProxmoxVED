@@ -13,11 +13,12 @@
   "website": "https://t3.codes",
   "repository": "https://github.com/pingdotgg/t3code",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/t3code.webp",
-  "description": "T3 Code is a web and desktop control surface for running coding agents on your machine. This container installs the T3 Code server plus the Codex, Claude and OpenCode provider CLIs and the GitHub, GitLab and Azure DevOps source-control CLIs.",
+  "description": "T3 Code is a web and desktop control surface for running coding agents on your machine. This container installs the T3 Code server plus the Codex, Claude and OpenCode provider CLIs and the GitHub CLI.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/t3code.sh",
+      "config_path": "/opt/t3code_data/userdata/settings.json",
       "resources": {
         "cpu": 2,
         "ram": 2048,
@@ -33,7 +34,7 @@
   },
   "notes": [
     {
-      "text": "Provider and source-control CLIs ship unauthenticated. Log in on the server after first boot: codex login, claude auth login, opencode auth login, gh auth login, glab auth login, az login.",
+      "text": "Provider CLIs (codex, claude, opencode) and the GitHub CLI ship unauthenticated. Log in on the server after first boot: codex login, claude auth login, opencode auth login, gh auth login.",
       "type": "info"
     },
     {

@@ -20,7 +20,7 @@ $STD apt install -y \
   python3
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 
 msg_info "Installing T3 Code and Provider CLIs"
 $STD npm install -g \
@@ -32,27 +32,6 @@ msg_ok "Installed T3 Code and Provider CLIs"
 
 # GitHub CLI (source control provider)
 fetch_and_deploy_gh_release "gh" "cli/cli" "binary"
-
-# GitLab CLI (source control provider)
-GITLAB_URL="https://gitlab.com" fetch_and_deploy_gl_release \
-  "glab" \
-  "gitlab-org/cli" \
-  "binary"
-
-# Azure CLI + DevOps extension (source control provider)
-# Microsoft's azure-cli repo only publishes up to 'bookworm'; that package
-# bundles its own Python and runs fine on newer Debian (e.g. trixie).
-setup_deb822_repo \
-  "azure-cli" \
-  "https://packages.microsoft.com/keys/microsoft.asc" \
-  "https://packages.microsoft.com/repos/azure-cli" \
-  "bookworm" \
-  "main"
-
-msg_info "Installing Azure CLI"
-$STD apt install -y azure-cli
-$STD az extension add --name azure-devops
-msg_ok "Installed Azure CLI"
 
 msg_info "Creating Service"
 mkdir -p /opt/t3code_data
@@ -79,12 +58,9 @@ systemctl enable -q --now t3code
 msg_ok "Created Service"
 
 msg_info "Generating Pairing Link"
-for _ in $(seq 1 60); do
-  PAIR_OUTPUT="$(NODE_NO_WARNINGS=1 t3 pair --base-dir /opt/t3code_data --ttl 1h 2>&1)" && break
-  sleep 1
-done
+PAIR_OUTPUT="$(NODE_NO_WARNINGS=1 t3 pair --base-dir /opt/t3code_data --ttl 1h 2>&1)" || true
 msg_ok "Generated Pairing Link"
-echo -e "${PAIR_OUTPUT}"
+echo -e "${PAIR_OUTPUT:-Run inside the container: t3 pair --base-dir /opt/t3code_data --ttl 1h}"
 
 motd_ssh
 customize
