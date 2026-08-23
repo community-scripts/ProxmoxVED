@@ -27,6 +27,7 @@ $STD npm install -g \
   t3 \
   @openai/codex \
   @anthropic-ai/claude-code \
+  @xai-official/grok \
   opencode-ai
 msg_ok "Installed T3 Code and Provider CLIs"
 
