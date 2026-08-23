@@ -58,6 +58,12 @@ systemctl enable -q --now t3code
 msg_ok "Created Service"
 
 msg_info "Generating Pairing Link"
+# t3 pair talks to the running server, so wait for it to publish its runtime
+# manifest before requesting a token.
+for _ in {1..60}; do
+  [[ -f /opt/t3code_data/userdata/server-runtime.json ]] && break
+  sleep 1
+done
 PAIR_OUTPUT="$(NODE_NO_WARNINGS=1 t3 pair --base-dir /opt/t3code_data --ttl 1h 2>&1)" || true
 msg_ok "Generated Pairing Link"
 echo -e "${PAIR_OUTPUT:-Run inside the container: t3 pair --base-dir /opt/t3code_data --ttl 1h}"
