@@ -80,10 +80,9 @@ msg_ok "Created Service"
 
 msg_info "Generating Pairing Link"
 for _ in $(seq 1 60); do
-  ss -tln | grep -q ':3773 ' && break
+  PAIR_OUTPUT="$(t3 pair --base-dir /opt/t3code_data 2>&1)" && break
   sleep 1
 done
-PAIR_OUTPUT="$(t3 pair --base-dir /opt/t3code_data 2>&1)" || true
 msg_ok "Generated Pairing Link"
 echo -e "${PAIR_OUTPUT}"
 
