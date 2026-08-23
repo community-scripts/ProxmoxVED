@@ -80,7 +80,7 @@ msg_ok "Created Service"
 
 msg_info "Generating Pairing Link"
 for _ in $(seq 1 60); do
-  PAIR_OUTPUT="$(t3 pair --base-dir /opt/t3code_data 2>&1)" && break
+  PAIR_OUTPUT="$(t3 pair --base-dir /opt/t3code_data --ttl 24h 2>&1)" && break
   sleep 1
 done
 msg_ok "Generated Pairing Link"
