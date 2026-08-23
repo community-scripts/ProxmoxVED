@@ -57,8 +57,10 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW}Access it using the following URL:${CL}"
-pct exec "$CTID" -- env NODE_NO_WARNINGS=1 t3 pair --base-dir /opt/t3code_data --ttl 1h
+echo -e "${INFO}${YW}Pair a device using the QR code or URL below:${CL}"
+# t3 pair's first line reports the local connection (http://127.0.0.1:3773) which
+# is misleading here; drop it so only the QR and the LAN pairing URL are shown.
+pct exec "$CTID" -- env NODE_NO_WARNINGS=1 t3 pair --base-dir /opt/t3code_data --ttl 1h | grep -v "127.0.0.1"
 echo -e ""
 echo -e "${INFO}${YW}The pairing URL above expires after 1 hour. Generate a fresh one from the Proxmox host:${CL}"
 echo -e "${TAB}${BGN}pct exec ${CTID} -- t3 pair --base-dir /opt/t3code_data --ttl 1h${CL}"
