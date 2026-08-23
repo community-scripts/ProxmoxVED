@@ -40,11 +40,13 @@ GITLAB_URL="https://gitlab.com" fetch_and_deploy_gl_release \
   "binary"
 
 # Azure CLI + DevOps extension (source control provider)
+# Microsoft's azure-cli repo only publishes up to 'bookworm'; that package
+# bundles its own Python and runs fine on newer Debian (e.g. trixie).
 setup_deb822_repo \
   "azure-cli" \
   "https://packages.microsoft.com/keys/microsoft.asc" \
   "https://packages.microsoft.com/repos/azure-cli" \
-  "$(get_os_info codename)" \
+  "bookworm" \
   "main"
 
 msg_info "Installing Azure CLI"
