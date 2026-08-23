@@ -46,7 +46,7 @@ After=network-online.target
 Type=simple
 User=root
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
-Environment=T3_BASE_DIR=/opt/t3code_data
+Environment=T3CODE_TELEMETRY_ENABLED=false
 WorkingDirectory=/opt/t3code_data
 ExecStart=/usr/bin/t3 serve --host 0.0.0.0 --base-dir /opt/t3code_data
 Restart=on-failure
@@ -58,18 +58,19 @@ EOF
 systemctl enable -q --now t3code
 msg_ok "Created Service"
 
-msg_info "Waiting for T3 Code Server"
-# The pairing link is generated in the CT footer via pct exec; wait here so the
-# server has published its runtime manifest before the build finishes.
+msg_info "Verifying T3 Code Server"
+# systemctl enable --now returns once the unit is active, but t3 serve keeps
+# initializing for ~1-2s afterwards and only then writes its runtime manifest.
+# Confirm it actually came up (and fail loudly if it didn't) before finishing.
 for _ in {1..60}; do
   [[ -f /opt/t3code_data/userdata/server-runtime.json ]] && break
   sleep 1
 done
 if [[ ! -f /opt/t3code_data/userdata/server-runtime.json ]]; then
-  msg_error "T3 Code server did not become ready in time"
+  msg_error "T3 Code server failed to start"
   exit 1
 fi
-msg_ok "T3 Code Server Ready"
+msg_ok "T3 Code Server Running"
 
 motd_ssh
 customize
