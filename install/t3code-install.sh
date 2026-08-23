@@ -57,16 +57,18 @@ EOF
 systemctl enable -q --now t3code
 msg_ok "Created Service"
 
-msg_info "Generating Pairing Link"
-# t3 pair talks to the running server, so wait for it to publish its runtime
-# manifest before requesting a token.
+msg_info "Waiting for T3 Code Server"
+# The pairing link is generated in the CT footer via pct exec; wait here so the
+# server has published its runtime manifest before the build finishes.
 for _ in {1..60}; do
   [[ -f /opt/t3code_data/userdata/server-runtime.json ]] && break
   sleep 1
 done
-PAIR_OUTPUT="$(NODE_NO_WARNINGS=1 t3 pair --base-dir /opt/t3code_data --ttl 1h 2>&1)" || true
-msg_ok "Generated Pairing Link"
-echo -e "${PAIR_OUTPUT:-Run inside the container: t3 pair --base-dir /opt/t3code_data --ttl 1h}"
+if [[ ! -f /opt/t3code_data/userdata/server-runtime.json ]]; then
+  msg_error "T3 Code server did not become ready in time"
+  exit 1
+fi
+msg_ok "T3 Code Server Ready"
 
 motd_ssh
 customize
