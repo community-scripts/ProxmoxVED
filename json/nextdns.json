@@ -1,0 +1,53 @@
+{
+  "name": "NextDNS",
+  "slug": "nextdns",
+  "categories": [
+    5
+  ],
+  "date_created": "2026-08-23",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://github.com/nextdns/nextdns/wiki",
+  "website": "https://nextdns.io/",
+  "repository": "https://github.com/nextdns/nextdns",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nextdns.webp",
+  "description": "NextDNS is a DNS-over-HTTPS (DoH) client and resolver that blocks ads, trackers and malware using cloud-managed profiles. This script installs a minimal Debian LXC with the official NextDNS CLI package from the NextDNS apt repository; you configure your profile after install.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/nextdns.sh",
+      "config_path": "/etc/nextdns.conf",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The package is installed but not activated. After the container is created, run inside it: sudo nextdns install -profile <your profile id> -report-client-info -setup-router",
+      "type": "warning"
+    },
+    {
+      "text": "Create or copy your profile ID from https://my.nextdns.io before configuring the client.",
+      "type": "info"
+    },
+    {
+      "text": "Router mode (-setup-router) makes this LXC the DNS server for your network. Point DHCP clients at the container IP (shown after install), or set it as the upstream DNS on your router.",
+      "type": "info"
+    },
+    {
+      "text": "Updates use the official NextDNS apt repository (repo.nextdns.io). Run the container update script or apt upgrade inside the LXC.",
+      "type": "info"
+    }
+  ]
+}
