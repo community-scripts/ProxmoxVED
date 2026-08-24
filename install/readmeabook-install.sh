@@ -34,6 +34,7 @@ cat <<EOF >/opt/readmeabook/.env
 NODE_ENV=production
 PORT=3030
 NEXT_TELEMETRY_DISABLED=1
+CONFIG_ENCRYPTION_KEY=$(openssl rand -base64 32)
 DATABASE_URL=postgresql://readmeabook:${PG_DB_PASS}@127.0.0.1:5432/readmeabook?schema=public
 REDIS_URL=redis://127.0.0.1:6379
 NEXTAUTH_SECRET=$(openssl rand -hex 32)
