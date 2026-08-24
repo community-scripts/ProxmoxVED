@@ -1,0 +1,52 @@
+{
+  "name": "TeamSpeak",
+  "slug": "teamspeak",
+  "categories": [22],
+  "date_created": "2026-08-24",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 9987,
+  "documentation": "https://www.teamspeak.com/en/support/",
+  "website": "https://www.teamspeak.com/",
+  "repository": "https://www.teamspeak.com/en/downloads/",
+  "architectures": ["amd64"],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/teamspeak.webp",
+  "description": "TeamSpeak is a proprietary voice and text chat server for online communities and gaming groups, connected to via the official TeamSpeak client.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/teamspeak.sh",
+      "config_path": "/etc/systemd/system/teamspeak.service",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no admin username/password to log in with. Connect using the TeamSpeak client, then use the ServerAdmin privilege key saved to /root/teamspeak.creds (Client > Use Privilege Key) to claim admin rights on the server.",
+      "type": "info"
+    },
+    {
+      "text": "Default ports: 9987/udp (voice), 30033/tcp (file transfer), 10011/tcp (ServerQuery). No arm64 build is published upstream.",
+      "type": "info"
+    },
+    {
+      "text": "TeamSpeak Server is closed-source, distributed only as an official binary by TeamSpeak Systems GmbH; this script downloads it directly from teamspeak.com and accepts the license non-interactively (license_accepted=1), the same mechanism used by TeamSpeak's own official Docker image.",
+      "type": "info"
+    },
+    {
+      "text": "Without a paid license key, TeamSpeak runs free with 1 virtual server and up to 32 slots — plenty for personal/community use.",
+      "type": "info"
+    }
+  ]
+}
