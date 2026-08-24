@@ -34,7 +34,7 @@
   },
   "notes": [
     {
-      "text": "Provider CLIs (codex, claude, grok, opencode) and the GitHub CLI ship unauthenticated. Log in on the server after first boot: codex login, claude auth login, grok login, opencode auth login, gh auth login.",
+      "text": "Provider CLIs (Codex, Claude, Grok, OpenCode, GitHub). Login to the CT after creation to authenticate with these services.",
       "type": "info"
     },
     {
