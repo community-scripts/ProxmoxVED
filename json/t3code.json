@@ -40,10 +40,6 @@
     {
       "text": "Access T3 Code at http://<IP>:3773 and pair a device with the token/QR shown by the server.",
       "type": "info"
-    },
-    {
-      "text": "The server binds to all interfaces. Protect it with a trusted private network (e.g. Tailscale/VPN); anyone with a valid pairing token can create a session.",
-      "type": "warning"
     }
   ]
 }
