@@ -31,7 +31,6 @@ $STD npm install -g \
   opencode-ai
 msg_ok "Installed T3 Code and Provider CLIs"
 
-# GitHub CLI (source control provider)
 fetch_and_deploy_gh_release "gh" "cli/cli" "binary"
 
 msg_info "Creating Service"
