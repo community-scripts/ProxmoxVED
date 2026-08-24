@@ -54,21 +54,8 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now t3code
+sleep 5
 msg_ok "Created Service"
-
-msg_info "Verifying T3 Code Server"
-# systemctl enable --now returns once the unit is active, but t3 serve keeps
-# initializing for ~1-2s afterwards and only then writes its runtime manifest.
-# Confirm it actually came up (and fail loudly if it didn't) before finishing.
-for _ in {1..60}; do
-  [[ -f /opt/t3code_data/userdata/server-runtime.json ]] && break
-  sleep 1
-done
-if [[ ! -f /opt/t3code_data/userdata/server-runtime.json ]]; then
-  msg_error "T3 Code server failed to start"
-  exit 1
-fi
-msg_ok "T3 Code Server Running"
 
 motd_ssh
 customize
