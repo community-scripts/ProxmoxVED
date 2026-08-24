@@ -13,7 +13,7 @@
   "website": "https://t3.codes",
   "repository": "https://github.com/pingdotgg/t3code",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/t3code.webp",
-  "description": "T3 Code is a web and desktop control surface for running coding agents on your machine. This container installs the T3 Code server plus the Codex, Claude, Grok and OpenCode provider CLIs and the GitHub CLI.",
+  "description": "T3 Code is a web and desktop control surface for running coding agents on your machine.",
   "install_methods": [
     {
       "type": "default",
