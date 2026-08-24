@@ -38,8 +38,6 @@ function update_script() {
   systemctl stop t3code
   msg_ok "Stopped Service"
 
-  # T3 Code is distributed via npm; npm resolves the latest version itself,
-  # so there is no GitHub-release tarball to check against.
   msg_info "Updating T3 Code"
   $STD npm install -g t3@latest
   msg_ok "Updated T3 Code"
