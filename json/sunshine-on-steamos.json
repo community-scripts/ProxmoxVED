@@ -1,0 +1,112 @@
+{
+  "name": "Sunshine on SteamOS",
+  "slug": "sunshine-on-steamos",
+  "categories": [
+    24,
+    13
+  ],
+  "date_created": "2026-08-26",
+  "type": "ct",
+  "updateable": true,
+  "privileged": true,
+  "architectures": [
+    "amd64"
+  ],
+  "interface_port": 47990,
+  "documentation": "https://github.com/netwarex/sunshine-on-steamos/blob/main/README.md",
+  "website": "https://app.lizardbyte.dev/Sunshine",
+  "repository": "https://github.com/LizardByte/Sunshine",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/steam.webp",
+  "description": "Sunshine game-stream host on a SteamOS-style Gaming Mode session: Steam through Gamescope on a headless virtual display (sway/Wayland), streamed to Moonlight clients (Apple TV and others). AMD GPU rendering (RADV Vulkan) with VA-API hardware encoding, persistent Steam login and Sunshine pairing, plus optional KDE Desktop Mode, Decky Loader with NonSteamLaunchers, and Heroic. Requires an AMD GPU (amdgpu); runs as a privileged container with GPU and input device passthrough. Packaging maintained at github.com/netwarex/sunshine-on-steamos.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/sunshine-on-steamos.sh",
+      "config_path": "/etc/steamos-streaming-release",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 64,
+        "os": "Arch Linux",
+        "version": "latest"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "AMD GPUs only (amdgpu driver, RADV, VA-API). NVIDIA and Intel are not supported.",
+      "type": "warning"
+    },
+    {
+      "text": "Privileged container with GPU and input passthrough: treat it as trusted and keep Sunshine (port 47990) off the public internet.",
+      "type": "warning"
+    },
+    {
+      "text": "After install: open https://CONTAINER_IP:47990 to create Sunshine credentials and enter the Moonlight pairing PIN, then sign into Steam through the stream.",
+      "type": "info"
+    }
+  ],
+  "app_vars": [
+    {
+      "name": "var_stream_width",
+      "label": "Stream width",
+      "type": "number",
+      "default": 1920
+    },
+    {
+      "name": "var_stream_height",
+      "label": "Stream height",
+      "type": "number",
+      "default": 1080
+    },
+    {
+      "name": "var_stream_fps",
+      "label": "Stream FPS",
+      "type": "number",
+      "default": 60
+    },
+    {
+      "name": "var_keyboard",
+      "label": "Keyboard layout (XKB)",
+      "type": "text",
+      "default": "us"
+    },
+    {
+      "name": "var_display_server",
+      "label": "Display server",
+      "type": "select",
+      "options": [
+        "wayland",
+        "xorg"
+      ],
+      "default": "wayland"
+    },
+    {
+      "name": "var_desktop_mode",
+      "label": "KDE Desktop Mode",
+      "type": "boolean",
+      "default": "yes"
+    },
+    {
+      "name": "var_decky",
+      "label": "Decky Loader + NonSteamLaunchers",
+      "type": "boolean",
+      "default": "no"
+    },
+    {
+      "name": "var_heroic",
+      "label": "Heroic Games Launcher",
+      "type": "boolean",
+      "default": "no"
+    },
+    {
+      "name": "var_packetsize",
+      "label": "Sunshine UDP packet size (VPN/tunnel MTU)",
+      "type": "number"
+    }
+  ]
+}
