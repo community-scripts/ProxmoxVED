@@ -22,7 +22,7 @@
     {
       "type": "default",
       "script": "ct/t3code.sh",
-      "config_path": "/opt/t3code_data/userdata/settings.json",
+      "config_path": "/opt/t3code/userdata/settings.json",
       "resources": {
         "cpu": 2,
         "ram": 2048,
@@ -42,7 +42,7 @@
       "type": "info"
     },
     {
-      "text": "Access T3 Code at http://<IP>:3773 and pair a device with the token/QR shown after install. Regenerate it with: `pct exec <CTID> -- t3 pair --base-dir /opt/t3code_data --ttl 1h.`",
+      "text": "Access T3 Code at http://<IP>:3773 and pair a device with the token/QR shown after install. Regenerate it with: `pct exec <CTID> -- t3 pair --base-dir /opt/t3code --ttl 1h.`",
       "type": "info"
     }
   ]

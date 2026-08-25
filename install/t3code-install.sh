@@ -33,7 +33,7 @@ msg_ok "Installed T3 Code and Provider CLIs"
 fetch_and_deploy_gh_release "gh" "cli/cli" "binary"
 
 msg_info "Creating Service"
-mkdir -p /opt/t3code_data
+mkdir -p /opt/t3code
 cat <<EOF >/etc/systemd/system/t3code.service
 [Unit]
 Description=T3 Code Server
@@ -45,8 +45,8 @@ Type=simple
 User=root
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 Environment=T3CODE_TELEMETRY_ENABLED=false
-WorkingDirectory=/opt/t3code_data
-ExecStart=/usr/bin/t3 serve --host 0.0.0.0 --base-dir /opt/t3code_data
+WorkingDirectory=/opt/t3code
+ExecStart=/usr/bin/t3 serve --host 0.0.0.0 --base-dir /opt/t3code
 Restart=on-failure
 RestartSec=5
 
