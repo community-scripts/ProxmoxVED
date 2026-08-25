@@ -1,0 +1,36 @@
+{
+  "name": "OpenSpeedTest",
+  "slug": "OpenSpeedTest",
+  "categories": [
+    1
+  ],
+  "date_created": "2026-08-25",
+  "type": "ct",
+  "updateable": false,
+  "privileged": false,
+  "architectures": ["amd64"],
+  "interface_port": 3000,
+  "documentation": "https://github.com/openspeedtest/Speed-Test",
+  "website": "https://github.com/openspeedtest/Speed-Test",
+  "repository": "https://github.com/openspeedtest/Speed-Test",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openspeedtest.webp",
+  "description": "SpeedTest by OpenSpeedTest™ is a Free and Open-Source HTML5 Network Performance Estimation Tool Written in Vanilla Javascript and only uses built-in Web APIs like XMLHttpRequest (XHR), HTML, CSS, JS, & SVG. No Third-Party frameworks or libraries are Required. All we need is a static web server like NGINX. I started this project in 2011 and moved to OpenSpeedTest.com dedicated Project/Domain Name in 2013.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/openspeedtest.sh",
+      "config_path": "/opt/openspeedtest/.env",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+}
