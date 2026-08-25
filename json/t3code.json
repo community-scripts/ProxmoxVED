@@ -38,7 +38,7 @@
       "type": "info"
     },
     {
-      "text": "Access T3 Code at http://<IP>:3773 and pair a device with the token/QR from t3 pair, printed on the host after install and regenerable with: pct exec <CTID> -- t3 pair --base-dir /opt/t3code_data --ttl 1h.",
+      "text": "Access T3 Code at http://<IP>:3773 and pair a device with the token/QR shown after install. Regenerate it with: `pct exec <CTID> -- t3 pair --base-dir /opt/t3code_data --ttl 1h.`",
       "type": "info"
     }
   ]
