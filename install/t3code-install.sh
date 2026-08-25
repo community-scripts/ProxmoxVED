@@ -16,7 +16,8 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   git \
-  build-essential
+  build-essential \
+  bubblewrap
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
