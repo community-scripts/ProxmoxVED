@@ -35,7 +35,7 @@ function update_script() {
     systemctl stop wrp
     msg_ok "Stopped Service"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wrp" "tenox7/wrp" "singlefile" "latest" "/opt/wrp" "$(arch_resolve "wrp-amd64-linux" "wrp-arm64-linux")"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wrp" "tenox7/wrp" "singlefile" "latest" "/opt/wrp" "wrp-$(arch_resolve)-linux"
 
     msg_info "Starting Service"
     systemctl start wrp
@@ -51,5 +51,5 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW}Point a legacy browser at:${CL}"
+echo -e "${INFO}${YW}Access it using the following URL:${CL}"
 echo -e "${GATEWAY}${BGN}http://${IP}:8080${CL}"

@@ -35,11 +35,7 @@
   },
   "notes": [
     {
-      "text": "No dedicated icon exists yet for WRP; the Chromium icon is used as a placeholder since WRP is a Chromium-driven proxy.",
-      "type": "info"
-    },
-    {
-      "text": "Point a legacy browser (or its proxy settings) at http://<container-ip>:8080. To change listen address or add flags (-t, -g, -m, etc.), edit ExecStart in /etc/systemd/system/wrp.service and run systemctl restart wrp.",
+      "text": "Point a legacy browser (or its proxy settings) at http://<container-ip>:8080.",
       "type": "info"
     }
   ]

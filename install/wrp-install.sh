@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt install -y chromium fonts-liberation
 msg_ok "Installed Dependencies"
 
-fetch_and_deploy_gh_release "wrp" "tenox7/wrp" "singlefile" "latest" "/opt/wrp" "$(arch_resolve "wrp-amd64-linux" "wrp-arm64-linux")"
+fetch_and_deploy_gh_release "wrp" "tenox7/wrp" "singlefile" "latest" "/opt/wrp" "wrp-$(arch_resolve)-linux"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/wrp.service
