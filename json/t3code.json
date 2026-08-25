@@ -12,6 +12,10 @@
   "documentation": "https://github.com/pingdotgg/t3code/tree/main/docs",
   "website": "https://t3.codes",
   "repository": "https://github.com/pingdotgg/t3code",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/t3code.webp",
   "description": "T3 Code is a web and desktop control surface for running coding agents on your machine.",
   "install_methods": [
