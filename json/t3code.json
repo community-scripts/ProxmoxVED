@@ -34,7 +34,7 @@
   },
   "notes": [
     {
-      "text": "Provider CLIs (Codex, Claude, Grok, OpenCode, GitHub). Login to the CT after creation to authenticate with these services.",
+      "text": "Provider CLIs (Codex, Claude, Grok, OpenCode, GitHub) are included in the install. Login to the CT after creation to authenticate with these services.",
       "type": "info"
     },
     {
