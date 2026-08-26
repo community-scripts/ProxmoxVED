@@ -146,10 +146,12 @@ of flags is in [core's dev-mode documentation](https://github.com/community-scri
 
 ## Other hosts
 
-Gitea and any other raw-file host work the same way — these are plain base URLs:
+`COMMUNITY_SCRIPTS_URL` is a plain base URL, so any host that serves raw files
+works. Only GitHub remotes are detected automatically from a checkout; for
+anything else, set it yourself:
 
 ```bash
-export COMMUNITY_SCRIPTS_URL=https://git.community-scripts.org/YOU/ProxmoxVED/raw/branch/your-branch
+export COMMUNITY_SCRIPTS_URL=https://files.example.com/YOU/ProxmoxVED/raw/your-branch
 ```
 
 ## Normal end users
