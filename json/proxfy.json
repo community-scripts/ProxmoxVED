@@ -1,0 +1,71 @@
+{
+  "name": "Proxfy",
+  "slug": "proxfy",
+  "categories": [
+    7,
+    1
+  ],
+  "date_created": "2026-08-26",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8099,
+  "documentation": "https://github.com/bonderaustria/proxfy#readme",
+  "website": "https://github.com/bonderaustria/proxfy",
+  "repository": "https://github.com/bonderaustria/proxfy",
+  "architectures": [
+    "amd64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/bonderaustria/proxfy@main/proxfy/static/logo.png",
+  "description": "Verifies that Proxmox backups actually restore. Proxmox Backup Server checks chunk checksums, which proves the bytes are intact but not that a working machine comes out of them. Proxfy restores a backup to a throwaway VMID, boots it, runs real checks against the application inside, records the result and removes the guest again. VMs and LXC containers, isolated or on a fixed LAN address.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/proxfy.sh",
+      "config_path": "/opt/proxfy/config.yaml",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "app_vars": [
+    {
+      "name": "var_pve_host",
+      "label": "Proxmox Host Address",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "var_pve_password",
+      "label": "Proxmox Root Password (optional, used once to authorize the key)",
+      "type": "password",
+      "secret": true
+    }
+  ],
+  "notes": [
+    {
+      "text": "Open the interface right after installation and create the first account. Until one exists, anyone who can reach the address could create it. The first account is the super admin.",
+      "type": "warning"
+    },
+    {
+      "text": "Proxfy drives the hypervisor over SSH and needs its public key in the host's /root/.ssh/authorized_keys. Give the root password of the Proxmox host and the installer places it once, without storing it. Leave it empty and the installer prints the public key with a ready-made command to run on the host.",
+      "type": "info"
+    },
+    {
+      "text": "Test guests are created only in VMID range 9000-9099 and every destructive operation checks that range again. No schedule is created during installation - nothing runs until someone starts a run or creates a schedule in the interface.",
+      "type": "info"
+    },
+    {
+      "text": "The interface uses unencrypted HTTP. Keep it on a trusted network or put a reverse proxy with TLS in front of it before exposing it.",
+      "type": "warning"
+    }
+  ]
+}
