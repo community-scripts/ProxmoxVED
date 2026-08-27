@@ -5,11 +5,36 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
-load_functions
-
 APP="Ubuntu 26.04 VM"
 APP_TYPE="vm"
 NSAPP="ubuntu2604-vm"
+# The Ubuntu 26.04 header is repository-owned and is not available in core.
+# Load it explicitly so streamed execution does not make core's header lookup
+# fail before the script reaches its normal setup flow.
+_ubuntu_header_url="${COMMUNITY_SCRIPTS_REPO_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/vm/headers/ubuntu2604-vm"
+_ubuntu_header_content="$(curl -fsSL "$_ubuntu_header_url" 2>/dev/null || true)"
+header_info() {
+  clear 2>/dev/null || true
+  printf '%s\n' "$_ubuntu_header_content"
+}
+load_functions
+_ubuntu_cloud_init_func="$(dirname "${BASH_SOURCE[0]:-.}")/ubuntu-cloud-init.func"
+if [[ -f "$_ubuntu_cloud_init_func" ]]; then
+  source "$_ubuntu_cloud_init_func"
+else
+  source <(curl -fsSL "${COMMUNITY_SCRIPTS_REPO_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/vm/ubuntu-cloud-init.func")
+fi
+if ! declare -f ubuntu_get_valid_nextid >/dev/null 2>&1; then
+  echo "Unable to load the Ubuntu Cloud-Init helper." >&2
+  exit 1
+fi
+unset _ubuntu_cloud_init_func
+unset _ubuntu_header_url
+
+function get_valid_nextid() {
+  ubuntu_get_valid_nextid
+}
+
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
@@ -41,7 +66,6 @@ check_root
 arch_check
 pve_check
 ssh_check
-vm_prompt_cloud_init "ubuntu"
 
 function default_settings() {
   VMID=$(get_valid_nextid)
@@ -58,6 +82,7 @@ function default_settings() {
   MTU=""
   START_VM="yes"
   METHOD="default"
+  ubuntu_configure_cloud_init_default
 
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$(vm_machine_type_label "$MACHINE_TYPE")${CL}"
@@ -78,10 +103,10 @@ function default_settings() {
 
 function advanced_settings() {
   METHOD="advanced"
-  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
+  ubuntu_configure_cloud_init_advanced || exit_script
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
-  vm_prompt_disk_size "${DISK_SIZE:-7G}" "Set Disk Size in GiB (e.g., 10, 20)"
+  vm_prompt_disk_size "${DISK_SIZE:-7G}" "Please provide disk size in GiB (e.g., 10G, 20G)"
   vm_prompt_disk_cache "none"
   vm_prompt_hostname "ubuntu"
   vm_prompt_cpu_model "kvm64"
@@ -122,13 +147,15 @@ vm_define_disk_references 2
 DISK_IMPORT="-format ${DISK_IMPORT_FORMAT}"
 
 msg_info "Retrieving the URL for the Ubuntu 26.04 Disk Image"
-URL="https://cloud-images.ubuntu.com/releases/server/26.04/release/ubuntu-26.04-server-cloudimg-amd64.img"
+URL="https://cloud-images.ubuntu.com/releases/26.04/release/ubuntu-26.04-server-cloudimg-amd64.img"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$(basename "$URL")" "$URL"
 echo -en "\e[1A\e[0K"
 FILE="$(basename "$URL")"
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+
+ubuntu_configure_image_access "$FILE"
 
 msg_info "Creating a Ubuntu 26.04 VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
@@ -145,40 +172,19 @@ set_description
 msg_info "Resizing disk to $DISK_SIZE"
 qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
 
-if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f setup_cloud_init >/dev/null 2>&1; then
-  setup_cloud_init \
-    "$VMID" \
-    "$STORAGE" \
-    "$HN" \
-    "yes" \
-    "${CLOUDINIT_USER:-ubuntu}" \
-    "${CLOUDINIT_NETWORK_MODE:-dhcp}" \
-    "${CLOUDINIT_IP:-}" \
-    "${CLOUDINIT_GW:-}" \
-    "${CLOUDINIT_DNS:-${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}}"
-
-  if [[ "${CLOUDINIT_NETWORK_MODE:-dhcp}" == "static" ]]; then
-    setup_cloud_init_network_no_rename \
-      "$VMID" \
-      "$MAC" \
-      "$CLOUDINIT_IP" \
-      "$CLOUDINIT_GW" \
-      "${CLOUDINIT_DNS:-${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}}" \
-      "${CLOUDINIT_SEARCH_DOMAIN:-local}"
-  fi
+if [ "${CLOUDINIT_ENABLE:-no}" = "yes" ]; then
+  CLOUDINIT_NEEDS_NETWORK_NO_RENAME="yes"
+  ubuntu_setup_cloud_init "$MAC"
 fi
 
 msg_ok "Created a Ubuntu 26.04 VM ${CL}${BL}(${HN})"
+ubuntu_display_cloud_init_info
+ubuntu_cleanup_cloud_init
 if [ "$START_VM" = "yes" ]; then
   msg_info "Starting Ubuntu 26.04 VM"
-  qm start $VMID
+  qm start $VMID >/dev/null
   msg_ok "Started Ubuntu 26.04 VM"
 fi
 
 post_update_to_api "done" "none"
 msg_ok "Completed successfully!\n"
-if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f display_cloud_init_info >/dev/null 2>&1; then
-  display_cloud_init_info "$VMID" "$HN"
-else
-  echo -e "Cloud-Init is disabled. The VM disk was resized on the Proxmox side only.\nIf the guest does not auto-expand its root filesystem after first boot, expand it manually inside the VM.\n\nMore info at https://github.com/community-scripts/ProxmoxVED/discussions/272 \n"
-fi
