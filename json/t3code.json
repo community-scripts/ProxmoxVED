@@ -1,0 +1,49 @@
+{
+  "name": "T3 Code",
+  "slug": "t3code",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-08-23",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3773,
+  "documentation": "https://github.com/pingdotgg/t3code/tree/main/docs",
+  "website": "https://t3.codes",
+  "repository": "https://github.com/pingdotgg/t3code",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/t3code.webp",
+  "description": "T3 Code is a web and desktop control surface for running coding agents on your machine.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/t3code.sh",
+      "config_path": "/opt/t3code/userdata/settings.json",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Provider CLIs (Codex, Claude, Grok, OpenCode, GitHub) are included in the install. Login to the CT after creation to authenticate with these services.",
+      "type": "info"
+    },
+    {
+      "text": "Access T3 Code at http://<IP>:3773 and pair a device with the token/QR shown after install. Regenerate it with: `pct exec <CTID> -- t3 pair --base-dir /opt/t3code.`",
+      "type": "info"
+    }
+  ]
+}
