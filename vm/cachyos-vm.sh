@@ -27,19 +27,6 @@ RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 THIN="discard=on,ssd=1,"
 
-function header_info {
-  clear
-  cat <<"EOF"
-   ______           __          ____  _____
-  / ____/___ ______/ /_  __  __/ __ \/ ___/
- / /   / __ `/ ___/ __ \/ / / / / / /\__ \
-/ /___/ /_/ / /__/ / / / /_/ / /_/ /___/ /
-\____/\__,_/\___/_/ /_/\__, /\____//____/
-                      /____/
-         Performance-Optimized Arch Linux
-EOF
-}
-
 header_info
 echo -e "\n Loading..."
 
@@ -82,20 +69,7 @@ function default_settings() {
   MTU=""
   START_VM="yes"
   METHOD="default"
-  echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
-  echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
-  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host (Recommended for CachyOS optimizations)${CL}"
-  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
-  echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
-  echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
-  echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
-  echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
-  echo -e "${CREATING}${BOLD}${DGN}Creating a CachyOS VM using the above default settings${CL}"
+  vm_echo_default_settings
 }
 
 # ==============================================================================
@@ -128,22 +102,10 @@ function advanced_settings() {
   fi
 }
 
-function start_script() {
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?\n\nDefaults are optimized for desktop usage:\n• 4 CPU Cores (Host model)\n• 8 GB RAM\n• 40 GB Disk\n• Q35 Machine Type" --no-button Advanced 14 58); then
-    header_info
-    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings${CL}"
-    default_settings
-  else
-    header_info
-    echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
-    advanced_settings
-  fi
-}
-
 # ==============================================================================
 # MAIN EXECUTION
 # ==============================================================================
-start_script
+vm_start_script "Use Default Settings?\n\nDefaults are optimized for desktop usage:\n• 4 CPU Cores (Host model)\n• 8 GB RAM\n• 40 GB Disk\n• Q35 Machine Type" 14 58
 post_to_api_vm
 
 vm_select_storage "$HN"
