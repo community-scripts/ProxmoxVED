@@ -130,27 +130,51 @@ CACHE_FILE="${CACHE_DIR}/${FILENAME}"
 mkdir -p "$CACHE_DIR"
 msg_ok "${CL}${BL}CachyOS Desktop ISO (Release: ${CACHYOS_VERSION})${CL}"
 
-if [[ -s "$CACHE_FILE" ]]; then
+# SourceForge answers /download with a redirect to a mirror, and a mirror
+# having a bad day serves an HTML notice with status 200. curl is satisfied,
+# -f sees no error, and the result is a 589-byte "ISO" that qm will happily
+# attach and boot from. So the size decides, not the exit code: the real image
+# is around 3.1 GB, and anything under half a gigabyte is not it.
+MIN_ISO_BYTES=$((500 * 1024 * 1024))
+
+iso_size() { stat -c%s "$1" 2>/dev/null || echo 0; }
+
+if [[ -f "$CACHE_FILE" ]] && (($(iso_size "$CACHE_FILE") >= MIN_ISO_BYTES)); then
   msg_ok "Using cached ISO ${CL}${BL}${FILENAME}${CL}"
 else
+  # A cached file that failed the check is a leftover from exactly this bug.
+  [[ -f "$CACHE_FILE" ]] && rm -f "$CACHE_FILE"
+
   msg_info "Downloading CachyOS ISO (approximately 3.1 GB, this may take a while)"
-  if curl -fSL -o "$CACHE_FILE" -L "$URL"; then
-    echo -en "\e[1A\e[0K"
-    msg_ok "Downloaded ${CL}${BL}${FILENAME}${CL}"
-  else
+  if ! curl -fSL --retry 3 --retry-delay 5 -o "$CACHE_FILE" "$URL"; then
+    rm -f "$CACHE_FILE"
     msg_error "Failed to download CachyOS ISO"
     exit 1
   fi
+
+  DOWNLOADED_BYTES=$(iso_size "$CACHE_FILE")
+  if ((DOWNLOADED_BYTES < MIN_ISO_BYTES)); then
+    rm -f "$CACHE_FILE"
+    msg_error "Downloaded ${DOWNLOADED_BYTES} bytes, which is not an ISO"
+    msg_error "A SourceForge mirror most likely served an error page. Try again in a moment."
+    exit 1
+  fi
+
+  echo -en "\e[1A\e[0K"
+  msg_ok "Downloaded ${CL}${BL}${FILENAME}${CL}"
 fi
 
 # ==============================================================================
 # VM CREATION
 # ==============================================================================
+# The storage:size shorthand wants GiB as a bare integer, so the G that
+# DISK_SIZE carries everywhere else has to come off here. With it, LVM answers
+# "unable to parse lvm volume name '40G'" and the whole create fails.
 msg_info "Creating a CachyOS VM"
 
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 0 -ostype l26 -scsihw virtio-scsi-pci \
-  -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE},${DISK_CACHE}${THIN%,} \
+  -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
   -cdrom local:iso/${FILENAME} -vga qxl -serial0 socket >/dev/null
 
 set_description
