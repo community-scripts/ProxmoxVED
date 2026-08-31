@@ -58,6 +58,7 @@ function default_settings() {
   MTU=""
   START_VM="yes"
   METHOD="default"
+  USE_CLOUD_INIT="yes"
   vm_echo_default_settings
 }
 
@@ -170,12 +171,7 @@ msg_info "Resizing disk to ${DISK_SIZE}"
 qm resize "$VMID" scsi0 "${DISK_SIZE}" >/dev/null
 msg_ok "Resized disk to ${DISK_SIZE}"
 
-# The VM is built by now; a missing helper must not reach the ERR trap.
-if load_cloud_init_functions; then
-  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
-else
-  msg_warn "Cloud-Init helpers unavailable -- VM created, but Cloud-Init is not configured"
-fi
+vm_provision "$VMID" || true
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Fedora VM"

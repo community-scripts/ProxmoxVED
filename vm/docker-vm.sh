@@ -454,15 +454,11 @@ msg_ok "Attached EFI and root disk"
 set_description
 
 # Cloud-Init configuration
-if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  # The VM is built by now; a missing helper must not reach the ERR trap.
-  if load_cloud_init_functions; then
-    msg_info "Configuring Cloud-Init"
-    setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
-    msg_ok "Cloud-Init configured"
-  else
-    msg_warn "Cloud-Init helpers unavailable -- VM created, but Cloud-Init is not configured"
-  fi
+msg_info "Configuring Cloud-Init"
+if vm_provision "$VMID"; then
+  msg_ok "Cloud-Init configured"
+else
+  msg_warn "VM created, but not provisioned"
 fi
 
 # Start VM
