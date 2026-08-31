@@ -20,8 +20,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v2
         with:
-          app-id: ${{ vars.PUSH_MAIN_APP_ID }}
-          private-key: ${{ secrets.PUSH_MAIN_APP_SECRET }}
+          app-id: ${{ vars.GHAPP_SYNC_ID }}
+          private-key: ${{ secrets.GHAPP_SYNC_PRIVATE_KEY }}
           owner: community-scripts
           repositories: |
             ProxmoxVE
@@ -32,7 +32,7 @@ jobs:
         with:
           ref: main
           repository: community-scripts/ProxmoxVED
-          token: ${{ secrets.GH_MERGE_PAT }}
+          token: ${{ secrets.GH_CROSS_REPO_TOKEN }}
 
       - name: List Issues and Extract Script Type
         id: list_issues
