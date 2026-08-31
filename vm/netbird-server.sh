@@ -187,13 +187,12 @@ function get_image_url() {
 # SETTINGS
 # ==============================================================================
 function default_settings() {
+  vm_apply_machine_type "q35"
   configure_netbird_setup
   select_os
   select_cloud_init
 
   VMID=$(get_valid_nextid)
-  FORMAT=""
-  MACHINE=" -machine q35"
   DISK_CACHE=""
   DISK_SIZE="10G"
   HN="netbird"
@@ -207,207 +206,30 @@ function default_settings() {
   START_VM="yes"
   METHOD="default"
 
-  echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
-  echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
-  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
-  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
-  echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
-  echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
-  echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
-  echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
-  echo -e "${CREATING}${BOLD}${DGN}Creating a NetBird Server VM using the above default settings${CL}"
+  vm_echo_default_settings
 }
 
 function advanced_settings() {
+  METHOD="advanced"
   configure_netbird_setup
   select_os
   select_cloud_init
+  vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
+  vm_prompt_machine_type "q35"
+  vm_prompt_disk_size "10G"
+  vm_prompt_disk_cache "none"
+  vm_prompt_hostname "netbird"
+  vm_prompt_cpu_model "host"
+  vm_prompt_cpu_cores "2"
+  vm_prompt_ram "2048"
+  vm_prompt_bridge "vmbr0"
+  vm_prompt_mac "$GEN_MAC"
+  vm_prompt_vlan
+  vm_prompt_mtu
+  vm_prompt_verbose "no"
+  vm_prompt_start_vm "yes"
 
-  METHOD="advanced"
-  [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
-
-  while true; do
-    if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z "$VMID" ]; then VMID=$(get_valid_nextid); fi
-      if pct status "$VMID" &>/dev/null || qm status "$VMID" &>/dev/null; then
-        echo -e "${CROSS}${RD} ID $VMID is already in use${CL}"
-        sleep 2
-        continue
-      fi
-      echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}$VMID${CL}"
-      break
-    else
-      exit_script
-    fi
-  done
-
-  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Type" 10 58 2 \
-    "q35" "Q35 (Modern, PCIe)" ON \
-    "i440fx" "i440fx (Legacy, PCI)" OFF \
-    3>&1 1>&2 2>&3); then
-    if [ $MACH = q35 ]; then
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
-      FORMAT=""
-      MACHINE=" -machine q35"
-    else
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx (Legacy)${CL}"
-      FORMAT=",efitype=4m"
-      MACHINE=""
-    fi
-  else
-    exit_script
-  fi
-
-  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "10" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    DISK_SIZE=$(echo "$DISK_SIZE" | tr -d ' ')
-    if [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
-      DISK_SIZE="${DISK_SIZE}G"
-    elif [[ ! "$DISK_SIZE" =~ ^[0-9]+G$ ]]; then
-      echo -e "${DISKSIZE}${BOLD}${RD}Invalid Disk Size.${CL}"
-      exit_script
-    fi
-    echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
-  else
-    exit_script
-  fi
-
-  if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "None (Default)" ON \
-    "1" "Write Through" OFF \
-    3>&1 1>&2 2>&3); then
-    if [ $DISK_CACHE = "1" ]; then
-      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}Write Through${CL}"
-      DISK_CACHE="cache=writethrough,"
-    else
-      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
-      DISK_CACHE=""
-    fi
-  else
-    exit_script
-  fi
-
-  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 netbird --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    if [ -z $VM_NAME ]; then
-      HN="netbird"
-    else
-      HN=$(echo "${VM_NAME,,}" | tr -cs 'a-z0-9-' '-' | sed 's/^-//;s/-$//')
-    fi
-    echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
-  else
-    exit_script
-  fi
-
-  if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "1" "Host (Recommended)" ON \
-    "0" "KVM64" OFF \
-    3>&1 1>&2 2>&3); then
-    if [ $CPU_TYPE1 = "1" ]; then
-      echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
-      CPU_TYPE=" -cpu host"
-    else
-      echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
-      CPU_TYPE=""
-    fi
-  else
-    exit_script
-  fi
-
-  while true; do
-    if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z "$CORE_COUNT" ]; then CORE_COUNT="2"; fi
-      if [[ "$CORE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
-        echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}$CORE_COUNT${CL}"
-        break
-      fi
-    else
-      exit_script
-    fi
-  done
-
-  while true; do
-    if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB (min 2048)" 8 58 2048 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z "$RAM_SIZE" ]; then RAM_SIZE="2048"; fi
-      if [[ "$RAM_SIZE" =~ ^[1-9][0-9]*$ ]]; then
-        echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}$RAM_SIZE${CL}"
-        break
-      fi
-    else
-      exit_script
-    fi
-  done
-
-  if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 vmbr0 --title "BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    if [ -z $BRG ]; then BRG="vmbr0"; fi
-    echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
-  else
-    exit_script
-  fi
-
-  while true; do
-    if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address" 8 58 $GEN_MAC --title "MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z "$MAC1" ]; then
-        MAC="$GEN_MAC"
-        echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}$MAC${CL}"
-        break
-      fi
-      if [[ "$MAC1" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
-        MAC="$MAC1"
-        echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}$MAC${CL}"
-        break
-      fi
-    else
-      exit_script
-    fi
-  done
-
-  while true; do
-    if VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan (leave blank for default)" 8 58 --title "VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z "$VLAN1" ]; then
-        VLAN=""
-        echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
-        break
-      fi
-      if [[ "$VLAN1" =~ ^[0-9]+$ ]] && [ "$VLAN1" -ge 1 ] && [ "$VLAN1" -le 4094 ]; then
-        VLAN=",tag=$VLAN1"
-        echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}$VLAN1${CL}"
-        break
-      fi
-    else
-      exit_script
-    fi
-  done
-
-  while true; do
-    if MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z "$MTU1" ]; then
-        MTU=""
-        echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
-        break
-      fi
-      if [[ "$MTU1" =~ ^[0-9]+$ ]] && [ "$MTU1" -ge 576 ] && [ "$MTU1" -le 65520 ]; then
-        MTU=",mtu=$MTU1"
-        echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}$MTU1${CL}"
-        break
-      fi
-    else
-      exit_script
-    fi
-  done
-
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
-    echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
-    START_VM="yes"
-  else
-    echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}no${CL}"
-    START_VM="no"
-  fi
-
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a NetBird Server VM?" --no-button Do-Over 10 58); then
+  if vm_confirm_advanced_settings "Ready to create a NetBird Server VM?"; then
     echo -e "${CREATING}${BOLD}${DGN}Creating a NetBird Server VM using the above advanced settings${CL}"
   else
     header_info
@@ -416,55 +238,17 @@ function advanced_settings() {
   fi
 }
 
-function start_script() {
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?" --no-button Advanced 10 58); then
-    header_info
-    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings${CL}"
-    default_settings
-  else
-    header_info
-    echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
-    advanced_settings
-  fi
-}
 
 # ==============================================================================
 # MAIN EXECUTION
 # ==============================================================================
-start_script
+vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
 # ==============================================================================
 # STORAGE SELECTION
 # ==============================================================================
-msg_info "Validating Storage"
-while read -r line; do
-  TAG=$(echo $line | awk '{print $1}')
-  TYPE=$(echo $line | awk '{printf "%-10s", $2}')
-  FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
-  ITEM="  Type: $TYPE Free: $FREE "
-  OFFSET=2
-  if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-} ]]; then
-    MSG_MAX_LENGTH=$((${#ITEM} + $OFFSET))
-  fi
-  STORAGE_MENU+=("$TAG" "$ITEM" "OFF")
-done < <(pvesm status -content images | awk 'NR>1')
-
-VALID=$(pvesm status -content images | awk 'NR>1')
-if [ -z "$VALID" ]; then
-  msg_error "Unable to detect a valid storage location."
-  exit
-elif [ $((${#STORAGE_MENU[@]} / 3)) -eq 1 ]; then
-  STORAGE=${STORAGE_MENU[0]}
-else
-  while [ -z "${STORAGE:+x}" ]; do
-    STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-      "Which storage pool would you like to use for ${HN}?\nTo make a selection, use the Spacebar.\n" \
-      16 $(($MSG_MAX_LENGTH + 23)) 6 \
-      "${STORAGE_MENU[@]}" 3>&1 1>&2 2>&3)
-  done
-fi
-msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
+vm_select_storage "$HN"
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 
 # ==============================================================================
