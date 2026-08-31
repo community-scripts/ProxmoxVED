@@ -683,17 +683,24 @@ qm set "$VMID" \
 qm resize "$VMID" scsi0 "$DISK_SIZE" >/dev/null
 qm set "$VMID" --agent enabled=1 >/dev/null
 
-# Add Cloud-Init drive
-msg_info "Configuring Cloud-Init"
-setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" >/dev/null 2>&1
-# Override with user-set password
-qm set "$VMID" --cipassword "$USER_PASSWORD" >/dev/null
-# Add SSH keys if provided
-if [ -n "${SSH_KEYS_FILE:-}" ] && [ -f "${SSH_KEYS_FILE:-}" ]; then
-  qm set "$VMID" --sshkeys "$SSH_KEYS_FILE" >/dev/null
-  rm -f "$SSH_KEYS_FILE"
+# Add Cloud-Init drive. The whole block is guarded, not just the first call:
+# --cipassword and --sshkeys need the drive that setup_cloud_init creates, so
+# without it they would fail too -- and the ERR trap would destroy a VM that
+# is otherwise finished.
+if load_cloud_init_functions; then
+  msg_info "Configuring Cloud-Init"
+  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" >/dev/null 2>&1
+  # Override with user-set password
+  qm set "$VMID" --cipassword "$USER_PASSWORD" >/dev/null
+  # Add SSH keys if provided
+  if [ -n "${SSH_KEYS_FILE:-}" ] && [ -f "${SSH_KEYS_FILE:-}" ]; then
+    qm set "$VMID" --sshkeys "$SSH_KEYS_FILE" >/dev/null
+    rm -f "$SSH_KEYS_FILE"
+  fi
+  msg_ok "Cloud-Init configured"
+else
+  msg_warn "Cloud-Init helpers unavailable -- VM created, but no Cloud-Init drive, password or SSH keys were set"
 fi
-msg_ok "Cloud-Init configured"
 
 DESCRIPTION=$(
   cat <<EOF

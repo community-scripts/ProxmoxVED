@@ -753,9 +753,15 @@ msg_ok "Attached EFI and root disk"
 set_description
 
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  msg_info "Configuring Cloud-Init"
-  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
-  msg_ok "Cloud-Init configured"
+  # The VM is already built here, so an unreachable helper must not reach the
+  # ERR trap -- that would destroy it over an optional step.
+  if load_cloud_init_functions; then
+    msg_info "Configuring Cloud-Init"
+    setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
+    msg_ok "Cloud-Init configured"
+  else
+    msg_warn "Cloud-Init helpers unavailable -- VM created, but Cloud-Init is not configured"
+  fi
 fi
 
 # ==============================================================================

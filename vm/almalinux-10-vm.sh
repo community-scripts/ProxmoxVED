@@ -419,7 +419,14 @@ msg_info "Resizing disk to ${DISK_SIZE}"
 qm resize "$VMID" scsi0 "${DISK_SIZE}" >/dev/null
 msg_ok "Resized disk to ${DISK_SIZE}"
 
-setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
+# The VM exists and is correct by this point, so a helper that cannot be
+# fetched must not reach the ERR trap -- that would destroy it over an
+# optional step.
+if load_cloud_init_functions; then
+  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
+else
+  msg_warn "Cloud-Init helpers unavailable -- VM created, but Cloud-Init is not configured"
+fi
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting AlmaLinux 10 VM"
