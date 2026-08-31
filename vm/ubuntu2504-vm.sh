@@ -1,6 +1,6 @@
 ﻿#!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
@@ -9,12 +9,12 @@ source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-sc
 function header_info {
   clear
   cat <<"EOF"
-    ____       __    _                ______
-   / __ \___  / /_  (_)___ _____     <  /__ \
-  / / / / _ \/ __ \/ / __ `/ __ \    / /__/ /
- / /_/ /  __/ /_/ / / /_/ / / / /   / // __/
-/_____/\___/_.___/_/\__,_/_/ /_/   /_//____/
-
+   __  ____                __           ___   ______ ____  __ __     _    ____  ___
+  / / / / /_  __  ______  / /___  __   |__ \ / ____// __ \/ // /    | |  / /  |/  /
+ / / / / __ \/ / / / __ \/ __/ / / /   __/ //___ \ / / / / // /_    | | / / /|_/ / 
+/ /_/ / /_/ / /_/ / / / / /_/ /_/ /   / __/____/ // /_/ /__  __/    | |/ / /  / /  
+\____/_.___/\__,_/_/ /_/\__/\__,_/   /____/_____(_)____/  /_/       |___/_/  /_/ (Plucky Puffin)
+                                                                                   
 EOF
 }
 header_info
@@ -22,9 +22,9 @@ echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
-NSAPP="debian-vm"
-var_os="debian"
-var_version="12"
+NSAPP="ubuntu2504-vm"
+var_os="ubuntu"
+var_version="2504"
 
 YW=$(echo "\033[33m")
 BL=$(echo "\033[36m")
@@ -57,7 +57,6 @@ MACADDRESS="${TAB}🔗${TAB}${CL}"
 VLANTAG="${TAB}🏷️${TAB}${CL}"
 CREATING="${TAB}🚀${TAB}${CL}"
 ADVANCED="${TAB}🧩${TAB}${CL}"
-CLOUD="${TAB}☁️${TAB}${CL}"
 
 THIN="discard=on,ssd=1,"
 set -e
@@ -70,8 +69,8 @@ function error_handler() {
   local exit_code="$?"
   local line_number="$1"
   local command="$2"
+  post_update_to_api "failed" "$exit_code"
   local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
-  post_update_to_api "failed" "${exit_code}"
   echo -e "\n$error_message\n"
   cleanup_vmid
 }
@@ -115,7 +114,7 @@ function cleanup() {
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Debian 12 VM" --yesno "This will create a New Debian 12 VM. Proceed?" 10 58; then
+if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Ubuntu 25.04 VM" --yesno "This will create a New Ubuntu 25.04 VM. Proceed?" 10 58; then
   :
 else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
@@ -213,9 +212,9 @@ function default_settings() {
   VMID=$(get_valid_nextid)
   FORMAT=",efitype=4m"
   MACHINE=""
-  DISK_SIZE="8G"
+  DISK_SIZE="7G"
   DISK_CACHE=""
-  HN="debian"
+  HN="ubuntu"
   CPU_TYPE=""
   CORE_COUNT="2"
   RAM_SIZE="2048"
@@ -223,8 +222,7 @@ function default_settings() {
   MAC="$GEN_MAC"
   VLAN=""
   MTU=""
-  START_VM="yes"
-  CLOUD_INIT="no"
+  START_VM="no"
   METHOD="default"
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
@@ -238,9 +236,8 @@ function default_settings() {
   echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
   echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${CLOUD}${BOLD}${DGN}Configure Cloud-init: ${BGN}no${CL}"
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
-  echo -e "${CREATING}${BOLD}${DGN}Creating a Debian 12 VM using the above default settings${CL}"
+  echo -e "${CREATING}${BOLD}${DGN}Creating a Ubuntu 25.04 VM using the above default settings${CL}"
 }
 
 function advanced_settings() {
@@ -310,9 +307,9 @@ function advanced_settings() {
     exit-script
   fi
 
-  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 debian --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 ubuntu --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="debian"
+      HN="ubuntu"
       echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
     else
       HN=$(echo "${VM_NAME,,}" | tr -cs 'a-z0-9-' '-' | sed 's/^-//;s/-$//')
@@ -433,14 +430,6 @@ function advanced_settings() {
     fi
   done
 
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT" --yesno "Configure the VM with Cloud-init?" --defaultno 10 58); then
-    echo -e "${CLOUD}${BOLD}${DGN}Configure Cloud-init: ${BGN}yes${CL}"
-    CLOUD_INIT="yes"
-  else
-    echo -e "${CLOUD}${BOLD}${DGN}Configure Cloud-init: ${BGN}no${CL}"
-    CLOUD_INIT="no"
-  fi
-
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
     echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
     START_VM="yes"
@@ -449,8 +438,8 @@ function advanced_settings() {
     START_VM="no"
   fi
 
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a Debian 12 VM?" --no-button Do-Over 10 58); then
-    echo -e "${CREATING}${BOLD}${DGN}Creating a Debian 12 VM using the above advanced settings${CL}"
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a Ubuntu 25.04 VM?" --no-button Do-Over 10 58); then
+    echo -e "${CREATING}${BOLD}${DGN}Creating a Ubuntu 25.04 VM using the above advanced settings${CL}"
   else
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
@@ -469,13 +458,11 @@ function start_script() {
     advanced_settings
   fi
 }
-
 check_root
 arch_check
 pve_check
 ssh_check
 start_script
-
 post_to_api_vm
 
 msg_info "Validating Storage"
@@ -506,12 +493,8 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Retrieving the URL for the Debian 12 Qcow2 Disk Image"
-if [ "$CLOUD_INIT" == "yes" ]; then
-  URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
-else
-  URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2
-fi
+msg_info "Retrieving the URL for the Ubuntu 25.04 Disk Image"
+URL=https://cloud-images.ubuntu.com/releases/server/plucky/release/ubuntu-25.04-server-cloudimg-amd64.img
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$(basename "$URL")" "$URL"
@@ -521,7 +504,7 @@ msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
-nfs | dir)
+nfs | dir | cifs)
   DISK_EXT=".qcow2"
   DISK_REF="$VMID/"
   DISK_IMPORT="-format qcow2"
@@ -546,25 +529,17 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Creating a Debian 12 VM"
+msg_info "Creating a Ubuntu 25.04 VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
-if [ "$CLOUD_INIT" == "yes" ]; then
-  qm set $VMID \
-    -efidisk0 ${DISK0_REF}${FORMAT} \
-    -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-    -scsi1 ${STORAGE}:cloudinit \
-    -boot order=scsi0 \
-    -serial0 socket >/dev/null
-else
-  qm set $VMID \
-    -efidisk0 ${DISK0_REF}${FORMAT} \
-    -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-    -boot order=scsi0 \
-    -serial0 socket >/dev/null
-fi
+qm set $VMID \
+  -efidisk0 ${DISK0_REF}${FORMAT} \
+  -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
+  -ide2 ${STORAGE}:cloudinit \
+  -boot order=scsi0 \
+  -serial0 socket >/dev/null
 DESCRIPTION=$(
   cat <<EOF
 <div align='center'>
@@ -572,7 +547,7 @@ DESCRIPTION=$(
     <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
   </a>
 
-  <h2 style='font-size: 24px; margin: 20px 0;'>Debian VM</h2>
+  <h2 style='font-size: 24px; margin: 20px 0;'>ubuntu VM</h2>
 
   <p style='margin: 16px 0;'>
     <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
@@ -595,7 +570,7 @@ DESCRIPTION=$(
 </div>
 EOF
 )
-qm set "$VMID" -description "$DESCRIPTION" >/dev/null
+qm set $VMID -description "$DESCRIPTION" >/dev/null
 if [ -n "$DISK_SIZE" ]; then
   msg_info "Resizing disk to $DISK_SIZE GB"
   qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
@@ -604,12 +579,13 @@ else
   qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
 fi
 
-msg_ok "Created a Debian 12 VM ${CL}${BL}(${HN})"
+msg_ok "Created a Ubuntu 25.04 VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting Debian 12 VM"
+  msg_info "Starting Ubuntu 25.04 VM"
   qm start $VMID
-  msg_ok "Started Debian 12 VM"
+  msg_ok "Started Ubuntu 25.04 VM"
 fi
-
+post_update_to_api "done" "none"
 msg_ok "Completed successfully!\n"
-echo "More Info at https://github.com/community-scripts/ProxmoxVE/discussions/836"
+echo -e "Setup Cloud-Init before starting \n
+More info at https://github.com/community-scripts/ProxmoxVE/discussions/272 \n"

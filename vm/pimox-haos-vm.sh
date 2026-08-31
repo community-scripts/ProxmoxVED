@@ -1,72 +1,88 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
-source /dev/stdin <<<$(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/api/api.func")
+source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func)
 
 function header_info {
   cat <<"EOF"
-                                      ____  _ __  ___
-                                    / __ \(_)  |/  /___  _  __
-                                   / /_/ / / /|_/ / __ \| |/_/
-                                  / ____/ / /  / / /_/ />  <
+                                      ____  _ __  ___                                        
+                                    / __ \(_)  |/  /___  _  __                              
+                                   / /_/ / / /|_/ / __ \| |/_/                              
+                                  / ____/ / /  / / /_/ />  <                                
     __  __                       /_/_  /_/_/  /_/\____/_/|_|              __     ____  _____
    / / / /___  ____ ___  ___     /   |  __________(_)____/ /_____ _____  / /_   / __ \/ ___/
-  / /_/ / __ \/ __ `__ \/ _ \   / /| | / ___/ ___/ / ___/ __/ __ `/ __ \/ __/  / / / /\__ \
- / __  / /_/ / / / / / /  __/  / ___ |(__  |__  ) (__  ) /_/ /_/ / / / / /_   / /_/ /___/ /
-/_/ /_/\____/_/ /_/ /_/\___/  /_/  |_/____/____/_/____/\__/\__,_/_/ /_/\__/   \____//____/
-
+  / /_/ / __ \/ __ `__ \/ _ \   / /| | / ___/ ___/ / ___/ __/ __ `/ __ \/ __/  / / / /\__ \ 
+ / __  / /_/ / / / / / /  __/  / ___ |(__  |__  ) (__  ) /_/ /_/ / / / / /_   / /_/ /___/ / 
+/_/ /_/\____/_/ /_/ /_/\___/  /_/  |_/____/____/_/____/\__/\__,_/_/ /_/\__/   \____//____/  
+                                                                                            
 EOF
 }
 clear
 header_info
-echo -e "Loading..."
+echo -e "\n Loading..."
+GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
+VERSIONS=(stable beta dev)
 METHOD=""
 NSAPP="pimox-haos-vm"
 var_os="pimox-haos"
-var_version=" "
 DISK_SIZE="32G"
-GEN_MAC=$(echo '00 60 2f'$(od -An -N3 -t xC /dev/urandom) | sed -e 's/ /:/g' | tr '[:lower:]' '[:upper:]')
-USEDID=$(pvesh get /cluster/resources --type vm --output-format yaml | egrep -i 'vmid' | awk '{print substr($2, 1, length($2)-0) }')
-STABLE=$(curl -fsSL https://raw.githubusercontent.com/home-assistant/version/master/stable.json | grep "ova" | awk '{print substr($2, 2, length($2)-3) }')
-BETA=$(curl -fsSL https://raw.githubusercontent.com/home-assistant/version/master/beta.json | grep "ova" | awk '{print substr($2, 2, length($2)-3) }')
-DEV=$(curl -fsSL https://raw.githubusercontent.com/home-assistant/version/master/dev.json | grep "ova" | awk '{print substr($2, 2, length($2)-3) }')
+
+for version in "${VERSIONS[@]}"; do
+  eval "$version=$(curl -fsSL https://raw.githubusercontent.com/home-assistant/version/master/stable.json | grep '"ova"' | cut -d '"' -f 4)"
+done
 YW=$(echo "\033[33m")
 BL=$(echo "\033[36m")
-HA=$(echo "\033[1;34m")
 RD=$(echo "\033[01;31m")
 BGN=$(echo "\033[4;92m")
 GN=$(echo "\033[1;92m")
 DGN=$(echo "\033[32m")
 CL=$(echo "\033[m")
+
+CL=$(echo "\033[m")
+BOLD=$(echo "\033[1m")
 BFR="\\r\\033[K"
-HOLD="-"
-CM="${GN}✓${CL}"
-CROSS="${RD}✗${CL}"
-set -o errexit
-set -o errtrace
-set -o nounset
-set -o pipefail
-shopt -s expand_aliases
-alias die='EXIT=$? LINE=$LINENO error_exit'
-trap die ERR
+HOLD=" "
+TAB="  "
+
+CM="${TAB}✔️${TAB}${CL}"
+CROSS="${TAB}✖️${TAB}${CL}"
+INFO="${TAB}💡${TAB}${CL}"
+OS="${TAB}🖥️${TAB}${CL}"
+CONTAINERTYPE="${TAB}📦${TAB}${CL}"
+DISKSIZE="${TAB}💾${TAB}${CL}"
+CPUCORE="${TAB}🧠${TAB}${CL}"
+RAMSIZE="${TAB}🛠️${TAB}${CL}"
+CONTAINERID="${TAB}🆔${TAB}${CL}"
+HOSTNAME="${TAB}🏠${TAB}${CL}"
+BRIDGE="${TAB}🌉${TAB}${CL}"
+GATEWAY="${TAB}🌐${TAB}${CL}"
+DEFAULT="${TAB}⚙️${TAB}${CL}"
+MACADDRESS="${TAB}🔗${TAB}${CL}"
+VLANTAG="${TAB}🏷️${TAB}${CL}"
+CREATING="${TAB}🚀${TAB}${CL}"
+ADVANCED="${TAB}🧩${TAB}${CL}"
+CLOUD="${TAB}☁️${TAB}${CL}"
+
+THIN="discard=on,ssd=1,"
+set -e
+trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
-trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
-trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
-function error_exit() {
-  trap - ERR
-  local reason="Unknown failure occurred."
-  local msg="${1:-$reason}"
-  local flag="${RD}‼ ERROR ${CL}$EXIT@$LINE"
-  post_update_to_api "failed" "unknown"
-  echo -e "$flag $msg" 1>&2
-  [ ! -z ${VMID-} ] && cleanup_vmid
-  exit $EXIT
+trap 'post_update_to_api "failed" "130"' SIGINT
+trap 'post_update_to_api "failed" "143"' SIGTERM
+trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
+function error_handler() {
+  local exit_code="$?"
+  local line_number="$1"
+  local command="$2"
+  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
+  post_update_to_api "failed" "${exit_code}"
+  echo -e "\n$error_message\n"
+  cleanup_vmid
 }
 
 function get_valid_nextid() {
@@ -87,51 +103,119 @@ function get_valid_nextid() {
 }
 
 function cleanup_vmid() {
-  if $(qm status $VMID &>/dev/null); then
-    if [ "$(qm status $VMID | awk '{print $2}')" == "running" ]; then
-      qm stop $VMID
-    fi
-    qm destroy $VMID
+  if qm status $VMID &>/dev/null; then
+    qm stop $VMID &>/dev/null
+    qm destroy $VMID &>/dev/null
   fi
 }
+
 function cleanup() {
+  local exit_code=$?
   popd >/dev/null
+  if [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
+    if [[ $exit_code -eq 0 ]]; then
+      post_update_to_api "done" "none"
+    else
+      post_update_to_api "failed" "$exit_code"
+    fi
+  fi
   rm -rf $TEMP_DIR
 }
+
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if ! command -v whiptail &>/dev/null; then
-  echo "Installing whiptail..."
-  apt-get update &>/dev/null
-  apt-get install -y whiptail &>/dev/null
-fi
-if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "PiMox HAOS VM" --yesno "This will create a New PiMox HAOS VM. Proceed?" 10 58); then
-  echo "User selected Yes"
+if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Pimox Homeassistant OS VM" --yesno "This will create a New Pimox Homeassistant OS VM. Proceed?" 10 58; then
+  :
 else
-  clear
-  echo -e "⚠ User exited script \n"
-  exit
+  header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
 fi
-function ARCH_CHECK() {
-  ARCH=$(dpkg --print-architecture)
-  if [[ "$ARCH" == "amd64" ]]; then
-    echo -e "\n ❌  This script only works with PiMox! \n"
+
+function msg_info() {
+  local msg="$1"
+  echo -ne "${TAB}${YW}${HOLD}${msg}${HOLD}"
+}
+
+function msg_ok() {
+  local msg="$1"
+  echo -e "${BFR}${CM}${GN}${msg}${CL}"
+}
+
+function msg_error() {
+  local msg="$1"
+  echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
+}
+
+function check_root() {
+  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
+    clear
+    msg_error "Please run this script as root."
+    echo -e "\nExiting..."
+    sleep 2
+    exit
+  fi
+}
+
+# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
+# Supported: Proxmox VE 8.0.x – 8.9.x, 9.0 and 9.2
+pve_check() {
+  local PVE_VER
+  PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
+
+  # Check for Proxmox VE 8.x: allow 8.0–8.9
+  if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
+    local MINOR="${BASH_REMATCH[1]}"
+    if ((MINOR < 0 || MINOR > 9)); then
+      msg_error "This version of Proxmox VE is not supported."
+      msg_error "Supported: Proxmox VE version 8.0 – 8.9"
+      exit 105
+    fi
+    return 0
+  fi
+
+  # Check for Proxmox VE 9.x: allow 9.0 and 9.2
+  if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
+    local MINOR="${BASH_REMATCH[1]}"
+    if ((MINOR < 0 || MINOR > 2)); then
+      msg_error "This version of Proxmox VE is not supported."
+      msg_error "Supported: Proxmox VE version 9.0 – 9.2"
+      exit 105
+    fi
+    return 0
+  fi
+
+  # All other unsupported versions
+  msg_error "This version of Proxmox VE is not supported."
+  msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0 – 9.2"
+  exit 105
+}
+
+function arch_check() {
+  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
+    echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
+    echo -e "\n ${YWB}Visit https://github.com/asylumexp/Proxmox for ARM64 support. \n"
     echo -e "Exiting..."
     sleep 2
     exit
   fi
 }
-function msg_info() {
-  local msg="$1"
-  echo -ne " ${HOLD} ${YW}${msg}..."
+
+function ssh_check() {
+  if command -v pveversion >/dev/null 2>&1; then
+    if [ -n "${SSH_CLIENT:+x}" ]; then
+      if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Would you like to proceed with using SSH?" 10 62; then
+        echo "you've been warned"
+      else
+        clear
+        exit
+      fi
+    fi
+  fi
 }
-function msg_ok() {
-  local msg="$1"
-  echo -e "${BFR} ${CM} ${GN}${msg}${CL}"
-}
-function msg_error() {
-  local msg="$1"
-  echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
+
+function exit-script() {
+  clear
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+  exit
 }
 
 function default_settings() {
@@ -190,26 +274,35 @@ function advanced_settings() {
     echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
   else
     if [ $exitstatus = 0 ]; then
-      HN=$(echo ${VM_NAME,,} | tr -d ' ')
+      HN=$(echo "${VM_NAME,,}" | tr -cs 'a-z0-9-' '-' | sed 's/^-//;s/-$//')
+      if [ "$HN" != "${VM_NAME,,}" ]; then
+        whiptail --backtitle "Proxmox VE Helper Scripts" --title "HOSTNAME ADJUSTED" --msgbox "Invalid characters detected. Hostname has been adjusted to:\n\n  $HN" 10 58
+      fi
       echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
     fi
   fi
-  CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ -z $CORE_COUNT ]; then
-    CORE_COUNT="2"
-    echo -e "${DGN}Allocated Cores: ${BGN}$CORE_COUNT${CL}"
-  else
-    if [ $exitstatus = 0 ]; then echo -e "${DGN}Allocated Cores: ${BGN}$CORE_COUNT${CL}"; fi
-  fi
-  RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 4096 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ -z $RAM_SIZE ]; then
-    RAM_SIZE="4096"
-    echo -e "${DGN}Allocated RAM: ${BGN}$RAM_SIZE${CL}"
-  else
-    if [ $exitstatus = 0 ]; then echo -e "${DGN}Allocated RAM: ${BGN}$RAM_SIZE${CL}"; fi
-  fi
+  while true; do
+    CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
+    exitstatus=$?
+    if [ $exitstatus -ne 0 ]; then exit-script; fi
+    if [ -z "$CORE_COUNT" ]; then CORE_COUNT="2"; fi
+    if [[ "$CORE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+      echo -e "${DGN}Allocated Cores: ${BGN}$CORE_COUNT${CL}"
+      break
+    fi
+    whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "CPU Cores must be a positive integer (e.g., 2)." 8 58
+  done
+  while true; do
+    RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 4096 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
+    exitstatus=$?
+    if [ $exitstatus -ne 0 ]; then exit-script; fi
+    if [ -z "$RAM_SIZE" ]; then RAM_SIZE="4096"; fi
+    if [[ "$RAM_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+      echo -e "${DGN}Allocated RAM: ${BGN}$RAM_SIZE${CL}"
+      break
+    fi
+    whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "RAM Size must be a positive integer in MiB (e.g., 4096)." 8 58
+  done
   BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 vmbr0 --title "BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
   exitstatus=$?
   if [ -z $BRG ]; then
@@ -218,39 +311,56 @@ function advanced_settings() {
   else
     if [ $exitstatus = 0 ]; then echo -e "${DGN}Using Bridge: ${BGN}$BRG${CL}"; fi
   fi
-  MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address" 8 58 $GEN_MAC --title "MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ -z $MAC1 ]; then
-    MAC="$GEN_MAC"
-    echo -e "${DGN}Using MAC Address: ${BGN}$MAC${CL}"
-  else
-    if [ $exitstatus = 0 ]; then
+  while true; do
+    MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address" 8 58 $GEN_MAC --title "MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
+    exitstatus=$?
+    if [ $exitstatus -ne 0 ]; then exit-script; fi
+    if [ -z "$MAC1" ]; then
+      MAC="$GEN_MAC"
+      echo -e "${DGN}Using MAC Address: ${BGN}$MAC${CL}"
+      break
+    fi
+    if [[ "$MAC1" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
       MAC="$MAC1"
       echo -e "${DGN}Using MAC Address: ${BGN}$MAC1${CL}"
+      break
     fi
-  fi
-  VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for default)" 8 58 --title "VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    if [ -z $VLAN1 ]; then
-      VLAN1="Default" VLAN=""
+    whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "Invalid MAC address format. Use XX:XX:XX:XX:XX:XX (e.g., AA:BB:CC:DD:EE:FF)." 8 58
+  done
+  while true; do
+    VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for default)" 8 58 --title "VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
+    exitstatus=$?
+    if [ $exitstatus -ne 0 ]; then exit-script; fi
+    if [ -z "$VLAN1" ]; then
+      VLAN1="Default"
+      VLAN=""
       echo -e "${DGN}Using Vlan: ${BGN}$VLAN1${CL}"
-    else
+      break
+    fi
+    if [[ "$VLAN1" =~ ^[0-9]+$ ]] && [ "$VLAN1" -ge 1 ] && [ "$VLAN1" -le 4094 ]; then
       VLAN=",tag=$VLAN1"
       echo -e "${DGN}Using Vlan: ${BGN}$VLAN1${CL}"
+      break
     fi
-  fi
-  MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    if [ -z $MTU1 ]; then
-      MTU1="Default" MTU=""
+    whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "VLAN must be a number between 1 and 4094, or leave blank for default." 8 58
+  done
+  while true; do
+    MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
+    exitstatus=$?
+    if [ $exitstatus -ne 0 ]; then exit-script; fi
+    if [ -z "$MTU1" ]; then
+      MTU1="Default"
+      MTU=""
       echo -e "${DGN}Using Interface MTU Size: ${BGN}$MTU1${CL}"
-    else
+      break
+    fi
+    if [[ "$MTU1" =~ ^[0-9]+$ ]] && [ "$MTU1" -ge 576 ] && [ "$MTU1" -le 65520 ]; then
       MTU=",mtu=$MTU1"
       echo -e "${DGN}Using Interface MTU Size: ${BGN}$MTU1${CL}"
+      break
     fi
-  fi
+    whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "MTU Size must be a number between 576 and 65520, or leave blank for default." 8 58
+  done
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
     echo -e "${DGN}Start VM when completed: ${BGN}yes${CL}"
     START_VM="yes"
@@ -326,6 +436,11 @@ nfs | dir)
   DISK_REF="$VMID/"
   DISK_IMPORT="-format qcow2"
   ;;
+*)
+  DISK_EXT=""
+  DISK_REF=""
+  DISK_IMPORT="-format raw"
+  ;;
 esac
 for i in {0,1}; do
   disk="DISK$i"
@@ -347,18 +462,18 @@ qm set $VMID \
 DESCRIPTION=$(
   cat <<EOF
 <div align='center'>
-  <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
-    <img src='${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
+  <a href='https://community-scripts.org' target='_blank' rel='noopener noreferrer'>
+    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
   </a>
 
-  <h2 style='font-size: 24px; margin: 20px 0;'>OpenWRT VM</h2>
+  <h2 style='font-size: 24px; margin: 20px 0;'>Homeassistant VM</h2>
 
   <p style='margin: 16px 0;'>
     <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
       <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
     </a>
   </p>
-
+  
   <span style='margin: 0 10px;'>
     <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
     <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
@@ -374,7 +489,14 @@ DESCRIPTION=$(
 </div>
 EOF
 )
-qm set "$VMID" -description "$DESCRIPTION" >/dev/null
+qm set $VMID -description "$DESCRIPTION" >/dev/null
+if [ -n "$DISK_SIZE" ]; then
+  msg_info "Resizing disk to $DISK_SIZE GB"
+  qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
+else
+  msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
+  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
+fi
 
 msg_ok "Created HAOS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then

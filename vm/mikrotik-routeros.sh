@@ -1,14 +1,14 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
-source /dev/stdin <<<$(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/api/api.func")
+source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func)
 
 function header_info {
+  clear
   cat <<"EOF"
     __  ____ __              __  _ __      ____              __            ____  _____    ________  ______
    /  |/  (_) /___________  / /_(_) /__   / __ \____  __  __/ /____  _____/ __ \/ ___/   / ____/ / / / __ \
@@ -18,45 +18,63 @@ function header_info {
 
 EOF
 }
-clear
 header_info
 echo -e "Loading..."
 GEN_MAC=$(echo '00 60 2f'$(od -An -N3 -t xC /dev/urandom) | sed -e 's/ /:/g' | tr '[:lower:]' '[:upper:]')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
-NSAPP="mikrotik-router-os"
+NSAPP="mikrotik-routeros"
 var_os="mikrotik"
 var_version=" "
 DISK_SIZE="1G"
 YW=$(echo "\033[33m")
 BL=$(echo "\033[36m")
-HA=$(echo "\033[1;34m")
 RD=$(echo "\033[01;31m")
 BGN=$(echo "\033[4;92m")
 GN=$(echo "\033[1;92m")
 DGN=$(echo "\033[32m")
 CL=$(echo "\033[m")
+
+CL=$(echo "\033[m")
+BOLD=$(echo "\033[1m")
 BFR="\\r\\033[K"
-HOLD="-"
-CM="${GN}✓${CL}"
-set -o errexit
-set -o errtrace
-set -o nounset
-set -o pipefail
-shopt -s expand_aliases
-alias die='EXIT=$? LINE=$LINENO error_exit'
-trap die ERR
+HOLD=" "
+TAB="  "
+
+CM="${TAB}✔️${TAB}${CL}"
+CROSS="${TAB}✖️${TAB}${CL}"
+INFO="${TAB}💡${TAB}${CL}"
+OS="${TAB}🖥️${TAB}${CL}"
+CONTAINERTYPE="${TAB}📦${TAB}${CL}"
+DISKSIZE="${TAB}💾${TAB}${CL}"
+CPUCORE="${TAB}🧠${TAB}${CL}"
+RAMSIZE="${TAB}🛠️${TAB}${CL}"
+CONTAINERID="${TAB}🆔${TAB}${CL}"
+HOSTNAME="${TAB}🏠${TAB}${CL}"
+BRIDGE="${TAB}🌉${TAB}${CL}"
+GATEWAY="${TAB}🌐${TAB}${CL}"
+DEFAULT="${TAB}⚙️${TAB}${CL}"
+MACADDRESS="${TAB}🔗${TAB}${CL}"
+VLANTAG="${TAB}🏷️${TAB}${CL}"
+CREATING="${TAB}🚀${TAB}${CL}"
+ADVANCED="${TAB}🧩${TAB}${CL}"
+CLOUD="${TAB}☁️${TAB}${CL}"
+
+THIN="discard=on,ssd=1,"
+set -e
+trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
-trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
-trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
-function error_exit() {
-  trap - ERR
-  local reason="Unknown failure occurred."
-  local msg="${1:-$reason}"
-  local flag="${RD}‼ ERROR ${CL}$EXIT@$LINE"
-  echo -e "$flag $msg" 1>&2
-  [ ! -z ${VMID-} ] && cleanup_vmid
-  exit $EXIT
+trap 'post_update_to_api "failed" "130"' SIGINT
+trap 'post_update_to_api "failed" "143"' SIGTERM
+trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
+function error_handler() {
+  local exit_code="$?"
+  local line_number="$1"
+  local command="$2"
+  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
+  post_update_to_api "failed" "${exit_code}"
+  echo -e "\n$error_message\n"
+  cleanup_vmid
 }
 
 function get_valid_nextid() {
@@ -77,162 +95,439 @@ function get_valid_nextid() {
 }
 
 function cleanup_vmid() {
-  if $(qm status $VMID &>/dev/null); then
-    if [ "$(qm status $VMID | awk '{print $2}')" == "running" ]; then
-      qm stop $VMID
-    fi
-    qm destroy $VMID
+  if qm status $VMID &>/dev/null; then
+    qm stop $VMID &>/dev/null
+    qm destroy $VMID &>/dev/null
   fi
 }
+
 function cleanup() {
+  local exit_code=$?
   popd >/dev/null
+  if [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
+    if [[ $exit_code -eq 0 ]]; then
+      post_update_to_api "done" "none"
+    else
+      post_update_to_api "failed" "$exit_code"
+    fi
+  fi
   rm -rf $TEMP_DIR
 }
+
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if ! pveversion | grep -Eq "pve-manager/8\.[1-4](\.[0-9]+)*"; then
-  msg_error "This version of Proxmox Virtual Environment is not supported"
-  echo -e "Requires Proxmox Virtual Environment Version 8.1 or later."
-  echo -e "Exiting..."
-  sleep 2
-  exit
-fi
-if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "Mikrotik RouterOS CHR VM" --yesno "This will create a New Mikrotik RouterOS CHR VM. Proceed?" 10 58); then
-  echo "User selected Yes"
+if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Mikrotik RouterOS CHR VM" --yesno "This will create a Mikrotik RouterOS CHR VM. Proceed?" 10 58; then
+  :
 else
-  clear
-  echo -e "⚠ User exited script \n"
-  exit
+  header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
 fi
 
 function msg_info() {
   local msg="$1"
-  echo -ne " ${HOLD} ${YW}${msg}..."
+  echo -ne "${TAB}${YW}${HOLD}${msg}${HOLD}"
 }
+
 function msg_ok() {
   local msg="$1"
-  echo -e "${BFR} ${CM} ${GN}${msg}${CL}"
+  echo -e "${BFR}${CM}${GN}${msg}${CL}"
 }
+
+function msg_error() {
+  local msg="$1"
+  echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
+}
+
+function check_root() {
+  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
+    clear
+    msg_error "Please run this script as root."
+    echo -e "\nExiting..."
+    sleep 2
+    exit
+  fi
+}
+
+# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
+# Supported: Proxmox VE 8.0.x – 8.9.x, 9.0 and 9.2
+pve_check() {
+  local PVE_VER
+  PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
+
+  # Check for Proxmox VE 8.x: allow 8.0–8.9
+  if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
+    local MINOR="${BASH_REMATCH[1]}"
+    if ((MINOR < 0 || MINOR > 9)); then
+      msg_error "This version of Proxmox VE is not supported."
+      msg_error "Supported: Proxmox VE version 8.0 – 8.9"
+      exit 105
+    fi
+    return 0
+  fi
+
+  # Check for Proxmox VE 9.x: allow 9.0 and 9.2
+  if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
+    local MINOR="${BASH_REMATCH[1]}"
+    if ((MINOR < 0 || MINOR > 2)); then
+      msg_error "This version of Proxmox VE is not supported."
+      msg_error "Supported: Proxmox VE version 9.0 – 9.2"
+      exit 105
+    fi
+    return 0
+  fi
+
+  # All other unsupported versions
+  msg_error "This version of Proxmox VE is not supported."
+  msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0 – 9.2"
+  exit 105
+}
+
+function arch_check() {
+  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
+    echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
+    echo -e "\n ${YWB}Visit https://github.com/asylumexp/Proxmox for ARM64 support. \n"
+    echo -e "Exiting..."
+    sleep 2
+    exit
+  fi
+}
+
+function ssh_check() {
+  if command -v pveversion >/dev/null 2>&1; then
+    if [ -n "${SSH_CLIENT:+x}" ]; then
+      if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Would you like to proceed with using SSH?" 10 62; then
+        echo "you've been warned"
+      else
+        clear
+        exit
+      fi
+    fi
+  fi
+}
+
+function exit-script() {
+  clear
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+  exit
+}
+
 function default_settings() {
-  METHOD="default"
   VMID=$(get_valid_nextid)
-  echo -e "${DGN}Using Virtual Machine ID: ${BGN}$VMID${CL}"
-  echo -e "${DGN}Using Hostname: ${BGN}mikrotik-routeros-chr${CL}"
-  HN=mikrotik-routeros-chr
-  echo -e "${DGN}Allocated Cores: ${BGN}1${CL}"
+  FORMAT=",efitype=4m"
+  MACHINE=""
+  DISK_SIZE="8G"
+  DISK_CACHE=""
+  HN="mikrotik-routeros-chr"
+  CPU_TYPE=""
   CORE_COUNT="2"
-  echo -e "${DGN}Allocated RAM: ${BGN}256${CL}"
   RAM_SIZE="512"
-  echo -e "${DGN}Using Bridge: ${BGN}vmbr0${CL}"
   BRG="vmbr0"
-  echo -e "${DGN}Using MAC Address: ${BGN}$GEN_MAC${CL}"
-  MAC=$GEN_MAC
-  echo -e "${DGN}Using VLAN: ${BGN}Default${CL}"
+  MAC="$GEN_MAC"
   VLAN=""
-  echo -e "${DGN}Using Interface MTU Size: ${BGN}Default${CL}"
   MTU=""
-  echo -e "${DGN}Start VM when completed: ${BGN}no${CL}"
-  START_VM="no"
-  echo -e "${BL}Creating a Mikrotik RouterOS CHR VM using the above default settings${CL}"
+  START_VM="yes"
+  CLOUD_INIT="no"
+  METHOD="default"
+  echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
+  echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
+  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
+  echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
+  echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
+  echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
+  echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
+  echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
+  echo -e "${CREATING}${BOLD}${DGN}Creating a Mikrotik RouterOS VM using the above default settings${CL}"
 }
+
+function get_mikrotik_version() {
+  local mode="$1"
+  local rss_url
+  local tree_name
+
+  case "$mode" in
+  s) rss_url="https://cdn.mikrotik.com/routeros/latest-stable.rss" ;;
+  d) rss_url="https://cdn.mikrotik.com/routeros/latest-development.rss" ;;
+  l) rss_url="https://cdn.mikrotik.com/routeros/latest-long-term.rss" ;;
+  t) rss_url="https://cdn.mikrotik.com/routeros/latest-testing.rss" ;;
+  *) return 0 ;;
+  esac
+
+  local rss_content
+  rss_content=$(curl -fsSL $rss_url 2>/dev/null)
+  if [ -n "$rss_content" ]; then
+    local version
+    version=$(echo "$rss_content" | grep -oP '<title>RouterOS \K[0-9.]+(?= \[)' 2>/dev/null || echo "$rss_content" | sed -n 's/.*<title>RouterOS \([0-9.]\+\) \[.*/\1/p' 2>/dev/null)
+    if [[ "$version" =~ ^[0-9]+\.[0-9]+ ]]; then
+      echo "$version"
+      return 0
+    fi
+  fi
+
+  case "$mode" in
+  s) tree_name="Stable release tree" ;;
+  d) tree_name="Development release tree" ;;
+  l) tree_name="Long-term release tree" ;;
+  t) tree_name="Testing release tree" ;;
+  esac
+
+  local html
+  html=$(curl -fsSL "https://mikrotik.com/download/changelogs" 2>/dev/null)
+  if [ -n "$html" ]; then
+    local start_line
+    start_line=$(echo "$html" | grep -n "$tree_name" | cut -d: -f1 | head -n1)
+    if [[ "$start_line" =~ ^[0-9]+$ ]]; then
+      local line
+      line=$(echo "$html" | tail -n +"$start_line" | grep -m 1 -E "c-(stable|longTerm|testing|development)-v|RouterOS [0-9]+\.[0-9]+" 2>/dev/null)
+
+      local version
+      version=$(echo "$line" | sed -n 's/.*c-[^"]*-v\([0-9_.a-zA-Z-]\+\).*/\1/p' | tr '_' '.' 2>/dev/null)
+      [ -z "$version" ] && version=$(echo "$line" | grep -oP 'RouterOS \K[0-9]+\.[0-9]+(\.[0-9]+)?' 2>/dev/null)
+
+      if [[ "$version" =~ ^[0-9]+\.[0-9]+ ]]; then
+        echo "$version"
+        return 0
+      fi
+    fi
+  fi
+
+  for minor in $(seq 50 -1 15); do
+    local test_version="7.${minor}"
+    if curl -fsSL -I "https://download.mikrotik.com/routeros/${test_version}/chr-${test_version}.img.zip" 2>/dev/null | grep -q "200 OK"; then
+      echo "$test_version"
+      return 0
+    fi
+  done
+
+  return 0
+}
+
 function advanced_settings() {
   METHOD="advanced"
   [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
-  VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    echo -e "${DGN}Using Virtual Machine ID: ${BGN}$VMID${CL}"
-  else
-    exit
-  fi
-  VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 mikrotik-routeros-chr --title "HOSTNAME" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    HN=$(echo ${VM_NAME,,} | tr -d ' ')
-    echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
-  else
-    exit
-  fi
-  CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    echo -e "${DGN}Allocated Cores: ${BGN}$CORE_COUNT${CL}"
-  else
-    exit
-  fi
-  RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 512 --title "RAM" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    echo -e "${DGN}Allocated RAM: ${BGN}$RAM_SIZE${CL}"
-  else
-    exit
-  fi
-  BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 vmbr0 --title "BRIDGE" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    echo -e "${DGN}Using Bridge: ${BGN}$BRG${CL}"
-  else
-    exit
-  fi
-  MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address" 8 58 $GEN_MAC --title "MAC ADDRESS" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    MAC="$MAC1"
-    echo -e "${DGN}Using MAC Address: ${BGN}$MAC1${CL}"
-  else
-    exit
-  fi
-  VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for default)" 8 58 --title "VLAN" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    if [ -z $VLAN1 ]; then
-      VLAN1="Default" VLAN=""
-      echo -e "${DGN}Using Vlan: ${BGN}$VLAN1${CL}"
+  while true; do
+    if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$VMID" ]; then
+        VMID=$(get_valid_nextid)
+      fi
+      if pct status "$VMID" &>/dev/null || qm status "$VMID" &>/dev/null; then
+        echo -e "${CROSS}${RD} ID $VMID is already in use${CL}"
+        sleep 2
+        continue
+      fi
+      echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}$VMID${CL}"
+      break
     else
-      VLAN=",tag=$VLAN1"
-      echo -e "${DGN}Using Vlan: ${BGN}$VLAN1${CL}"
+      exit-script
     fi
-  fi
-  MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    if [ -z $MTU1 ]; then
-      MTU1="Default" MTU=""
-      echo -e "${DGN}Using Interface MTU Size: ${BGN}$MTU1${CL}"
+  done
+
+  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Type" 10 58 2 \
+    "i440fx" "Machine i440fx" ON \
+    "q35" "Machine q35" OFF \
+    3>&1 1>&2 2>&3); then
+    if [ $MACH = q35 ]; then
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
+      FORMAT=""
+      MACHINE=" -machine q35"
     else
-      MTU=",mtu=$MTU1"
-      echo -e "${DGN}Using Interface MTU Size: ${BGN}$MTU1${CL}"
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
+      FORMAT=",efitype=4m"
+      MACHINE=""
     fi
+  else
+    exit-script
   fi
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start Mikrotik RouterOS CHR VM when completed?" 10 58); then
-    echo -e "${DGN}Start Mikrotik RouterOS CHR VM when completed: ${BGN}yes${CL}"
+
+  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    DISK_SIZE=$(echo "$DISK_SIZE" | tr -d ' ')
+    if [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
+      DISK_SIZE="${DISK_SIZE}G"
+      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
+    elif [[ "$DISK_SIZE" =~ ^[0-9]+G$ ]]; then
+      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
+    else
+      echo -e "${DISKSIZE}${BOLD}${RD}Invalid Disk Size. Please use a number (e.g., 10 or 10G).${CL}"
+      exit-script
+    fi
+  else
+    exit-script
+  fi
+
+  if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
+    "0" "None (Default)" ON \
+    "1" "Write Through" OFF \
+    3>&1 1>&2 2>&3); then
+    if [ $DISK_CACHE = "1" ]; then
+      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}Write Through${CL}"
+      DISK_CACHE="cache=writethrough,"
+    else
+      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
+      DISK_CACHE=""
+    fi
+  else
+    exit-script
+  fi
+
+  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 mikrotik-routeros-chr --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z $VM_NAME ]; then
+      HN="mikrotik-routeros-chr"
+      echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
+    else
+      HN=$(echo "${VM_NAME,,}" | tr -cs 'a-z0-9-' '-' | sed 's/^-//;s/-$//')
+      if [ "$HN" != "${VM_NAME,,}" ]; then
+        whiptail --backtitle "Proxmox VE Helper Scripts" --title "HOSTNAME ADJUSTED" --msgbox "Invalid characters detected. Hostname has been adjusted to:\n\n  $HN" 10 58
+      fi
+      echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
+    fi
+  else
+    exit-script
+  fi
+
+  if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
+    "0" "KVM64 (Default)" ON \
+    "1" "Host" OFF \
+    3>&1 1>&2 2>&3); then
+    if [ $CPU_TYPE1 = "1" ]; then
+      echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
+      CPU_TYPE=" -cpu host"
+    else
+      echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
+      CPU_TYPE=""
+    fi
+  else
+    exit-script
+  fi
+
+  while true; do
+    if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$CORE_COUNT" ]; then CORE_COUNT="2"; fi
+      if [[ "$CORE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+        echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}$CORE_COUNT${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "CPU Cores must be a positive integer (e.g., 2)." 8 58
+    else
+      exit-script
+    fi
+  done
+
+  while true; do
+    if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 2048 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$RAM_SIZE" ]; then RAM_SIZE="2048"; fi
+      if [[ "$RAM_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+        echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}$RAM_SIZE${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "RAM Size must be a positive integer in MiB (e.g., 2048)." 8 58
+    else
+      exit-script
+    fi
+  done
+
+  if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 vmbr0 --title "BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z $BRG ]; then
+      BRG="vmbr0"
+      echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
+    else
+      echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
+    fi
+  else
+    exit-script
+  fi
+
+  while true; do
+    if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address" 8 58 $GEN_MAC --title "MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$MAC1" ]; then
+        MAC="$GEN_MAC"
+        echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}$MAC${CL}"
+        break
+      fi
+      if [[ "$MAC1" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
+        MAC="$MAC1"
+        echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}$MAC1${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "Invalid MAC address format. Use XX:XX:XX:XX:XX:XX (e.g., AA:BB:CC:DD:EE:FF)." 8 58
+    else
+      exit-script
+    fi
+  done
+
+  while true; do
+    if VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for default)" 8 58 --title "VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$VLAN1" ]; then
+        VLAN1="Default"
+        VLAN=""
+        echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}$VLAN1${CL}"
+        break
+      fi
+      if [[ "$VLAN1" =~ ^[0-9]+$ ]] && [ "$VLAN1" -ge 1 ] && [ "$VLAN1" -le 4094 ]; then
+        VLAN=",tag=$VLAN1"
+        echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}$VLAN1${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "VLAN must be a number between 1 and 4094, or leave blank for default." 8 58
+    else
+      exit-script
+    fi
+  done
+
+  while true; do
+    if MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$MTU1" ]; then
+        MTU1="Default"
+        MTU=""
+        echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}$MTU1${CL}"
+        break
+      fi
+      if [[ "$MTU1" =~ ^[0-9]+$ ]] && [ "$MTU1" -ge 576 ] && [ "$MTU1" -le 65520 ]; then
+        MTU=",mtu=$MTU1"
+        echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}$MTU1${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "MTU Size must be a number between 576 and 65520, or leave blank for default." 8 58
+    else
+      exit-script
+    fi
+  done
+
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
+    echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
     START_VM="yes"
   else
-    echo -e "${DGN}Start Mikrotik RouterOS CHR VM when completed: ${BGN}no${CL}"
+    echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}no${CL}"
     START_VM="no"
   fi
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create Mikrotik RouterOS VM?" 10 58); then
-    echo -e "${RD}Creating Mikrotik RouterOS CHR VM using the above advanced settings${CL}"
+
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a Mikrotik RouterOS CHR VM?" --no-button Do-Over 10 58); then
+    echo -e "${CREATING}${BOLD}${DGN}Creating a Mikrotik RouterOS CHR VM using the above advanced settings${CL}"
   else
-    clear
     header_info
-    echo -e "${RD}Using Advanced Settings${CL}"
+    echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
     advanced_settings
   fi
 }
+
 function start_script() {
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?" --no-button Advanced 10 58); then
-    clear
     header_info
-    echo -e "${BL}Using Default Settings${CL}"
+    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings${CL}"
     default_settings
   else
-    clear
     header_info
-    echo -e "${RD}Using Advanced Settings${CL}"
+    echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
     advanced_settings
   fi
 }
+
+check_root
+arch_check
+pve_check
+ssh_check
 start_script
 
 post_to_api_vm
@@ -265,12 +560,22 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Getting URL for Mikrotik RouterOS CHR Disk Image"
+msg_info "Getting URL for Latest Mikrotik RouterOS CHR Disk Image"
 
-URL=https://download.mikrotik.com/routeros/7.15.3/chr-7.15.3.img.zip
+MIK_VER=$(get_mikrotik_version s)
+
+if [ -n "$MIK_VER" ]; then
+  msg_ok "Latest stable version: ${CL}${BL}$MIK_VER${CL}."
+else
+  msg_error "Could not get latest version"
+  msg_ok "Defaulting to version 7.20"
+  MIK_VER="7.20"
+fi
+
+URL=https://download.mikrotik.com/routeros/$MIK_VER/chr-$MIK_VER.img.zip
 
 sleep 2
-msg_ok "${CL}${BL}${URL}${CL}"
+msg_ok "Downloading from URL: ${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$(basename "$URL")" "$URL"
 echo -en "\e[1A\e[0K"
 FILE=$(basename $URL)
@@ -294,6 +599,11 @@ zfspool)
   DISK_REF=""
   DISK_IMPORT="-format raw"
   ;;
+*)
+  DISK_EXT=""
+  DISK_REF=""
+  DISK_IMPORT="-format raw"
+  ;;
 esac
 
 DISK_VAR="vm-${VMID}-disk-0${DISK_EXT:-}"
@@ -312,8 +622,8 @@ qm set $VMID \
 DESCRIPTION=$(
   cat <<EOF
 <div align='center'>
-  <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
-    <img src='${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
+  <a href='https://community-scripts.org' target='_blank' rel='noopener noreferrer'>
+    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
   </a>
 
   <h2 style='font-size: 24px; margin: 20px 0;'>Mikrotik RouterOS CHR</h2>
@@ -323,7 +633,7 @@ DESCRIPTION=$(
       <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
     </a>
   </p>
-
+  
   <span style='margin: 0 10px;'>
     <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
     <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
@@ -339,7 +649,15 @@ DESCRIPTION=$(
 </div>
 EOF
 )
-qm set "$VMID" -description "$DESCRIPTION" >/dev/null
+qm set $VMID -description "$DESCRIPTION" >/dev/null
+if [ -n "$DISK_SIZE" ]; then
+  msg_info "Resizing disk to $DISK_SIZE GB"
+  qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
+else
+  msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
+  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
+fi
+
 msg_ok "Mikrotik RouterOS CHR VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Mikrotik RouterOS CHR VM"
