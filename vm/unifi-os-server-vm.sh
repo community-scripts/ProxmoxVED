@@ -240,7 +240,6 @@ if command -v ufw &>/dev/null; then
 fi
 
 vm_select_storage "$HN"
-msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 
 # Fetch latest UniFi OS Server version and download URL
 msg_info "Fetching latest UniFi OS Server version"

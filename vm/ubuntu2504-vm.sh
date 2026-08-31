@@ -91,7 +91,6 @@ vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the Ubuntu 25.04 Disk Image"
 URL=https://cloud-images.ubuntu.com/releases/server/plucky/release/ubuntu-25.04-server-cloudimg-amd64.img
 sleep 2

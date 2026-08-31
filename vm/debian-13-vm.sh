@@ -108,7 +108,6 @@ vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 
 # ==============================================================================
 # PREREQUISITES
@@ -176,6 +175,13 @@ EOF' >/dev/null 2>&1 || true
 fi
 
 msg_ok "Customized image"
+
+# qm resize only grows the block device. Without cloud-init nothing grows the
+# guest partition, so expand it offline first.
+if [ "${CLOUD_INIT:-no}" != "yes" ]; then
+  msg_info "Expanding the root filesystem to ${DISK_SIZE}"
+  vm_expand_image "$WORK_FILE" "$DISK_SIZE" || true
+fi
 
 STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in

@@ -211,7 +211,6 @@ vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the Ubuntu 24.10 Disk Image"
 URL=https://cloud-images.ubuntu.com/oracular/current/oracular-server-cloudimg-amd64.img
 sleep 2

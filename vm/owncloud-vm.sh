@@ -94,7 +94,6 @@ vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the $APP Disk Image"
 URL=http://mirror.turnkeylinux.org/turnkeylinux/images/iso/turnkey-owncloud-18.0-bookworm-amd64.iso
 sleep 2

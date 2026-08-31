@@ -135,7 +135,6 @@ function advanced_settings() {
 # ==============================================================================
 select_storage() {
   vm_select_storage "$HN"
-  msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 
   # Detect storage type for disk format
   STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')

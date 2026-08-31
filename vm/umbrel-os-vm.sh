@@ -157,7 +157,6 @@ post_to_api_vm
 
 vm_select_storage "$HN"
 
-msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 
 URL="https://download.umbrel.com/release/latest/umbrelos-amd64.img.xz"
 CACHE_DIR="/var/lib/vz/template/cache"

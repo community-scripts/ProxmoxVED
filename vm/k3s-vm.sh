@@ -209,7 +209,6 @@ vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the ${OS_DISPLAY} image"
 URL=$(get_image_url)
 sleep 2
@@ -218,6 +217,13 @@ curl -f#SL "$URL" -O
 echo -en "\e[1A\e[0K"
 FILE=$(basename $URL)
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+
+# qm resize only grows the block device. Without cloud-init nothing grows the
+# guest partition, so expand it offline first.
+if [ "${CLOUD_INIT:-no}" != "yes" ]; then
+  msg_info "Expanding the root filesystem to ${DISK_SIZE}"
+  vm_expand_image "$FILE" "$DISK_SIZE" || true
+fi
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
