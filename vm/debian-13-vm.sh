@@ -83,9 +83,7 @@ function advanced_settings() {
   vm_prompt_vlan
   vm_prompt_mtu
 
-  # This script already has select_cloud_init, and it explains what Cloud-Init
-  # actually does rather than just asking yes or no. default_settings calls it
-  # too, so both paths ask the same question.
+  # select_cloud_init is richer than a yes/no and default_settings uses it too.
   select_cloud_init
 
   vm_prompt_verbose "no"

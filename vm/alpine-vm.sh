@@ -167,9 +167,7 @@ msg_info "Resizing disk to ${DISK_SIZE}"
 qm resize "$VMID" scsi0 "${DISK_SIZE}" >/dev/null
 msg_ok "Resized disk to ${DISK_SIZE}"
 
-# The VM exists and is correct by this point, so a helper that cannot be
-# fetched must not reach the ERR trap -- that would destroy it over an
-# optional step.
+# The VM is built by now; a missing helper must not reach the ERR trap.
 if load_cloud_init_functions; then
   setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
 else

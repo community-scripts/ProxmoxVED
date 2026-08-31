@@ -1,0 +1,28 @@
+name: VM wizard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "vm/**.sh"
+  pull_request:
+    paths:
+      - "vm/**.sh"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The scripts source the engine at runtime; a checkout lets the harness
+      # load it from disk instead of over the network on every run.
+      - name: Checkout core
+        uses: actions/checkout@v4
+        with:
+          repository: community-scripts/core
+          path: .core
+
+      - name: Run the wizard checks
+        run: bash .github/workflows/scripts/vm-wizard-test.sh

@@ -441,8 +441,7 @@ msg_ok "Created a Docker VM ${CL}${BL}(${HN})${CL}"
 
 # Add Cloud-Init drive if requested
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  # The VM is already built here, so an unreachable helper must not reach the
-  # ERR trap -- that would destroy it over an optional step.
+  # The VM is built by now; a missing helper must not reach the ERR trap.
   if load_cloud_init_functions; then
     msg_info "Configuring Cloud-Init"
     setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"

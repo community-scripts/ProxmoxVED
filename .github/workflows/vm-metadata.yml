@@ -1,16 +1,8 @@
 name: VM metadata
 
-# core generates a figlet banner per script from its APP= line and files it
-# under headers/<APP_TYPE>/. Neither declaration was enforced anywhere, so 22
-# of 35 vm scripts here ended up without an APP= at all -- they were silently
-# skipped, and headers/vm held two entries against 674 in headers/ct. Nobody
-# noticed until someone asked why VMs show no banner.
-#
-# APP_TYPE matters just as much: the generator falls back to "ct" when it is
-# missing, so a vm script without it is filed under the wrong type.
-#
-# This checks the declarations and the catalog entry that goes with them. It
-# does not check that the script works -- that belongs in a test harness.
+# core builds a banner per script from its APP= line and files it under
+# headers/<APP_TYPE>/. Unenforced, 22 of 35 vm scripts lost their APP= and were
+# silently skipped; a missing APP_TYPE files a vm header under ct.
 
 on:
   push:
