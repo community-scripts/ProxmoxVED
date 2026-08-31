@@ -147,7 +147,7 @@ msg_info "Creating a ZimaOS VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-single \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
-  -cdrom local:iso/${FILENAME} -boot order='ide2;scsi0' -vga std -serial0 socket >/dev/null
+  -cdrom local:iso/${FILENAME} -boot order='scsi0;ide2' -vga std -serial0 socket >/dev/null
 
 set_description
 
@@ -170,8 +170,9 @@ echo -e "${TAB}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
 echo -e "\n${INFO}${BOLD}${YW}Next Steps:${CL}"
 echo -e "${TAB}1. Open the VM Console in Proxmox"
 echo -e "${TAB}2. Follow the installer and select ${BL}scsi0${CL} as the target disk"
-echo -e "${TAB}3. After installation, detach the ISO from the VM"
-echo -e "${TAB}4. Reboot -- the boot order already prefers the disk once the ISO is gone"
+echo -e "${TAB}3. When it says ${BL}Remove Disk and Reboot${CL}, just reboot -- the boot"
+echo -e "${TAB}   order prefers the disk, so the installed system wins from here on"
+echo -e "${TAB}4. Detach the ISO afterwards to tidy up (Hardware -> CD/DVD -> Remove)"
 
 echo -e "\n${INFO}${BOLD}${YW}Finding the VM:${CL}"
 echo -e "${TAB}ZimaOS does not print its IP on the console. Read it from the"

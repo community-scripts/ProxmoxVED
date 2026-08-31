@@ -159,7 +159,7 @@ msg_info "Creating a BlissOS VM"
 qm create $VMID -agent 1${MACHINE} -tablet 1 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 0 -ostype l26 -scsihw virtio-scsi-single \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
-  -cdrom local:iso/${FILENAME} -boot order='ide2;scsi0' -vga std >/dev/null
+  -cdrom local:iso/${FILENAME} -boot order='scsi0;ide2' -vga std >/dev/null
 
 set_description
 
@@ -184,7 +184,8 @@ echo -e "${TAB}1. Open the VM Console in Proxmox"
 echo -e "${TAB}2. Pick ${BL}Installation${CL} from the boot menu"
 echo -e "${TAB}3. Create and format a partition on ${BL}sda${CL}, then install there"
 echo -e "${TAB}4. Say yes to GRUB and to a writable /system"
-echo -e "${TAB}5. Detach the ISO afterwards and reboot"
+echo -e "${TAB}5. Reboot -- the boot order prefers the disk, so the installed"
+echo -e "${TAB}   system takes over. Detach the ISO afterwards to tidy up."
 
 echo -e "\n${INFO}${BOLD}${YW}Worth knowing:${CL}"
 echo -e "${TAB}• The last official x86 release is from October 2024 (Android 13)."
