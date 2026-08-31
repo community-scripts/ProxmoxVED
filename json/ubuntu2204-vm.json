@@ -1,0 +1,47 @@
+{
+  "name": "Ubuntu 22.04",
+  "slug": "ubuntu2204-vm",
+  "categories": [
+    2
+  ],
+  "date_created": "2025-06-16",
+  "type": "vm",
+  "updateable": false,
+  "privileged": false,
+  "architectures": [
+    "amd64"
+  ],
+  "interface_port": null,
+  "documentation": "https://help.ubuntu.com/",
+  "website": "https://ubuntu.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ubuntu.webp",
+  "description": "Ubuntu 22.04 LTS (Jammy Jellyfish) as a cloud image, supported until 2027.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "vm/ubuntu2204-vm.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 5,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Cloud-Init is enabled by default. Configure your SSH key and credentials in the Proxmox Cloud-Init tab before starting the VM.",
+      "type": "info"
+    },
+    {
+      "text": "If you use Cloud-init, checkout cloud-init discussion: `https://github.com/community-scripts/ProxmoxVE/discussions/272`",
+      "type": "info"
+    }
+  ]
+}

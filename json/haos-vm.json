@@ -1,0 +1,43 @@
+{
+  "name": "Home Assistant OS",
+  "slug": "haos-vm",
+  "categories": [
+    2
+  ],
+  "date_created": "2025-06-16",
+  "type": "vm",
+  "updateable": false,
+  "privileged": false,
+  "architectures": [
+    "amd64"
+  ],
+  "interface_port": null,
+  "documentation": "https://www.home-assistant.io/docs/",
+  "website": "https://www.home-assistant.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/home-assistant.webp",
+  "description": "Home Assistant OS is the appliance image of Home Assistant, managing its own supervisor and add-ons. This installs the official image as a VM.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "vm/haos-vm.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 32,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "This VM boots an installer image. Open the console after creation and complete the installation there.",
+      "type": "info"
+    }
+  ]
+}
