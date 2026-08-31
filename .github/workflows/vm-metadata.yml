@@ -1,0 +1,112 @@
+name: VM metadata
+
+# core generates a figlet banner per script from its APP= line and files it
+# under headers/<APP_TYPE>/. Neither declaration was enforced anywhere, so 22
+# of 35 vm scripts here ended up without an APP= at all -- they were silently
+# skipped, and headers/vm held two entries against 674 in headers/ct. Nobody
+# noticed until someone asked why VMs show no banner.
+#
+# APP_TYPE matters just as much: the generator falls back to "ct" when it is
+# missing, so a vm script without it is filed under the wrong type.
+#
+# This checks the declarations and the catalog entry that goes with them. It
+# does not check that the script works -- that belongs in a test harness.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "vm/**.sh"
+      - "json/**.json"
+  pull_request:
+    paths:
+      - "vm/**.sh"
+      - "json/**.json"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check APP, APP_TYPE, NSAPP and the catalog entry
+        run: |
+          set -uo pipefail
+
+          # vm-manager, debian-vm-test-helper and docker-vm-debug are tooling
+          # rather than catalog entries: no display name, no banner, no json.
+          # Inventing one just to satisfy a check would be backwards.
+          #
+          # app-deployer is different. Its APP is deliberately parameterised as
+          # ${APP:-App Deployer} so the caller decides what is being deployed,
+          # which means a fixed banner is meaningless for it and core's
+          # generator is right to skip it.
+          EXCLUDE="vm-manager debian-vm-test-helper docker-vm-debug app-deployer-vm"
+
+          fail=0
+          for script in vm/*.sh; do
+            slug=$(basename "$script" .sh)
+            case " $EXCLUDE " in *" $slug "*) continue ;; esac
+
+            app=$(grep -oP '^APP="\K[^"]+' "$script" | head -1 || true)
+            app_type=$(grep -oP '^APP_TYPE="?\K[a-z]+' "$script" | head -1 || true)
+            nsapp=$(grep -oP '^NSAPP="\K[^"]+' "$script" | head -1 || true)
+
+            if [[ -z "$app" ]]; then
+              echo "::error file=$script::missing APP= -- core cannot generate a header without it"
+              fail=1
+            elif [[ "$app" == *'$'* ]]; then
+              echo "::error file=$script::APP= contains shell syntax ($app); the generator skips it"
+              fail=1
+            fi
+
+            if [[ "$app_type" != "vm" ]]; then
+              echo "::error file=$script::APP_TYPE must be \"vm\" (found '${app_type:-nothing}'); without it the header is filed under ct"
+              fail=1
+            fi
+
+            if [[ -z "$nsapp" ]]; then
+              echo "::error file=$script::missing NSAPP="
+              fail=1
+            fi
+
+            json="json/${slug}.json"
+            if [[ ! -f "$json" ]]; then
+              echo "::error file=$script::no catalog entry at $json"
+              fail=1
+              continue
+            fi
+
+            json_slug=$(jq -r '.slug' "$json")
+            if [[ "$json_slug" != "$slug" ]]; then
+              echo "::error file=$json::slug is '$json_slug' but the file is named '$slug'"
+              fail=1
+            fi
+
+            json_script=$(jq -r '.install_methods[0].script' "$json")
+            if [[ "$json_script" != "$script" ]]; then
+              echo "::error file=$json::script points at '$json_script', should be '$script'"
+              fail=1
+            fi
+          done
+
+          # A catalog entry without a script is just as broken as the other way
+          # round: the website offers something that cannot be installed.
+          for json in json/*.json; do
+            # versions.json is an array, not a catalog entry, and .type on an
+            # array is an error rather than an empty string -- so check the
+            # shape before reading fields out of it.
+            jq -e 'type == "object"' "$json" >/dev/null 2>&1 || continue
+            [[ "$(jq -r '.type // ""' "$json")" == "vm" ]] || continue
+            s=$(jq -r '.install_methods[0].script' "$json")
+            if [[ ! -f "$s" ]]; then
+              echo "::error file=$json::points at $s, which does not exist"
+              fail=1
+            fi
+          done
+
+          if [[ $fail -eq 0 ]]; then
+            echo "All VM scripts declare APP, APP_TYPE and NSAPP and have a matching catalog entry."
+          fi
+          exit $fail
