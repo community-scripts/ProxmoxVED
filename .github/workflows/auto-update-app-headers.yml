@@ -24,8 +24,8 @@ jobs:
         continue-on-error: true
         uses: actions/create-github-app-token@v3
         with:
-          client-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          client-id: ${{ vars.GHAPP_HEADERS_ID }}
+          private-key: ${{ secrets.GHAPP_HEADERS_PRIVATE_KEY }}
 
       - name: Select auth token
         id: auth
