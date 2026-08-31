@@ -8,7 +8,8 @@
 # Docker VM - Creates a Docker-ready Virtual Machine
 # ==============================================================================
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func)
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
+load_functions
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/vm-core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/cloud-init.func) || true
 
@@ -43,16 +44,6 @@ trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
-
-function error_handler() {
-  local exit_code="$?"
-  local line_number="$1"
-  local command="$2"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
-  post_update_to_api "failed" "${exit_code}"
-  echo -e "\n$error_message\n"
-  cleanup_vmid
-}
 
 # ==============================================================================
 # OS SELECTION FUNCTIONS

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
@@ -7,20 +7,9 @@
 # https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Based on work from https://i12bretro.github.io/tutorials/0405.html
 
-source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func)
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
+load_functions
 
-function header_info {
-  clear
-  cat <<"EOF"
-   ____                 _       __     __
-  / __ \____  ___  ____| |     / /____/ /_
- / / / / __ \/ _ \/ __ \ | /| / / ___/ __/
-/ /_/ / /_/ /  __/ / / / |/ |/ / /  / /_
-\____/ .___/\___/_/ /_/|__/|__/_/   \__/
-    /_/ W I R E L E S S   F R E E D O M
-
-EOF
-}
 header_info
 echo -e "\n Loading..."
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
@@ -32,38 +21,7 @@ DISK_SIZE="1G"
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 GEN_MAC_LAN=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 
-YW=$(echo "\033[33m")
-BL=$(echo "\033[36m")
 HA=$(echo "\033[1;34m")
-RD=$(echo "\033[01;31m")
-BGN=$(echo "\033[4;92m")
-GN=$(echo "\033[1;92m")
-DGN=$(echo "\033[32m")
-CL=$(echo "\033[m")
-
-BOLD=$(echo "\033[1m")
-BFR="\\r\\033[K"
-HOLD=" "
-TAB="  "
-
-CM="${TAB}✔️${TAB}${CL}"
-CROSS="${TAB}✖️${TAB}${CL}"
-INFO="${TAB}💡${TAB}${CL}"
-OS="${TAB}🖥️${TAB}${CL}"
-CONTAINERTYPE="${TAB}📦${TAB}${CL}"
-DISKSIZE="${TAB}💾${TAB}${CL}"
-CPUCORE="${TAB}🧠${TAB}${CL}"
-RAMSIZE="${TAB}🛠️${TAB}${CL}"
-CONTAINERID="${TAB}🆔${TAB}${CL}"
-HOSTNAME="${TAB}🏠${TAB}${CL}"
-BRIDGE="${TAB}🌉${TAB}${CL}"
-GATEWAY="${TAB}🌐${TAB}${CL}"
-DEFAULT="${TAB}⚙️${TAB}${CL}"
-MACADDRESS="${TAB}🔗${TAB}${CL}"
-VLANTAG="${TAB}🏷️${TAB}${CL}"
-CREATING="${TAB}🚀${TAB}${CL}"
-ADVANCED="${TAB}🧩${TAB}${CL}"
-CLOUD="${TAB}☁️${TAB}${CL}"
 
 set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
@@ -71,52 +29,6 @@ trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
-function error_handler() {
-  local exit_code="$?"
-  local line_number="$1"
-  local command="$2"
-  post_update_to_api "failed" "$exit_code"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
-  echo -e "\n$error_message\n"
-  cleanup_vmid
-}
-
-function get_valid_nextid() {
-  local try_id
-  try_id=$(pvesh get /cluster/nextid)
-  while true; do
-    if [ -f "/etc/pve/qemu-server/${try_id}.conf" ] || [ -f "/etc/pve/lxc/${try_id}.conf" ]; then
-      try_id=$((try_id + 1))
-      continue
-    fi
-    if lvs --noheadings -o lv_name | grep -qE "(^|[-_])${try_id}($|[-_])"; then
-      try_id=$((try_id + 1))
-      continue
-    fi
-    break
-  done
-  echo "$try_id"
-}
-
-function cleanup_vmid() {
-  if qm status $VMID &>/dev/null; then
-    qm stop $VMID &>/dev/null
-    qm destroy $VMID &>/dev/null
-  fi
-}
-
-function cleanup() {
-  local exit_code=$?
-  popd >/dev/null
-  if [[ "${POST_TO_API_DONE:-}" == "true" && "${POST_UPDATE_DONE:-}" != "true" ]]; then
-    if [[ $exit_code -eq 0 ]]; then
-      post_update_to_api "done" "none"
-    else
-      post_update_to_api "failed" "$exit_code"
-    fi
-  fi
-  rm -rf $TEMP_DIR
-}
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
@@ -199,82 +111,8 @@ else
   header_info && echo -e "⚠ User exited script \n" && exit
 fi
 
-function msg_info() {
-  local msg="$1"
-  echo -ne " ${HOLD} ${YW}${msg}..."
-}
-
-function msg_ok() {
-  local msg="$1"
-  echo -e "${BFR} ${CM} ${GN}${msg}${CL}"
-}
-
-function msg_error() {
-  local msg="$1"
-  echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
-}
-
 # This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
 # Supported: Proxmox VE 8.0.x – 8.9.x, 9.0 and 9.2
-pve_check() {
-  local PVE_VER
-  PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
-
-  # Check for Proxmox VE 8.x: allow 8.0–8.9
-  if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
-    local MINOR="${BASH_REMATCH[1]}"
-    if ((MINOR < 0 || MINOR > 9)); then
-      msg_error "This version of Proxmox VE is not supported."
-      msg_error "Supported: Proxmox VE version 8.0 – 8.9"
-      exit 105
-    fi
-    return 0
-  fi
-
-  # Check for Proxmox VE 9.x: allow 9.0 and 9.2
-  if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
-    local MINOR="${BASH_REMATCH[1]}"
-    if ((MINOR < 0 || MINOR > 2)); then
-      msg_error "This version of Proxmox VE is not supported."
-      msg_error "Supported: Proxmox VE version 9.0 – 9.2"
-      exit 105
-    fi
-    return 0
-  fi
-
-  # All other unsupported versions
-  msg_error "This version of Proxmox VE is not supported."
-  msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0 – 9.2"
-  exit 105
-}
-
-function arch_check() {
-  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
-    echo -e "\n ${CROSS} This script will not work with PiMox! \n"
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
-}
-
-function ssh_check() {
-  if command -v pveversion >/dev/null 2>&1; then
-    if [ -n "${SSH_CLIENT:+x}" ]; then
-      if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Would you like to proceed with using SSH?" 10 62; then
-        echo "you've been warned"
-      else
-        clear
-        exit
-      fi
-    fi
-  fi
-}
-
-function exit-script() {
-  clear
-  echo -e "⚠  User exited script \n"
-  exit
-}
 
 function default_settings() {
   VMID=$(get_valid_nextid)
@@ -320,7 +158,7 @@ function advanced_settings() {
       echo -e "${DGN}Virtual Machine ID: ${BGN}$VMID${CL}"
       break
     else
-      exit-script
+      exit_script
     fi
   done
 
@@ -335,7 +173,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   while true; do
@@ -347,7 +185,7 @@ function advanced_settings() {
       fi
       whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "CPU Cores must be a positive integer (e.g., 1)." 8 58
     else
-      exit-script
+      exit_script
     fi
   done
 
@@ -360,7 +198,7 @@ function advanced_settings() {
       fi
       whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "RAM Size must be a positive integer in MiB (e.g., 256)." 8 58
     else
-      exit-script
+      exit_script
     fi
   done
 
@@ -372,7 +210,7 @@ function advanced_settings() {
     fi
     echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN Bridge" 8 58 vmbr0 --title "WAN BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -381,7 +219,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using WAN Bridge: ${BGN}$BRG${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if LAN_BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN Bridge" 8 58 vmbr0 --title "LAN BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -390,7 +228,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using LAN Bridge: ${BGN}$LAN_BRG${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if LAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router IP" 8 58 $LAN_IP_ADDR --title "LAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -399,7 +237,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using LAN IP ADDRESS: ${BGN}$LAN_IP_ADDR${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if LAN_NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router netmask" 8 58 $LAN_NETMASK --title "LAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -408,7 +246,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using LAN NETMASK: ${BGN}$LAN_NETMASK${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN MAC Address" 8 58 $GEN_MAC --title "WAN MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -419,7 +257,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using WAN MAC Address: ${BGN}$MAC${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if MAC2=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN MAC Address" 8 58 $GEN_MAC_LAN --title "LAN MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -430,7 +268,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using LAN MAC Address: ${BGN}$LAN_MAC${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   while true; do
@@ -448,7 +286,7 @@ function advanced_settings() {
       fi
       whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "VLAN must be a number between 1 and 4094, or leave blank for default." 8 58
     else
-      exit-script
+      exit_script
     fi
   done
 
@@ -467,7 +305,7 @@ function advanced_settings() {
       fi
       whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "VLAN must be a number between 1 and 4094, or leave blank for default." 8 58
     else
-      exit-script
+      exit_script
     fi
   done
 
@@ -486,7 +324,7 @@ function advanced_settings() {
       fi
       whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "MTU Size must be a number between 576 and 65520, or leave blank for default." 8 58
     else
-      exit-script
+      exit_script
     fi
   done
 

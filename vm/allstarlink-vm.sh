@@ -6,19 +6,9 @@
 # Source: https://github.com/AllStarLink
 
 COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
-source /dev/stdin <<<$(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/api/api.func")
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
+load_functions
 
-function header_info {
-  clear
-  cat <<"EOF"
-    ___    ____ ____ __             __    _       __      _    ____  ___
-   /   |  / / / ___// /_____ ______/ /   (_)___  / /__   | |  / /  |/  /
-  / /| | / / /\__ \/ __/ __ `/ ___/ /   / / __ \/ //_/   | | / / /|_/ /
- / ___ |/ / /___/ / /_/ /_/ / /  / /___/ / / / / ,<      | |/ / /  / /
-/_/  |_/_/_/_____/\__/\__,_/_/  /_____/_/_/ /_/_/|_|     |___/_/  /_/
-
-EOF
-}
 header_info
 echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
@@ -30,45 +20,13 @@ var_os="debian"
 var_version="12"
 DISK_SIZE="8G"
 
-YW=$(echo "\033[33m")
-BL=$(echo "\033[36m")
 HA=$(echo "\033[1;34m")
-RD=$(echo "\033[01;31m")
-BGN=$(echo "\033[4;92m")
-GN=$(echo "\033[1;92m")
-DGN=$(echo "\033[32m")
-CL=$(echo "\033[m")
-BFR="\\r\\033[K"
-HOLD="-"
-CM="${GN}✓${CL}"
-CROSS="${RD}✗${CL}"
 THIN="discard=on,ssd=1,"
 set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
 trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
-function error_handler() {
-  local exit_code="$?"
-  local line_number="$1"
-  local command="$2"
-  post_update_to_api "failed" "${command}"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
-  echo -e "\n$error_message\n"
-  cleanup_vmid
-}
-
-function cleanup_vmid() {
-  if qm status $VMID &>/dev/null; then
-    qm stop $VMID &>/dev/null
-    qm destroy $VMID &>/dev/null
-  fi
-}
-
-function cleanup() {
-  popd >/dev/null
-  rm -rf $TEMP_DIR
-}
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
@@ -77,71 +35,6 @@ if whiptail --backtitle "Proxmox VE Helper Scripts" --title "AllStarLink VM" --y
 else
   header_info && echo -e "⚠ User exited script \n" && exit
 fi
-
-function msg_info() {
-  local msg="$1"
-  echo -ne " ${HOLD} ${YW}${msg}..."
-}
-
-function msg_ok() {
-  local msg="$1"
-  echo -e "${BFR} ${CM} ${GN}${msg}${CL}"
-}
-
-function msg_error() {
-  local msg="$1"
-  echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
-}
-
-function check_root() {
-  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
-    clear
-    msg_error "Please run this script as root."
-    echo -e "\nExiting..."
-    sleep 2
-    exit
-  fi
-}
-
-function pve_check() {
-  if ! pveversion | grep -Eq "pve-manager/(8\.[1-3]|9\.[0-2])(\.[0-9]+)*"; then
-    msg_error "This version of Proxmox Virtual Environment is not supported"
-    echo -e "Requires Proxmox Virtual Environment Version 8.1 - 8.3 or 9.0 - 9.2."
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
-}
-
-function arch_check() {
-  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
-    if [ "$(dpkg --print-architecture)" != "arm64" ]; then
-      msg_error "This script will not work with your CPU Architekture \n"
-      echo -e "Exiting..."
-      sleep 2
-      exit
-    fi
-  fi
-}
-
-function ssh_check() {
-  if command -v pveversion >/dev/null 2>&1; then
-    if [ -n "${SSH_CLIENT:+x}" ]; then
-      if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Would you like to proceed with using SSH?" 10 62; then
-        echo "you've been warned"
-      else
-        clear
-        exit
-      fi
-    fi
-  fi
-}
-
-function exit_script() {
-  clear
-  echo -e "⚠  User exited script \n"
-  exit
-}
 
 function default_settings() {
   VMID="$NEXTID"

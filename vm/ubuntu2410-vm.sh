@@ -5,19 +5,9 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
-source /dev/stdin <<<$(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/api/api.func")
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
+load_functions
 
-function header_info {
-  clear
-  cat <<"EOF"
-   __  ____                __           ___  __ __   _______     _    ____  ___
-  / / / / /_  __  ______  / /___  __   |__ \/ // /  <  / __ \   | |  / /  |/  /
- / / / / __ \/ / / / __ \/ __/ / / /   __/ / // /_  / / / / /   | | / / /|_/ /
-/ /_/ / /_/ / /_/ / / / / /_/ /_/ /   / __/__  __/ / / /_/ /    | |/ / /  / /
-\____/_.___/\__,_/_/ /_/\__/\__,_/   /____/ /_/ (_)_/\____/     |___/_/  /_/  (Oracular Oriole)
-
-EOF
-}
 header_info
 echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
@@ -28,82 +18,12 @@ NSAPP="ubuntu-2410-vm"
 var_os="ubuntu"
 var_version="2410"
 
-YW=$(echo "\033[33m")
-BL=$(echo "\033[36m")
-RD=$(echo "\033[01;31m")
-BGN=$(echo "\033[4;92m")
-GN=$(echo "\033[1;92m")
-DGN=$(echo "\033[32m")
-CL=$(echo "\033[m")
-
-CL=$(echo "\033[m")
-BOLD=$(echo "\033[1m")
-BFR="\\r\\033[K"
-HOLD=" "
-TAB="  "
-
-CM="${TAB}✔️${TAB}${CL}"
-CROSS="${TAB}✖️${TAB}${CL}"
-INFO="${TAB}💡${TAB}${CL}"
-OS="${TAB}🖥️${TAB}${CL}"
-CONTAINERTYPE="${TAB}📦${TAB}${CL}"
-DISKSIZE="${TAB}💾${TAB}${CL}"
-CPUCORE="${TAB}🧠${TAB}${CL}"
-RAMSIZE="${TAB}🛠️${TAB}${CL}"
-CONTAINERID="${TAB}🆔${TAB}${CL}"
-HOSTNAME="${TAB}🏠${TAB}${CL}"
-BRIDGE="${TAB}🌉${TAB}${CL}"
-GATEWAY="${TAB}🌐${TAB}${CL}"
-DEFAULT="${TAB}⚙️${TAB}${CL}"
-MACADDRESS="${TAB}🔗${TAB}${CL}"
-VLANTAG="${TAB}🏷️${TAB}${CL}"
-CREATING="${TAB}🚀${TAB}${CL}"
-ADVANCED="${TAB}🧩${TAB}${CL}"
-
 THIN="discard=on,ssd=1,"
 set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
 trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
-function error_handler() {
-  local exit_code="$?"
-  local line_number="$1"
-  local command="$2"
-  post_update_to_api "failed" "$command"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
-  echo -e "\n$error_message\n"
-  cleanup_vmid
-}
-
-function get_valid_nextid() {
-  local try_id
-  try_id=$(pvesh get /cluster/nextid)
-  while true; do
-    if [ -f "/etc/pve/qemu-server/${try_id}.conf" ] || [ -f "/etc/pve/lxc/${try_id}.conf" ]; then
-      try_id=$((try_id + 1))
-      continue
-    fi
-    if lvs --noheadings -o lv_name | grep -qE "(^|[-_])${try_id}($|[-_])"; then
-      try_id=$((try_id + 1))
-      continue
-    fi
-    break
-  done
-  echo "$try_id"
-}
-
-function cleanup_vmid() {
-  if qm status $VMID &>/dev/null; then
-    qm stop $VMID &>/dev/null
-    qm destroy $VMID &>/dev/null
-  fi
-}
-
-function cleanup() {
-  popd >/dev/null
-  rm -rf $TEMP_DIR
-}
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
@@ -112,70 +32,6 @@ if whiptail --backtitle "Proxmox VE Helper Scripts" --title "$APP" --yesno "This
 else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
 fi
-
-function msg_info() {
-  local msg="$1"
-  echo -ne "${TAB}${YW}${HOLD}${msg}${HOLD}"
-}
-
-function msg_ok() {
-  local msg="$1"
-  echo -e "${BFR}${CM}${GN}${msg}${CL}"
-}
-
-function msg_error() {
-  local msg="$1"
-  echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
-}
-
-function check_root() {
-  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
-    clear
-    msg_error "Please run this script as root."
-    echo -e "\nExiting..."
-    sleep 2
-    exit
-  fi
-}
-
-function pve_check() {
-  if ! pveversion | grep -Eq "pve-manager/(8\.[1-4]|9\.[0-2])(\.[0-9]+)*"; then
-    msg_error "${CROSS}${RD}This version of Proxmox Virtual Environment is not supported"
-    echo -e "Requires Proxmox Virtual Environment Version 8.1 - 8.4 or 9.0 - 9.2."
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
-}
-
-function arch_check() {
-  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
-    echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
-    echo -e "\n ${YWB}Visit https://github.com/asylumexp/Proxmox for ARM64 support. \n"
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
-}
-
-function ssh_check() {
-  if command -v pveversion >/dev/null 2>&1; then
-    if [ -n "${SSH_CLIENT:+x}" ]; then
-      if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Would you like to proceed with using SSH?" 10 62; then
-        echo "you've been warned"
-      else
-        clear
-        exit
-      fi
-    fi
-  fi
-}
-
-function exit-script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
-}
 
 function init_settings() {
   VMID="$(get_valid_nextid)"
@@ -341,7 +197,7 @@ function advanced_settings() {
       echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}$VMID${CL}"
       break
     else
-      exit-script
+      exit_script
     fi
   done
 
@@ -359,7 +215,7 @@ function advanced_settings() {
       MACHINE=""
     fi
   else
-    exit-script
+    exit_script
   fi
 
   if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -371,10 +227,10 @@ function advanced_settings() {
       echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
     else
       echo -e "${DISKSIZE}${BOLD}${RD}Invalid Disk Size. Please use a number (e.g., 10 or 10G).${CL}"
-      exit-script
+      exit_script
     fi
   else
-    exit-script
+    exit_script
   fi
 
   if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
@@ -389,7 +245,7 @@ function advanced_settings() {
       DISK_CACHE=""
     fi
   else
-    exit-script
+    exit_script
   fi
 
   if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 ubuntu --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -400,11 +256,11 @@ function advanced_settings() {
     fi
     if [[ ! "$HN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]]; then
       msg_error "Invalid hostname: $HN. Must be 1–63 chars, alphanumeric or hyphen, and not start/end with hyphen."
-      exit-script
+      exit_script
     fi
     echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
@@ -419,29 +275,29 @@ function advanced_settings() {
       CPU_TYPE=""
     fi
   else
-    exit-script
+    exit_script
   fi
 
   if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     CORE_COUNT=$(echo "$CORE_COUNT" | tr -cd '[:digit:]')
     if [[ ! "$CORE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
       msg_error "CPU core count must be a positive integer."
-      exit-script
+      exit_script
     fi
     echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}$CORE_COUNT${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 2048 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     RAM_SIZE=$(echo "$RAM_SIZE" | tr -cd '[:digit:]')
     if [[ ! "$RAM_SIZE" =~ ^[1-9][0-9]*$ ]]; then
       msg_error "RAM size must be a positive integer (in MiB)."
-      exit-script
+      exit_script
     fi
     echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}$RAM_SIZE${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 vmbr0 --title "BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -452,7 +308,7 @@ function advanced_settings() {
       echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
     fi
   else
-    exit-script
+    exit_script
   fi
 
   if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address" 8 58 $GEN_MAC --title "MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -464,7 +320,7 @@ function advanced_settings() {
       echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}$MAC1${CL}"
     fi
   else
-    exit-script
+    exit_script
   fi
 
   if VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for default)" 8 58 --title "VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -477,7 +333,7 @@ function advanced_settings() {
       echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}$VLAN1${CL}"
     fi
   else
-    exit-script
+    exit_script
   fi
 
   if MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -490,7 +346,7 @@ function advanced_settings() {
       echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}$MTU1${CL}"
     fi
   else
-    exit-script
+    exit_script
   fi
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then

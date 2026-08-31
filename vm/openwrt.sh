@@ -8,20 +8,9 @@
 # Based on work from https://i12bretro.github.io/tutorials/0405.html
 
 COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
-source /dev/stdin <<<$(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/api/api.func")
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
+load_functions
 
-function header_info {
-  clear
-  cat <<"EOF"
-   ____                 _       __     __
-  / __ \____  ___  ____| |     / /____/ /_
- / / / / __ \/ _ \/ __ \ | /| / / ___/ __/
-/ /_/ / /_/ /  __/ / / / |/ |/ / /  / /_
-\____/ .___/\___/_/ /_/|__/|__/_/   \__/
-    /_/ W I R E L E S S   F R E E D O M
-
-EOF
-}
 header_info
 echo -e "Loading..."
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
@@ -33,61 +22,12 @@ DISK_SIZE="0.5G"
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 GEN_MAC_LAN=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 
-YW=$(echo "\033[33m")
-BL=$(echo "\033[36m")
 HA=$(echo "\033[1;34m")
-RD=$(echo "\033[01;31m")
-BGN=$(echo "\033[4;92m")
-GN=$(echo "\033[1;92m")
-DGN=$(echo "\033[32m")
-CL=$(echo "\033[m")
-BFR="\\r\\033[K"
-HOLD="-"
-CM="${GN}✓${CL}"
-CROSS="${RD}✗${CL}"
 set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
 trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
-function error_handler() {
-  local exit_code="$?"
-  local line_number="$1"
-  local command="$2"
-  post_update_to_api "failed" "$command"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
-  echo -e "\n$error_message\n"
-  cleanup_vmid
-}
-
-function get_valid_nextid() {
-  local try_id
-  try_id=$(pvesh get /cluster/nextid)
-  while true; do
-    if [ -f "/etc/pve/qemu-server/${try_id}.conf" ] || [ -f "/etc/pve/lxc/${try_id}.conf" ]; then
-      try_id=$((try_id + 1))
-      continue
-    fi
-    if lvs --noheadings -o lv_name | grep -qE "(^|[-_])${try_id}($|[-_])"; then
-      try_id=$((try_id + 1))
-      continue
-    fi
-    break
-  done
-  echo "$try_id"
-}
-
-function cleanup_vmid() {
-  if qm status $VMID &>/dev/null; then
-    qm stop $VMID &>/dev/null
-    qm destroy $VMID &>/dev/null
-  fi
-}
-
-function cleanup() {
-  popd >/dev/null
-  rm -rf $TEMP_DIR
-}
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
@@ -170,59 +110,6 @@ else
   header_info && echo -e "⚠ User exited script \n" && exit
 fi
 
-function msg_info() {
-  local msg="$1"
-  echo -ne " ${HOLD} ${YW}${msg}..."
-}
-
-function msg_ok() {
-  local msg="$1"
-  echo -e "${BFR} ${CM} ${GN}${msg}${CL}"
-}
-
-function msg_error() {
-  local msg="$1"
-  echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
-}
-
-function pve_check() {
-  if ! pveversion | grep -Eq "pve-manager/(8\.[1-4]|9\.[0-2])(\.[0-9]+)*"; then
-    msg_error "This version of Proxmox Virtual Environment is not supported"
-    echo -e "Requires Proxmox Virtual Environment Version 8.1 - 8.4 or 9.0 - 9.2."
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
-}
-
-function arch_check() {
-  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
-    echo -e "\n ${CROSS} This script will not work with PiMox! \n"
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
-}
-
-function ssh_check() {
-  if command -v pveversion >/dev/null 2>&1; then
-    if [ -n "${SSH_CLIENT:+x}" ]; then
-      if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Would you like to proceed with using SSH?" 10 62; then
-        echo "you've been warned"
-      else
-        clear
-        exit
-      fi
-    fi
-  fi
-}
-
-function exit-script() {
-  clear
-  echo -e "⚠  User exited script \n"
-  exit
-}
-
 function default_settings() {
   VMID=$(get_valid_nextid)
   HN=openwrt
@@ -272,7 +159,7 @@ function advanced_settings() {
       echo -e "${DGN}Virtual Machine ID: ${BGN}$VMID${CL}"
       break
     else
-      exit-script
+      exit_script
     fi
   done
 
@@ -284,7 +171,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 1 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -293,7 +180,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Allocated Cores: ${BGN}$CORE_COUNT${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 256 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -302,7 +189,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Allocated RAM: ${BGN}$RAM_SIZE${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN Bridge" 8 58 vmbr0 --title "WAN BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -311,7 +198,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using WAN Bridge: ${BGN}$BRG${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if LAN_BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN Bridge" 8 58 vmbr0 --title "LAN BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -320,7 +207,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using LAN Bridge: ${BGN}$LAN_BRG${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if LAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router IP" 8 58 $LAN_IP_ADDR --title "LAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -329,7 +216,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using LAN IP ADDRESS: ${BGN}$LAN_IP_ADDR${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if LAN_NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router netmask" 8 58 $LAN_NETMASK --title "LAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -338,7 +225,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using LAN NETMASK: ${BGN}$LAN_NETMASK${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN MAC Address" 8 58 $GEN_MAC --title "WAN MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -349,7 +236,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using WAN MAC Address: ${BGN}$MAC${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if MAC2=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN MAC Address" 8 58 $GEN_MAC_LAN --title "LAN MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -360,7 +247,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using LAN MAC Address: ${BGN}$LAN_MAC${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN Vlan (leave blank for default)" 8 58 --title "WAN VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -372,7 +259,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using WAN Vlan: ${BGN}$VLAN1${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if VLAN2=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN Vlan" 8 58 999 --title "LAN VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -384,7 +271,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using LAN Vlan: ${BGN}$VLAN2${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -396,7 +283,7 @@ function advanced_settings() {
     fi
     echo -e "${DGN}Using Interface MTU Size: ${BGN}$MTU1${CL}"
   else
-    exit-script
+    exit_script
   fi
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
