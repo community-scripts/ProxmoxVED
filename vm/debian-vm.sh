@@ -4,6 +4,7 @@
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
 load_functions
 
@@ -106,20 +107,28 @@ function advanced_settings() {
     exit_script
   fi
 
-  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    DISK_SIZE=$(echo "$DISK_SIZE" | tr -d ' ')
-    if [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
-      DISK_SIZE="${DISK_SIZE}G"
-      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
-    elif [[ "$DISK_SIZE" =~ ^[0-9]+G$ ]]; then
-      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
+  # 8G is the default_settings value, repeated here because that function does
+  # not run on this path -- the field used to open empty, and confirming an
+  # empty field matched neither pattern below and ended the script.
+  while true; do
+    if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "${DISK_SIZE:-8G}" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      DISK_SIZE=$(echo "$DISK_SIZE" | tr -d ' ')
+      if [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
+        DISK_SIZE="${DISK_SIZE}G"
+        echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
+        break
+      elif [[ "$DISK_SIZE" =~ ^[0-9]+G$ ]]; then
+        echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
+        break
+      else
+        # Asking again beats ending the run over a typo.
+        whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "Disk size must be a number, optionally followed by G (for example 10 or 10G)." 8 58
+        DISK_SIZE=""
+      fi
     else
-      echo -e "${DISKSIZE}${BOLD}${RD}Invalid Disk Size. Please use a number (e.g., 10 or 10G).${CL}"
       exit_script
     fi
-  else
-    exit_script
-  fi
+  done
 
   if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
     "0" "None (Default)" ON \
