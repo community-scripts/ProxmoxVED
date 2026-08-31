@@ -8,10 +8,6 @@
 # CachyOS VM - Creates a CachyOS Virtual Machine
 # CachyOS is a performance-focused Arch Linux distribution with optimized
 # packages, custom kernels, and various desktop environment options.
-#
-# Unlike the cloud-image VMs here, this one boots an installer ISO: the disks
-# are allocated by qm create and the user finishes the install in Calamares.
-# That is why there is no qm importdisk and no cloud-init.
 # ==============================================================================
 
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
@@ -82,8 +78,6 @@ function advanced_settings() {
   vm_prompt_disk_size "40G" "Set Disk Size in GiB (Recommended: 40+ for desktop)"
   vm_prompt_disk_cache "none"
   vm_prompt_hostname "cachyos"
-  # host rather than kvm64: the optimised packages and the custom kernel are the
-  # reason to run CachyOS, and a generic CPU model gives most of that away.
   vm_prompt_cpu_model "host"
   vm_prompt_cpu_cores "4"
   vm_prompt_ram "8192"
@@ -130,11 +124,8 @@ CACHE_FILE="${CACHE_DIR}/${FILENAME}"
 mkdir -p "$CACHE_DIR"
 msg_ok "${CL}${BL}CachyOS Desktop ISO (Release: ${CACHYOS_VERSION})${CL}"
 
-# SourceForge answers /download with a redirect to a mirror, and a mirror
-# having a bad day serves an HTML notice with status 200. curl is satisfied,
-# -f sees no error, and the result is a 589-byte "ISO" that qm will happily
-# attach and boot from. So the size decides, not the exit code: the real image
-# is around 3.1 GB, and anything under half a gigabyte is not it.
+# A bad SourceForge mirror serves an HTML notice with status 200, so the size
+# decides whether this is an ISO, not curl's exit code.
 MIN_ISO_BYTES=$((500 * 1024 * 1024))
 
 iso_size() { stat -c%s "$1" 2>/dev/null || echo 0; }
@@ -142,7 +133,6 @@ iso_size() { stat -c%s "$1" 2>/dev/null || echo 0; }
 if [[ -f "$CACHE_FILE" ]] && (($(iso_size "$CACHE_FILE") >= MIN_ISO_BYTES)); then
   msg_ok "Using cached ISO ${CL}${BL}${FILENAME}${CL}"
 else
-  # A cached file that failed the check is a leftover from exactly this bug.
   [[ -f "$CACHE_FILE" ]] && rm -f "$CACHE_FILE"
 
   msg_info "Downloading CachyOS ISO (approximately 3.1 GB, this may take a while)"
@@ -167,9 +157,6 @@ fi
 # ==============================================================================
 # VM CREATION
 # ==============================================================================
-# The storage:size shorthand wants GiB as a bare integer, so the G that
-# DISK_SIZE carries everywhere else has to come off here. With it, LVM answers
-# "unable to parse lvm volume name '40G'" and the whole create fails.
 msg_info "Creating a CachyOS VM"
 
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
