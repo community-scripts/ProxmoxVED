@@ -13,6 +13,8 @@ echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
+APP="Ubuntu 25.04"
+APP_TYPE="vm"
 NSAPP="ubuntu2504-vm"
 var_os="ubuntu"
 var_version="2504"

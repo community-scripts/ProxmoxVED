@@ -13,6 +13,8 @@ echo -e "Loading..."
 #API VARIABLES
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
+APP="OPNsense"
+APP_TYPE="vm"
 NSAPP="opnsense-vm"
 var_os="opnsense"
 var_version="26.7"

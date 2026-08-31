@@ -15,6 +15,8 @@ echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
+APP="Unifi OS Server VM"
+APP_TYPE="vm"
 NSAPP="UniFi OS Server"
 var_os="-"
 var_version="-"

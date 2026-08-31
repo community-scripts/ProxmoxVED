@@ -32,6 +32,7 @@ load_functions
 # ==============================================================================
 APP="${APP:-App Deployer}"
 APP_TYPE="vm"
+APP="App Deployer"
 NSAPP="app-deployer-vm"
 
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')

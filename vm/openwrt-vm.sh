@@ -15,6 +15,8 @@ header_info
 echo -e "\n Loading..."
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
+APP="OpenWrt"
+APP_TYPE="vm"
 NSAPP="openwrt-vm"
 var_os="openwrt"
 var_version=" "

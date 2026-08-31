@@ -14,6 +14,7 @@ GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 APP="Ubuntu 24.10 VM"
+APP_TYPE="vm"
 NSAPP="ubuntu-2410-vm"
 var_os="ubuntu"
 var_version="2410"
