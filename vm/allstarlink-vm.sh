@@ -149,6 +149,9 @@ msg_ok "Installed AllStarLink"
 if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Would you like to add Allmon3?" 10 58); then
   msg_info "Installing Allmon3"
   virt-customize -q -a "${FILE}" \
+  # Cloud images run no getty on tty1, which is why the Proxmox console
+  # stays black even though the VM is running.
+  vm_enable_consoles "$FILE"
     --install allmon3 \
     --run-command "sed -i \"s/;pass=.*/;pass=\$(sed -ne 's/^secret = //p' /etc/asterisk/manager.conf)/\" /etc/allmon3/allmon3.ini" >/dev/null
   msg_ok "Installed Allmon3"

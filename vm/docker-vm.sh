@@ -385,6 +385,9 @@ DOCKERSERVICE
 systemctl enable install-docker.service' >/dev/null 2>&1 || true
   else
     msg_warn "virt-customize failed for this image. Docker must be installed manually after first boot:"
+    # Cloud images run no getty on tty1, which is why the Proxmox console
+    # stays black even though the VM is running.
+    vm_enable_consoles "$WORK_FILE"
     msg_warn "  curl -fsSL https://get.docker.com | sh"
   fi
 fi

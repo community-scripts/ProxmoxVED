@@ -417,6 +417,9 @@ virt-customize -a "${FILE}" --run-command "rm -f /var/lib/dbus/machine-id"
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   virt-customize -a "${FILE}" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" || true
   virt-customize -a "${FILE}" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" || true
+  # Cloud images run no getty on tty1, which is why the Proxmox console
+  # stays black even though the VM is running.
+  vm_enable_consoles "$FILE"
 fi
 
 msg_info "Expanding root partition to use full disk space"

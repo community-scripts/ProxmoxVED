@@ -172,6 +172,9 @@ ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
 EOF' >/dev/null 2>&1 || true
 fi
 
+# Cloud images run no getty on tty1, which is why the Proxmox console
+# stays black even though the VM is running.
+vm_enable_consoles "$WORK_FILE"
 msg_ok "Customized image"
 
 # qm resize only grows the block device. Without cloud-init nothing grows the

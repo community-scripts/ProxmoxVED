@@ -135,6 +135,9 @@ virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PasswordAuthentica
 virt-customize -q -a "$WORK_FILE" --run-command "systemctl enable serial-getty@ttyS0.service" >/dev/null 2>&1 || true
 virt-customize -q -a "$WORK_FILE" --selinux-relabel >/dev/null 2>&1 || true
 
+# Cloud images run no getty on tty1, which is why the Proxmox console
+# stays black even though the VM is running.
+vm_enable_consoles "$WORK_FILE"
 msg_ok "Customized image"
 
 STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')

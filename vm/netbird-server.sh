@@ -484,6 +484,9 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 DOCKERSVCEOF
   virt-customize -q -a "$WORK_FILE" \
+  # Cloud images run no getty on tty1, which is why the Proxmox console
+  # stays black even though the VM is running.
+  vm_enable_consoles "$WORK_FILE"
     --upload "${DOCKER_INSTALL_TMP}:/root/install-docker.sh" \
     --upload "${DOCKER_SVC_TMP}:/etc/systemd/system/install-docker.service" \
     --run-command "chmod +x /root/install-docker.sh" \

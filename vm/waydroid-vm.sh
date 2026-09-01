@@ -276,6 +276,9 @@ FSCRIPT
 chmod +x /usr/local/bin/waydroid-firstboot.sh" >/dev/null 2>&1 || true
 
   virt-customize -q -a "$WORK_FILE" --run-command "cat > /etc/systemd/system/waydroid-firstboot.service << 'FSVC'
+  # Cloud images run no getty on tty1, which is why the Proxmox console
+  # stays black even though the VM is running.
+  vm_enable_consoles "$WORK_FILE"
 [Unit]
 Description=Waydroid First Boot Installation
 After=network-online.target
