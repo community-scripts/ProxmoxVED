@@ -127,31 +127,8 @@ msg_ok "BlissOS ${CL}${BL}${BLISS_VERSION}${CL} ${GN}(build ${BLISS_BUILD})"
 # decides whether this is an ISO, not curl's exit code. Learned from cachyos.
 MIN_ISO_BYTES=$((1024 * 1024 * 1024))
 
-iso_size() { stat -c%s "$1" 2>/dev/null || echo 0; }
-
-if [[ -f "$CACHE_FILE" ]] && (($(iso_size "$CACHE_FILE") >= MIN_ISO_BYTES)); then
-  msg_ok "Using cached ISO ${CL}${BL}${FILENAME}${CL}"
-else
-  [[ -f "$CACHE_FILE" ]] && rm -f "$CACHE_FILE"
-
-  msg_info "Downloading BlissOS (approximately 2 GB, this may take a while)"
-  if ! curl -fSL --retry 3 --retry-delay 5 -o "$CACHE_FILE" "$URL"; then
-    rm -f "$CACHE_FILE"
-    msg_error "Failed to download the BlissOS image"
-    exit 1
-  fi
-
-  DOWNLOADED_BYTES=$(iso_size "$CACHE_FILE")
-  if ((DOWNLOADED_BYTES < MIN_ISO_BYTES)); then
-    rm -f "$CACHE_FILE"
-    msg_error "Downloaded ${DOWNLOADED_BYTES} bytes, which is not an ISO"
-    msg_error "A SourceForge mirror most likely served an error page. Try again in a moment."
-    exit 1
-  fi
-
-  echo -en "\e[1A\e[0K"
-  msg_ok "Downloaded ${CL}${BL}${FILENAME}${CL}"
-fi
+msg_info "Downloading BlissOS (approximately 2 GB, this may take a while)"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" || exit 115
 
 msg_info "Creating a BlissOS VM"
 

@@ -403,13 +403,8 @@ ISO_NAME=$(basename "$FULL_URL")
 CACHE_DIR="/var/lib/vz/template/iso"
 CACHE_FILE="$CACHE_DIR/$ISO_NAME"
 
-if [[ ! -s "$CACHE_FILE" ]]; then
-  msg_info "Retrieving the ISO for the TrueNAS Disk Image"
-  curl -f#SL -o "$CACHE_FILE" "$FULL_URL"
-  msg_ok "Downloaded ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
-else
-  msg_ok "Using cached image ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
-fi
+msg_info "Retrieving the ISO for the TrueNAS Disk Image"
+vm_fetch_image "$FULL_URL" "$CACHE_FILE" --cache || exit 115
 
 set -o pipefail
 msg_info "Creating TrueNAS VM shell"

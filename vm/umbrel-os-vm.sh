@@ -53,40 +53,6 @@ function ensure_pv() {
   fi
 }
 
-# Download an .xz file and validate it
-# Args: $1=url $2=cache_file
-function download_and_validate_xz() {
-  local url="$1"
-  local file="$2"
-
-  # If file exists, check validity
-  if [[ -s "$file" ]]; then
-    if xz -t "$file" &>/dev/null; then
-      msg_ok "Using cached image $(basename "$file")"
-      return 0
-    else
-      msg_error "Cached file $(basename "$file") is corrupted. Deleting and retrying download..."
-      rm -f "$file"
-    fi
-  fi
-
-  # Download fresh file
-  msg_info "Downloading image: $(basename "$file")"
-  if ! curl -fSL -o "$file" "$url"; then
-    msg_error "Download failed: $url"
-    rm -f "$file"
-    exit 115
-  fi
-
-  # Validate again
-  if ! xz -t "$file" &>/dev/null; then
-    msg_error "Downloaded file $(basename "$file") is corrupted. Please try again later."
-    rm -f "$file"
-    exit 115
-  fi
-  msg_ok "Downloaded and validated $(basename "$file")"
-}
-
 # Extract .xz with pv
 # Args: $1=cache_file $2=target_img
 function extract_xz_with_pv() {
@@ -165,7 +131,7 @@ FILE_IMG="/var/lib/vz/template/tmp/${CACHE_FILE##*/%.xz}"
 
 mkdir -p "$CACHE_DIR" "$(dirname "$FILE_IMG")"
 
-download_and_validate_xz "$URL" "$CACHE_FILE"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --verify-xz || exit 115
 
 qm create $VMID${MACHINE} -bios ovmf -agent 1 -tablet 0 -localtime 1 ${CPU_TYPE} \
   -cores "$CORE_COUNT" -memory "$RAM_SIZE" -name "$HN" -tags community-script \
