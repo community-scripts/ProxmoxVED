@@ -132,6 +132,10 @@ echo -en "\e[1A\e[0K"
 FILE="$(basename "$URL")"
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
+# Console, guest agent, machine-id and root login -- the image was
+# imported untouched before, so it had none of them.
+vm_prepare_cloud_image "$FILE" "$HN" || true
+
 msg_info "Creating a Ubuntu 26.04 VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci

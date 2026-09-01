@@ -103,6 +103,10 @@ if [ "${CLOUD_INIT:-no}" != "yes" ]; then
   vm_expand_image "$FILE" "$DISK_SIZE" || true
 fi
 
+# Console, guest agent, machine-id and root login -- the image was
+# imported untouched before, so it had none of them.
+vm_prepare_cloud_image "$FILE" "$HN" || true
+
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
 nfs | dir)
