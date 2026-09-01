@@ -175,6 +175,8 @@ fi
 # Cloud images run no getty on tty1, which is why the Proxmox console
 # stays black even though the VM is running.
 vm_enable_consoles "$WORK_FILE"
+# -agent 1 is set below, so the agent has to actually be there.
+vm_install_guest_agent "$WORK_FILE" || true
 msg_ok "Customized image"
 
 # qm resize only grows the block device. Without cloud-init nothing grows the

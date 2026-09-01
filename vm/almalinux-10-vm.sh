@@ -138,6 +138,8 @@ virt-customize -q -a "$WORK_FILE" --selinux-relabel >/dev/null 2>&1 || true
 # Cloud images run no getty on tty1, which is why the Proxmox console
 # stays black even though the VM is running.
 vm_enable_consoles "$WORK_FILE"
+# -agent 1 is set below, so the agent has to actually be there.
+vm_install_guest_agent "$WORK_FILE" || true
 msg_ok "Customized image"
 
 STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')

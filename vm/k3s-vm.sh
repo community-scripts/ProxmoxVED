@@ -314,6 +314,8 @@ if [[ "$INSTALL_ARGOCD_BOOTSTRAP" == "1" ]]; then
   # Cloud images run no getty on tty1, which is why the Proxmox console
   # stays black even though the VM is running.
   vm_enable_consoles "$FILE"
+  # -agent 1 is set below, so the agent has to actually be there.
+  vm_install_guest_agent "$FILE" || true
     --run-command 'mkdir -p /usr/local/sbin /etc/systemd/system /var/lib' \
     --run-command 'cat <<"EOF" >/usr/local/sbin/bootstrap-argocd.sh
 #!/usr/bin/env bash
