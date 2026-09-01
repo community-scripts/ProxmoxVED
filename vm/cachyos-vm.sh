@@ -141,7 +141,7 @@ msg_info "Creating a CachyOS VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 0 -ostype l26 -scsihw virtio-scsi-pci \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
-  -cdrom local:iso/${FILENAME} -vga qxl -serial0 socket >/dev/null
+  -cdrom local:iso/${FILENAME} -boot order='scsi0;ide2' -vga qxl -serial0 socket >/dev/null
 
 set_description
 
@@ -174,8 +174,8 @@ echo -e "${TAB}2. Boot from the CachyOS ISO"
 echo -e "${TAB}3. Use the Calamares installer to complete installation"
 echo -e "${TAB}4. Choose your preferred desktop environment during setup:"
 echo -e "${TAB}   ${BL}KDE Plasma, GNOME, XFCE, Hyprland, i3, and more${CL}"
-echo -e "${TAB}5. After installation, remove the ISO from VM settings"
-echo -e "${TAB}6. Change boot order to boot from disk (scsi0)"
+echo -e "${TAB}5. After installation, detach the ISO -- the boot order already
+${TAB}   prefers the disk, so the installed system takes over"
 
 echo -e "\n${INFO}${BOLD}${GN}CachyOS Features:${CL}"
 echo -e "${TAB}• Custom linux-cachyos kernel with BORE scheduler"
