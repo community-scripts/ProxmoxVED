@@ -401,7 +401,9 @@ stableversion=$(echo "$response" | sed -n 's/.*Current stable release - OpenWrt 
 URL="https://downloads.openwrt.org/releases/$stableversion/targets/x86/64/openwrt-$stableversion-x86-64-generic-ext4-combined.img.gz"
 
 msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "$(basename "$URL")" "$URL"
+# A mirror serving an error page returns 200, so size decides whether this
+# is an image. Anything real here is far above 5 MB.
+vm_fetch_image "$URL" "$(basename "$URL")" --min-bytes $((5 * 1024 * 1024)) || exit 1
 FILE=$(basename "$URL")
 msg_ok "Downloaded ${CL}${BL}$FILE${CL}"
 
