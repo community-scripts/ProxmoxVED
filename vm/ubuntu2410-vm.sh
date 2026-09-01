@@ -220,11 +220,6 @@ echo -en "\e[1A\e[0K"
 FILE=$(basename $URL)
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-if [ "${CLOUD_INIT:-no}" != "yes" ]; then
-  msg_info "Expanding the root filesystem to ${DISK_SIZE}"
-  vm_expand_image "$FILE" "$DISK_SIZE" || true
-fi
-
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
 nfs | dir | cifs)

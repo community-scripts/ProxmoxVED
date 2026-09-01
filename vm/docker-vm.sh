@@ -234,13 +234,6 @@ vm_fetch_image "$URL" "$CACHE_FILE" --cache || exit 115
 # ==============================================================================
 # STORAGE TYPE DETECTION
 # ==============================================================================
-# qm resize only grows the block device. Without cloud-init nothing grows the
-# guest partition, so expand it offline first.
-if [ "${CLOUD_INIT:-no}" != "yes" ]; then
-  msg_info "Expanding the root filesystem to ${DISK_SIZE}"
-  vm_expand_image "$WORK_FILE" "$DISK_SIZE" || true
-fi
-
 STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
 nfs | dir)
@@ -270,6 +263,13 @@ msg_info "Preparing ${OS_DISPLAY} image with Docker"
 
 WORK_FILE=$(mktemp --suffix=.qcow2)
 cp "$CACHE_FILE" "$WORK_FILE"
+
+# qm resize only grows the block device. Without cloud-init nothing grows the
+# guest partition, so expand the working copy offline first.
+if [ "${USE_CLOUD_INIT:-no}" != "yes" ]; then
+  msg_info "Expanding the root filesystem to ${DISK_SIZE}"
+  vm_expand_image "$WORK_FILE" "$DISK_SIZE" || true
+fi
 
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 
