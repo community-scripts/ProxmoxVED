@@ -39,14 +39,12 @@ fi
 # Supported: Proxmox VE 8.0.x – 8.9.x, 9.0 and 9.2
 
 function select_cloud_init() {
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT" \
-    --yesno "Enable Cloud-Init for VM configuration?\n\nCloud-Init allows automatic configuration of:\n- User accounts and passwords\n- SSH keys\n- Network settings (DHCP/Static)\n- DNS configuration\n\nYou can also configure these settings later in Proxmox UI.\n\nNote: Without Cloud-Init, the nocloud image will be used with console auto-login." --defaultno 18 68); then
-    CLOUD_INIT="yes"
-    echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes${CL}"
-  else
-    CLOUD_INIT="no"
-    echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}no${CL}"
-  fi
+  # The core prompt, not a local yes/no: it collects the user, password,
+  # network mode and SSH keys into CLOUDINIT_*, which vm_provision needs later.
+  # Answering "yes" to a bare dialog attached an empty drive and configured
+  # nothing, so the VM came up with no login and no address.
+  vm_prompt_cloud_init "root"
+  CLOUD_INIT="${USE_CLOUD_INIT:-no}"
 }
 
 function default_settings() {
@@ -212,14 +210,13 @@ done
 
 msg_info "Creating a Debian 13 VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
+  -name $HN -tags "community-script;vm;${var_os}" -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${WORK_FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 if [ "$CLOUD_INIT" == "yes" ]; then
   qm set $VMID \
     -efidisk0 ${DISK0_REF}${FORMAT} \
     -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-    -scsi1 ${STORAGE}:cloudinit \
     -boot order=scsi0 \
     -serial0 socket >/dev/null
 else
@@ -229,6 +226,10 @@ else
     -boot order=scsi0 \
     -serial0 socket >/dev/null
 fi
+
+# Attaches the Cloud-Init drive and sets ciuser, cipassword, sshkeys and
+# ipconfig0, then reports the credentials it generated.
+vm_provision "$VMID"
 
 # Clean up work file
 rm -f "$WORK_FILE"
@@ -275,7 +276,7 @@ fi
 msg_ok "Created a Debian 13 VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Debian 13 VM"
-  qm start $VMID
+  qm start $VMID >/dev/null 2>&1
   msg_ok "Started Debian 13 VM"
 fi
 
