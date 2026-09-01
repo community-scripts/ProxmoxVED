@@ -139,11 +139,9 @@ WORK_FILE=$(mktemp --suffix=.qcow2)
 cp "$FILE" "$WORK_FILE"
 
 # Set hostname
-virt-customize -q -a "$WORK_FILE" --hostname "${HN}" >/dev/null 2>&1
+vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
 
 # Prepare for unique machine-id on first boot
-virt-customize -q -a "$WORK_FILE" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1
-virt-customize -q -a "$WORK_FILE" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null 2>&1
 
 # Disable systemd-firstboot to prevent interactive prompts blocking the console
 virt-customize -q -a "$WORK_FILE" --run-command "systemctl disable systemd-firstboot.service 2>/dev/null; rm -f /etc/systemd/system/sysinit.target.wants/systemd-firstboot.service; ln -sf /dev/null /etc/systemd/system/systemd-firstboot.service" >/dev/null 2>&1 || true
@@ -171,12 +169,6 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
 EOF' >/dev/null 2>&1 || true
 fi
-
-# Cloud images run no getty on tty1, which is why the Proxmox console
-# stays black even though the VM is running.
-vm_enable_consoles "$WORK_FILE"
-# -agent 1 is set below, so the agent has to actually be there.
-vm_install_guest_agent "$WORK_FILE" || true
 msg_ok "Customized image"
 
 # qm resize only grows the block device. Without cloud-init nothing grows the

@@ -409,17 +409,13 @@ fi
 
 # Set hostname and clean machine-id
 virt-customize -a "${FILE}" --hostname "${HN}"
-virt-customize -a "${FILE}" --run-command "truncate -s 0 /etc/machine-id"
-virt-customize -a "${FILE}" --run-command "rm -f /var/lib/dbus/machine-id"
+vm_prepare_cloud_image "$FILE" "$HN" || true
 
 # Configure SSH to allow root login with password when Cloud-Init is enabled
 # (Cloud-Init will set the password, but SSH needs to accept password authentication)
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   virt-customize -a "${FILE}" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" || true
   virt-customize -a "${FILE}" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" || true
-  # Cloud images run no getty on tty1, which is why the Proxmox console
-  # stays black even though the VM is running.
-  vm_enable_consoles "$FILE"
 fi
 
 msg_info "Expanding root partition to use full disk space"

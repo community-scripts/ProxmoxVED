@@ -125,21 +125,10 @@ WORK_FILE=$(mktemp --suffix=.qcow2)
 cp "$FILE" "$WORK_FILE"
 popd >/dev/null
 rm -rf "$TEMP_DIR"
-
-virt-customize -q -a "$WORK_FILE" --hostname "${HN}" >/dev/null 2>&1
-virt-customize -q -a "$WORK_FILE" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1
-virt-customize -q -a "$WORK_FILE" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null 2>&1
+vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
 virt-customize -q -a "$WORK_FILE" --run-command "systemctl disable systemd-firstboot.service 2>/dev/null; rm -f /etc/systemd/system/sysinit.target.wants/systemd-firstboot.service; ln -sf /dev/null /etc/systemd/system/systemd-firstboot.service" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
 virt-customize -q -a "$WORK_FILE" --run-command "systemctl enable serial-getty@ttyS0.service" >/dev/null 2>&1 || true
 virt-customize -q -a "$WORK_FILE" --selinux-relabel >/dev/null 2>&1 || true
-
-# Cloud images run no getty on tty1, which is why the Proxmox console
-# stays black even though the VM is running.
-vm_enable_consoles "$WORK_FILE"
-# -agent 1 is set below, so the agent has to actually be there.
-vm_install_guest_agent "$WORK_FILE" || true
 msg_ok "Customized image"
 
 STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')

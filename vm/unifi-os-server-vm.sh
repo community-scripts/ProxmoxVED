@@ -425,9 +425,7 @@ WantedBy=multi-user.target
 SVCEOF
 
 virt-customize -a "${FILE}" \
-# Cloud images run no getty on tty1, which is why the Proxmox console
-# stays black even though the VM is running.
-vm_enable_consoles "$FILE"
+vm_prepare_cloud_image "$FILE" "$HN" || true
   --upload "unifi-os-server.bin:/opt/unifi-os-server.bin" \
   --chmod 0755:/opt/unifi-os-server.bin \
   --upload "$FIRSTBOOT_SCRIPT:/opt/unifi-os-firstboot.sh" \

@@ -311,11 +311,7 @@ rm -f /tmp/k9s.tar.gz
 if [[ "$INSTALL_ARGOCD_BOOTSTRAP" == "1" ]]; then
   msg_info "Add in Image ArgoCD Bootstrap"
   virt-customize -q -a "${FILE}" \
-  # Cloud images run no getty on tty1, which is why the Proxmox console
-  # stays black even though the VM is running.
-  vm_enable_consoles "$FILE"
-  # -agent 1 is set below, so the agent has to actually be there.
-  vm_install_guest_agent "$FILE" || true
+vm_prepare_cloud_image "$FILE" "$HN" || true
     --run-command 'mkdir -p /usr/local/sbin /etc/systemd/system /var/lib' \
     --run-command 'cat <<"EOF" >/usr/local/sbin/bootstrap-argocd.sh
 #!/usr/bin/env bash

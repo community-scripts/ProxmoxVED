@@ -432,9 +432,7 @@ rm -f "$NETBIRD_SVC_TMP"
 msg_ok "Configured NetBird first-boot automation"
 
 msg_info "Finalizing image"
-virt-customize -q -a "$WORK_FILE" --hostname "${HN}" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null 2>&1 || true
+vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
 
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
@@ -484,9 +482,6 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 DOCKERSVCEOF
   virt-customize -q -a "$WORK_FILE" \
-  # Cloud images run no getty on tty1, which is why the Proxmox console
-  # stays black even though the VM is running.
-  vm_enable_consoles "$WORK_FILE"
     --upload "${DOCKER_INSTALL_TMP}:/root/install-docker.sh" \
     --upload "${DOCKER_SVC_TMP}:/etc/systemd/system/install-docker.service" \
     --run-command "chmod +x /root/install-docker.sh" \

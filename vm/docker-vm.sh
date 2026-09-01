@@ -309,9 +309,7 @@ fi
 
 msg_info "Finalizing image (hostname, SSH config)"
 # Set hostname and prepare for unique machine-id
-virt-customize -q -a "$WORK_FILE" --hostname "${HN}" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null 2>&1 || true
+vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
 
 # Configure SSH for Cloud-Init
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
@@ -385,9 +383,6 @@ DOCKERSERVICE
 systemctl enable install-docker.service' >/dev/null 2>&1 || true
   else
     msg_warn "virt-customize failed for this image. Docker must be installed manually after first boot:"
-    # Cloud images run no getty on tty1, which is why the Proxmox console
-    # stays black even though the VM is running.
-    vm_enable_consoles "$WORK_FILE"
     msg_warn "  curl -fsSL https://get.docker.com | sh"
   fi
 fi

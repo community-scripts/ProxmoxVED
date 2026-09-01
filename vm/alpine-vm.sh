@@ -129,15 +129,7 @@ rm -rf "$TEMP_DIR"
 
 # No systemctl and no SELinux here: Alpine runs OpenRC, and the cloud image
 # already wires up the serial console through /etc/inittab.
-virt-customize -q -a "$WORK_FILE" --hostname "$HN" >/dev/null 2>&1
-virt-customize -q -a "$WORK_FILE" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
-# Cloud images run no getty on tty1, which is why the Proxmox console
-# stays black even though the VM is running.
-vm_enable_consoles "$WORK_FILE"
-# -agent 1 is set below, so the agent has to actually be there.
-vm_install_guest_agent "$WORK_FILE" || true
+vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
 msg_ok "Customized image"
 
 STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')

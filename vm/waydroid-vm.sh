@@ -240,9 +240,7 @@ virt-customize -q -a "$WORK_FILE" \
 msg_ok "Configured binder kernel module"
 
 msg_info "Finalizing image"
-virt-customize -q -a "$WORK_FILE" --hostname "${HN}" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null 2>&1 || true
+vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   virt-customize -q -a "$WORK_FILE" \
     --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
@@ -276,9 +274,6 @@ FSCRIPT
 chmod +x /usr/local/bin/waydroid-firstboot.sh" >/dev/null 2>&1 || true
 
   virt-customize -q -a "$WORK_FILE" --run-command "cat > /etc/systemd/system/waydroid-firstboot.service << 'FSVC'
-  # Cloud images run no getty on tty1, which is why the Proxmox console
-  # stays black even though the VM is running.
-  vm_enable_consoles "$WORK_FILE"
 [Unit]
 Description=Waydroid First Boot Installation
 After=network-online.target
