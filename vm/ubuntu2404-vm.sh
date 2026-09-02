@@ -185,7 +185,7 @@ fi
 msg_ok "Created a Ubuntu 24.04 VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Ubuntu 24.04 VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started Ubuntu 24.04 VM"
 fi
 post_update_to_api "done" "none"

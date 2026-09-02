@@ -218,7 +218,7 @@ fi
 msg_ok "Created a Debian 12 VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Debian 12 VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started Debian 12 VM"
 fi
 

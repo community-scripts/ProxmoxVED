@@ -150,7 +150,7 @@ msg_ok "Created a BlissOS VM ${CL}${BL}(${HN})"
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting BlissOS VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started BlissOS VM"
 fi
 

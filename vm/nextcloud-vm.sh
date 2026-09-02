@@ -184,7 +184,7 @@ fi
 msg_ok "Created a $NAME ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting $NAME"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started $NAME"
 fi
 post_update_to_api "done" "none"

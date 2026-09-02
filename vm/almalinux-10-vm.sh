@@ -191,7 +191,7 @@ vm_provision "$VMID" || true
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting AlmaLinux 10 VM"
-  qm start "$VMID"
+  $STD qm start "$VMID"
   msg_ok "Started AlmaLinux 10 VM"
 fi
 

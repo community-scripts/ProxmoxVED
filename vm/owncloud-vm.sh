@@ -186,7 +186,7 @@ fi
 msg_ok "Created a $APP ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting $APP"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started $APP"
 fi
 post_update_to_api "done" "none"

@@ -270,7 +270,8 @@ CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
 mkdir -p "$CACHE_DIR"
 msg_ok "${CL}${BL}${URL}${CL}"
 
-vm_fetch_image "$URL" "$CACHE_FILE" --cache || exit 115
+MIN_IMAGE_BYTES=$((100 * 1024 * 1024))
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_IMAGE_BYTES" || exit 115
 
 # ==============================================================================
 # STORAGE TYPE DETECTION
@@ -549,7 +550,7 @@ fi
 # ==============================================================================
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting NetBird Server VM"
-  qm start $VMID >/dev/null 2>&1
+  $STD qm start $VMID
   msg_ok "Started NetBird Server VM"
 fi
 

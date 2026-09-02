@@ -486,7 +486,7 @@ qm set "$VMID" -description "$DESCRIPTION"
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Docker VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started Docker VM"
 fi
 

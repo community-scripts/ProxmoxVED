@@ -259,7 +259,7 @@ fi
 msg_ok "Mikrotik RouterOS CHR VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Mikrotik RouterOS CHR VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started Mikrotik RouterOS CHR VM"
 fi
 post_update_to_api "done" "none"

@@ -370,7 +370,7 @@ fi
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting K3s VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started K3s VM"
 fi
 

@@ -479,7 +479,7 @@ qm set $VMID -description "$DESCRIPTION" >/dev/null
 
 msg_ok "Created OpenWrt VM ${CL}${BL}(${HN})"
 msg_info "OpenWrt is being started in order to configure the network interfaces."
-qm start $VMID
+$STD qm start $VMID
 sleep 15
 msg_info "Waiting for OpenWrt to boot..."
 for i in {1..30}; do
@@ -527,7 +527,7 @@ msg_ok "Bridge interfaces added"
 
 if [ "$START_VM" = "yes" ]; then
   msg_info "Starting OpenWrt VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started OpenWrt VM"
 fi
 

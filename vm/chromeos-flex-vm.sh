@@ -234,7 +234,7 @@ msg_ok "Resized disk to ${DISK_SIZE}"
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting ChromeOS Flex VM"
-  qm start "$VMID"
+  $STD qm start "$VMID"
   msg_ok "Started ChromeOS Flex VM"
 fi
 

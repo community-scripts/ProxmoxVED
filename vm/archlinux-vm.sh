@@ -194,7 +194,7 @@ fi
 msg_ok "Created a Arch Linux VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Arch Linux VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started Arch Linux VM"
 fi
 post_update_to_api "done" "none"

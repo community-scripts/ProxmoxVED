@@ -152,7 +152,7 @@ msg_ok "Created a CachyOS VM ${CL}${BL}(${HN})"
 # ==============================================================================
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting CachyOS VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started CachyOS VM"
 fi
 

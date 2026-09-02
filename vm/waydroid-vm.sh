@@ -196,7 +196,8 @@ CACHE_DIR="/var/lib/vz/template/cache"
 CACHE_FILE="${CACHE_DIR}/$(basename "$URL")"
 mkdir -p "$CACHE_DIR"
 
-vm_fetch_image "$URL" "$CACHE_FILE" --cache || exit 115
+MIN_IMAGE_BYTES=$((100 * 1024 * 1024))
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_IMAGE_BYTES" || exit 115
 
 # ---------------------------------------------------------------------------
 # Customize disk image with Waydroid pre-installed (offline via virt-customize)
@@ -326,7 +327,7 @@ fi
 msg_ok "Created a ${OS_LABEL} Waydroid VM ${CL}${BL}(${HN})"
 if [ "$START_VM" = "yes" ]; then
   msg_info "Starting Waydroid VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started Waydroid VM"
 fi
 

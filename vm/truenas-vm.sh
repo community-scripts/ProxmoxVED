@@ -404,7 +404,8 @@ CACHE_DIR="/var/lib/vz/template/iso"
 CACHE_FILE="$CACHE_DIR/$ISO_NAME"
 
 msg_info "Retrieving the ISO for the TrueNAS Disk Image"
-vm_fetch_image "$FULL_URL" "$CACHE_FILE" --cache || exit 115
+MIN_ISO_BYTES=$((500 * 1024 * 1024))
+vm_fetch_image "$FULL_URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" || exit 115
 
 set -o pipefail
 msg_info "Creating TrueNAS VM shell"
@@ -478,7 +479,7 @@ sleep 3
 msg_ok "Created a TrueNAS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting TrueNAS VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started TrueNAS VM"
 fi
 

@@ -330,7 +330,7 @@ fi
 msg_ok "Created HAOS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Home Assistant OS VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started Home Assistant OS VM"
 fi
 post_update_to_api "done" "none"

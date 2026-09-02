@@ -516,7 +516,7 @@ msg_info "Cloud-Init: ${USE_CLOUD_INIT}"
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting UniFi OS VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started UniFi OS VM"
 
   # Wait for guest agent (installed by first-boot service)

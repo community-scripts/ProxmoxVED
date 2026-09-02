@@ -11,8 +11,6 @@
 COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
 load_functions
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/vm-core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/cloud-init.func) || true
 
 # ==============================================================================
 # SCRIPT VARIABLES
@@ -33,8 +31,6 @@ OS_TYPE=""
 OS_VERSION=""
 THIN="discard=on,ssd=1,"
 var_arm64="yes"
-
-load_functions
 
 # ==============================================================================
 # ERROR HANDLING & CLEANUP
@@ -90,19 +86,13 @@ function select_os() {
 }
 
 function select_cloud_init() {
-  if [ "$OS_TYPE" = "ubuntu" ]; then
-    USE_CLOUD_INIT="yes"
-    echo -e "${CLOUD:-${TAB}☁️${TAB}${CL}}${BOLD}${DGN}Cloud-Init: ${BGN}yes (Ubuntu requires Cloud-Init)${CL}"
-    return
-  fi
+  vm_prompt_cloud_init "root"
 
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT" \
-    --yesno "Enable Cloud-Init for VM configuration?\n\nCloud-Init allows automatic configuration of:\n- User accounts and passwords\n- SSH keys\n- Network settings (DHCP/Static)\n- DNS configuration\n\nYou can also configure these settings later in Proxmox UI.\n\nNote: Debian without Cloud-Init will use nocloud image with console auto-login." 18 68); then
+  # Ubuntu ships only cloud images; without cloud-init there is no way in.
+  if [ "$OS_TYPE" = "ubuntu" ] && [ "$USE_CLOUD_INIT" != "yes" ]; then
     USE_CLOUD_INIT="yes"
-    echo -e "${CLOUD:-${TAB}☁️${TAB}${CL}}${BOLD}${DGN}Cloud-Init: ${BGN}yes${CL}"
-  else
-    USE_CLOUD_INIT="no"
-    echo -e "${CLOUD:-${TAB}☁️${TAB}${CL}}${BOLD}${DGN}Cloud-Init: ${BGN}no${CL}"
+    export CLOUDINIT_ENABLE="yes"
+    msg_warn "Ubuntu requires Cloud-Init - enabling it anyway"
   fi
 }
 
@@ -148,11 +138,6 @@ function default_settings() {
   START_VM="yes"
   METHOD="default"
 
-  if [ "$ARCH" = "arm64" ]; then
-    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}virt (ARM64)${CL}"
-  else
-    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
-  fi
   vm_echo_default_settings
 }
 
@@ -193,11 +178,12 @@ header_info
 check_root
 arch_check
 pve_check
+ssh_check
 
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Docker VM" --yesno "This will create a New Docker VM. Proceed?" 10 58; then
+if vm_confirm_new_vm "$APP" "This will create a new Docker VM.\n\nProceed?"; then
   :
 else
-  header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
+  header_info && exit_script
 fi
 
 vm_start_script "Use Default Settings?" 10 58
@@ -211,13 +197,8 @@ vm_select_storage "$HN"
 # ==============================================================================
 # PREREQUISITES
 # ==============================================================================
-if ! command -v virt-customize &>/dev/null; then
-  msg_info "Installing libguestfs-tools"
-  apt-get -qq update >/dev/null
-  apt-get -qq install libguestfs-tools lsb-release -y >/dev/null
-  apt-get -qq install dhcpcd-base -y >/dev/null 2>&1 || true
-  msg_ok "Installed libguestfs-tools"
-fi
+ensure_virt_customize
+$STD apt-get -qq install lsb-release dhcpcd-base -y 2>/dev/null || true
 
 # ==============================================================================
 # IMAGE DOWNLOAD
@@ -229,7 +210,8 @@ CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
 mkdir -p "$CACHE_DIR"
 msg_ok "${CL}${BL}${URL}${CL}"
 
-vm_fetch_image "$URL" "$CACHE_FILE" --cache || exit 115
+MIN_IMAGE_BYTES=$((100 * 1024 * 1024))
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_IMAGE_BYTES" || exit 115
 
 # ==============================================================================
 # STORAGE TYPE DETECTION
@@ -456,7 +438,7 @@ fi
 # Start VM
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Docker VM"
-  qm start $VMID >/dev/null 2>&1
+  $STD qm start $VMID
   msg_ok "Started Docker VM"
 fi
 

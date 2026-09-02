@@ -169,7 +169,7 @@ vm_provision "$VMID" || true
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Alpine VM"
-  qm start "$VMID"
+  $STD qm start "$VMID"
   msg_ok "Started Alpine VM"
 fi
 

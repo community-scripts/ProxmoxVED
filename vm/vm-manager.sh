@@ -622,7 +622,7 @@ deploy_from_template() {
 
     if [ "$need_start" = "yes" ]; then
         info "Starting VM"
-        qm start "$VMID" || { warn "Start failed"; }
+        $STD qm start "$VMID" || { warn "Start failed"; }
         ok "VM started"
     fi
 
