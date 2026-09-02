@@ -135,12 +135,14 @@ msg_info "Creating a BlissOS VM"
 # Android x86 carries virtio drivers -- the project targets QEMU as well as
 # bare metal -- so unlike ChromeOS Flex this does not need SATA and e1000.
 # UEFI with Secure Boot off; it will not boot with the Microsoft keys enrolled.
-# vmware, not std: Android ships no driver for QEMU's stdvga, so it gets as far
-# as switch_root and then hangs on a black screen. vmwgfx it does ship.
+# virtio, not std: with stdvga Android gets as far as switch_root and then hangs
+# on a black screen. vmwgfx does not help either; virtio-gpu is the DRM driver
+# Android 13 actually carries. nomodeset also works but only until installation,
+# since the installer writes its own bootloader config.
 qm create $VMID -agent 1${MACHINE} -tablet 1 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 0 -ostype l26 -scsihw virtio-scsi-single \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
-  -cdrom local:iso/${FILENAME} -boot order='scsi0;ide2' -vga vmware >/dev/null
+  -cdrom local:iso/${FILENAME} -boot order='scsi0;ide2' -vga virtio >/dev/null
 
 set_description
 
