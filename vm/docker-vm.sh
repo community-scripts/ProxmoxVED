@@ -197,7 +197,7 @@ vm_select_storage "$HN"
 # ==============================================================================
 # PREREQUISITES
 # ==============================================================================
-ensure_virt_customize
+vm_ensure_virt_customize
 $STD apt-get -qq install lsb-release dhcpcd-base -y 2>/dev/null || true
 
 # ==============================================================================
