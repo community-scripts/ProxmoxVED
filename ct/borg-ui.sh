@@ -46,6 +46,47 @@ function update_script() {
 
     restore_backup
 
+    BORG_UI_VERSION=$(cat "$HOME/.borg-ui" 2>/dev/null)
+    if [[ -n "$BORG_UI_VERSION" ]]; then
+      if grep -q '^APP_VERSION=' /opt/borg-ui/.env; then
+        sed -i "s|^APP_VERSION=.*|APP_VERSION=${BORG_UI_VERSION}|" /opt/borg-ui/.env
+      else
+        echo "APP_VERSION=${BORG_UI_VERSION}" >>/opt/borg-ui/.env
+      fi
+    fi
+
+    RUNTIME_ENV="/opt/borg-ui/docker/runtime-base.env"
+    BORG1_VERSION=$(sed -n 's/^BORG1_VERSION=//p' "$RUNTIME_ENV" 2>/dev/null | tr -d ' \r')
+    BORG2_VERSION=$(sed -n 's/^BORG2_VERSION=//p' "$RUNTIME_ENV" 2>/dev/null | tr -d ' \r')
+    BORGSTORE_VERSION=$(sed -n 's/^BORGSTORE_VERSION=//p' "$RUNTIME_ENV" 2>/dev/null | tr -d ' \r')
+    RCLONE_VERSION=$(sed -n 's/^RCLONE_VERSION=//p' "$RUNTIME_ENV" 2>/dev/null | tr -d ' \r')
+    BORG_PYTHON=$(sed -n 's/^PYTHON_VERSION=//p' "$RUNTIME_ENV" 2>/dev/null | tr -d ' \r')
+    if [[ -z "$BORG1_VERSION" || -z "$BORG2_VERSION" || -z "$BORGSTORE_VERSION" || -z "$RCLONE_VERSION" || -z "$BORG_PYTHON" ]]; then
+      msg_error "Could not read the pinned versions from ${RUNTIME_ENV}"
+      exit 1
+    fi
+
+    if [[ "$(cat /opt/borg1-venv/.pinned_version 2>/dev/null)" != "$BORG1_VERSION" ]]; then
+      msg_info "Installing Borg ${BORG1_VERSION} (Patience)"
+      $STD uv venv --python "$BORG_PYTHON" /opt/borg1-venv
+      $STD uv pip install --python /opt/borg1-venv pyfuse3 "borgbackup==${BORG1_VERSION}"
+      echo "$BORG1_VERSION" >/opt/borg1-venv/.pinned_version
+      ln -sf /opt/borg1-venv/bin/borg /usr/local/bin/borg
+      msg_ok "Installed Borg ${BORG1_VERSION}"
+    fi
+
+    if [[ "$(cat /opt/borg2-venv/.pinned_version 2>/dev/null)" != "${BORG2_VERSION}-${BORGSTORE_VERSION}" ]]; then
+      msg_info "Installing Borg ${BORG2_VERSION} (Patience)"
+      $STD uv venv --python "$BORG_PYTHON" /opt/borg2-venv
+      $STD uv pip install --python /opt/borg2-venv pyfuse3 "borgbackup==${BORG2_VERSION}" "borgstore[rclone,sftp,rest,s3,blake3]==${BORGSTORE_VERSION}"
+      echo "${BORG2_VERSION}-${BORGSTORE_VERSION}" >/opt/borg2-venv/.pinned_version
+      ln -sf /opt/borg2-venv/bin/borg /usr/local/bin/borg2
+      msg_ok "Installed Borg ${BORG2_VERSION}"
+    fi
+
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rclone" "rclone/rclone" "prebuild" "v${RCLONE_VERSION}" "/opt/rclone" "rclone-v${RCLONE_VERSION}-linux-$(arch_resolve amd64 arm64).zip"
+    ln -sf /opt/rclone/rclone /usr/local/bin/rclone
+
     msg_info "Building Frontend"
     cd /opt/borg-ui/frontend
     $STD npm ci
@@ -57,7 +98,7 @@ function update_script() {
 
     msg_info "Updating Python Environment"
     cd /opt/borg-ui
-    $STD uv venv --python 3.12 /opt/borg-ui/.venv
+    $STD uv venv --python "$BORG_PYTHON" /opt/borg-ui/.venv
     $STD uv pip install --python /opt/borg-ui/.venv -r requirements.txt
     msg_ok "Updated Python Environment"
 

@@ -14,7 +14,7 @@
   "website": "https://github.com/karanhudia/borg-ui",
   "repository": "https://github.com/karanhudia/borg-ui",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/borgbackup.webp",
-  "description": "Borg-UI is a web frontend for BorgBackup. It replaces the borg command line for everyday work: creating and browsing repositories, scheduling backups, inspecting archives and restoring files, all from the browser. BorgBackup itself is installed alongside it.",
+  "description": "Borg-UI is a web frontend for BorgBackup. It replaces the borg command line for everyday work: creating and browsing repositories, scheduling backups, inspecting archives and restoring files, all from the browser. Borg 1 and Borg 2 are installed alongside it, at the versions the upstream release pins.",
   "install_methods": [
     {
       "type": "default",
@@ -30,12 +30,16 @@
     }
   ],
   "default_credentials": {
-    "username": null,
-    "password": null
+    "username": "admin",
+    "password": "admin123"
   },
   "notes": [
     {
-      "text": "Create your account through the web UI at http://<IP>:8081 on first visit.",
+      "text": "Log in with admin / admin123 and change the password immediately - the UI prompts for it on first login.",
+      "type": "warning"
+    },
+    {
+      "text": "Borg 1 and Borg 2 are both installed, as 'borg' and 'borg2'. Their versions are not chosen by this script: they are read from docker/runtime-base.env in the upstream repository, which is Borg-UI's declared single source of truth, so an update follows whatever the release pins. rclone is installed from the same file for rclone:// repositories and cloud mirroring.",
       "type": "info"
     },
     {
