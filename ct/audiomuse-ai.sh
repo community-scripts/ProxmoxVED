@@ -42,13 +42,29 @@ function update_script() {
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "audiomuse-ai" "NeptuneHub/AudioMuse-AI" "tarball"
 
-    msg_info "Updating Python Environment"
+    AUDIOMUSE_BACKEND="$(cat /opt/audiomuse-ai_data/.backend 2>/dev/null || echo cpu)"
+    REQ_COMMON="common.txt"
+    case "$AUDIOMUSE_BACKEND" in
+    gpu)
+      REQ_ACCEL="gpu.txt"
+      [[ "$(uname -m)" == "aarch64" ]] && REQ_ACCEL="gpu-arm64.txt"
+      ;;
+    cpu-noavx2)
+      REQ_COMMON="common-noavx2.txt"
+      REQ_ACCEL="cpu-noavx2.txt"
+      ;;
+    *)
+      REQ_ACCEL="cpu.txt"
+      ;;
+    esac
+
+    msg_info "Updating Python Environment (${AUDIOMUSE_BACKEND})"
     cd /opt/audiomuse-ai
     $STD uv venv --seed --python 3.12 /opt/audiomuse-ai/.venv
     $STD uv pip install --python /opt/audiomuse-ai/.venv \
-      -r /opt/audiomuse-ai/requirements/common.txt \
-      -r /opt/audiomuse-ai/requirements/cpu.txt
-    msg_ok "Updated Python Environment"
+      -r "/opt/audiomuse-ai/requirements/${REQ_COMMON}" \
+      -r "/opt/audiomuse-ai/requirements/${REQ_ACCEL}"
+    msg_ok "Updated Python Environment (${AUDIOMUSE_BACKEND})"
 
     msg_info "Starting Services"
     systemctl start audiomuse-ai audiomuse-ai-worker audiomuse-ai-worker-high audiomuse-ai-janitor audiomuse-ai-control

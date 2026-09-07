@@ -26,16 +26,49 @@ msg_ok "Installed Dependencies"
 PG_VERSION="16" setup_postgresql
 PG_DB_NAME="audiomuse" PG_DB_USER="audiomuse" setup_postgresql_db
 UV_PYTHON="3.12" setup_uv
+setup_hwaccel
 
 fetch_and_deploy_gh_release "audiomuse-ai" "NeptuneHub/AudioMuse-AI" "tarball"
 
-msg_info "Setting up Python Environment (Patience)"
+var_backend="${var_backend:-auto}"
+if [[ "$var_backend" == "auto" ]]; then
+  if ! grep -qm1 avx2 /proc/cpuinfo; then
+    var_backend="cpu-noavx2"
+  elif [[ "${HWACCEL_VENDOR:-none}" == "nvidia" ]]; then
+    var_backend="gpu"
+  else
+    var_backend="cpu"
+  fi
+fi
+
+REQ_COMMON="common.txt"
+case "$var_backend" in
+gpu)
+  REQ_ACCEL="gpu.txt"
+  [[ "$(uname -m)" == "aarch64" ]] && REQ_ACCEL="gpu-arm64.txt"
+  ;;
+cpu)
+  REQ_ACCEL="cpu.txt"
+  ;;
+cpu-noavx2)
+  REQ_COMMON="common-noavx2.txt"
+  REQ_ACCEL="cpu-noavx2.txt"
+  ;;
+*)
+  msg_error "Unknown var_backend '${var_backend}' (expected auto, gpu, cpu or cpu-noavx2)"
+  exit 1
+  ;;
+esac
+
+msg_info "Setting up Python Environment (${var_backend}, Patience)"
 cd /opt/audiomuse-ai
 $STD uv venv --seed --python 3.12 /opt/audiomuse-ai/.venv
 $STD uv pip install --python /opt/audiomuse-ai/.venv \
-  -r /opt/audiomuse-ai/requirements/common.txt \
-  -r /opt/audiomuse-ai/requirements/cpu.txt
-msg_ok "Set up Python Environment"
+  -r "/opt/audiomuse-ai/requirements/${REQ_COMMON}" \
+  -r "/opt/audiomuse-ai/requirements/${REQ_ACCEL}"
+mkdir -p /opt/audiomuse-ai_data
+echo "$var_backend" >/opt/audiomuse-ai_data/.backend
+msg_ok "Set up Python Environment (${var_backend})"
 
 MODEL_DIR="/opt/audiomuse-ai_data/model"
 MODEL_URL="https://github.com/NeptuneHub/AudioMuse-AI/releases/download/v5.0.0-model"

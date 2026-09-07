@@ -13,6 +13,7 @@ setting_up_container
 network_check
 update_os
 
+var_backend="${var_backend:-auto}"
 var_model="${var_model:-Qwen/Qwen2.5-0.5B-Instruct}"
 var_port="${var_port:-8000}"
 var_dtype="${var_dtype:-auto}"
@@ -30,13 +31,45 @@ msg_ok "Installed Dependencies"
 PYTHON_VERSION="3.12" setup_uv
 setup_hwaccel
 
-msg_info "Installing vLLM (Patience)"
+if [[ "$var_backend" == "auto" ]]; then
+  case "${HWACCEL_VENDOR:-none}" in
+  nvidia) var_backend="cuda" ;;
+  amd) var_backend="rocm" ;;
+  *) var_backend="cpu" ;;
+  esac
+fi
+
+VLLM_VERSION="$(get_latest_github_release "vllm-project/vllm")"
+
+msg_info "Installing vLLM (${var_backend}, Patience)"
 $STD uv venv --python 3.12 /opt/vllm
-$STD uv pip install --python /opt/vllm/bin/python vllm
+case "$var_backend" in
+cuda)
+  $STD uv pip install --python /opt/vllm/bin/python vllm
+  ;;
+rocm)
+  $STD uv pip install --python /opt/vllm/bin/python vllm \
+    --extra-index-url https://wheels.vllm.ai/rocm/ --upgrade
+  ;;
+cpu)
+  if [[ "$(uname -m)" != "x86_64" ]]; then
+    msg_error "vLLM publishes no prebuilt CPU wheel for $(uname -m)"
+    exit 1
+  fi
+  $STD uv pip install --python /opt/vllm/bin/python \
+    "https://github.com/vllm-project/vllm/releases/download/v${VLLM_VERSION}/vllm-${VLLM_VERSION}+cpu-cp38-abi3-manylinux_2_34_x86_64.whl" \
+    --torch-backend cpu
+  ;;
+*)
+  msg_error "Unknown var_backend '${var_backend}' (expected auto, cuda, rocm or cpu)"
+  exit 1
+  ;;
+esac
+echo "$var_backend" >/opt/vllm/.backend
 cat <<EOF >~/.vllm
-$(get_latest_github_release "vllm-project/vllm")
+${VLLM_VERSION}
 EOF
-msg_ok "Installed vLLM"
+msg_ok "Installed vLLM (${var_backend})"
 
 msg_info "Configuring vLLM"
 mkdir -p /opt/vllm/models
