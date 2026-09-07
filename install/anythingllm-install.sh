@@ -27,16 +27,19 @@ fetch_and_deploy_gh_release "anythingllm" "Mintplex-Labs/anything-llm" "tarball"
 
 msg_info "Configuring AnythingLLM"
 mkdir -p /opt/anythingllm_data/storage
+cp -RTn /opt/anythingllm/server/storage /opt/anythingllm_data/storage 2>/dev/null || true
+rm -rf /opt/anythingllm/server/storage
+ln -sfn /opt/anythingllm_data/storage /opt/anythingllm/server/storage
 cat <<EOF >/opt/anythingllm/server/.env
 SERVER_PORT=3001
-STORAGE_DIR="/opt/anythingllm_data/storage"
+STORAGE_DIR="/opt/anythingllm/server/storage"
 JWT_SECRET="$(openssl rand -hex 32)"
 SIG_KEY="$(openssl rand -hex 32)"
 SIG_SALT="$(openssl rand -hex 32)"
 VECTOR_DB="lancedb"
 EOF
 cat <<EOF >/opt/anythingllm/collector/.env
-STORAGE_DIR="/opt/anythingllm_data/storage"
+STORAGE_DIR="/opt/anythingllm/server/storage"
 EOF
 cat <<EOF >/opt/anythingllm/frontend/.env
 VITE_API_BASE='/api'
