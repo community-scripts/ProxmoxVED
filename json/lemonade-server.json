@@ -35,7 +35,7 @@
   },
   "notes": [
     {
-      "text": "Remote access is configured with `host=0.0.0.0`. Set `LEMONADE_API_KEY` via a systemd override at `/etc/systemd/system/lemond.service.d/override.conf` before exposing the service.",
+      "text": "Remote access is configured with `host=0.0.0.0`, which also exposes the internal control endpoints (`/internal/*`, including shutdown and config). Secure it before use: run `systemctl edit lemond.service`, add `[Service]` followed by `Environment=\"LEMONADE_API_KEY=<random>\"`, then `systemctl restart lemond`. `LEMONADE_API_KEY` protects every endpoint; `LEMONADE_ADMIN_API_KEY` alone only protects `/internal/*` and leaves `/api`, `/v0` and `/v1` open.",
       "type": "warning"
     },
     {

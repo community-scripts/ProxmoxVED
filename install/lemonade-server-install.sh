@@ -34,8 +34,12 @@ fetch_and_deploy_gh_release "lemonade-server" "lemonade-sdk/lemonade" "binary" "
 
 msg_info "Configuring Remote Access"
 systemctl enable -q --now lemond
-sleep 3
+for _ in $(seq 1 60); do
+  lemonade status >/dev/null 2>&1 && break
+  sleep 2
+done
 $STD lemonade config set host=0.0.0.0
+systemctl restart lemond
 msg_ok "Configured Remote Access"
 
 motd_ssh

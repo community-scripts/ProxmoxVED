@@ -46,6 +46,24 @@ function update_script() {
 
     restore_backup
 
+    msg_info "Refreshing CUDA Environment"
+    CUDA_ROOT="$(find /opt/vllm/lib/python3*/site-packages/nvidia -maxdepth 1 -type d -name 'cu[0-9]*' 2>/dev/null | sort -V | tail -1)"
+    if [[ -n "$CUDA_ROOT" ]]; then
+      CUDART="$(find "${CUDA_ROOT}/lib" -maxdepth 1 -name 'libcudart.so.*' 2>/dev/null | sort -V | tail -1)"
+      if [[ -n "$CUDART" && ! -e "${CUDA_ROOT}/lib/libcudart.so" ]]; then
+        ln -s "$(basename "$CUDART")" "${CUDA_ROOT}/lib/libcudart.so"
+      fi
+      sed -i '/^\(CUDA_HOME\|FLASHINFER_NVCC\|PATH\|LD_LIBRARY_PATH\|LIBRARY_PATH\)=/d' /opt/vllm/vllm.env
+      cat <<EOF >>/opt/vllm/vllm.env
+CUDA_HOME=${CUDA_ROOT}
+FLASHINFER_NVCC=${CUDA_ROOT}/bin/nvcc
+PATH=${CUDA_ROOT}/bin:/opt/vllm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+LD_LIBRARY_PATH=${CUDA_ROOT}/lib
+LIBRARY_PATH=${CUDA_ROOT}/lib
+EOF
+    fi
+    msg_ok "Refreshed CUDA Environment"
+
     msg_info "Starting Service"
     systemctl start vllm
     msg_ok "Started Service"

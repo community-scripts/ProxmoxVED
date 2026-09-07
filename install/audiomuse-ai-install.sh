@@ -20,9 +20,7 @@ $STD apt install -y \
   ffmpeg \
   libchromaprint-tools \
   libsndfile1 \
-  libgomp1 \
-  redis-server
-systemctl enable -q --now redis-server
+  libgomp1
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
@@ -78,7 +76,6 @@ POSTGRES_PASSWORD=${PG_DB_PASS}
 POSTGRES_DB=audiomuse
 POSTGRES_HOST=127.0.0.1
 POSTGRES_PORT=5432
-REDIS_URL=redis://127.0.0.1:6379/0
 TZ=UTC
 AUTH_ENABLED=true
 AUDIOMUSE_USER=admin
@@ -121,7 +118,7 @@ msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/audiomuse-ai.service
 [Unit]
 Description=AudioMuse-AI Web (Flask)
-After=network-online.target postgresql.service redis-server.service
+After=network-online.target postgresql.service
 Wants=network-online.target
 
 [Service]
@@ -139,8 +136,8 @@ EOF
 
 cat <<EOF >/etc/systemd/system/audiomuse-ai-worker.service
 [Unit]
-Description=AudioMuse-AI RQ Worker
-After=network-online.target postgresql.service redis-server.service audiomuse-ai.service
+Description=AudioMuse-AI Queue Worker (default)
+After=network-online.target postgresql.service audiomuse-ai.service
 Wants=network-online.target
 
 [Service]
@@ -148,7 +145,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/audiomuse-ai
 EnvironmentFile=/opt/audiomuse-ai_data/audiomuse.env
-ExecStart=/opt/audiomuse-ai/.venv/bin/python rq_worker.py
+ExecStart=/opt/audiomuse-ai/.venv/bin/python -u -m taskqueue.worker --queue default
 Restart=always
 RestartSec=5
 
@@ -158,8 +155,8 @@ EOF
 
 cat <<EOF >/etc/systemd/system/audiomuse-ai-worker-high.service
 [Unit]
-Description=AudioMuse-AI RQ High-Priority Worker
-After=network-online.target postgresql.service redis-server.service audiomuse-ai.service
+Description=AudioMuse-AI Queue Worker (high)
+After=network-online.target postgresql.service audiomuse-ai.service
 Wants=network-online.target
 
 [Service]
@@ -167,7 +164,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/audiomuse-ai
 EnvironmentFile=/opt/audiomuse-ai_data/audiomuse.env
-ExecStart=/opt/audiomuse-ai/.venv/bin/python rq_worker_high_priority.py
+ExecStart=/opt/audiomuse-ai/.venv/bin/python -u -m taskqueue.worker --queue high
 Restart=always
 RestartSec=5
 
@@ -177,8 +174,8 @@ EOF
 
 cat <<EOF >/etc/systemd/system/audiomuse-ai-janitor.service
 [Unit]
-Description=AudioMuse-AI RQ Janitor
-After=network-online.target postgresql.service redis-server.service audiomuse-ai.service
+Description=AudioMuse-AI Queue Maintenance
+After=network-online.target postgresql.service audiomuse-ai.service
 Wants=network-online.target
 
 [Service]
@@ -186,14 +183,33 @@ Type=simple
 User=root
 WorkingDirectory=/opt/audiomuse-ai
 EnvironmentFile=/opt/audiomuse-ai_data/audiomuse.env
-ExecStart=/opt/audiomuse-ai/.venv/bin/python rq_janitor.py
+ExecStart=/opt/audiomuse-ai/.venv/bin/python -u -m taskqueue.maintenance
 Restart=always
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now audiomuse-ai audiomuse-ai-worker audiomuse-ai-worker-high audiomuse-ai-janitor
+
+cat <<EOF >/etc/systemd/system/audiomuse-ai-control.service
+[Unit]
+Description=AudioMuse-AI Config Restart Listener
+After=network-online.target postgresql.service audiomuse-ai.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/audiomuse-ai
+EnvironmentFile=/opt/audiomuse-ai_data/audiomuse.env
+ExecStart=/opt/audiomuse-ai/.venv/bin/python -u -m taskqueue.control
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now audiomuse-ai audiomuse-ai-worker audiomuse-ai-worker-high audiomuse-ai-janitor audiomuse-ai-control
 msg_ok "Created Services"
 
 motd_ssh

@@ -37,7 +37,7 @@ function update_script() {
 
   if check_for_gh_release "audiomuse-ai" "NeptuneHub/AudioMuse-AI"; then
     msg_info "Stopping Services"
-    systemctl stop audiomuse-ai audiomuse-ai-worker audiomuse-ai-worker-high audiomuse-ai-janitor
+    systemctl stop audiomuse-ai audiomuse-ai-worker audiomuse-ai-worker-high audiomuse-ai-janitor audiomuse-ai-control
     msg_ok "Stopped Services"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "audiomuse-ai" "NeptuneHub/AudioMuse-AI" "tarball"
@@ -51,7 +51,7 @@ function update_script() {
     msg_ok "Updated Python Environment"
 
     msg_info "Starting Services"
-    systemctl start audiomuse-ai audiomuse-ai-worker audiomuse-ai-worker-high audiomuse-ai-janitor
+    systemctl start audiomuse-ai audiomuse-ai-worker audiomuse-ai-worker-high audiomuse-ai-janitor audiomuse-ai-control
     msg_ok "Started Services"
     msg_ok "Updated successfully!"
   fi

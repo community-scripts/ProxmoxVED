@@ -35,7 +35,7 @@
     },
     "notes": [
         {
-            "text": "Create the first account with `cd /opt/chatto && ./chatto operator user create --login admin` (the operator API is enabled by default), or register via the web UI at http://IP:4000.",
+            "text": "Create the first account with `cd /opt/chatto && ./chatto operator user create --login <yourname>` (the operator API is enabled by default), or register via the web UI at http://IP:4000. Pick your own login: root, admin, superuser, op, operator and support are blocked by default and fail with 'this username is not available'.",
             "type": "info"
         },
         {
@@ -45,6 +45,10 @@
         {
             "text": "All persistent data (embedded NATS/JetStream store and chatto.toml with its secrets) lives in /opt/chatto_data, kept outside the app directory so it survives updates. Include /opt/chatto_data in regular backups.",
             "type": "warning"
+        },
+        {
+            "text": "Uploads go through the embedded NATS/JetStream store, which gets slow with many or large files. Testers report it becomes noticeably more usable with more CPU cores assigned to the container.",
+            "type": "info"
         },
         {
             "text": "Voice and video calls require a separately deployed LiveKit server; configure the [livekit] section in chatto.toml to enable them.",
