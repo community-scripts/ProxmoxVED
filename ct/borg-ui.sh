@@ -55,14 +55,17 @@ function update_script() {
       fi
     fi
 
+    # Only the three Borg pins appear in every release of this file; PYTHON_VERSION
+    # and RCLONE_VERSION were added upstream after v2.2.6, so both fall back.
     RUNTIME_ENV="/opt/borg-ui/docker/runtime-base.env"
     BORG1_VERSION=$(sed -n 's/^BORG1_VERSION=//p' "$RUNTIME_ENV" 2>/dev/null | tr -d ' \r')
     BORG2_VERSION=$(sed -n 's/^BORG2_VERSION=//p' "$RUNTIME_ENV" 2>/dev/null | tr -d ' \r')
     BORGSTORE_VERSION=$(sed -n 's/^BORGSTORE_VERSION=//p' "$RUNTIME_ENV" 2>/dev/null | tr -d ' \r')
     RCLONE_VERSION=$(sed -n 's/^RCLONE_VERSION=//p' "$RUNTIME_ENV" 2>/dev/null | tr -d ' \r')
     BORG_PYTHON=$(sed -n 's/^PYTHON_VERSION=//p' "$RUNTIME_ENV" 2>/dev/null | tr -d ' \r')
-    if [[ -z "$BORG1_VERSION" || -z "$BORG2_VERSION" || -z "$BORGSTORE_VERSION" || -z "$RCLONE_VERSION" || -z "$BORG_PYTHON" ]]; then
-      msg_error "Could not read the pinned versions from ${RUNTIME_ENV}"
+    BORG_PYTHON="${BORG_PYTHON:-3.12}"
+    if [[ -z "$BORG1_VERSION" || -z "$BORG2_VERSION" || -z "$BORGSTORE_VERSION" ]]; then
+      msg_error "Could not read the pinned Borg versions from ${RUNTIME_ENV}"
       exit 1
     fi
 
@@ -84,7 +87,8 @@ function update_script() {
       msg_ok "Installed Borg ${BORG2_VERSION}"
     fi
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rclone" "rclone/rclone" "prebuild" "v${RCLONE_VERSION}" "/opt/rclone" "rclone-v${RCLONE_VERSION}-linux-$(arch_resolve amd64 arm64).zip"
+    RCLONE_TAG="${RCLONE_VERSION:+v${RCLONE_VERSION}}"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rclone" "rclone/rclone" "prebuild" "${RCLONE_TAG:-latest}" "/opt/rclone" "rclone-${RCLONE_TAG:-*}-linux-$(arch_resolve amd64 arm64).zip"
     ln -sf /opt/rclone/rclone /usr/local/bin/rclone
 
     msg_info "Building Frontend"
