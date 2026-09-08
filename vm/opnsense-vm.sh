@@ -537,9 +537,10 @@ fi
 msg_info "Downloading FreeBSD Image"
 # A mirror serving an error page returns 200, so size decides whether this
 # is an image. Anything real here is far above 5 MB.
-vm_fetch_image "$URL" "$(basename "$URL")" --min-bytes $((5 * 1024 * 1024)) || exit 1
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --verify-xz --min-bytes $((5 * 1024 * 1024)) || exit 1
 echo -en "\e[1A\e[0K"
-msg_ok "Downloaded ${CL}${BL}$(basename "$URL")${CL}"
+msg_ok "Downloaded ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
 
 # Check disk space again before decompression
 if ! check_disk_space "$TEMP_DIR" 15; then
@@ -551,15 +552,12 @@ fi
 
 msg_info "Decompressing FreeBSD Image (this may take a few minutes)"
 FILE=FreeBSD.qcow2
-if ! unxz -cv $(basename $URL) >${FILE}; then
+if ! unxz -cv "$CACHE_FILE" >${FILE}; then
   msg_error "Failed to decompress FreeBSD image."
   msg_error "This is usually caused by insufficient disk space."
   df -h "$TEMP_DIR"
   exit 115
 fi
-
-# Remove the compressed file to save space
-rm -f "$(basename "$URL")"
 msg_ok "Decompressed ${CL}${BL}${FILE}${CL}"
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
