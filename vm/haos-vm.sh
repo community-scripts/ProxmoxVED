@@ -10,7 +10,6 @@ load_functions
 
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
-VERSIONS=(stable beta dev)
 METHOD=""
 APP="Home Assistant OS"
 APP_TYPE="vm"
@@ -18,9 +17,16 @@ NSAPP="haos-vm"
 var_os="homeassistant"
 DISK_SIZE="32G"
 
-for version in "${VERSIONS[@]}"; do
-  eval "$version=$(curl -fsSL https://raw.githubusercontent.com/home-assistant/version/master/stable.json | grep '"ova"' | cut -d '"' -f 4)"
+for channel in stable beta dev; do
+  channel_version=$(curl -fsSL "https://raw.githubusercontent.com/home-assistant/version/master/${channel}.json" | grep '"ova"' | cut -d '"' -f 4) || channel_version=""
+  printf -v "$channel" '%s' "$channel_version"
 done
+if [ -z "$stable" ]; then
+  echo -e "Could not determine the current Home Assistant OS release."
+  exit 1
+fi
+beta="${beta:-$stable}"
+dev="${dev:-$stable}"
 HA=$(echo "\033[1;34m")
 
 THIN="discard=on,ssd=1,"
@@ -143,7 +149,7 @@ fi
 
 CACHE_DIR="/var/lib/vz/template/cache"
 CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
-FILE_IMG="/var/lib/vz/template/tmp/${CACHE_FILE##*/%.xz}" # .qcow2
+FILE_IMG="/var/lib/vz/template/tmp/$(basename "${CACHE_FILE%.xz}")"
 
 mkdir -p "$CACHE_DIR" "$(dirname "$FILE_IMG")"
 msg_ok "${CL}${BL}${URL}${CL}"
