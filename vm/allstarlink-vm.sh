@@ -17,7 +17,7 @@ APP="AllStarLink"
 APP_TYPE="vm"
 NSAPP="allstarlink-vm"
 var_os="debian"
-var_version="12"
+var_version="13"
 DISK_SIZE="8G"
 
 HA=$(echo "\033[1;34m")
@@ -33,7 +33,27 @@ trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if vm_confirm_new_vm "AllStarLink VM" "This will create a New AllStarLink VM. Proceed?" 10 58; then
+
+if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+  var_version="${VM_OS_VERSION:-$var_version}"
+elif vm_dialog radiolist "DEBIAN BASE" "Choose the Debian release AllStarLink runs on" --cancel-button Exit-Script 11 60 2 \
+  "13" "Debian 13 (Trixie)" ON \
+  "12" "Debian 12 (Bookworm)" OFF; then
+  var_version="$VM_DIALOG_RESULT"
+else
+  exit_script
+fi
+
+case "$var_version" in
+13) DEBIAN_CODENAME="trixie" ;;
+12) DEBIAN_CODENAME="bookworm" ;;
+*)
+  msg_error "AllStarLink only publishes packages for Debian 12 and 13 (got '${var_version}')"
+  exit 1
+  ;;
+esac
+
+if vm_confirm_new_vm "AllStarLink VM" "This will create a New AllStarLink VM on Debian ${var_version}. Proceed?" 10 58; then
   :
 else
   header_info && echo -e "⚠ User exited script \n" && exit
@@ -88,8 +108,8 @@ vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_info "Retrieving the URL for the Debian 12 Qcow2 Disk Image"
-URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-$(dpkg --print-architecture).qcow2"
+msg_info "Retrieving the URL for the Debian ${var_version} Qcow2 Disk Image"
+URL="https://cloud.debian.org/images/cloud/${DEBIAN_CODENAME}/latest/debian-${var_version}-nocloud-$(dpkg --print-architecture).qcow2"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -fsSL -o "$(basename "$URL")" "$URL"
@@ -132,10 +152,10 @@ msg_ok "Installed libguestfs-tools successfully"
 
 msg_info "Adding ASL Package Repository"
 virt-customize -q -a "${FILE}" \
-  --run-command "curl -fsSL https://repo.allstarlink.org/public/asl-apt-repos.deb12_all.deb -o /tmp/asl-apt-repos.deb12_all.deb" \
-  --run-command "dpkg -i /tmp/asl-apt-repos.deb12_all.deb" \
+  --run-command "curl -fsSL https://repo.allstarlink.org/public/asl-apt-repos.deb${var_version}_all.deb -o /tmp/asl-apt-repos.deb${var_version}_all.deb" \
+  --run-command "dpkg -i /tmp/asl-apt-repos.deb${var_version}_all.deb" \
   --update \
-  --run-command "rm -f /tmp/asl-apt-repos.deb12_all.deb" >/dev/null
+  --run-command "rm -f /tmp/asl-apt-repos.deb${var_version}_all.deb" >/dev/null
 msg_ok "Added ASL Package Repository"
 
 msg_info "Installing AllStarLink (patience)"
@@ -156,7 +176,7 @@ fi
 
 msg_info "Creating a AllStarLink VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script,debian12,radio -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
+  -name $HN -tags community-script,debian${var_version},radio -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
