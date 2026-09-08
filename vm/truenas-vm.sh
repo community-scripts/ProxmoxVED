@@ -53,7 +53,7 @@ function truenas_iso_lookup() {
       pre_releases+=("$path")
     else
       local major_version=$(echo "$version" | cut -d'.' -f1,2)
-      local current_stored_path=${latest_stables["$major_version"]}
+      local current_stored_path=${latest_stables["$major_version"]:-}
       if [[ -z "$current_stored_path" ]]; then
         latest_stables["$major_version"]="$path"
       else
