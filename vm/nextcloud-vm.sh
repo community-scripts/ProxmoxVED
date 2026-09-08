@@ -94,7 +94,7 @@ post_to_api_vm
 
 vm_select_storage "$HN"
 msg_info "Retrieving the URL for the $NAME Disk Image"
-URL=http://mirror.turnkeylinux.org/turnkeylinux/images/iso/turnkey-nextcloud-18.1-bookworm-amd64.iso
+URL=http://mirror.turnkeylinux.org/turnkeylinux/images/iso/turnkey-nextcloud-19.0-trixie-amd64.iso
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 # A mirror serving an error page returns 200, so size decides whether this
