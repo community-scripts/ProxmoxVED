@@ -62,27 +62,31 @@ vm_preflight
 # OS Selection
 # ---------------------------------------------------------------------------
 function select_os() {
-  local choice
-  if choice=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "OS SELECTION" \
+  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+    OS_CHOICE="${VM_OS_VERSION:-ubuntu2404}"
+  elif ! OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "OS SELECTION" \
     --radiolist "Choose the base operating system:" --cancel-button Exit-Script 12 68 2 \
     "ubuntu2404" "Ubuntu 24.04 LTS (Noble Numbat)" ON \
     "debian13" "Debian 13 (Trixie)" OFF \
     3>&1 1>&2 2>&3); then
-    OS_CHOICE="$choice"
-    case "$OS_CHOICE" in
-    ubuntu2404)
-      OS_LABEL="Ubuntu 24.04 LTS (Noble Numbat)"
-      OS_CODENAME="noble"
-      ;;
-    debian13)
-      OS_LABEL="Debian 13 (Trixie)"
-      OS_CODENAME="trixie"
-      ;;
-    esac
-    echo -e "${OS}${BOLD}${DGN}Base OS: ${BGN}${OS_LABEL}${CL}"
-  else
     exit_script
   fi
+
+  case "$OS_CHOICE" in
+  ubuntu2404)
+    OS_LABEL="Ubuntu 24.04 LTS (Noble Numbat)"
+    OS_CODENAME="noble"
+    ;;
+  debian13)
+    OS_LABEL="Debian 13 (Trixie)"
+    OS_CODENAME="trixie"
+    ;;
+  *)
+    msg_error "Unsupported OS '${OS_CHOICE}' (expected ubuntu2404 or debian13)"
+    exit 1
+    ;;
+  esac
+  echo -e "${OS}${BOLD}${DGN}Base OS: ${BGN}${OS_LABEL}${CL}"
 }
 
 select_os

@@ -46,29 +46,34 @@ else
 fi
 
 function select_os() {
-  if OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT OS" --radiolist \
+  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+    OS_CHOICE="${VM_OS_VERSION:-debian13}"
+  elif ! OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT OS" --radiolist \
     "Choose Operating System for UniFi OS VM" 12 68 2 \
     "debian13" "Debian 13 (Trixie) - Latest" ON \
     "ubuntu2404" "Ubuntu 24.04 LTS (Noble)" OFF \
     3>&1 1>&2 2>&3); then
-    case $OS_CHOICE in
-    debian13)
-      OS_TYPE="debian"
-      OS_VERSION="13"
-      OS_CODENAME="trixie"
-      OS_DISPLAY="Debian 13 (Trixie)"
-      ;;
-    ubuntu2404)
-      OS_TYPE="ubuntu"
-      OS_VERSION="24.04"
-      OS_CODENAME="noble"
-      OS_DISPLAY="Ubuntu 24.04 LTS"
-      ;;
-    esac
-    #echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}${OS_DISPLAY}${CL}"
-  else
     exit_script
   fi
+
+  case $OS_CHOICE in
+  debian13)
+    OS_TYPE="debian"
+    OS_VERSION="13"
+    OS_CODENAME="trixie"
+    OS_DISPLAY="Debian 13 (Trixie)"
+    ;;
+  ubuntu2404)
+    OS_TYPE="ubuntu"
+    OS_VERSION="24.04"
+    OS_CODENAME="noble"
+    OS_DISPLAY="Ubuntu 24.04 LTS"
+    ;;
+  *)
+    msg_error "Unsupported OS '${OS_CHOICE}' (expected debian13 or ubuntu2404)"
+    exit 1
+    ;;
+  esac
 }
 
 function select_cloud_init() {
@@ -78,6 +83,16 @@ function select_cloud_init() {
 }
 
 function set_root_password() {
+  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+    USER_PASSWORD="${VM_ROOT_PASSWORD:-$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 16)}"
+    if [[ -z "${VM_ROOT_PASSWORD:-}" ]]; then
+      echo -e "${INFO}${BOLD}${DGN}Root Password: ${BGN}${USER_PASSWORD}${CL}"
+    else
+      echo -e "${INFO}${BOLD}${DGN}Root Password: ${BGN}(set)${CL}"
+    fi
+    return
+  fi
+
   while true; do
     if PW1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --passwordbox "Set root password for the VM" 8 58 --title "ROOT PASSWORD" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
       if [ -z "$PW1" ]; then
@@ -104,6 +119,22 @@ function set_root_password() {
 function set_ssh_keys() {
   SSH_KEYS_FILE=""
   SSH_KEY_COUNT=0
+
+  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+    if [[ -n "${VM_SSH_KEYS:-}" ]]; then
+      SSH_KEYS_FILE=$(mktemp)
+      if [[ -f "$VM_SSH_KEYS" ]]; then
+        cat "$VM_SSH_KEYS" >"$SSH_KEYS_FILE"
+      else
+        echo "$VM_SSH_KEYS" >"$SSH_KEYS_FILE"
+      fi
+      SSH_KEY_COUNT=$(grep -c . "$SSH_KEYS_FILE" || true)
+      echo -e "${INFO}${BOLD}${DGN}SSH Keys: ${BGN}${SSH_KEY_COUNT} key(s) added${CL}"
+    else
+      echo -e "${INFO}${BOLD}${DGN}SSH Keys: ${BGN}none (password auth only)${CL}"
+    fi
+    return
+  fi
 
   while true; do
     if PASTED_KEY=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox \
@@ -242,8 +273,8 @@ msg_info "Fetching latest UniFi OS Server version"
 # Install jq if not available
 if ! command -v jq &>/dev/null; then
   msg_info "Installing jq for JSON parsing"
-  apt-get update -qq >/dev/null 2>&1
-  apt-get install -y jq -qq >/dev/null 2>&1
+  $STD apt-get update
+  $STD apt-get install -y jq
 fi
 
 # Download firmware list from Ubiquiti API
@@ -284,20 +315,20 @@ msg_info "Downloading ${OS_DISPLAY} Cloud Image"
 URL=$(get_image_url)
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
-
-msg_ok "Downloaded ${OS_DISPLAY} Cloud Image"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
+FILE="$(basename "$CACHE_FILE")"
+# Work on a copy: virt-resize and virt-customize below rewrite the image,
+# which would poison the cache for every later VM.
+cp -f "$CACHE_FILE" "$FILE"
 
 # Expand root partition to use full disk space
 msg_info "Expanding disk image to ${DISK_SIZE}"
 
 # Install virt-resize if not available
 if ! command -v virt-resize &>/dev/null; then
-  apt-get -qq update >/dev/null
-  apt-get -qq install libguestfs-tools -y >/dev/null
+  $STD apt-get update
+  $STD apt-get install -y libguestfs-tools
 fi
 
 qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
