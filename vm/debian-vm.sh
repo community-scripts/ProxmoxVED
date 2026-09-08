@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
@@ -13,11 +13,11 @@ echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
-APP="Debian 12"
+APP="Debian"
 APP_TYPE="vm"
 NSAPP="debian-vm"
 var_os="debian"
-var_version="12"
+var_version="13"
 
 THIN="discard=on,ssd=1,"
 set -e
@@ -27,9 +27,32 @@ trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
+vm_preflight
+
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Debian 12 VM" --yesno "This will create a New Debian 12 VM. Proceed?" 10 58; then
+
+if vm_dialog radiolist "DEBIAN VERSION" "Choose the Debian release to install" --cancel-button Exit-Script 12 58 3 \
+  "13" "Debian 13 (Trixie)" ON \
+  "12" "Debian 12 (Bookworm)" OFF \
+  "11" "Debian 11 (Bullseye)" OFF; then
+  var_version="$VM_DIALOG_RESULT"
+else
+  exit_script
+fi
+
+case "$var_version" in
+13) DEBIAN_CODENAME="trixie" ;;
+12) DEBIAN_CODENAME="bookworm" ;;
+11) DEBIAN_CODENAME="bullseye" ;;
+*)
+  msg_error "Unsupported Debian version '${var_version}'"
+  exit 1
+  ;;
+esac
+APP="Debian ${var_version}"
+
+if whiptail --backtitle "Proxmox VE Helper Scripts" --title "${APP} VM" --yesno "This will create a New ${APP} VM. Proceed?" 10 58; then
   :
 else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
@@ -37,7 +60,7 @@ fi
 
 function default_settings() {
   VMID=$(get_valid_nextid)
-  vm_apply_machine_type "i440fx"
+  vm_apply_machine_type "q35"
   DISK_SIZE="8G"
   DISK_CACHE=""
   HN="debian"
@@ -58,7 +81,7 @@ function default_settings() {
 function advanced_settings() {
   METHOD="advanced"
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
-  vm_prompt_machine_type "i440fx"
+  vm_prompt_machine_type "q35"
   vm_prompt_disk_size "8G"
   vm_prompt_disk_cache "none"
   vm_prompt_hostname "debian"
@@ -70,10 +93,6 @@ function advanced_settings() {
   vm_prompt_vlan
   vm_prompt_mtu
 
-  # Kept local rather than switched to core's vm_prompt_cloud_init: that one
-  # sets USE_CLOUD_INIT and runs the full interactive configuration, while the
-  # two places further down still read CLOUD_INIT. Swapping both at once would
-  # be a second change riding along with this one.
   if vm_dialog yesno "CLOUD-INIT" "Configure the VM with Cloud-init?" 10 58 --defaultno; then
     CLOUD_INIT="yes"
   else
@@ -84,8 +103,8 @@ function advanced_settings() {
   vm_prompt_verbose "no"
   vm_prompt_start_vm "yes"
 
-  if vm_confirm_advanced_settings "Ready to create a Debian 12 VM?"; then
-    echo -e "${CREATING}${BOLD}${DGN}Creating a Debian 12 VM using the above advanced settings${CL}"
+  if vm_confirm_advanced_settings "Ready to create a ${APP} VM?"; then
+    echo -e "${CREATING}${BOLD}${DGN}Creating a ${APP} VM using the above advanced settings${CL}"
   else
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
@@ -93,18 +112,16 @@ function advanced_settings() {
   fi
 }
 
-
-vm_preflight
 vm_start_script "Use Default Settings?" 10 58
 
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_info "Retrieving the URL for the Debian 12 Qcow2 Disk Image"
+msg_info "Retrieving the URL for the ${APP} Qcow2 Disk Image"
 if [ "$CLOUD_INIT" == "yes" ]; then
-  URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
+  URL="https://cloud.debian.org/images/cloud/${DEBIAN_CODENAME}/latest/debian-${var_version}-genericcloud-amd64.qcow2"
 else
-  URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2
+  URL="https://cloud.debian.org/images/cloud/${DEBIAN_CODENAME}/latest/debian-${var_version}-nocloud-amd64.qcow2"
 fi
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
@@ -120,8 +137,6 @@ if [ "${CLOUD_INIT:-no}" != "yes" ]; then
   vm_expand_image "$FILE" "$DISK_SIZE" || true
 fi
 
-# Console, guest agent, machine-id and root login -- the image was
-# imported untouched before, so it had none of them.
 vm_prepare_cloud_image "$FILE" "$HN" || true
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
@@ -151,9 +166,9 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Creating a Debian 12 VM"
+msg_info "Creating a ${APP} VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
+  -name $HN -tags community-script,debian${var_version} -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 if [ "$CLOUD_INIT" == "yes" ]; then
@@ -171,19 +186,14 @@ else
     -serial0 socket >/dev/null
 fi
 set_description
-if [ -n "$DISK_SIZE" ]; then
-  msg_info "Resizing disk to $DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
-else
-  msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
-fi
+msg_info "Resizing disk to $DISK_SIZE"
+qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
 
-msg_ok "Created a Debian 12 VM ${CL}${BL}(${HN})"
+msg_ok "Created a ${APP} VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting Debian 12 VM"
+  msg_info "Starting ${APP} VM"
   $STD qm start $VMID
-  msg_ok "Started Debian 12 VM"
+  msg_ok "Started ${APP} VM"
 fi
 
 msg_ok "Completed successfully!\n"
