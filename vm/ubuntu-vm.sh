@@ -144,10 +144,12 @@ msg_info "Retrieving the URL for the ${APP} Disk Image"
 URL="https://cloud-images.ubuntu.com/releases/server/${UBUNTU_CODENAME}/release/ubuntu-${var_version}-server-cloudimg-amd64.img"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
-FILE="$(basename "$URL")"
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
+FILE="$(basename "$CACHE_FILE")"
+# Work on a copy: vm_prepare_cloud_image rewrites hostname and machine-id into
+# the image, which would poison the cache for every later VM.
+cp -f "$CACHE_FILE" "$FILE"
 
 vm_prepare_cloud_image "$FILE" "$HN" || true
 

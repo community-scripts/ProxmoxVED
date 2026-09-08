@@ -127,10 +127,12 @@ else
 fi
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
+FILE="$(basename "$CACHE_FILE")"
+# Work on a copy: vm_prepare_cloud_image rewrites hostname and machine-id into
+# the image, which would poison the cache for every later VM.
+cp -f "$CACHE_FILE" "$FILE"
 
 # qm resize only grows the block device. Without cloud-init nothing grows the
 # guest partition, so expand it offline first.
