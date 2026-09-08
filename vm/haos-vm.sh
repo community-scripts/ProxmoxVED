@@ -184,9 +184,7 @@ qm set $VMID \
 qm set $VMID --agent enabled=1 >/dev/null
 msg_ok "Attached EFI and root disk"
 
-msg_info "Resizing disk to $DISK_SIZE"
-qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
-msg_ok "Resized disk"
+vm_resize_disk
 
 set_description
 msg_ok "Created Homeassistant OS VM ${CL}${BL}(${HN})"

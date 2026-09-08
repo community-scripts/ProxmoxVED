@@ -255,13 +255,7 @@ qm set $VMID \
   -boot order=scsi0 \
   -serial0 socket >/dev/null
 
-if [ -n "$DISK_SIZE" ]; then
-  msg_info "Resizing disk to $DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
-else
-  msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
-fi
+vm_resize_disk
 
 case "$(dpkg --print-architecture)" in
 amd64)

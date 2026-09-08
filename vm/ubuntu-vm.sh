@@ -8,14 +8,14 @@ COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.co
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
 load_functions
 
-APP="Ubuntu 26.04 VM"
+APP="Ubuntu"
 APP_TYPE="vm"
-NSAPP="ubuntu2604-vm"
+NSAPP="ubuntu-vm"
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 var_os="ubuntu"
-var_version="2604"
+var_version="26.04"
 THIN="discard=on,ssd=1,"
 USE_CLOUD_INIT="no"
 
@@ -29,8 +29,32 @@ trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
+vm_preflight
+
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
+
+if vm_dialog radiolist "UBUNTU VERSION" "Choose the Ubuntu release to install" --cancel-button Exit-Script 13 60 4 \
+  "26.04" "Ubuntu 26.04 LTS (Resolute)" ON \
+  "25.04" "Ubuntu 25.04 (Plucky)" OFF \
+  "24.04" "Ubuntu 24.04 LTS (Noble)" OFF \
+  "22.04" "Ubuntu 22.04 LTS (Jammy)" OFF; then
+  var_version="$VM_DIALOG_RESULT"
+else
+  exit_script
+fi
+
+case "$var_version" in
+26.04) UBUNTU_CODENAME="resolute" ;;
+25.04) UBUNTU_CODENAME="plucky" ;;
+24.04) UBUNTU_CODENAME="noble" ;;
+22.04) UBUNTU_CODENAME="jammy" ;;
+*)
+  msg_error "Unsupported Ubuntu version '${var_version}'"
+  exit 1
+  ;;
+esac
+APP="Ubuntu ${var_version} VM"
 
 if vm_confirm_new_vm "$APP" "This will create a New $APP. Proceed?"; then
   :
@@ -38,7 +62,6 @@ else
   header_info && exit_script
 fi
 
-vm_preflight
 vm_prompt_cloud_init "ubuntu"
 
 function default_settings() {
@@ -71,7 +94,7 @@ function default_settings() {
   echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
-  echo -e "${CREATING}${BOLD}${DGN}Creating a Ubuntu 26.04 VM using the above default settings${CL}"
+  echo -e "${CREATING}${BOLD}${DGN}Creating a ${APP} using the above default settings${CL}"
 }
 
 function advanced_settings() {
@@ -92,8 +115,8 @@ function advanced_settings() {
   vm_prompt_verbose "no"
   vm_prompt_start_vm "yes"
 
-  if vm_confirm_advanced_settings "Ready to create a Ubuntu 26.04 VM?"; then
-    echo -e "${CREATING}${BOLD}${DGN}Creating a Ubuntu 26.04 VM using the above advanced settings${CL}"
+  if vm_confirm_advanced_settings "Ready to create a ${APP}?"; then
+    echo -e "${CREATING}${BOLD}${DGN}Creating a ${APP} using the above advanced settings${CL}"
   else
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
@@ -101,27 +124,15 @@ function advanced_settings() {
   fi
 }
 
-function start_script() {
-  if vm_choose_settings_mode; then
-    header_info
-    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings${CL}"
-    default_settings
-  else
-    header_info
-    echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
-    advanced_settings
-  fi
-}
-
-start_script
+vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
 vm_select_storage "$HN"
 vm_define_disk_references 2
 DISK_IMPORT="-format ${DISK_IMPORT_FORMAT}"
 
-msg_info "Retrieving the URL for the Ubuntu 26.04 Disk Image"
-URL="https://cloud-images.ubuntu.com/releases/server/26.04/release/ubuntu-26.04-server-cloudimg-amd64.img"
+msg_info "Retrieving the URL for the ${APP} Disk Image"
+URL="https://cloud-images.ubuntu.com/releases/server/${UBUNTU_CODENAME}/release/ubuntu-${var_version}-server-cloudimg-amd64.img"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$(basename "$URL")" "$URL"
@@ -129,11 +140,9 @@ echo -en "\e[1A\e[0K"
 FILE="$(basename "$URL")"
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-# Console, guest agent, machine-id and root login -- the image was
-# imported untouched before, so it had none of them.
 vm_prepare_cloud_image "$FILE" "$HN" || true
 
-msg_info "Creating a Ubuntu 26.04 VM"
+msg_info "Creating a ${APP}"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
@@ -145,8 +154,7 @@ qm set $VMID \
   -serial0 socket >/dev/null
 set_description
 
-msg_info "Resizing disk to $DISK_SIZE"
-qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
+vm_resize_disk
 
 if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f setup_cloud_init >/dev/null 2>&1; then
   setup_cloud_init \
@@ -171,11 +179,11 @@ if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f setup_cloud_init >/dev/null 2>&1;
   fi
 fi
 
-msg_ok "Created a Ubuntu 26.04 VM ${CL}${BL}(${HN})"
+msg_ok "Created a ${APP} ${CL}${BL}(${HN})"
 if [ "$START_VM" = "yes" ]; then
-  msg_info "Starting Ubuntu 26.04 VM"
+  msg_info "Starting ${APP}"
   $STD qm start $VMID
-  msg_ok "Started Ubuntu 26.04 VM"
+  msg_ok "Started ${APP}"
 fi
 
 post_update_to_api "done" "none"

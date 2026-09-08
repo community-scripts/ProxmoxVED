@@ -186,8 +186,7 @@ else
     -serial0 socket >/dev/null
 fi
 set_description
-msg_info "Resizing disk to $DISK_SIZE"
-qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
+vm_resize_disk
 
 msg_ok "Created a ${APP} VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then

@@ -148,7 +148,7 @@ qm set $VMID \
   --boot order=scsi0 \
   --serial0 socket >/dev/null
 qm set $VMID --agent enabled=1 >/dev/null
-qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
+vm_resize_disk
 
 set_description
 

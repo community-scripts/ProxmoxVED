@@ -159,9 +159,7 @@ set_description
 rm -f "$WORK_FILE"
 msg_ok "Created a Fedora VM ${CL}${BL}(${HN})"
 
-msg_info "Resizing disk to ${DISK_SIZE}"
-qm resize "$VMID" scsi0 "${DISK_SIZE}" >/dev/null
-msg_ok "Resized disk to ${DISK_SIZE}"
+vm_resize_disk
 
 vm_provision "$VMID" || true
 

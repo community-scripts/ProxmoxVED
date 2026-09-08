@@ -454,7 +454,7 @@ qm set "$VMID" \
   -efidisk0 "${STORAGE}:0${FORMAT},size=4M" \
   -scsi0 "${DISK_REF},${DISK_CACHE}size=${DISK_SIZE}" \
   -boot order=scsi0 -serial0 socket >/dev/null
-qm resize "$VMID" scsi0 "$DISK_SIZE" >/dev/null
+vm_resize_disk
 qm set "$VMID" --agent enabled=1 >/dev/null
 
 # Whole block guarded: --cipassword and --sshkeys need the drive too.

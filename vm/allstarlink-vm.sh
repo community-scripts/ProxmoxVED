@@ -163,7 +163,7 @@ qm set $VMID \
   -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=2G \
   -boot order=scsi0 \
   -serial0 socket >/dev/null
-qm resize $VMID scsi0 "$DISK_SIZE" >/dev/null
+vm_resize_disk
 qm set $VMID --agent enabled=1 >/dev/null
 
 set_description

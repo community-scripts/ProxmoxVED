@@ -304,8 +304,7 @@ qm set $VMID \
   -serial0 socket >/dev/null
 set_description
 
-msg_info "Resizing disk to $DISK_SIZE"
-qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
+vm_resize_disk
 
 rm -f "$WORK_FILE"
 

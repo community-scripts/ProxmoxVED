@@ -225,9 +225,7 @@ rm -f "$WORK_FILE"
 rm -rf "$TEMP_DIR"
 msg_ok "Created a ChromeOS Flex VM ${CL}${BL}(${HN})"
 
-msg_info "Resizing disk to ${DISK_SIZE}"
-qm resize "$VMID" sata0 "${DISK_SIZE}" >/dev/null
-msg_ok "Resized disk to ${DISK_SIZE}"
+vm_resize_disk sata0
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting ChromeOS Flex VM"

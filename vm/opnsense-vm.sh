@@ -626,7 +626,7 @@ qm set $VMID \
   -boot order=scsi0 \
   -serial0 socket \
   -tags community-script >/dev/null
-qm resize $VMID scsi0 20G >/dev/null
+vm_resize_disk scsi0 20G
 set_description
 
 msg_info "Bridge interfaces are being added."
