@@ -65,11 +65,14 @@ vm_preflight
 # ==============================================================================
 function configure_netbird_setup() {
   if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
-    NETBIRD_DOMAIN_INPUT="${VM_NETBIRD_DOMAIN:-netbird.local}"
+    if [[ -z "${VM_NETBIRD_DOMAIN:-}" ]]; then
+      msg_error "An unattended NetBird Server install needs VM_NETBIRD_DOMAIN"
+      msg_error "Set it to the public domain whose DNS A record points at this VM, e.g. VM_NETBIRD_DOMAIN=netbird.my-domain.com"
+      exit 1
+    fi
+    NETBIRD_DOMAIN_INPUT="$VM_NETBIRD_DOMAIN"
     NETBIRD_PROXY_TYPE_INPUT="${VM_NETBIRD_PROXY_TYPE:-0}"
     NETBIRD_EMAIL_INPUT="${VM_NETBIRD_EMAIL:-admin@${NETBIRD_DOMAIN_INPUT}}"
-    [[ -z "${VM_NETBIRD_DOMAIN:-}" ]] &&
-      msg_warn "No VM_NETBIRD_DOMAIN set - using ${NETBIRD_DOMAIN_INPUT}, which will not get a Let's Encrypt certificate"
     echo -e "${INFO}${BOLD}${DGN}NetBird Domain: ${BGN}${NETBIRD_DOMAIN_INPUT}${CL}"
     echo -e "${INFO}${BOLD}${DGN}Reverse Proxy: ${BGN}${NETBIRD_PROXY_TYPE_INPUT}${CL}"
     echo -e "${INFO}${BOLD}${DGN}Let's Encrypt Email: ${BGN}${NETBIRD_EMAIL_INPUT}${CL}"

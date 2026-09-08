@@ -153,8 +153,16 @@ vm_resize_disk
 
 set_description
 
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Image Cache" \
-  --yesno "Keep downloaded Umbrel OS image for future VMs?\n\nFile: $CACHE_FILE" 10 70; then
+if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+  KEEP_IMAGE="${VM_KEEP_IMAGE:-yes}"
+elif vm_dialog yesno "Image Cache" \
+  "Keep downloaded Umbrel OS image for future VMs?\n\nFile: $CACHE_FILE" 10 70; then
+  KEEP_IMAGE="yes"
+else
+  KEEP_IMAGE="no"
+fi
+
+if [[ "$KEEP_IMAGE" == "yes" ]]; then
   msg_ok "Keeping cached image"
 else
   rm -f "$CACHE_FILE"
