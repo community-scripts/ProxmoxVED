@@ -1,5 +1,5 @@
 {
-  "name": "Debian 12",
+  "name": "Debian",
   "slug": "debian-vm",
   "categories": [
     2
@@ -15,7 +15,7 @@
   "documentation": "https://www.debian.org/doc/",
   "website": "https://www.debian.org/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/debian.webp",
-  "description": "Debian 12 (Bookworm) as a cloud image. The long-standing default base for servers that value stability over recency.",
+  "description": "Debian as a cloud image, with a choice of release at start: 13 (Trixie), 12 (Bookworm) or 11 (Bullseye). The long-standing default base for servers that value stability over recency.",
   "install_methods": [
     {
       "type": "default",
@@ -36,7 +36,11 @@
   },
   "notes": [
     {
-      "text": "Cloud-Init is enabled by default. Configure your SSH key and credentials in the Proxmox Cloud-Init tab before starting the VM.",
+      "text": "The script asks which Debian release to install (13, 12 or 11). It replaces the former separate debian-13-vm script.",
+      "type": "info"
+    },
+    {
+      "text": "Cloud-Init is optional and off by default. Choosing it switches the image from nocloud to genericcloud; configure your SSH key and credentials in the Proxmox Cloud-Init tab before starting the VM.",
       "type": "info"
     },
     {

@@ -22,6 +22,7 @@ GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:
 GEN_MAC_LAN=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 
 HA=$(echo "\033[1;34m")
+THIN="discard=on,ssd=1,"
 
 header_info
 echo -e "Loading..."
