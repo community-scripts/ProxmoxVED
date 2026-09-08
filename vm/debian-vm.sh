@@ -32,7 +32,9 @@ vm_preflight
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 
-if vm_dialog radiolist "DEBIAN VERSION" "Choose the Debian release to install" --cancel-button Exit-Script 12 58 3 \
+if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+  var_version="${VM_OS_VERSION:-$var_version}"
+elif vm_dialog radiolist "DEBIAN VERSION" "Choose the Debian release to install" --cancel-button Exit-Script 12 58 3 \
   "13" "Debian 13 (Trixie)" ON \
   "12" "Debian 12 (Bookworm)" OFF \
   "11" "Debian 11 (Bullseye)" OFF; then
@@ -52,10 +54,10 @@ case "$var_version" in
 esac
 APP="Debian ${var_version}"
 
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "${APP} VM" --yesno "This will create a New ${APP} VM. Proceed?" 10 58; then
+if vm_confirm_new_vm "${APP} VM" "This will create a New ${APP} VM. Proceed?"; then
   :
 else
-  header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
+  header_info && exit_script
 fi
 
 function default_settings() {
