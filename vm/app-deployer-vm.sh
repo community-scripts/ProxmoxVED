@@ -73,11 +73,6 @@ function default_settings() {
   get_app_metadata
   select_vm_os
 
-  # SSH Key selection for Cloud-Init VMs
-  if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f configure_cloudinit_ssh_keys >/dev/null 2>&1; then
-    configure_cloudinit_ssh_keys || true
-  fi
-
   # Use app-recommended resources (with reasonable VM minimums)
   local min_disk=$((APP_DISK > 10 ? APP_DISK : 10))
   local min_ram=$((APP_RAM > 2048 ? APP_RAM : 2048))
@@ -172,13 +167,6 @@ if [[ -n "${APP_SELECT:-}" ]]; then
   PRE_APP="${APP_SELECT}"
 else
   PRE_APP=""
-fi
-
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "App Deployer VM" --yesno \
-  "This will create a new VM and deploy an LXC application inside it.\n\nSupported OS: Debian 12/13, Ubuntu 22.04/24.04\n\nProceed?" 14 68; then
-  :
-else
-  header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
 fi
 
 vm_start_script "Use Default Settings?" 10 58

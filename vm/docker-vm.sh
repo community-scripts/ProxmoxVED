@@ -183,12 +183,6 @@ header_info
 
 vm_preflight
 
-if vm_confirm_new_vm "$APP" "This will create a new Docker VM.\n\nProceed?"; then
-  :
-else
-  header_info && exit_script
-fi
-
 vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 

@@ -39,11 +39,6 @@ trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if vm_confirm_new_vm "Unifi OS VM" "This will create a New Unifi OS VM. Proceed?" 10 58; then
-  :
-else
-  header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
-fi
 
 function select_os() {
   if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
@@ -84,7 +79,7 @@ function select_cloud_init() {
 
 function set_root_password() {
   if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
-    USER_PASSWORD="${VM_ROOT_PASSWORD:-$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 16)}"
+    USER_PASSWORD="${VM_ROOT_PASSWORD:-$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | cut -c1-8)}"
     if [[ -z "${VM_ROOT_PASSWORD:-}" ]]; then
       echo -e "${INFO}${BOLD}${DGN}Root Password: ${BGN}${USER_PASSWORD}${CL}"
     else

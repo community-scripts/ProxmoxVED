@@ -32,12 +32,6 @@ trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
-if vm_confirm_new_vm "$APP" "This will create a new Alpine Linux VM from the official cloud image.\n\nAlpine runs on musl and OpenRC and idles in well under 100 MB, so it suits small always-on services. A VM gives it a kernel of its own, which an LXC cannot.\n\nProceed?"; then
-  :
-else
-  header_info && exit_script
-fi
-
 vm_preflight
 
 function default_settings() {

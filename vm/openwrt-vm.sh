@@ -109,12 +109,6 @@ function send_line_to_vm() {
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 
-if vm_confirm_new_vm "OpenWrt VM" "This will create a New OpenWrt VM. Proceed?" 10 58; then
-  :
-else
-  header_info && echo -e "⚠ User exited script \n" && exit
-fi
-
 function default_settings() {
   VMID=$(get_valid_nextid)
   HN="openwrt"

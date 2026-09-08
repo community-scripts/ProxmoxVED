@@ -124,12 +124,6 @@ function send_line_to_vm() {
   qm sendkey $VMID ret
 }
 
-if vm_confirm_new_vm "OPNsense VM" "This will create a New OPNsense VM. Proceed?" 10 58; then
-  :
-else
-  header_info && echo -e "⚠ User exited script \n" && exit
-fi
-
 function get_available_bridges() {
   ip -o link show type bridge 2>/dev/null | awk -F': ' '{print $2}' | sort
 }

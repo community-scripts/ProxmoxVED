@@ -32,12 +32,6 @@ trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
-if vm_confirm_new_vm "$APP" "This will create a new ChromeOS Flex VM from Google's official recovery image.\n\nNote that Google does not support ChromeOS Flex in a virtual machine. It runs, but it is not a configuration they test.\n\nFlex has no Play Store and no Android apps.\n\nProceed?"; then
-  :
-else
-  header_info && exit_script
-fi
-
 vm_preflight
 
 function default_settings() {

@@ -52,12 +52,6 @@ trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
-if vm_confirm_new_vm "$APP" "This will create a New $APP VM. Proceed?"; then
-  :
-else
-  header_info && exit_script
-fi
-
 vm_preflight
 
 # ==============================================================================

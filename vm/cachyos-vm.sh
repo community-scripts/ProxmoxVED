@@ -37,12 +37,6 @@ trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
-if vm_confirm_new_vm "$APP" "This will create a New CachyOS VM.\n\nCachyOS is a performance-optimized Arch Linux distribution with:\n• Custom kernels tuned for performance\n• Optimized packages with LTO/PGO\n• Multiple desktop environments (KDE, GNOME, XFCE, etc.)\n• BORE/EEVDF/sched-ext CPU schedulers\n\nYou will need to complete the installation via the graphical Calamares installer.\n\nProceed?"; then
-  :
-else
-  header_info && exit_script
-fi
-
 vm_preflight
 
 # ==============================================================================

@@ -56,12 +56,6 @@ APP="Debian ${var_version}"
 header_info
 echo -e "\n Loading..."
 
-if vm_confirm_new_vm "${APP} VM" "This will create a New ${APP} VM. Proceed?"; then
-  :
-else
-  header_info && exit_script
-fi
-
 # Asked here rather than inside advanced_settings: it picks the disk image, so a
 # default-settings run has to answer it too. nocloud autologs in on the console
 # and carries no cloud-init; genericcloud gets the full provisioning.

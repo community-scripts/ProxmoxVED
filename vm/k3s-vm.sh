@@ -147,11 +147,6 @@ vm_preflight
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if vm_confirm_new_vm "K3s VM" "This will create a New K3s VM. Proceed?" 10 58; then
-  :
-else
-  header_info && exit_script
-fi
 
 function default_settings() {
   vm_apply_machine_type "q35"

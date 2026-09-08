@@ -32,12 +32,6 @@ trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
-if vm_confirm_new_vm "$APP" "This will create a new ZimaOS VM.\n\nZimaOS is the successor to CasaOS: a NAS operating system with an app store, ZFS-backed storage and A/B system updates.\n\nInstallation is completed in the graphical installer after the VM boots.\n\nProceed?"; then
-  :
-else
-  header_info && exit_script
-fi
-
 vm_preflight
 
 function default_settings() {

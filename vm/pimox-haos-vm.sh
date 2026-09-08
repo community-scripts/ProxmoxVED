@@ -46,11 +46,6 @@ vm_preflight
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if vm_confirm_new_vm "Pimox Homeassistant OS VM" "This will create a New Pimox Homeassistant OS VM. Proceed?" 10 58; then
-  :
-else
-  header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
-fi
 
 function default_settings() {
   METHOD="default"

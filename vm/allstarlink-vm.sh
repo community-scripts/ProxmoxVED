@@ -53,12 +53,6 @@ case "$var_version" in
   ;;
 esac
 
-if vm_confirm_new_vm "AllStarLink VM" "This will create a New AllStarLink VM on Debian ${var_version}. Proceed?" 10 58; then
-  :
-else
-  header_info && echo -e "⚠ User exited script \n" && exit
-fi
-
 function default_settings() {
   vm_apply_machine_type "i440fx"
   VMID="$NEXTID"

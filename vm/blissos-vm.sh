@@ -32,12 +32,6 @@ trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
-if vm_confirm_new_vm "$APP" "This will create a new BlissOS VM -- Android x86 as a full operating system, with a kernel of its own.\n\nNote that the last official x86 release is from October 2024 (Android 13).\n\nWithout a passed-through GPU everything renders in software, which is usable but slow. If you only want Android apps on a Linux host, waydroid-vm is the lighter answer.\n\nProceed?"; then
-  :
-else
-  header_info && exit_script
-fi
-
 vm_preflight
 
 function default_settings() {

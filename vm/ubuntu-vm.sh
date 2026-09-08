@@ -59,12 +59,6 @@ APP="Ubuntu ${var_version} VM"
 header_info
 echo -e "\n Loading..."
 
-if vm_confirm_new_vm "$APP" "This will create a New $APP. Proceed?"; then
-  :
-else
-  header_info && exit_script
-fi
-
 # Ubuntu cloud images configure netplan from cloud-init only. Without it the
 # guest boots with an interface that never gets an address.
 VM_CLOUD_INIT="${VM_CLOUD_INIT:-yes}"

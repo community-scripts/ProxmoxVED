@@ -62,15 +62,13 @@ case "$var_version" in
 esac
 APP="AlmaLinux ${var_version} VM"
 
-if vm_confirm_new_vm "$APP" "This will create a New $APP. Proceed?" 10 58; then
-  :
-else
-  header_info && exit_script
-fi
+# The GenericCloud image has no other way in, so this is not a choice; set once
+# here rather than in default_settings, where the advanced path missed it and
+# vm_provision then skipped provisioning entirely.
+USE_CLOUD_INIT="yes"
 
 function default_settings() {
   vm_apply_machine_type "q35"
-  configure_cloudinit_ssh_keys || true
   VMID=$(get_valid_nextid)
   DISK_SIZE="10G"
   DISK_CACHE=""
@@ -84,7 +82,6 @@ function default_settings() {
   MTU=""
   START_VM="no"
   METHOD="default"
-  USE_CLOUD_INIT="yes"
   vm_echo_default_settings
 }
 

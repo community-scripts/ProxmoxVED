@@ -76,11 +76,6 @@ function truenas_iso_lookup() {
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if vm_confirm_new_vm "$APP" "This will create a new TrueNAS VM.\n\nProceed?"; then
-  :
-else
-  header_info && exit_script
-fi
 
 function default_settings() {
   VMID=$(get_valid_nextid)
