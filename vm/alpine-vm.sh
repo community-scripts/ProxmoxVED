@@ -114,13 +114,13 @@ fi
 ALPINE_VERSION=$(echo "$FILE" | grep -oP 'generic_alpine-\K[0-9.]+')
 msg_ok "Alpine ${CL}${BL}${ALPINE_VERSION}${CL} ${GN}(${FILE})"
 
-curl -f#SL -o "$FILE" "${CLOUD_DIR}/${FILE}"
-echo -en "\e[1A\e[0K"
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+URL="${CLOUD_DIR}/${FILE}"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((5 * 1024 * 1024)) || exit 115
 
 msg_info "Customizing ${FILE}"
 WORK_FILE=$(mktemp --suffix=.qcow2)
-cp "$FILE" "$WORK_FILE"
+cp "$CACHE_FILE" "$WORK_FILE"
 popd >/dev/null
 rm -rf "$TEMP_DIR"
 

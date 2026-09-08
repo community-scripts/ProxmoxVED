@@ -88,16 +88,15 @@ vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_info "Retrieving the URL for the $NAME Disk Image"
+msg_info "Retrieving the URL for the ${APP} Disk Image"
 URL=http://mirror.turnkeylinux.org/turnkeylinux/images/iso/turnkey-nextcloud-19.0-trixie-amd64.iso
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 # A mirror serving an error page returns 200, so size decides whether this
 # is an image. Anything real here is far above 5 MB.
-vm_fetch_image "$URL" "$(basename "$URL")" --min-bytes $((5 * 1024 * 1024)) || exit 1
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+# Only ever read from here on, so the cache file is imported directly.
+FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$FILE" --cache --min-bytes $((5 * 1024 * 1024)) || exit 115
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
@@ -126,7 +125,7 @@ for i in {0,1,2}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Creating a $NAME"
+msg_info "Creating a ${APP}"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios seabios${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
@@ -140,11 +139,11 @@ qm set $VMID \
 set_description
 vm_resize_disk
 
-msg_ok "Created a $NAME ${CL}${BL}(${HN})"
+msg_ok "Created a ${APP} ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting $NAME"
+  msg_info "Starting ${APP}"
   $STD qm start $VMID
-  msg_ok "Started $NAME"
+  msg_ok "Started ${APP}"
 fi
 post_update_to_api "done" "none"
 msg_ok "Completed successfully!\n"

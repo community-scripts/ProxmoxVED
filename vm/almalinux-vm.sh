@@ -138,10 +138,9 @@ msg_info "Retrieving the URL for the ${APP} Qcow2 Disk Image"
 URL="https://repo.almalinux.org/almalinux/${var_version}/cloud/x86_64/images/AlmaLinux-${var_version}-GenericCloud-latest.x86_64.qcow2"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
+FILE="$(basename "$CACHE_FILE")"
 
 # ==============================================================================
 # IMAGE CUSTOMIZATION
@@ -149,7 +148,7 @@ msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 msg_info "Customizing ${FILE} image"
 
 WORK_FILE=$(mktemp --suffix=.qcow2)
-cp "$FILE" "$WORK_FILE"
+cp "$CACHE_FILE" "$WORK_FILE"
 popd >/dev/null
 rm -rf "$TEMP_DIR"
 vm_prepare_cloud_image "$WORK_FILE" "$HN" || true

@@ -112,10 +112,12 @@ msg_info "Retrieving the URL for the Debian ${var_version} Qcow2 Disk Image"
 URL="https://cloud.debian.org/images/cloud/${DEBIAN_CODENAME}/latest/debian-${var_version}-nocloud-$(dpkg --print-architecture).qcow2"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-curl -fsSL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
+FILE="$(basename "$CACHE_FILE")"
+# Work on a copy: the expand and virt-customize steps below rewrite the image,
+# which would poison the cache for every later VM.
+cp -f "$CACHE_FILE" "$FILE"
 
 # qm resize only grows the block device. Without cloud-init nothing grows the
 # guest partition, so expand it offline first.
@@ -147,7 +149,8 @@ for i in {0,1}; do
 done
 
 msg_info "Installing Pre-Requisite libguestfs-tools onto Host"
-apt-get -qq update && apt-get -qq install libguestfs-tools lsb-release -y >/dev/null
+$STD apt-get update
+$STD apt-get install -y libguestfs-tools lsb-release
 msg_ok "Installed libguestfs-tools successfully"
 
 msg_info "Adding ASL Package Repository"

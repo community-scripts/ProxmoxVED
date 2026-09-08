@@ -91,10 +91,12 @@ msg_info "Retrieving the URL for the Arch Linux .iso File"
 URL=https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
+FILE="$(basename "$CACHE_FILE")"
+# Work on a copy: vm_prepare_cloud_image rewrites the image, which would
+# poison the cache for every later VM.
+cp -f "$CACHE_FILE" "$FILE"
 
 # Console, guest agent, machine-id and root login -- the image was
 # imported untouched before, so it had none of them.

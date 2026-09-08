@@ -361,12 +361,12 @@ URL="https://downloads.openwrt.org/releases/$stableversion/targets/x86/64/openwr
 msg_ok "${CL}${BL}${URL}${CL}"
 # A mirror serving an error page returns 200, so size decides whether this
 # is an image. Anything real here is far above 5 MB.
-vm_fetch_image "$URL" "$(basename "$URL")" --min-bytes $((5 * 1024 * 1024)) || exit 1
-FILE=$(basename "$URL")
-msg_ok "Downloaded ${CL}${BL}$FILE${CL}"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((5 * 1024 * 1024)) || exit 115
 
-gunzip -f "$FILE" >/dev/null 2>&1 || true
-FILE="${FILE%.*}"
+# Decompress out of the cache rather than over it, gunzip eats its input.
+FILE="$(basename "${CACHE_FILE%.gz}")"
+gunzip -c "$CACHE_FILE" >"$FILE"
 msg_ok "Extracted OpenWrt Disk Image ${CL}${BL}$FILE${CL}"
 
 msg_info "Creating OpenWrt VM"
@@ -460,7 +460,7 @@ if [ "$START_VM" = "yes" ]; then
 fi
 
 VLAN_FINISH=""
-if [ -z "$VLAN" ] && [ "$VLAN2" != "999" ]; then
+if [ -z "$VLAN" ] && [ "${VLAN2:-}" != "999" ]; then
   VLAN_FINISH=" Please remember to adjust the VLAN tags to suit your network."
 fi
 post_update_to_api "done" "none"

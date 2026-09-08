@@ -169,12 +169,12 @@ sleep 2
 msg_ok "Downloading from URL: ${CL}${BL}${URL}${CL}"
 # A mirror serving an error page returns 200, so size decides whether this
 # is an image. Anything real here is far above 5 MB.
-vm_fetch_image "$URL" "$(basename "$URL")" --min-bytes $((5 * 1024 * 1024)) || exit 1
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}$FILE${CL}"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((5 * 1024 * 1024)) || exit 115
 msg_info "Extracting Mikrotik RouterOS CHR Disk Image"
-gunzip -f -S .zip $FILE
+# Decompress out of the cache rather than over it, gunzip eats its input.
+FILE="$(basename "${CACHE_FILE%.zip}")"
+gunzip -c -S .zip "$CACHE_FILE" >"$FILE"
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
 nfs | dir)
@@ -207,7 +207,7 @@ msg_info "Creating Mikrotik RouterOS CHR VM"
 qm create $VMID -tablet 0 -localtime 1 -cores $CORE_COUNT -memory $RAM_SIZE -name $HN \
   -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-qm importdisk $VMID ${FILE%.*} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
+qm importdisk $VMID "$FILE" $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
   -scsi0 "$DISK_REF" \
   -boot order=scsi0 >/dev/null

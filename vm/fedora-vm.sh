@@ -116,13 +116,13 @@ fi
 
 msg_ok "Fedora ${CL}${BL}${FEDORA_RELEASE}${CL} ${GN}(${FILE})"
 
-curl -f#SL -o "$FILE" "${IMAGE_DIR}/${FILE}"
-echo -en "\e[1A\e[0K"
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+URL="${IMAGE_DIR}/${FILE}"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
 
 msg_info "Customizing ${FILE}"
 WORK_FILE=$(mktemp --suffix=.qcow2)
-cp "$FILE" "$WORK_FILE"
+cp "$CACHE_FILE" "$WORK_FILE"
 popd >/dev/null
 rm -rf "$TEMP_DIR"
 vm_prepare_cloud_image "$WORK_FILE" "$HN" || true

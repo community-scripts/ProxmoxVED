@@ -95,10 +95,9 @@ sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 # A mirror serving an error page returns 200, so size decides whether this
 # is an image. Anything real here is far above 5 MB.
-vm_fetch_image "$URL" "$(basename "$URL")" --min-bytes $((5 * 1024 * 1024)) || exit 1
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+# Only ever read from here on, so the cache file is imported directly.
+FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$FILE" --cache --min-bytes $((5 * 1024 * 1024)) || exit 115
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
