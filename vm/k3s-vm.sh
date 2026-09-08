@@ -364,4 +364,3 @@ if [ "$START_VM" == "yes" ]; then
 fi
 
 msg_ok "Completed successfully!\n"
-msg_custom "More Info at https://github.com/community-scripts/ProxmoxVED/discussions/836"

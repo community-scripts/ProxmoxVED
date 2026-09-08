@@ -215,4 +215,3 @@ if [ "$USE_CLOUD_INIT" == "yes" ] && declare -f display_cloud_init_info >/dev/nu
 else
   echo -e "NoCloud image: the console autologs in as root and there is no Cloud-Init.\n"
 fi
-echo "More Info at https://github.com/community-scripts/ProxmoxVE/discussions/836"
