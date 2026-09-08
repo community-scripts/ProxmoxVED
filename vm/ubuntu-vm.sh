@@ -34,7 +34,9 @@ vm_preflight
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
-if vm_dialog radiolist "UBUNTU VERSION" "Choose the Ubuntu release to install" --cancel-button Exit-Script 13 60 4 \
+if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+  var_version="${VM_OS_VERSION:-$var_version}"
+elif vm_dialog radiolist "UBUNTU VERSION" "Choose the Ubuntu release to install" --cancel-button Exit-Script 13 60 4 \
   "26.04" "Ubuntu 26.04 LTS (Resolute)" ON \
   "25.04" "Ubuntu 25.04 (Plucky)" OFF \
   "24.04" "Ubuntu 24.04 LTS (Noble)" OFF \

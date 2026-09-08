@@ -8,16 +8,17 @@ COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.co
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
 load_functions
 
-header_info
-echo -e "\n Loading..."
-GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
-RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
-METHOD=""
 APP="Debian"
 APP_TYPE="vm"
 NSAPP="debian-vm"
 var_os="debian"
 var_version="13"
+GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
+RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
+METHOD=""
+
+header_info
+echo -e "\n Loading..."
 
 THIN="discard=on,ssd=1,"
 set -e
