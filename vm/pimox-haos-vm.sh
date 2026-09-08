@@ -20,6 +20,7 @@ APP="Home Assistant OS (ARM64)"
 APP_TYPE="vm"
 NSAPP="pimox-haos-vm"
 var_os="pimox-haos"
+var_arm64="yes"
 DISK_SIZE="32G"
 
 for version in "${VERSIONS[@]}"; do
@@ -34,6 +35,8 @@ trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
+vm_preflight
+
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Pimox Homeassistant OS VM" --yesno "This will create a New Pimox Homeassistant OS VM. Proceed?" 10 58; then
@@ -41,9 +44,6 @@ if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Pimox Homeassistant
 else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
 fi
-
-# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-# Supported: Proxmox VE 8.0.x – 8.9.x, 9.0 and 9.2
 
 function default_settings() {
   METHOD="default"
@@ -288,37 +288,7 @@ qm set $VMID \
 qm set $VMID \
   -boot order=scsi0 >/dev/null
 
-DESCRIPTION=$(
-  cat <<EOF
-<div align='center'>
-  <a href='https://community-scripts.org' target='_blank' rel='noopener noreferrer'>
-    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
-  </a>
-
-  <h2 style='font-size: 24px; margin: 20px 0;'>Homeassistant VM</h2>
-
-  <p style='margin: 16px 0;'>
-    <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
-      <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
-    </a>
-  </p>
-  
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-comments fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-exclamation-circle fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
-  </span>
-</div>
-EOF
-)
-qm set $VMID -description "$DESCRIPTION" >/dev/null
+set_description
 if [ -n "$DISK_SIZE" ]; then
   msg_info "Resizing disk to $DISK_SIZE GB"
   qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null

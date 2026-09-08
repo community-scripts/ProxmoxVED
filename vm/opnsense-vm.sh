@@ -128,9 +128,6 @@ else
   header_info && echo -e "⚠ User exited script \n" && exit
 fi
 
-# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-# Supported: Proxmox VE 8.0.x – 8.9.x, 9.0 and 9.2
-
 function get_available_bridges() {
   ip -o link show type bridge 2>/dev/null | awk -F': ' '{print $2}' | sort
 }
@@ -480,9 +477,7 @@ function start_script() {
   fi
 }
 
-arch_check
-pve_check
-ssh_check
+vm_preflight
 start_script
 post_to_api_vm
 
@@ -632,41 +627,15 @@ qm set $VMID \
   -serial0 socket \
   -tags community-script >/dev/null
 qm resize $VMID scsi0 20G >/dev/null
-DESCRIPTION=$(
-  cat <<EOF
-<div align='center'>
-  <a href='https://community-scripts.org' target='_blank' rel='noopener noreferrer'>
-    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
-  </a>
-
-  <h2 style='font-size: 24px; margin: 20px 0;'>OPNsense VM</h2>
-
-  <p style='margin: 16px 0;'>
-    <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
-      <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
-    </a>
-  </p>
-
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-comments fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-exclamation-circle fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
-  </span>
-</div>
-EOF
-)
-qm set $VMID -description "$DESCRIPTION" >/dev/null
+set_description
 
 msg_info "Bridge interfaces are being added."
 qm set $VMID \
   -net0 virtio,bridge=${BRG},macaddr=${MAC}${VLAN}${MTU} 2>/dev/null
+if [ -n "$WAN_BRG" ]; then
+  qm set $VMID \
+    -net1 virtio,bridge=${WAN_BRG},macaddr=${WAN_MAC} 2>/dev/null
+fi
 msg_ok "Bridge interfaces have been successfully added."
 
 msg_ok "Created a OPNsense VM ${CL}${BL}(${HN})"
@@ -676,14 +645,8 @@ sleep 90
 send_line_to_vm "root"
 sleep 2
 send_line_to_vm ""
-send_line_to_vm "fetch https://raw.githubusercontent.com/opnsense/update/master/src/bootstrap/opnsense-bootstrap.sh.in"
-if [ -n "$WAN_BRG" ]; then
-  msg_info "Adding WAN interface"
-  qm set $VMID \
-    -net1 virtio,bridge=${WAN_BRG},macaddr=${WAN_MAC} &>/dev/null
-  msg_ok "WAN interface added"
-  sleep 5 # Brief pause after adding network interface
-fi
+send_line_to_vm "for i in \$(seq 1 60); do fetch -q https://raw.githubusercontent.com/opnsense/update/master/src/bootstrap/opnsense-bootstrap.sh.in && break; sleep 5; done"
+sleep 5
 # FreeBSD 15+ VM images ship the base system as pkgbase packages; the bootstrap's
 # "delete all packages" step would remove the running base system (/bin/rm etc.)
 # and brick the VM. Deregister them from the pkg db first - the files stay in

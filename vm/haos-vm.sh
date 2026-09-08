@@ -41,9 +41,6 @@ else
   header_info && exit_script
 fi
 
-# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-# Supported: Proxmox VE 8.0.x – 8.9.x, 9.0 and 9.2
-
 # Ensure pv is installed or abort with instructions
 function ensure_pv() {
   if ! command -v pv &>/dev/null; then
@@ -128,10 +125,7 @@ function advanced_settings() {
 }
 
 
-check_root
-arch_check
-pve_check
-ssh_check
+vm_preflight
 ensure_pv
 vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
@@ -194,37 +188,7 @@ msg_info "Resizing disk to $DISK_SIZE"
 qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
 msg_ok "Resized disk"
 
-DESCRIPTION=$(
-  cat <<EOF
-<div align='center'>
-  <a href='https://community-scripts.org' target='_blank' rel='noopener noreferrer'>
-    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
-  </a>
-
-  <h2 style='font-size: 24px; margin: 20px 0;'>Homeassistant OS VM</h2>
-
-  <p style='margin: 16px 0;'>
-    <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
-      <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
-    </a>
-  </p>
-
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-comments fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-exclamation-circle fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
-  </span>
-</div>
-EOF
-)
-qm set $VMID -description "$DESCRIPTION" >/dev/null
+set_description
 msg_ok "Created Homeassistant OS VM ${CL}${BL}(${HN})"
 
 if vm_dialog yesno "Image Cache" \

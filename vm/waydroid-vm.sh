@@ -56,10 +56,7 @@ else
   header_info && exit_script
 fi
 
-check_root
-arch_check
-pve_check
-ssh_check
+vm_preflight
 
 # ---------------------------------------------------------------------------
 # OS Selection

@@ -15,7 +15,7 @@ RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 APP="Ubuntu 24.10 VM"
 APP_TYPE="vm"
-NSAPP="ubuntu-2410-vm"
+NSAPP="ubuntu2410-vm"
 var_os="ubuntu"
 var_version="2410"
 
@@ -203,10 +203,7 @@ function has_env_overrides() {
 }
 
 
-check_root
-arch_check
-pve_check
-ssh_check
+vm_preflight
 vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
@@ -261,37 +258,7 @@ qm set $VMID \
   -serial0 socket \
   -smbios1 type=1 \
   --ciuser "ubuntu" -cipassword "ubuntu" >/dev/null
-DESCRIPTION=$(
-  cat <<EOF
-<div align='center'>
-  <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
-    <img src='${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
-  </a>
-
-  <h2 style='font-size: 24px; margin: 20px 0;'>$APP</h2>
-
-  <p style='margin: 16px 0;'>
-    <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
-      <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
-    </a>
-  </p>
-
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-comments fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-exclamation-circle fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
-  </span>
-</div>
-EOF
-)
-qm set "$VMID" -description "$DESCRIPTION" >/dev/null
+set_description
 if [ -n "$DISK_SIZE" ]; then
   msg_info "Resizing disk to $DISK_SIZE GB"
   qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null

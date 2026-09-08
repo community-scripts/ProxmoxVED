@@ -175,10 +175,7 @@ function advanced_settings() {
 # ==============================================================================
 header_info
 
-check_root
-arch_check
-pve_check
-ssh_check
+vm_preflight
 
 if vm_confirm_new_vm "$APP" "This will create a new Docker VM.\n\nProceed?"; then
   :

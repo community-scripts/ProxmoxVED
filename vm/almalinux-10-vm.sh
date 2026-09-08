@@ -12,7 +12,7 @@ load_functions
 
 APP="AlmaLinux 10 VM"
 APP_TYPE="vm"
-NSAPP="almalinux10vm"
+NSAPP="almalinux-10-vm"
 var_os="almalinux"
 var_version="10"
 
@@ -181,6 +181,7 @@ qm set "$VMID" \
   -serial0 socket >/dev/null
 
 rm -f "$WORK_FILE"
+set_description
 msg_ok "Created an AlmaLinux 10 VM ${CL}${BL}(${HN})"
 
 msg_info "Resizing disk to ${DISK_SIZE}"

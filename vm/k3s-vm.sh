@@ -142,10 +142,7 @@ cleanup_vmid
 cleanup
 post_update_to_api "done" "none"
 [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]] && rm -rf "$TEMP_DIR"
-check_root
-pve_check
-arch_check
-ssh_check
+vm_preflight
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
@@ -308,10 +305,11 @@ else
 fi
 rm -f /tmp/k9s.tar.gz
 
+vm_prepare_cloud_image "$FILE" "$HN" || true
+
 if [[ "$INSTALL_ARGOCD_BOOTSTRAP" == "1" ]]; then
   msg_info "Add in Image ArgoCD Bootstrap"
   virt-customize -q -a "${FILE}" \
-vm_prepare_cloud_image "$FILE" "$HN" || true
     --run-command 'mkdir -p /usr/local/sbin /etc/systemd/system /var/lib' \
     --run-command 'cat <<"EOF" >/usr/local/sbin/bootstrap-argocd.sh
 #!/usr/bin/env bash
@@ -360,6 +358,7 @@ else
   msg_info "Skipping ArgoCD Bootstrap (INSTALL_ARGOCD_BOOTSTRAP=$INSTALL_ARGOCD_BOOTSTRAP)"
 fi
 
+set_description
 msg_ok "Created a K3s VM ${CL}${BL}(${HN})"
 
 if [ "$USE_CLOUD_INIT" = "yes" ] && command -v setup_cloud_init >/dev/null 2>&1; then

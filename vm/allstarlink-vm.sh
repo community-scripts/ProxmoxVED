@@ -17,7 +17,7 @@ RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 APP="AllStarLink"
 APP_TYPE="vm"
-NSAPP="debian12vm"
+NSAPP="allstarlink-vm"
 var_os="debian"
 var_version="12"
 DISK_SIZE="8G"
@@ -82,10 +82,7 @@ function advanced_settings() {
 }
 
 
-check_root
-arch_check
-pve_check
-ssh_check
+vm_preflight
 vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
@@ -146,10 +143,11 @@ virt-customize -q -a "${FILE}" \
   --run-command "sed -i \"/secret /s/= .*/= $(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)/\" /etc/asterisk/manager.conf" >/dev/null
 msg_ok "Installed AllStarLink"
 
+vm_prepare_cloud_image "$FILE" "$HN" || true
+
 if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Would you like to add Allmon3?" 10 58); then
   msg_info "Installing Allmon3"
   virt-customize -q -a "${FILE}" \
-vm_prepare_cloud_image "$FILE" "$HN" || true
     --install allmon3 \
     --run-command "sed -i \"s/;pass=.*/;pass=\$(sed -ne 's/^secret = //p' /etc/asterisk/manager.conf)/\" /etc/allmon3/allmon3.ini" >/dev/null
   msg_ok "Installed Allmon3"
@@ -168,37 +166,7 @@ qm set $VMID \
 qm resize $VMID scsi0 8G >/dev/null
 qm set $VMID --agent enabled=1 >/dev/null
 
-DESCRIPTION=$(
-  cat <<EOF
-<div align='center'>
-  <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
-    <img src='${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
-  </a>
-
-  <h2 style='font-size: 24px; margin: 20px 0;'>AllStarLink VM</h2>
-
-  <p style='margin: 16px 0;'>
-    <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
-      <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
-    </a>
-  </p>
-
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-comments fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-exclamation-circle fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
-  </span>
-</div>
-EOF
-)
-qm set "$VMID" -description "$DESCRIPTION" >/dev/null
+set_description
 
 msg_ok "Created a AllStarLink VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then

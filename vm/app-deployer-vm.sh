@@ -165,9 +165,7 @@ select_storage() {
 # ==============================================================================
 header_info
 
-check_root
-arch_check
-pve_check
+vm_preflight
 
 # Support pre-selecting app via environment variable
 if [[ -n "${APP_SELECT:-}" ]]; then

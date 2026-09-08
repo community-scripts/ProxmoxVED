@@ -17,7 +17,7 @@ RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 APP="Unifi OS Server VM"
 APP_TYPE="vm"
-NSAPP="UniFi OS Server"
+NSAPP="unifi-os-server-vm"
 var_os="-"
 var_version="-"
 USE_CLOUD_INIT="yes" # Always use Cloud-Init for UniFi OS (required for automated setup)
@@ -43,9 +43,6 @@ if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Unifi OS VM" --yesn
 else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
 fi
-
-# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-# Supported: Proxmox VE 8.0.x – 8.9.x and 9.0 – 9.2
 
 function select_os() {
   if OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT OS" --radiolist \
@@ -206,10 +203,7 @@ function advanced_settings() {
   fi
 }
 
-check_root
-arch_check
-pve_check
-ssh_check
+vm_preflight
 
 vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
@@ -424,8 +418,9 @@ StandardOutput=journal+console
 WantedBy=multi-user.target
 SVCEOF
 
-virt-customize -a "${FILE}" \
 vm_prepare_cloud_image "$FILE" "$HN" || true
+
+virt-customize -a "${FILE}" \
   --upload "unifi-os-server.bin:/opt/unifi-os-server.bin" \
   --chmod 0755:/opt/unifi-os-server.bin \
   --upload "$FIRSTBOOT_SCRIPT:/opt/unifi-os-firstboot.sh" \
@@ -478,37 +473,7 @@ else
   msg_warn "Cloud-Init helpers unavailable -- VM created, but no Cloud-Init drive, password or SSH keys were set"
 fi
 
-DESCRIPTION=$(
-  cat <<EOF
-<div align='center'>
-  <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
-    <img src='${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
-  </a>
-
-  <h2 style='font-size: 24px; margin: 20px 0;'>Unifi OS VM</h2>
-
-  <p style='margin: 16px 0;'>
-    <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
-      <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
-    </a>
-  </p>
-
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-comments fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-exclamation-circle fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
-  </span>
-</div>
-EOF
-)
-qm set "$VMID" -description "$DESCRIPTION" >/dev/null
+set_description
 
 msg_ok "Created a UniFi OS VM ${CL}${BL}(${HN})"
 msg_info "Operating System: ${OS_DISPLAY}"
