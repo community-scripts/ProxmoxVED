@@ -9,14 +9,15 @@ COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.co
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
 load_functions
 
-header_info
-echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 APP="TrueNAS"
 APP_TYPE="vm"
 NSAPP="truenas-vm"
+
+header_info
+echo -e "\n Loading..."
 
 ISO="${TAB}📀${TAB}${CL}"
 DISK="${TAB}💽${TAB}${CL}"

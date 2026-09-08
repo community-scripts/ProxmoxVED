@@ -10,8 +10,6 @@ load_functions
 # Load Cloud-Init library for VM configuration
 source /dev/stdin <<<$(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/vm/cloud-init.func") 2>/dev/null || true
 
-header_info
-echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
@@ -30,6 +28,9 @@ HA=$(echo "\033[1;34m")
 
 THIN="discard=on,ssd=1,"
 
+header_info
+echo -e "\n Loading..."
+
 set -Eeuo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
@@ -38,7 +39,7 @@ trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Unifi OS VM" --yesno "This will create a New Unifi OS VM. Proceed?" 10 58; then
+if vm_confirm_new_vm "Unifi OS VM" "This will create a New Unifi OS VM. Proceed?" 10 58; then
   :
 else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit

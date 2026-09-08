@@ -17,8 +17,6 @@ GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 
-header_info
-echo -e "\n Loading..."
 
 THIN="discard=on,ssd=1,"
 set -e
@@ -54,6 +52,9 @@ case "$var_version" in
   ;;
 esac
 APP="Debian ${var_version}"
+
+header_info
+echo -e "\n Loading..."
 
 if vm_confirm_new_vm "${APP} VM" "This will create a New ${APP} VM. Proceed?"; then
   :

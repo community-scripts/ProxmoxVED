@@ -19,8 +19,6 @@ var_version="26.04"
 THIN="discard=on,ssd=1,"
 USE_CLOUD_INIT="no"
 
-header_info
-echo -e "\n Loading..."
 
 set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
@@ -58,13 +56,22 @@ case "$var_version" in
 esac
 APP="Ubuntu ${var_version} VM"
 
+header_info
+echo -e "\n Loading..."
+
 if vm_confirm_new_vm "$APP" "This will create a New $APP. Proceed?"; then
   :
 else
   header_info && exit_script
 fi
 
+# Ubuntu cloud images configure netplan from cloud-init only. Without it the
+# guest boots with an interface that never gets an address.
+VM_CLOUD_INIT="${VM_CLOUD_INIT:-yes}"
 vm_prompt_cloud_init "ubuntu"
+if [ "$USE_CLOUD_INIT" != "yes" ]; then
+  msg_warn "Without Cloud-Init this Ubuntu image gets no network configuration - configure it in the guest yourself."
+fi
 
 function default_settings() {
   VMID=$(get_valid_nextid)

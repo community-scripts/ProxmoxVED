@@ -16,8 +16,6 @@ function header_info {
 K3s
 EOF
 }
-header_info
-echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
@@ -35,6 +33,9 @@ OS_CODENAME=""
 OS_DISPLAY=""
 
 THIN="discard=on,ssd=1,"
+
+header_info
+echo -e "\n Loading..."
 set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
@@ -146,7 +147,7 @@ vm_preflight
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "K3s VM" --yesno "This will create a New K3s VM. Proceed?" 10 58; then
+if vm_confirm_new_vm "K3s VM" "This will create a New K3s VM. Proceed?" 10 58; then
   :
 else
   header_info && exit_script

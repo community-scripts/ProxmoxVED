@@ -10,8 +10,6 @@ source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent
 load_functions
 
 clear
-header_info
-echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 VERSIONS=(stable beta dev)
@@ -28,6 +26,9 @@ for version in "${VERSIONS[@]}"; do
 done
 
 THIN="discard=on,ssd=1,"
+
+header_info
+echo -e "\n Loading..."
 set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
@@ -39,7 +40,7 @@ vm_preflight
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Pimox Homeassistant OS VM" --yesno "This will create a New Pimox Homeassistant OS VM. Proceed?" 10 58; then
+if vm_confirm_new_vm "Pimox Homeassistant OS VM" "This will create a New Pimox Homeassistant OS VM. Proceed?" 10 58; then
   :
 else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit

@@ -39,7 +39,7 @@ function error_handler() {
 
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "AlmaLinux 10 VM" --yesno "This will create a New AlmaLinux 10 VM. Proceed?" 10 58; then
+if vm_confirm_new_vm "AlmaLinux 10 VM" "This will create a New AlmaLinux 10 VM. Proceed?" 10 58; then
   :
 else
   header_info && exit_script
