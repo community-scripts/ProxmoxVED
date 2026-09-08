@@ -12,7 +12,7 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 APP="AnythingLLM"
 var_tags="${var_tags:-ai;rag}"
 var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-4096}"
+var_ram="${var_ram:-6144}"
 var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
@@ -49,6 +49,8 @@ function update_script() {
 
     msg_info "Building AnythingLLM (Patience)"
     cd /opt/anythingllm
+    export PUPPETEER_SKIP_DOWNLOAD=true
+    export NODE_OPTIONS="--max-old-space-size=3072"
     $STD yarn setup
     cd /opt/anythingllm/frontend
     $STD yarn build

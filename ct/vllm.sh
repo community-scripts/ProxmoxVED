@@ -62,9 +62,9 @@ function update_script() {
     restore_backup
 
     msg_info "Refreshing CUDA Environment"
-    CUDA_ROOT="$(find /opt/vllm/lib/python3*/site-packages/nvidia -maxdepth 1 -type d -name 'cu[0-9]*' 2>/dev/null | sort -V | tail -1)"
+    CUDA_ROOT="$(find /opt/vllm/lib/python3*/site-packages/nvidia -maxdepth 1 -type d -name 'cu[0-9]*' 2>/dev/null | sort -V | tail -1 || true)"
     if [[ -n "$CUDA_ROOT" ]]; then
-      CUDART="$(find "${CUDA_ROOT}/lib" -maxdepth 1 -name 'libcudart.so.*' 2>/dev/null | sort -V | tail -1)"
+      CUDART="$(find "${CUDA_ROOT}/lib" -maxdepth 1 -name 'libcudart.so.*' 2>/dev/null | sort -V | tail -1 || true)"
       if [[ -n "$CUDART" && ! -e "${CUDA_ROOT}/lib/libcudart.so" ]]; then
         ln -s "$(basename "$CUDART")" "${CUDA_ROOT}/lib/libcudart.so"
       fi

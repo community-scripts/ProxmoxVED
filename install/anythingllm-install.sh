@@ -18,7 +18,8 @@ $STD apt install -y \
   build-essential \
   python3-dev \
   libgomp1 \
-  git
+  git \
+  chromium
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
@@ -48,6 +49,8 @@ msg_ok "Configured AnythingLLM"
 
 msg_info "Building AnythingLLM (Patience)"
 cd /opt/anythingllm
+export PUPPETEER_SKIP_DOWNLOAD=true
+export NODE_OPTIONS="--max-old-space-size=3072"
 $STD yarn setup
 cd /opt/anythingllm/frontend
 $STD yarn build
@@ -88,6 +91,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/anythingllm/collector
 Environment=NODE_ENV=production
+Environment=PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ExecStart=/usr/bin/node index.js
 Restart=on-failure
 RestartSec=5
