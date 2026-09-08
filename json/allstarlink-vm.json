@@ -36,6 +36,10 @@
   },
   "notes": [
     {
+      "text": "The script asks which Debian release AllStarLink runs on (13 Trixie or 12 Bookworm) and pulls the matching asl-apt-repos package. Upstream ships asl3 3.18.2 for both.",
+      "type": "info"
+    },
+    {
       "text": "Cloud-Init is enabled by default. Configure your SSH key and credentials in the Proxmox Cloud-Init tab before starting the VM.",
       "type": "info"
     },

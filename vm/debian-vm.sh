@@ -62,6 +62,11 @@ else
   header_info && exit_script
 fi
 
+# Asked here rather than inside advanced_settings: it picks the disk image, so a
+# default-settings run has to answer it too. nocloud autologs in on the console
+# and carries no cloud-init; genericcloud gets the full provisioning.
+vm_prompt_cloud_init "debian"
+
 function default_settings() {
   VMID=$(get_valid_nextid)
   vm_apply_machine_type "q35"
@@ -76,9 +81,8 @@ function default_settings() {
   VLAN=""
   MTU=""
   START_VM="yes"
-  CLOUD_INIT="no"
   METHOD="default"
-  echo -e "${CLOUD}${BOLD}${DGN}Configure Cloud-init: ${BGN}${CLOUD_INIT}${CL}"
+  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
   vm_echo_default_settings
 }
 
@@ -97,13 +101,7 @@ function advanced_settings() {
   vm_prompt_vlan
   vm_prompt_mtu
 
-  if vm_dialog yesno "CLOUD-INIT" "Configure the VM with Cloud-init?" 10 58 --defaultno; then
-    CLOUD_INIT="yes"
-  else
-    CLOUD_INIT="no"
-  fi
-  echo -e "${CLOUD}${BOLD}${DGN}Configure Cloud-init: ${BGN}${CLOUD_INIT}${CL}"
-
+  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
   vm_prompt_verbose "no"
   vm_prompt_start_vm "yes"
 
@@ -122,7 +120,7 @@ post_to_api_vm
 
 vm_select_storage "$HN"
 msg_info "Retrieving the URL for the ${APP} Qcow2 Disk Image"
-if [ "$CLOUD_INIT" == "yes" ]; then
+if [ "$USE_CLOUD_INIT" == "yes" ]; then
   URL="https://cloud.debian.org/images/cloud/${DEBIAN_CODENAME}/latest/debian-${var_version}-genericcloud-amd64.qcow2"
 else
   URL="https://cloud.debian.org/images/cloud/${DEBIAN_CODENAME}/latest/debian-${var_version}-nocloud-amd64.qcow2"
@@ -136,7 +134,7 @@ msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
 # qm resize only grows the block device. Without cloud-init nothing grows the
 # guest partition, so expand it offline first.
-if [ "${CLOUD_INIT:-no}" != "yes" ]; then
+if [ "${USE_CLOUD_INIT:-no}" != "yes" ]; then
   msg_info "Expanding the root filesystem to ${DISK_SIZE}"
   vm_expand_image "$FILE" "$DISK_SIZE" || true
 fi
@@ -175,7 +173,7 @@ qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} 
   -name $HN -tags community-script,debian${var_version} -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
-if [ "$CLOUD_INIT" == "yes" ]; then
+if [ "$USE_CLOUD_INIT" == "yes" ]; then
   qm set $VMID \
     -efidisk0 ${DISK0_REF}${FORMAT} \
     -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
@@ -192,6 +190,29 @@ fi
 set_description
 vm_resize_disk
 
+if [ "$USE_CLOUD_INIT" == "yes" ] && declare -f setup_cloud_init >/dev/null 2>&1; then
+  setup_cloud_init \
+    "$VMID" \
+    "$STORAGE" \
+    "$HN" \
+    "yes" \
+    "${CLOUDINIT_USER:-debian}" \
+    "${CLOUDINIT_NETWORK_MODE:-dhcp}" \
+    "${CLOUDINIT_IP:-}" \
+    "${CLOUDINIT_GW:-}" \
+    "${CLOUDINIT_DNS:-${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}}"
+
+  if [[ "${CLOUDINIT_NETWORK_MODE:-dhcp}" == "static" ]]; then
+    setup_cloud_init_network_no_rename \
+      "$VMID" \
+      "$MAC" \
+      "$CLOUDINIT_IP" \
+      "$CLOUDINIT_GW" \
+      "${CLOUDINIT_DNS:-${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}}" \
+      "${CLOUDINIT_SEARCH_DOMAIN:-local}"
+  fi
+fi
+
 msg_ok "Created a ${APP} VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting ${APP} VM"
@@ -200,4 +221,9 @@ if [ "$START_VM" == "yes" ]; then
 fi
 
 msg_ok "Completed successfully!\n"
+if [ "$USE_CLOUD_INIT" == "yes" ] && declare -f display_cloud_init_info >/dev/null 2>&1; then
+  display_cloud_init_info "$VMID" "$HN"
+else
+  echo -e "NoCloud image: the console autologs in as root and there is no Cloud-Init.\n"
+fi
 echo "More Info at https://github.com/community-scripts/ProxmoxVE/discussions/836"
