@@ -42,19 +42,8 @@ function update_script() {
     create_backup /opt/aiostreams/.env \
                   /opt/aiostreams/data
 
-    msg_info "Resolving Latest Release"
-    $STD apt install -y git jq
-    AIOSTREAMS_REFS=$(git ls-remote --tags --sort=-v:refname https://github.com/Viren070/AIOStreams.git 2>/dev/null | grep -v '\^{}')
-    AIOSTREAMS_REF=$(head -n1 <<<"${AIOSTREAMS_REFS}")
-    AIOSTREAMS_COMMIT=$(awk '{print $1}' <<<"${AIOSTREAMS_REF}")
-    AIOSTREAMS_TAG=$(awk '{print $2}' <<<"${AIOSTREAMS_REF}" | sed 's|^refs/tags/||')
-    if [[ -z "${AIOSTREAMS_TAG}" || -z "${AIOSTREAMS_COMMIT}" ]]; then
-      msg_error "Could not resolve the latest AIOStreams release tag via git ls-remote"
-      exit 1
-    fi
-    msg_ok "Resolved Latest Release: ${AIOSTREAMS_TAG}"
-
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "aiostreams" "Viren070/AIOStreams" "tarball" "${AIOSTREAMS_TAG}"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "aiostreams" "Viren070/AIOStreams" "tarball" "latest" "" "" "v"
+    AIOSTREAMS_TAG="v$(cat ~/.aiostreams)"
 
     msg_info "Building Application (Patience)"
     cd /opt/aiostreams
@@ -68,10 +57,14 @@ function update_script() {
     msg_ok "Built Application"
 
     msg_info "Generating Version Metadata"
+    ensure_dependencies jq
     mkdir -p /opt/aiostreams/resources
     AIOSTREAMS_VERSION=$(jq -r '.version' /opt/aiostreams/package.json)
     AIOSTREAMS_DESC=$(jq -r '.description' /opt/aiostreams/package.json)
-    AIOSTREAMS_COMMIT_TIME=$(curl -fsSL "https://api.github.com/repos/Viren070/AIOStreams/commits/${AIOSTREAMS_COMMIT}" 2>/dev/null | jq -r '.commit.committer.date // empty') || true
+    AIOSTREAMS_COMMIT_INFO=$(curl -fsSL "https://api.github.com/repos/Viren070/AIOStreams/commits/${AIOSTREAMS_TAG}" 2>/dev/null)
+    AIOSTREAMS_COMMIT=$(jq -r '.sha // empty' <<<"${AIOSTREAMS_COMMIT_INFO}")
+    AIOSTREAMS_COMMIT_TIME=$(jq -r '.commit.committer.date // empty' <<<"${AIOSTREAMS_COMMIT_INFO}")
+    [[ -z "${AIOSTREAMS_COMMIT}" ]] && AIOSTREAMS_COMMIT="unknown"
     [[ -z "${AIOSTREAMS_COMMIT_TIME}" || "${AIOSTREAMS_COMMIT_TIME}" == "null" ]] && AIOSTREAMS_COMMIT_TIME=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
     cat <<EOF >/opt/aiostreams/resources/metadata.json
 {

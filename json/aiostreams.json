@@ -8,10 +8,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": false,
+  "architectures": ["amd64"],
   "interface_port": 3000,
   "documentation": "https://docs.aiostreams.viren070.me/",
   "website": "https://github.com/Viren070/AIOStreams",
+  "repository": "https://github.com/Viren070/AIOStreams",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/aiostreams.webp",
   "description": "AIOStreams consolidates multiple Stremio addons and debrid services into a single, highly customisable super-addon, with filtering, sorting, and formatting of results.",
   "install_methods": [
