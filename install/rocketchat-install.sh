@@ -22,6 +22,10 @@ if [[ -z "${var_admin_email:-}" ]]; then
   # otherwise turn into a failed install before anything is downloaded.
   read -r -p "${TAB3}Admin email address: " var_admin_email || true
 fi
+# The Proxmox web console sends a carriage return with the line and read keeps
+# it, so a perfectly good address arrives as $'user@host\r' and fails the check
+# below. Strip whitespace before validating; an address cannot contain any.
+var_admin_email="${var_admin_email//[[:space:]]/}"
 var_admin_email="${var_admin_email:-admin@example.com}"
 if [[ ! "$var_admin_email" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then
   # Rocket.Chat silently drops an invalid ADMIN_EMAIL and leaves the admin with
