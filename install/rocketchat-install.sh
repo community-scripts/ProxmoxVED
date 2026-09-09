@@ -81,13 +81,33 @@ msg_ok "Built Rocket.Chat ${RELEASE}"
 msg_info "Creating Configuration"
 # Kept outside /opt/rocketchat so an update, which replaces the bundle
 # wholesale, leaves it untouched.
+#
+# The admin is seeded from the environment and the setup wizard is marked
+# completed on purpose. The wizard's last step ("Awaiting confirmation") mails a
+# confirmation code, and a fresh bare-metal install has no MAIL_URL, so the mail
+# never leaves the box and the wizard cannot be finished from the UI -- the
+# admin created in step 1 is then locked out behind it. insertAdminUserFromEnv()
+# only fires while no admin exists, so these stay inert on every later boot.
+ADMIN_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | cut -c1-24)
 mkdir -p /etc/rocketchat
 cat <<EOF >/etc/rocketchat/rocketchat.env
 NODE_ENV=production
 PORT=3000
 ROOT_URL=http://${LOCAL_IP}:3000
 MONGO_URL=mongodb://127.0.0.1:27017/rocketchat?replicaSet=rs0
+ADMIN_USERNAME=admin
+ADMIN_NAME=Administrator
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASS=${ADMIN_PASS}
+OVERWRITE_SETTING_Show_Setup_Wizard=completed
 EOF
+chmod 600 /etc/rocketchat/rocketchat.env
+{
+  echo "Rocket.Chat Admin"
+  echo "Username: admin"
+  echo "Password: ${ADMIN_PASS}"
+} >~/rocketchat.creds
+chmod 600 ~/rocketchat.creds
 msg_ok "Created Configuration"
 
 msg_info "Creating Service"

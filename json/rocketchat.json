@@ -8,7 +8,9 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "architectures": ["amd64"],
+    "architectures": [
+        "amd64"
+    ],
     "interface_port": 3000,
     "documentation": "https://docs.rocket.chat/docs/deploy-rocketchat",
     "website": "https://www.rocket.chat/",
@@ -30,13 +32,17 @@
         }
     ],
     "default_credentials": {
-        "username": null,
+        "username": "admin",
         "password": null
     },
     "notes": [
         {
-            "text": "Open http://IP:3000 and complete the setup wizard to create the first admin account. Rocket.Chat ships no default credentials.",
+            "text": "Log in at http://IP:3000 as `admin`; the generated password is in `~/rocketchat.creds` inside the container. The setup wizard is skipped deliberately: its final step mails a confirmation code, and a fresh install has no mail server configured, so the wizard cannot be completed and would lock you out of the admin account it just created.",
             "type": "info"
+        },
+        {
+            "text": "The admin email is a placeholder (admin@example.com). Change it in Admin > Users, and change the generated password, before real use.",
+            "type": "warning"
         },
         {
             "text": "The install downloads the official prebuilt server bundle (~250 MB) and compiles native npm modules, so it takes several minutes. The service needs roughly 20-30 seconds after start before the web UI answers.",
