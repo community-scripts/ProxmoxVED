@@ -1,0 +1,58 @@
+{
+    "name": "Rocket.Chat",
+    "slug": "rocketchat",
+    "categories": [
+        22
+    ],
+    "date_created": "2026-09-09",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "architectures": ["amd64"],
+    "interface_port": 3000,
+    "documentation": "https://docs.rocket.chat/docs/deploy-rocketchat",
+    "website": "https://www.rocket.chat/",
+    "repository": "https://github.com/RocketChat/Rocket.Chat",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rocket-chat.webp",
+    "description": "Rocket.Chat is an open-source communications platform for team chat, channels, direct messages, file sharing, voice and video calls, and omnichannel customer support. This script performs a manual (non-Docker) install of the official prebuilt Meteor server bundle, backed by a local MongoDB.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/rocketchat.sh",
+            "config_path": "/etc/rocketchat/rocketchat.env",
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Open http://IP:3000 and complete the setup wizard to create the first admin account. Rocket.Chat ships no default credentials.",
+            "type": "info"
+        },
+        {
+            "text": "The install downloads the official prebuilt server bundle (~250 MB) and compiles native npm modules, so it takes several minutes. The service needs roughly 20-30 seconds after start before the web UI answers.",
+            "type": "info"
+        },
+        {
+            "text": "ROOT_URL in /etc/rocketchat/rocketchat.env is set to the container IP. Change it to the public URL and restart with `systemctl restart rocketchat` before putting Rocket.Chat behind a reverse proxy or domain, otherwise logins, uploads and OAuth redirects break.",
+            "type": "warning"
+        },
+        {
+            "text": "MongoDB runs as a single-node replica set (rs0), which Rocket.Chat 8.x requires: it dropped oplog tailing in 8.0 and relies on change streams and multi-document transactions. Do not convert mongod back to standalone.",
+            "type": "warning"
+        },
+        {
+            "text": "All chat data lives in the local MongoDB (database `rocketchat`, files in /var/lib/mongodb). Back that up together with /etc/rocketchat/rocketchat.env.",
+            "type": "warning"
+        }
+    ]
+}
