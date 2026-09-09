@@ -63,20 +63,20 @@ for _ in {1..60}; do
 done
 msg_ok "Configured MongoDB Replica Set"
 
-msg_info "Setup Rocket.Chat (Patience)"
 # The prebuilt Meteor bundle is published on releases.rocket.chat, not as a
-# GitHub release asset. /latest/info names the current stable tag; the GitHub
-# API cannot be used here because backport releases on older majors are
-# published after newer ones and would win a "latest" query.
+# GitHub release asset, so fetch_and_deploy_gh_release does not apply.
+# /latest/info names the current stable tag; the GitHub API cannot be used here
+# because backport releases on older majors are published after newer ones and
+# would win a "latest" query. The archive unpacks to a single bundle/ directory,
+# which fetch_and_deploy_from_url strips into the target.
 RELEASE=$(curl -fsSL https://releases.rocket.chat/latest/info | jq -r '.tag')
-curl -fsSL "https://releases.rocket.chat/${RELEASE}/download" -o /tmp/rocketchat.tgz
-tar -xzf /tmp/rocketchat.tgz -C /opt
-mv /opt/bundle /opt/rocketchat
+fetch_and_deploy_from_url "https://releases.rocket.chat/${RELEASE}/download" "/opt/rocketchat"
+echo "${RELEASE}" >~/.rocketchat
+
+msg_info "Building Rocket.Chat ${RELEASE} (Patience)"
 cd /opt/rocketchat/programs/server
 $STD npm install
-rm -f /tmp/rocketchat.tgz
-echo "${RELEASE}" >~/.rocketchat
-msg_ok "Setup Rocket.Chat ${RELEASE}"
+msg_ok "Built Rocket.Chat ${RELEASE}"
 
 msg_info "Creating Configuration"
 # Kept outside /opt/rocketchat so an update, which replaces the bundle

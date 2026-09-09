@@ -46,16 +46,13 @@ function update_script() {
     systemctl stop rocketchat
     msg_ok "Stopped Service"
 
-    msg_info "Updating ${APP} to ${RELEASE} (Patience)"
-    curl -fsSL "https://releases.rocket.chat/${RELEASE}/download" -o /tmp/rocketchat.tgz
-    rm -rf /opt/rocketchat /opt/bundle
-    tar -xzf /tmp/rocketchat.tgz -C /opt
-    mv /opt/bundle /opt/rocketchat
+    CLEAN_INSTALL=1 fetch_and_deploy_from_url "https://releases.rocket.chat/${RELEASE}/download" "/opt/rocketchat"
+    echo "${RELEASE}" >~/.rocketchat
+
+    msg_info "Building ${APP} ${RELEASE} (Patience)"
     cd /opt/rocketchat/programs/server
     $STD npm install
-    rm -f /tmp/rocketchat.tgz
-    echo "${RELEASE}" >~/.rocketchat
-    msg_ok "Updated ${APP} to ${RELEASE}"
+    msg_ok "Built ${APP} ${RELEASE}"
 
     msg_info "Starting Service"
     systemctl start rocketchat
