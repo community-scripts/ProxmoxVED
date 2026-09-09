@@ -35,13 +35,22 @@
         "username": "admin",
         "password": null
     },
+    "app_vars": [
+        {
+            "name": "var_admin_email",
+            "label": "Admin Email",
+            "type": "text",
+            "default": "admin@example.com",
+            "help": "Email address for the generated admin account. Rocket.Chat needs a valid address here; it is not used to send mail unless you configure SMTP."
+        }
+    ],
     "notes": [
         {
             "text": "Log in at http://IP:3000 as `admin`; the generated password is in `~/rocketchat.creds` inside the container. The setup wizard is skipped deliberately: its final step mails a confirmation code, and a fresh install has no mail server configured, so the wizard cannot be completed and would lock you out of the admin account it just created.",
             "type": "info"
         },
         {
-            "text": "The admin email is a placeholder (admin@example.com). Change it in Admin > Users, and change the generated password, before real use.",
+            "text": "The admin password is generated, not chosen. Change it, and review the admin email, before real use. If you kept the default admin@example.com, set a real address in Admin > Users.",
             "type": "warning"
         },
         {

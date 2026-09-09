@@ -19,6 +19,10 @@ var_version="${var_version:-13}"
 var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
+# lxc-attach carries the caller's environment, but only what was exported, so
+# without this the install script never sees the answer and always prompts.
+export var_admin_email="${var_admin_email:-}"
+
 header_info "$APP"
 variables
 # variables() derives NSAPP from APP by lowercasing and stripping spaces only,
@@ -50,7 +54,7 @@ function update_script() {
     echo "${RELEASE}" >~/.rocketchat
 
     msg_info "Building ${APP} ${RELEASE} (Patience)"
-    cd /opt/rocketchat/programs/server
+    cd /opt/rocketchat/programs/server || exit
     $STD npm install
     msg_ok "Built ${APP} ${RELEASE}"
 

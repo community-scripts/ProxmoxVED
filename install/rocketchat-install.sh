@@ -13,6 +13,23 @@ setting_up_container
 network_check
 update_os
 
+# Asked up front, before the ~250 MB download and the native-module build, so an
+# interactive run is not left sitting on a prompt minutes in. An unattended run
+# sets var_admin_email in the environment and is never asked.
+if [[ -z "${var_admin_email:-}" ]]; then
+  # `|| true` is load-bearing: an unattended run reaches this over lxc-attach
+  # with no tty, so read hits EOF and returns 1, which the error trap would
+  # otherwise turn into a failed install before anything is downloaded.
+  read -r -p "${TAB3}Admin email address: " var_admin_email || true
+fi
+var_admin_email="${var_admin_email:-admin@example.com}"
+if [[ ! "$var_admin_email" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then
+  # Rocket.Chat silently drops an invalid ADMIN_EMAIL and leaves the admin with
+  # no address at all, which is harder to notice than this warning.
+  msg_warn "Invalid email '${var_admin_email}', falling back to admin@example.com"
+  var_admin_email="admin@example.com"
+fi
+
 msg_info "Installing Dependencies"
 # build-essential and python3 are for node-gyp: the bundle compiles native
 # modules on install and @sematext/gc-stats has no prebuilt binary to fall back
@@ -74,7 +91,7 @@ fetch_and_deploy_from_url "https://releases.rocket.chat/${RELEASE}/download" "/o
 echo "${RELEASE}" >~/.rocketchat
 
 msg_info "Building Rocket.Chat ${RELEASE} (Patience)"
-cd /opt/rocketchat/programs/server
+cd /opt/rocketchat/programs/server || exit
 $STD npm install
 msg_ok "Built Rocket.Chat ${RELEASE}"
 
@@ -97,7 +114,7 @@ ROOT_URL=http://${LOCAL_IP}:3000
 MONGO_URL=mongodb://127.0.0.1:27017/rocketchat?replicaSet=rs0
 ADMIN_USERNAME=admin
 ADMIN_NAME=Administrator
-ADMIN_EMAIL=admin@example.com
+ADMIN_EMAIL=${var_admin_email}
 ADMIN_PASS=${ADMIN_PASS}
 OVERWRITE_SETTING_Show_Setup_Wizard=completed
 EOF
@@ -106,6 +123,7 @@ chmod 600 /etc/rocketchat/rocketchat.env
   echo "Rocket.Chat Admin"
   echo "Username: admin"
   echo "Password: ${ADMIN_PASS}"
+  echo "Email: ${var_admin_email}"
 } >~/rocketchat.creds
 chmod 600 ~/rocketchat.creds
 msg_ok "Created Configuration"
