@@ -18,25 +18,13 @@ $STD apt install -y \
   build-essential \
   python3 \
   make \
-  g++ \
-  git \
-  jq
+  g++
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
 
-msg_info "Resolving Latest Release"
-AIOSTREAMS_REFS=$(git ls-remote --tags --sort=-v:refname https://github.com/Viren070/AIOStreams.git 2>/dev/null | grep -v '\^{}')
-AIOSTREAMS_REF=$(head -n1 <<<"${AIOSTREAMS_REFS}")
-AIOSTREAMS_COMMIT=$(awk '{print $1}' <<<"${AIOSTREAMS_REF}")
-AIOSTREAMS_TAG=$(awk '{print $2}' <<<"${AIOSTREAMS_REF}" | sed 's|^refs/tags/||')
-if [[ -z "${AIOSTREAMS_TAG}" || -z "${AIOSTREAMS_COMMIT}" ]]; then
-  msg_error "Could not resolve the latest AIOStreams release tag via git ls-remote"
-  exit 1
-fi
-msg_ok "Resolved Latest Release: ${AIOSTREAMS_TAG}"
-
-fetch_and_deploy_gh_release "aiostreams" "Viren070/AIOStreams" "tarball" "${AIOSTREAMS_TAG}"
+fetch_and_deploy_gh_release "aiostreams" "Viren070/AIOStreams" "tarball" "latest" "" "" "v"
+AIOSTREAMS_TAG="v$(cat ~/.aiostreams)"
 
 msg_info "Enabling Corepack"
 corepack enable
@@ -62,10 +50,14 @@ cp -r /opt/aiostreams/packages/server/src/static /opt/aiostreams/packages/server
 msg_ok "Built AIOStreams"
 
 msg_info "Generating Version Metadata"
+ensure_dependencies jq
 mkdir -p /opt/aiostreams/resources
 AIOSTREAMS_VERSION=$(jq -r '.version' /opt/aiostreams/package.json)
 AIOSTREAMS_DESC=$(jq -r '.description' /opt/aiostreams/package.json)
-AIOSTREAMS_COMMIT_TIME=$(curl -fsSL "https://api.github.com/repos/Viren070/AIOStreams/commits/${AIOSTREAMS_COMMIT}" 2>/dev/null | jq -r '.commit.committer.date // empty') || true
+AIOSTREAMS_COMMIT_INFO=$(curl -fsSL "https://api.github.com/repos/Viren070/AIOStreams/commits/${AIOSTREAMS_TAG}" 2>/dev/null)
+AIOSTREAMS_COMMIT=$(jq -r '.sha // empty' <<<"${AIOSTREAMS_COMMIT_INFO}")
+AIOSTREAMS_COMMIT_TIME=$(jq -r '.commit.committer.date // empty' <<<"${AIOSTREAMS_COMMIT_INFO}")
+[[ -z "${AIOSTREAMS_COMMIT}" ]] && AIOSTREAMS_COMMIT="unknown"
 [[ -z "${AIOSTREAMS_COMMIT_TIME}" || "${AIOSTREAMS_COMMIT_TIME}" == "null" ]] && AIOSTREAMS_COMMIT_TIME=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
 cat <<EOF >/opt/aiostreams/resources/metadata.json
 {
