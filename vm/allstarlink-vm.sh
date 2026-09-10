@@ -163,7 +163,15 @@ msg_ok "Installed AllStarLink"
 
 vm_prepare_cloud_image "$FILE" "$HN" || true
 
-if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Would you like to add Allmon3?" 10 58); then
+if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+  ADD_ALLMON3="${VM_ALLMON3:-no}"
+elif vm_dialog yesno "SETTINGS" "Would you like to add Allmon3?" 10 58; then
+  ADD_ALLMON3="yes"
+else
+  ADD_ALLMON3="no"
+fi
+
+if [[ "$ADD_ALLMON3" == "yes" ]]; then
   msg_info "Installing Allmon3"
   virt-customize -q -a "${FILE}" \
     --install allmon3 \
