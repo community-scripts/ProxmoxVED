@@ -18,7 +18,8 @@ $STD apt install -y \
   build-essential \
   python3 \
   make \
-  g++
+  g++ \
+  libmimalloc3
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
@@ -72,6 +73,8 @@ cat <<EOF >/opt/aiostreams/resources/metadata.json
 EOF
 msg_ok "Generated Version Metadata"
 
+MIMALLOC_LIB=$(dpkg -L libmimalloc3 | grep -E '/libmimalloc\.so\.[0-9]+$' | head -1)
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/aiostreams.service
 [Unit]
@@ -84,6 +87,7 @@ User=root
 WorkingDirectory=/opt/aiostreams
 EnvironmentFile=/opt/aiostreams/.env
 Environment="NODE_OPTIONS=--max-semi-space-size=8 --expose-gc"
+Environment="LD_PRELOAD=${MIMALLOC_LIB}"
 ExecStart=/usr/bin/node /opt/aiostreams/packages/server/dist/server.js
 Restart=on-failure
 RestartSec=5
