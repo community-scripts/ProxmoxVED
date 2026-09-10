@@ -16,7 +16,7 @@ var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-var_arm64="${var_arm64:-no}"
+var_arm64="${var_arm64:-yes}" # upstream ships official multi-arch (amd64+arm64) images; not independently verified on arm64 hardware by this script's author
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
