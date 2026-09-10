@@ -83,6 +83,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/aiostreams
 EnvironmentFile=/opt/aiostreams/.env
+Environment="NODE_OPTIONS=--max-semi-space-size=8 --expose-gc"
 ExecStart=/usr/bin/node /opt/aiostreams/packages/server/dist/server.js
 Restart=on-failure
 RestartSec=5
