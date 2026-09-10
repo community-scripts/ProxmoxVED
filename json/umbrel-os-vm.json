@@ -15,7 +15,7 @@
   "documentation": "https://umbrel.com/umbrelos",
   "website": "https://umbrel.com/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/umbrel.webp",
-  "description": "Umbrel OS is a personal server operating system with an app store for self-hosted software. This installs the official image as a VM.",
+  "description": "Umbrel OS is a personal server operating system with an app store for self-hosted software. This creates a VM that boots the official umbrelOS installer ISO.",
   "install_methods": [
     {
       "type": "default",

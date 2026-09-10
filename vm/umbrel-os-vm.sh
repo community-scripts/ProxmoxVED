@@ -84,59 +84,71 @@ post_to_api_vm
 vm_select_storage "$HN"
 
 
-URL="https://download.umbrel.com/release/latest/umbrelos-amd64.img.xz"
-CACHE_FILE="$(vm_image_cache_path "$URL")"
+msg_info "Retrieving the URL for the Umbrel OS installer ISO"
+UMBREL_RELEASE="$(curl -fsSL --max-time 20 https://api.umbrel.com/latest-release 2>/dev/null |
+  sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+[[ -z "$UMBREL_RELEASE" ]] && UMBREL_RELEASE="latest"
+var_version="$UMBREL_RELEASE"
 
-vm_fetch_image "$URL" "$CACHE_FILE" --cache --verify-xz || exit 115
+URL="https://download.umbrel.com/release/${UMBREL_RELEASE}/umbrelos-amd64-usb-installer.iso"
+# The upstream file name is the same for every release, so the version goes into
+# the cached name -- otherwise the cache serves 1.7.4 to someone asking for 2.0.
+ISO_NAME="umbrelos-${UMBREL_RELEASE}-amd64-usb-installer.iso"
+CACHE_DIR="/var/lib/vz/template/iso"
+CACHE_FILE="${CACHE_DIR}/${ISO_NAME}"
+mkdir -p "$CACHE_DIR"
+msg_ok "${CL}${BL}${URL}${CL}"
 
-qm create $VMID${MACHINE} -bios ovmf -agent 1 -tablet 0 -localtime 1 ${CPU_TYPE} \
+# download.umbrel.com answers 307 for any name at all, so a redirect proves
+# nothing about the file existing. Size is what separates an ISO from a 404 page.
+msg_info "Downloading the Umbrel OS installer ISO (approximately 1.8 GB)"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((1024 * 1024 * 1024)) || exit 115
+
+msg_info "Creating a Umbrel OS VM"
+# Umbrel requires EFI: the installer ISO has no legacy boot path. Its own
+# console runs on tty1, so this VM is driven through noVNC, not the serial line.
+qm create "$VMID"${MACHINE} -bios ovmf -agent enabled=1 -tablet 0 -localtime 1 ${CPU_TYPE} \
   -cores "$CORE_COUNT" -memory "$RAM_SIZE" -name "$HN" -tags community-script \
-  -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci >/dev/null
-
-vm_extract_image "$CACHE_FILE" || exit 115
-FILE_IMG="$VM_IMAGE_FILE"
-
-if qm disk import --help >/dev/null 2>&1; then
-  IMPORT_CMD=(qm disk import)
-else
-  IMPORT_CMD=(qm importdisk)
-fi
-IMPORT_OUT="$("${IMPORT_CMD[@]}" "$VMID" "$FILE_IMG" "$STORAGE" --format raw 2>&1 || true)"
-DISK_REF="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*imported disk '\([^']\+\)'.*/\1/p" | tr -d "\r\"'")"
-[[ -z "$DISK_REF" ]] && DISK_REF="$(pvesm list "$STORAGE" | awk -v id="$VMID" '$5 ~ ("vm-"id"-disk-") {print $1":"$5}' | sort | tail -n1)"
-
-qm set $VMID \
-  --efidisk0 ${STORAGE}:0,efitype=4m \
-  --scsi0 ${DISK_REF},ssd=1,discard=on \
-  --boot order=scsi0 \
-  --serial0 socket >/dev/null
-qm set $VMID --agent enabled=1 >/dev/null
-vm_resize_disk
+  -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci \
+  -efidisk0 "${STORAGE}:1,efitype=4m,pre-enrolled-keys=0" \
+  -scsi0 "${STORAGE}:${DISK_SIZE%G},${DISK_CACHE:-}${THIN%,}" \
+  -cdrom "local:iso/${ISO_NAME}" -boot order='scsi0;ide2' >/dev/null
 
 set_description
+msg_ok "Created a Umbrel OS VM ${CL}${BL}(${HN})"
 
 if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
   KEEP_IMAGE="${VM_KEEP_IMAGE:-yes}"
 elif vm_dialog yesno "Image Cache" \
-  "Keep downloaded Umbrel OS image for future VMs?\n\nFile: $CACHE_FILE" 10 70; then
+  "Keep downloaded Umbrel OS installer ISO for future VMs?\n\nFile: $CACHE_FILE" 10 70; then
   KEEP_IMAGE="yes"
 else
   KEEP_IMAGE="no"
 fi
 
 if [[ "$KEEP_IMAGE" == "yes" ]]; then
-  msg_ok "Keeping cached image"
+  msg_ok "Keeping cached ISO"
 else
-  rm -f "$CACHE_FILE"
-  msg_ok "Deleted cached image"
+  msg_warn "The ISO is still attached to the VM, so it is removed after the install"
+  KEEP_IMAGE="no"
 fi
-rm -f "$FILE_IMG"
 
-msg_ok "Created a Umbrel OS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Umbrel OS VM"
   $STD qm start $VMID
   msg_ok "Started Umbrel OS VM"
 fi
 post_update_to_api "done" "none"
+
+echo -e "\n${INFO}${BOLD}${YW}Next Steps:${CL}"
+echo -e "${TAB}1. Open the VM console in Proxmox (noVNC)"
+echo -e "${TAB}2. The installer asks which storage device to install umbrelOS on."
+echo -e "${TAB}   Pick the ${BL}sda${CL} entry -- ${BL}sr0${CL} is the installer ISO itself"
+echo -e "${TAB}3. Confirm, wait for it to finish, then press a key to power off"
+echo -e "${TAB}4. Detach the ISO (${BL}qm set ${VMID} --ide2 none${CL}) and start the VM"
+echo -e "${TAB}5. umbrelOS is then reachable at ${BL}http://umbrel.local${CL}"
+if [[ "$KEEP_IMAGE" == "no" ]]; then
+  echo -e "${TAB}   Delete ${BL}${CACHE_FILE}${CL} once the ISO is detached"
+fi
+
 msg_ok "Completed successfully!\n"
