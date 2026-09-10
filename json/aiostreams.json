@@ -49,6 +49,10 @@
     {
       "text": "Most configuration (addons, presets, formatting, proxying) is done from the dashboard Settings page after deployment, not via the .env file.",
       "type": "info"
+    },
+    {
+      "text": "The optional \"mount the library as a local folder\" share (Shares > FUSE) is disabled by default and needs /dev/fuse plus the SYS_ADMIN capability, neither of which this container has since it's unprivileged. It's not required for normal use - the WebDAV and NFS shares work without it - but if you want it, either build privileged or pass /dev/fuse through and add the container's AppArmor/cgroup allowances yourself.",
+      "type": "info"
     }
   ]
 }
