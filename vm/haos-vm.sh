@@ -43,35 +43,6 @@ trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 
-# Ensure pv is installed or abort with instructions
-function ensure_pv() {
-  if ! command -v pv &>/dev/null; then
-    msg_info "Installing required package: pv"
-    if ! apt-get update -qq &>/dev/null || ! apt-get install -y pv &>/dev/null; then
-      msg_error "Failed to install pv automatically."
-      echo -e "\nPlease run manually on the Proxmox host:\n  apt install pv\n"
-      exit 237
-    fi
-    msg_ok "Installed pv"
-  fi
-}
-
-# Extract .xz with pv
-# Args: $1=cache_file $2=target_img
-function extract_xz_with_pv() {
-  set -o pipefail
-  local file="$1"
-  local target="$2"
-
-  msg_info "Decompressing $(basename "$file") to $target"
-  if ! xz -dc "$file" | pv -N "Extracting" >"$target"; then
-    msg_error "Failed to extract $file"
-    rm -f "$target"
-    exit 115
-  fi
-  msg_ok "Decompressed to $target"
-}
-
 function default_settings() {
   BRANCH="$stable"
   var_version="${BRANCH}"
@@ -128,7 +99,6 @@ function advanced_settings() {
 
 
 vm_preflight
-ensure_pv
 vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
@@ -142,11 +112,7 @@ else
   URL="https://github.com/home-assistant/operating-system/releases/download/${BRANCH}/haos_ova-${BRANCH}.qcow2.xz"
 fi
 
-CACHE_DIR="/var/lib/vz/template/cache"
-CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
-FILE_IMG="/var/lib/vz/template/tmp/$(basename "${CACHE_FILE%.xz}")"
-
-mkdir -p "$CACHE_DIR" "$(dirname "$FILE_IMG")"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
 msg_ok "${CL}${BL}${URL}${CL}"
 
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --verify-xz || exit 115
@@ -157,7 +123,8 @@ qm create $VMID${MACHINE} -bios ovmf -agent 1 -tablet 0 -localtime 1 ${CPU_TYPE}
   -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci >/dev/null
 msg_ok "Created VM shell"
 
-extract_xz_with_pv "$CACHE_FILE" "$FILE_IMG"
+vm_extract_image "$CACHE_FILE" || exit 115
+FILE_IMG="$VM_IMAGE_FILE"
 
 msg_info "Importing disk into storage ($STORAGE)"
 if qm disk import --help >/dev/null 2>&1; then

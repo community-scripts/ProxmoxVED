@@ -518,15 +518,8 @@ if ! check_disk_space "$TEMP_DIR" 15; then
   exit 214
 fi
 
-msg_info "Decompressing FreeBSD Image (this may take a few minutes)"
 FILE=FreeBSD.qcow2
-if ! unxz -cv "$CACHE_FILE" >${FILE}; then
-  msg_error "Failed to decompress FreeBSD image."
-  msg_error "This is usually caused by insufficient disk space."
-  df -h "$TEMP_DIR"
-  exit 115
-fi
-msg_ok "Decompressed ${CL}${BL}${FILE}${CL}"
+vm_extract_image "$CACHE_FILE" "$TEMP_DIR/$FILE" || exit 115
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
