@@ -68,32 +68,19 @@ function error_handler() {
 # ==============================================================================
 function default_settings() {
   vm_apply_machine_type "q35"
-  # App & OS selection (always interactive)
-  select_app "${PRE_APP:-}"
-  get_app_metadata
-  select_vm_os
-
-  # Use app-recommended resources (with reasonable VM minimums)
-  local min_disk=$((APP_DISK > 10 ? APP_DISK : 10))
-  local min_ram=$((APP_RAM > 2048 ? APP_RAM : 2048))
-
   VMID=$(get_valid_nextid)
   DISK_CACHE=""
-  DISK_SIZE="${min_disk}G"
+  DISK_SIZE="${MIN_DISK}G"
   HN="${APP_INSTALL_SCRIPT}"
   CPU_TYPE=" -cpu host"
   CORE_COUNT="${APP_CPU}"
-  RAM_SIZE="${min_ram}"
+  RAM_SIZE="${MIN_RAM}"
   BRG="vmbr0"
   MAC="$GEN_MAC"
   VLAN=""
   MTU=""
   START_VM="yes"
   METHOD="default"
-
-  # Update NSAPP and APP for descriptions
-  NSAPP="${APP_INSTALL_SCRIPT}-vm"
-  APP="${APP_NAME}"
 
   vm_echo_default_settings
 }
@@ -102,12 +89,12 @@ function advanced_settings() {
   METHOD="advanced"
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
-  vm_prompt_disk_size "${min_disk}G"
+  vm_prompt_disk_size "${MIN_DISK}G"
   vm_prompt_disk_cache "none"
   vm_prompt_hostname "${APP_INSTALL_SCRIPT}"
   vm_prompt_cpu_model "host"
   vm_prompt_cpu_cores "${APP_CPU}"
-  vm_prompt_ram "${min_ram}"
+  vm_prompt_ram "${MIN_RAM}"
   vm_prompt_bridge "vmbr0"
   vm_prompt_mac "$GEN_MAC"
   vm_prompt_vlan
@@ -168,6 +155,23 @@ if [[ -n "${APP_SELECT:-}" ]]; then
 else
   PRE_APP=""
 fi
+
+# Which app and which OS is asked before the settings-mode fork, not inside
+# default_settings: they decide the hostname, the resources and the disk image,
+# so the advanced path needs them just as much. Asking them there left an
+# advanced run with an empty app and an empty OS, and unattended never got past
+# the first whiptail.
+select_app "${PRE_APP:-}"
+get_app_metadata
+select_vm_os
+
+# App-recommended resources, floored at what a VM needs. Read by both settings
+# paths, so they are script-level rather than local to default_settings.
+MIN_DISK=$((APP_DISK > 10 ? APP_DISK : 10))
+MIN_RAM=$((APP_RAM > 2048 ? APP_RAM : 2048))
+
+NSAPP="${APP_INSTALL_SCRIPT}-vm"
+APP="${APP_NAME}"
 
 vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
