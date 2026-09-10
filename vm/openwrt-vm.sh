@@ -345,7 +345,6 @@ vm_start_script "Use Default Settings?" 10 58
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Getting URL for OpenWrt Disk Image"
 
 response=$(curl -fsSL https://openwrt.org)
@@ -365,12 +364,13 @@ msg_ok "Extracted OpenWrt Disk Image ${CL}${BL}$FILE${CL}"
 
 msg_info "Creating OpenWrt VM"
 qm create $VMID -cores $CORE_COUNT -memory $RAM_SIZE -name $HN \
-  -onboot 1 -ostype l26 -scsihw virtio-scsi-pci --tablet 0
+  -onboot 1 -ostype l26 -scsihw virtio-scsi-pci --tablet 0 >/dev/null
+vm_mark_created
 if [[ "$(pvesm status | awk -v s=$STORAGE '$1==s {print $2}')" == "dir" ]]; then
-  qm set $VMID -efidisk0 ${STORAGE}:0,efitype=4m,size=4M
+  qm set $VMID -efidisk0 ${STORAGE}:0,efitype=4m,size=4M >/dev/null
 else
   pvesm alloc $STORAGE $VMID vm-$VMID-disk-0 4M >/dev/null
-  qm set $VMID -efidisk0 ${STORAGE}:vm-$VMID-disk-0,efitype=4m,size=4M
+  qm set $VMID -efidisk0 ${STORAGE}:vm-$VMID-disk-0,efitype=4m,size=4M >/dev/null
 fi
 
 IMPORT_OUT="$(qm importdisk $VMID $FILE $STORAGE --format raw 2>&1 || true)"
@@ -387,7 +387,6 @@ if [[ -z "$DISK_REF" ]]; then
 fi
 
 qm set $VMID \
-  -efidisk0 ${STORAGE}:0,efitype=4m,size=4M \
   -scsi0 ${DISK_REF} \
   -boot order=scsi0 \
   -tags community-script >/dev/null
@@ -400,45 +399,57 @@ msg_ok "Resized disk to ${DISK_SIZE}"
 set_description
 
 msg_ok "Created OpenWrt VM ${CL}${BL}(${HN})"
-msg_info "OpenWrt is being started in order to configure the network interfaces."
+
+# Started here whatever START_VM says: the network has to be configured from
+# inside the guest before the VM is any use.
+msg_info "Booting OpenWrt to configure its network interfaces"
 $STD qm start $VMID
 sleep 15
-msg_info "Waiting for OpenWrt to boot..."
+VM_STATE=""
 for i in {1..30}; do
-  if qm status "$VMID" | grep -q "running"; then
-    sleep 5
-    msg_ok "OpenWrt is running"
-    break
+  # A missing config means the VM is gone, not slow. Waiting out the other 29
+  # tries only bought 29 more copies of the same error.
+  if ! VM_STATE="$(qm status "$VMID" 2>&1)"; then
+    msg_error "VM $VMID no longer exists: ${VM_STATE}"
+    exit 226
   fi
+  [[ "$VM_STATE" == *running* ]] && break
   sleep 1
 done
 
-msg_ok "Network interfaces are being configured as OpenWrt initiates."
-
-if qm status "$VMID" | grep -q "running"; then
-  send_line_to_vm ""
-  send_line_to_vm "uci delete network.@device[0]"
-  send_line_to_vm "uci set network.wan=interface"
-  send_line_to_vm "uci set network.wan.device=eth1"
-  send_line_to_vm "uci set network.wan.proto=dhcp"
-  send_line_to_vm "uci delete network.lan"
-  send_line_to_vm "uci set network.lan=interface"
-  send_line_to_vm "uci set network.lan.device=eth0"
-  send_line_to_vm "uci set network.lan.proto=static"
-  send_line_to_vm "uci set network.lan.ipaddr=${LAN_IP_ADDR}"
-  send_line_to_vm "uci set network.lan.netmask=${LAN_NETMASK}"
-  send_line_to_vm "uci commit"
-  send_line_to_vm "poweroff"
-  msg_ok "Network interfaces configured in OpenWrt"
-else
-  msg_error "VM is not running"
+if [[ "$VM_STATE" != *running* ]]; then
+  msg_error "VM $VMID did not reach running state: ${VM_STATE}"
   exit 226
 fi
+sleep 5
+msg_ok "OpenWrt is running"
 
-msg_info "Waiting for OpenWrt to shut down..."
-until qm status "$VMID" | grep -q "stopped"; do
+msg_info "Configuring network interfaces in OpenWrt"
+send_line_to_vm ""
+send_line_to_vm "uci delete network.@device[0]"
+send_line_to_vm "uci set network.wan=interface"
+send_line_to_vm "uci set network.wan.device=eth1"
+send_line_to_vm "uci set network.wan.proto=dhcp"
+send_line_to_vm "uci delete network.lan"
+send_line_to_vm "uci set network.lan=interface"
+send_line_to_vm "uci set network.lan.device=eth0"
+send_line_to_vm "uci set network.lan.proto=static"
+send_line_to_vm "uci set network.lan.ipaddr=${LAN_IP_ADDR}"
+send_line_to_vm "uci set network.lan.netmask=${LAN_NETMASK}"
+send_line_to_vm "uci commit"
+send_line_to_vm "poweroff"
+msg_ok "Network interfaces configured in OpenWrt"
+
+msg_info "Waiting for OpenWrt to shut down"
+for i in {1..60}; do
+  VM_STATE="$(qm status "$VMID" 2>&1)" || break
+  [[ "$VM_STATE" == *stopped* ]] && break
   sleep 2
 done
+if [[ "$VM_STATE" != *stopped* ]]; then
+  msg_error "OpenWrt did not shut down: ${VM_STATE}"
+  exit 226
+fi
 msg_ok "OpenWrt has shut down"
 
 msg_info "Adding bridge interfaces on Proxmox side"
