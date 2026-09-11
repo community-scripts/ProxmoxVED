@@ -13,7 +13,7 @@
   "documentation": "https://valhalla.github.io/valhalla/",
   "website": "https://valhalla.github.io/valhalla/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openstreetmap.webp",
-  "description": "Valhalla is an open-source routing engine and accompanying libraries for use with OpenStreetMap data. It provides turn-by-turn routing, map matching (snapping noisy GPS traces to the road/path network), time+distance matrices, isochrones and elevation lookups over a self-built tile graph. Commonly run as a self-hosted backend for apps like GeoPulse that need map matching without sending location data to a third party.",
+  "description": "Valhalla is an open-source routing engine and accompanying libraries for use with OpenStreetMap data. It provides turn-by-turn routing, map matching (snapping noisy GPS traces to the road/path network), time+distance matrices, isochrones and elevation lookups over a self-built tile graph. Commonly run as a self-hosted routing backend so that location data never has to be sent to a third party.",
   "install_methods": [
     {
       "type": "default",

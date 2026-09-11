@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: community-scripts ORG
+# Author: CrazyWolf13
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/valhalla/valhalla
 
@@ -82,7 +82,7 @@ BUILD_JOBS=$((MEM_MB / 2000))
 [[ $BUILD_JOBS -lt 1 ]] && BUILD_JOBS=1
 [[ $BUILD_JOBS -gt $(nproc) ]] && BUILD_JOBS=$(nproc)
 cd /opt/valhalla
-$STD cmake -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON_BINDINGS=OFF -DENABLE_TESTS=OFF
+$STD cmake -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON_BINDINGS=OFF -DENABLE_TESTS=OFF -DENABLE_SINGLE_FILES_WERROR=OFF
 $STD cmake --build build -- -j"$BUILD_JOBS"
 $STD cmake --install build
 ldconfig

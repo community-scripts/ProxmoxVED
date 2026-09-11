@@ -2,7 +2,7 @@
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: community-scripts ORG
+# Author: CrazyWolf13
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/valhalla/valhalla
 
@@ -49,7 +49,7 @@ function update_script() {
     [[ $BUILD_JOBS -lt 1 ]] && BUILD_JOBS=1
     [[ $BUILD_JOBS -gt $(nproc) ]] && BUILD_JOBS=$(nproc)
     cd /opt/valhalla
-    $STD cmake -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON_BINDINGS=OFF -DENABLE_TESTS=OFF
+    $STD cmake -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON_BINDINGS=OFF -DENABLE_TESTS=OFF -DENABLE_SINGLE_FILES_WERROR=OFF
     $STD cmake --build build -- -j"$BUILD_JOBS"
     $STD cmake --install build
     ldconfig
@@ -75,7 +75,3 @@ echo -e "${INFO}${YW}Access it using the following URL:${CL}"
 echo -e "${GATEWAY}${BGN}http://${IP}:8002/status${CL}"
 echo -e "${INFO}${YW}No routing tiles are built yet. Build them for your region with:${CL}"
 echo -e "${TAB}${BGN}/opt/valhalla_data/build-tiles.sh https://download.geofabrik.de/<continent>/<region>-latest.osm.pbf${CL}"
-echo -e "${INFO}${YW}Point GeoPulse at this instance (docs/MAP_MATCHING_VALHALLA.md):${CL}"
-echo -e "${TAB}${BGN}GEOPULSE_TIMELINE_MAP_MATCHING_ENABLED=true${CL}"
-echo -e "${TAB}${BGN}GEOPULSE_TIMELINE_MAP_MATCHING_PROVIDER=valhalla${CL}"
-echo -e "${TAB}${BGN}GEOPULSE_TIMELINE_MAP_MATCHING_VALHALLA_BASE_URL=http://${IP}:8002${CL}"
