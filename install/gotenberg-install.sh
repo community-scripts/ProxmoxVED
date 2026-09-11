@@ -38,17 +38,12 @@ msg_ok "Installed Dependencies"
 
 GO_VERSION="1.27" setup_go
 
-# pdfcpu (one of Gotenberg's PDF engines) - use the prebuilt release binary
-case "$(dpkg --print-architecture)" in
-arm64) PDFCPU_ARCH="arm64" ;;
-*) PDFCPU_ARCH="x86_64" ;;
-esac
-fetch_and_deploy_gh_release "pdfcpu" "pdfcpu/pdfcpu" "prebuild" "latest" "/opt/pdfcpu" "pdfcpu_*_Linux_${PDFCPU_ARCH}.tar.xz"
+fetch_and_deploy_gh_release "pdfcpu" "pdfcpu/pdfcpu" "prebuild" "latest" "/opt/pdfcpu" "pdfcpu_*_Linux_$(arch_resolve "x86_64" "arm64").tar.xz"
 ln -sf "$(find /opt/pdfcpu -type f -name pdfcpu | head -n1)" /usr/local/bin/pdfcpu
 
 msg_info "Installing unoconverter"
 UNOCONVERTER_VERSION=$(get_latest_github_release "gotenberg/unoconverter" "false")
-curl -fsSL "https://raw.githubusercontent.com/gotenberg/unoconverter/${UNOCONVERTER_VERSION}/unoconv" -o /usr/local/bin/unoconverter
+download_file "https://raw.githubusercontent.com/gotenberg/unoconverter/${UNOCONVERTER_VERSION}/unoconv" /usr/local/bin/unoconverter
 chmod +x /usr/local/bin/unoconverter
 msg_ok "Installed unoconverter"
 
