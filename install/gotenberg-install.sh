@@ -47,7 +47,7 @@ fetch_and_deploy_gh_release "pdfcpu" "pdfcpu/pdfcpu" "prebuild" "latest" "/opt/p
 ln -sf "$(find /opt/pdfcpu -type f -name pdfcpu | head -n1)" /usr/local/bin/pdfcpu
 
 msg_info "Installing unoconverter"
-UNOCONVERTER_VERSION=$(get_latest_github_release "gotenberg/unoconverter")
+UNOCONVERTER_VERSION=$(get_latest_github_release "gotenberg/unoconverter" "false")
 curl -fsSL "https://raw.githubusercontent.com/gotenberg/unoconverter/${UNOCONVERTER_VERSION}/unoconv" -o /usr/local/bin/unoconverter
 chmod +x /usr/local/bin/unoconverter
 msg_ok "Installed unoconverter"
