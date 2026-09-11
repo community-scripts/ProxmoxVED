@@ -34,15 +34,15 @@
   },
   "notes": [
     {
-      "text": "Compiled from source on first install - there is no official Debian/Ubuntu package. Expect the install to take 20-45+ minutes depending on CPU/RAM.",
+      "text": "Installed by compiling from source (no prebuilt package exists), which takes roughly 20-45+ minutes depending on CPU/RAM.",
       "type": "info"
     },
     {
-      "text": "No routing tiles are built during install, since that requires an OSM extract for the region you actually travel in. Run /opt/valhalla_data/build-tiles.sh <geofabrik-pbf-url> afterwards, e.g. with a https://download.geofabrik.de extract for your country. Avoid planet-wide data unless the container is sized for it.",
+      "text": "No routing tiles are built during install. Find your region's extract at https://download.geofabrik.de/ (browse to a continent, then country/region, and copy the .osm.pbf download link), then build the graph with: /opt/valhalla_data/build-tiles.sh <pbf-url>. Avoid planet-wide data unless the container is sized for it.",
       "type": "warning"
     },
     {
-      "text": "The HTTP API (used for /status, /trace_route, /trace_attributes, etc.) listens on port 8002 with no authentication - keep it on a private/internal network.",
+      "text": "The HTTP API on port 8002 has no authentication - keep it on a private/internal network.",
       "type": "warning"
     },
     {
@@ -50,11 +50,7 @@
       "type": "info"
     },
     {
-      "text": "Updating rebuilds Valhalla from source at the latest GitHub release tag; existing tiles/config in /opt/valhalla_data are left untouched.",
-      "type": "info"
-    },
-    {
-      "text": "The default 24GB disk / 8192MB RAM only covers the build. A country-sized Geofabrik extract needs roughly 4-8x its compressed size in free disk for tiles, and building/updating wants more RAM than steady-state serving - resize the container before running build-tiles.sh or before updating if you shrank it after the initial install.",
+      "text": "The default 24GB disk / 8192MB RAM only covers the build. Routing tiles need several times the compressed extract size in free disk, so resize the container before building tiles for large regions.",
       "type": "warning"
     }
   ]

@@ -58,9 +58,10 @@ $STD apt install -y \
   zlib1g-dev
 msg_ok "Installed Dependencies"
 
-msg_info "Building prime_server (Patience)"
+PRIME_SERVER_RELEASE=$(get_latest_github_release "kevinkreiser/prime_server" "false")
+msg_info "Building prime_server ${PRIME_SERVER_RELEASE} (Patience)"
 PRIME_SERVER_DIR=/tmp/prime_server
-git clone --recurse-submodules --depth 1 https://github.com/kevinkreiser/prime_server "$PRIME_SERVER_DIR"
+git clone --recurse-submodules --depth 1 --branch "$PRIME_SERVER_RELEASE" https://github.com/kevinkreiser/prime_server "$PRIME_SERVER_DIR"
 cd "$PRIME_SERVER_DIR"
 $STD ./autogen.sh
 $STD ./configure
