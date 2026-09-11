@@ -83,8 +83,8 @@ EOF
 systemctl enable -q --now airdcpp
 msg_ok "Created Service"
 
-echo -e "${INFO}${YW}Web UI login:${CL} ${GN}admin${CL} / ${GN}${ADMIN_PASS}${CL}"
-
 motd_ssh
 customize
 cleanup_lxc
+
+echo -e "${INFO}${YW}Web UI login:${CL} ${GN}admin${CL} / ${GN}${ADMIN_PASS}${CL}"
