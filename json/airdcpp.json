@@ -1,0 +1,50 @@
+{
+  "name": "AirDC++",
+  "slug": "airdcpp",
+  "categories": [
+    11
+  ],
+  "date_created": "2026-09-11",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": ["amd64"],
+  "interface_port": 5600,
+  "documentation": "https://airdcpp.net/docs/",
+  "website": "https://airdcpp.net/",
+  "repository": "https://github.com/airdcpp-web/airdcpp-webclient",
+  "logo": "https://airdcpp.net/assets/AirDCPlusPlus.png",
+  "description": "AirDC++ Web Client is a Direct Connect and ADC file-sharing client with a browser UI. It is aimed at always-on hosts such as NAS devices and home servers, with hub connectivity, sharing, downloading and hashing managed through the web interface.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/airdcpp.sh",
+      "config_path": "/opt/airdcpp_data",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Config and runtime data live in /opt/airdcpp_data; downloads default to /downloads and share to /share. To use host storage after install: pct set <CTID> -mp0 /path/on/host,mp=/downloads and pct set <CTID> -mp1 /path/on/host,mp=/share (or tools/pve/storage-share-helper.sh). On unprivileged LXCs, match host ownership/ACLs to the container UID mapping — do not chmod 777.",
+      "type": "info"
+    },
+    {
+      "text": "Web UI is http://<IP>:5600 (HTTPS defaults to 5601). Direct Connect ports default to 21248/tcp+udp and 21249/tcp; forward or open them if you need active connectivity.",
+      "type": "info"
+    },
+    {
+      "text": "Default login is admin with a random password printed at the end of install. Change it later with: /opt/airdcpp/airdcppd -c=/opt/airdcpp_data --add-user",
+      "type": "info"
+    }
+  ]
+}
