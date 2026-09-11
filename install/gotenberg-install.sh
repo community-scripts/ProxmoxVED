@@ -80,6 +80,7 @@ Environment=QPDF_BIN_PATH=/usr/bin/qpdf
 Environment=EXIFTOOL_BIN_PATH=/usr/bin/exiftool
 Environment=PDFCPU_BIN_PATH=/usr/local/bin/pdfcpu
 Environment=CHROMIUM_BIN_PATH=/usr/bin/chromium
+Environment=CHROMIUM_HYPHEN_DATA_DIR_PATH=/opt/gotenberg/build/chromium-hyphen-data
 Environment=LIBREOFFICE_BIN_PATH=/usr/lib/libreoffice/program/soffice.bin
 Environment=UNOCONVERTER_BIN_PATH=/usr/local/bin/unoconverter
 Environment=OTEL_TRACES_EXPORTER=none
