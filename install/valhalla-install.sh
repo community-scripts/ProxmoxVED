@@ -68,6 +68,7 @@ $STD make -j"$(nproc)"
 $STD make install
 cd /
 rm -rf /tmp/prime_server
+echo "${PRIME_SERVER_RELEASE#v}" >"$HOME/.prime_server"
 msg_ok "Built prime_server"
 
 RELEASE=$(get_latest_github_release "valhalla/valhalla" "false")

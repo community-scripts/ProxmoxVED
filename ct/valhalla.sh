@@ -31,6 +31,32 @@ function update_script() {
     exit
   fi
 
+  if check_for_gh_release "prime_server" "kevinkreiser/prime_server"; then
+    RELEASE="$CHECK_UPDATE_RELEASE"
+
+    msg_info "Stopping Service"
+    systemctl stop valhalla
+    msg_ok "Stopped Service"
+
+    msg_info "Building prime_server ${RELEASE} (Patience)"
+    rm -rf /tmp/prime_server
+    git clone --recurse-submodules --depth 1 --branch "$RELEASE" https://github.com/kevinkreiser/prime_server /tmp/prime_server
+    cd /tmp/prime_server
+    $STD ./autogen.sh
+    $STD ./configure
+    $STD make -j"$(nproc)"
+    $STD make install
+    cd /
+    rm -rf /tmp/prime_server
+    ldconfig
+    echo "${RELEASE#v}" >"$HOME/.prime_server"
+    msg_ok "Built prime_server ${RELEASE}"
+
+    msg_info "Starting Service"
+    systemctl start valhalla
+    msg_ok "Started Service"
+  fi
+
   if check_for_gh_release "valhalla" "valhalla/valhalla"; then
     RELEASE="$CHECK_UPDATE_RELEASE"
 
