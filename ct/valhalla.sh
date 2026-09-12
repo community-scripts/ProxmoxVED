@@ -34,9 +34,9 @@ function update_script() {
   if check_for_gh_release "valhalla" "valhalla/valhalla"; then
     RELEASE="$CHECK_UPDATE_RELEASE"
 
-    msg_info "Stopping ${APP}"
+    msg_info "Stopping Service"
     systemctl stop valhalla
-    msg_ok "Stopped ${APP}"
+    msg_ok "Stopped Service"
 
     msg_info "Fetching Valhalla ${RELEASE} (Patience)"
     rm -rf /opt/valhalla
@@ -56,9 +56,9 @@ function update_script() {
     echo "${RELEASE#v}" >"$HOME/.valhalla"
     msg_ok "Compiled Valhalla ${RELEASE}"
 
-    msg_info "Starting ${APP}"
+    msg_info "Starting Service"
     systemctl start valhalla
-    msg_ok "Started ${APP}"
+    msg_ok "Started Service"
   fi
 
   msg_ok "Updated Successfully!\n"
