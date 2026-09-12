@@ -1,0 +1,48 @@
+{
+  "name": "Chaptarr",
+  "slug": "chaptarr",
+  "categories": [
+    14
+  ],
+  "date_created": "2026-09-12",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64"
+  ],
+  "interface_port": 8789,
+  "documentation": "https://wiki.chaptarr.com/",
+  "website": "https://github.com/Chaptarr/chaptarr",
+  "repository": "https://github.com/Chaptarr/chaptarr",
+  "logo": "https://raw.githubusercontent.com/Chaptarr/chaptarr/develop/Logo/chaptarr.png",
+  "description": "An audiobook and eBook collection manager. A Readarr fork built to accommodate audiobook and eBook libraries in one instance.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/chaptarr.sh",
+      "config_path": "/opt/chaptarr_data",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Chaptarr is beta software. It is under active development. Bugs are likely; breaking changes less so.",
+      "type": "warning"
+    },
+    {
+      "text": "Open http://<IP>:8789 and complete the setup wizard to create the admin account on first launch. The configuration is stored in /opt/chaptarr_data, outside the app directory, so it survives updates.",
+      "type": "info"
+    }
+  ]
+}
