@@ -60,15 +60,14 @@ msg_ok "Installed Dependencies"
 
 PRIME_SERVER_RELEASE=$(get_latest_github_release "kevinkreiser/prime_server" "false")
 msg_info "Building prime_server ${PRIME_SERVER_RELEASE} (Patience)"
-PRIME_SERVER_DIR=/tmp/prime_server
-git clone --recurse-submodules --depth 1 --branch "$PRIME_SERVER_RELEASE" https://github.com/kevinkreiser/prime_server "$PRIME_SERVER_DIR"
-cd "$PRIME_SERVER_DIR"
+git clone --recurse-submodules --depth 1 --branch "$PRIME_SERVER_RELEASE" https://github.com/kevinkreiser/prime_server /tmp/prime_server
+cd /tmp/prime_server
 $STD ./autogen.sh
 $STD ./configure
 $STD make -j"$(nproc)"
 $STD make install
 cd /
-rm -rf "$PRIME_SERVER_DIR"
+rm -rf /tmp/prime_server
 msg_ok "Built prime_server"
 
 RELEASE=$(get_latest_github_release "valhalla/valhalla" "false")
@@ -102,7 +101,7 @@ valhalla_build_config \
   --mjolnir-concurrency "$THREADS" \
   >/opt/valhalla_data/valhalla.json
 
-cat <<'HELPER' >/opt/valhalla_data/build-tiles.sh
+cat <<'EOF' >/opt/valhalla_data/build-tiles.sh
 #!/usr/bin/env bash
 # (Re)builds Valhalla routing tiles from one or more OSM extracts.
 # Usage: build-tiles.sh <pbf-url-or-path> [<pbf-url-or-path> ...]
@@ -150,7 +149,7 @@ valhalla_build_extract -c "$CONFIG" -v
 chown -R valhalla:valhalla "$DATA_DIR"
 systemctl start valhalla
 echo "Done. Tiles are in $DATA_DIR/valhalla_tiles (and packed at $DATA_DIR/valhalla_tiles.tar)."
-HELPER
+EOF
 chmod +x /opt/valhalla_data/build-tiles.sh
 chown -R valhalla:valhalla /opt/valhalla_data
 msg_ok "Configured Valhalla"
