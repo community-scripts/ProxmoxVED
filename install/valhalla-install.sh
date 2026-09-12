@@ -108,6 +108,7 @@ cat <<'HELPER' >/opt/valhalla_data/build-tiles.sh
 # Usage: build-tiles.sh <pbf-url-or-path> [<pbf-url-or-path> ...]
 # Example: build-tiles.sh https://download.geofabrik.de/europe/germany-latest.osm.pbf
 set -euo pipefail
+export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
 if [[ $# -eq 0 ]]; then
   echo "Usage: $0 <pbf-url-or-path> [<pbf-url-or-path> ...]" >&2
   exit 1
