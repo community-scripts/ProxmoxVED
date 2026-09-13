@@ -1,0 +1,47 @@
+{
+  "name": "Tvheadend",
+  "slug": "tvheadend",
+  "categories": [13],
+  "date_created": "2026-08-24",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 9981,
+  "documentation": "https://docs.tvheadend.org",
+  "website": "https://tvheadend.org/",
+  "repository": "https://github.com/tvheadend/tvheadend",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/tvheadend.webp",
+  "description": "Tvheadend is a TV streaming server and Digital Video Recorder for Linux, supporting DVB-S/S2, DVB-C, DVB-T/T2, ATSC, IPTV, SAT>IP and HDHomeRun as input sources, with HTSP and HTTP streaming output.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/tvheadend.sh",
+      "config_path": "/var/lib/tvheadend",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "auto-generated"
+  },
+  "notes": [
+    {
+      "text": "The admin account is created by the Debian package itself during install and cannot be changed from within Tvheadend afterwards — only by re-running the install with new var_admin_user/var_admin_pass values.",
+      "type": "info"
+    },
+    {
+      "text": "IPTV, SAT>IP and HDHomeRun (network) sources work without extra container configuration. A physical DVB/USB tuner requires passing the device through to the container yourself (e.g. bind-mounting /dev/dvb) — this script does not automate hardware passthrough.",
+      "type": "info"
+    }
+  ],
+  "app_vars": [
+    { "name": "var_admin_user", "label": "Admin Username", "type": "text", "default": "admin" },
+    { "name": "var_admin_pass", "label": "Admin Password", "type": "password", "secret": true }
+  ]
+}
