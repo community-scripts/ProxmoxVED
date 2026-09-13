@@ -54,6 +54,10 @@ Link: #
 - [ ] **No AI used** – Scripts were written without AI assistance.
 - [ ] **AI was used** – I confirm the scripts were built using [`AGENTS.md`](https://github.com/community-scripts/ProxmoxVED/blob/main/AGENTS.md) and [`.github/agents/pve-script-creator.agent.md`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/agents/pve-script-creator.agent.md) as guidance, and the output has been reviewed and corrected to match those guidelines.
 
+**Please describe to which degree, if any, an LLM was used in creating this pull request.** Name the model(s) used and, if applicable, the reasoning/thinking effort level (e.g. *"Claude Sonnet 4.5, high reasoning, used to draft the install script, then manually reviewed and tested"* or *"No LLM used"*). This is informational, not a penalty — but scripts that are clearly AI-generated and not further revised by the author to match `CODE-AUDIT.md` / `CONTRIBUTING.md` may be closed without review.
+
+<!-- Your answer here -->
+
 ---
 
 ## 📋 Additional Information (optional)  
