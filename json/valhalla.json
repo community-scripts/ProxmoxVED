@@ -38,7 +38,7 @@
       "type": "info"
     },
     {
-      "text": "No routing tiles are built during install. Find your region's extract at https://download.geofabrik.de/ (browse to a continent, then country/region, and copy the .osm.pbf download link), then build the graph with: /opt/valhalla_data/build-tiles.sh <pbf-url>. Avoid planet-wide data unless the container is sized for it.",
+      "text": "No routing tiles are built during install. Find your region's extract at https://download.geofabrik.de/ (browse to a continent, then country/region, and copy the .osm.pbf download link), then build the graph with: /opt/valhalla_data/build-tiles.sh {pbf-url}. Avoid planet-wide data unless the container is sized for it.",
       "type": "warning"
     },
     {
