@@ -32,16 +32,13 @@ function update_script() {
   fi
 
   if check_for_gh_release "libredb-studio" "libredb/libredb-studio"; then
-    # Two debs per arch; without ${ARCH} the glob matches the desktop package.
-    ARCH="$(arch_resolve)"
-
     msg_info "Stopping Service"
     systemctl stop libredb-studio
     msg_ok "Stopped Service"
 
     create_backup /etc/libredb-studio/env
 
-    DPKG_FORCE_CONFOLD=1 fetch_and_deploy_gh_release "libredb-studio" "libredb/libredb-studio" "binary" "latest" "" "libredb-studio_*_${ARCH}.deb"
+    DPKG_FORCE_CONFOLD=1 fetch_and_deploy_gh_release "libredb-studio" "libredb/libredb-studio" "binary" "latest" "" "libredb-studio_*_$(arch_resolve).deb"
 
     restore_backup
 

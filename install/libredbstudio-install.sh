@@ -13,9 +13,7 @@ setting_up_container
 network_check
 update_os
 
-# Two debs per arch; without ${ARCH} the glob matches the desktop package.
-ARCH="$(arch_resolve)"
-fetch_and_deploy_gh_release "libredb-studio" "libredb/libredb-studio" "binary" "latest" "" "libredb-studio_*_${ARCH}.deb"
+fetch_and_deploy_gh_release "libredb-studio" "libredb/libredb-studio" "binary" "latest" "" "libredb-studio_*_$(arch_resolve).deb"
 
 msg_info "Configuring LibreDB Studio"
 JWT_SECRET="$(openssl rand -hex 32)"
