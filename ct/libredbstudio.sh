@@ -15,7 +15,6 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
-var_testurl="${var_testurl:-https://github.com/community-scripts/ProxmoxVED/issues/2261}"
 
 header_info "$APP"
 variables
@@ -44,12 +43,6 @@ function update_script() {
 
     DPKG_FORCE_CONFOLD=1 fetch_and_deploy_gh_release "libredb-studio" "libredb/libredb-studio" "binary" "latest" "" "libredb-studio_*_${ARCH}.deb"
 
-    if [[ ! -x /usr/bin/libredb-studio ]] || [[ ! -f /usr/lib/systemd/system/libredb-studio.service ]]; then
-      restore_backup
-      systemctl start libredb-studio
-      msg_error "The installed package is not the server build"
-      exit 1
-    fi
     restore_backup
 
     msg_info "Starting Service"

@@ -16,16 +16,11 @@ update_os
 # Two debs per arch; without ${ARCH} the glob matches the desktop package.
 ARCH="$(arch_resolve)"
 fetch_and_deploy_gh_release "libredb-studio" "libredb/libredb-studio" "binary" "latest" "" "libredb-studio_*_${ARCH}.deb"
-if [[ ! -x /usr/bin/libredb-studio ]] || [[ ! -f /usr/lib/systemd/system/libredb-studio.service ]]; then
-  msg_error "The installed package is not the server build"
-  exit 1
-fi
 
 msg_info "Configuring LibreDB Studio"
 JWT_SECRET="$(openssl rand -hex 32)"
 ADMIN_PASSWORD="$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-16)"
 mkdir -p /etc/libredb-studio
-install -m 600 /dev/null /etc/libredb-studio/env
 cat <<EOF >/etc/libredb-studio/env
 HOSTNAME=0.0.0.0
 PORT=3000
@@ -36,6 +31,7 @@ JWT_SECRET=${JWT_SECRET}
 ADMIN_EMAIL=admin@libredb.org
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 EOF
+chmod 600 /etc/libredb-studio/env
 systemctl enable -q --now libredb-studio
 msg_ok "Configured LibreDB Studio"
 
