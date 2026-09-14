@@ -9,8 +9,15 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
 ## Workflow
 
 1. **Gather info**: Fetch the app's repository / website to determine: runtime (Node.js, Go, Python, Rust, etc.), database needs, build steps, default port, config paths, dependencies, and any value a user must supply during install (URLs, tokens, admin accounts). Record the repository as a full URL — GitHub, GitLab, Gitea, Forgejo and Codeberg are all supported, and a bare `owner/repo` could only ever mean GitHub.
-2. **Generate three files**: CT script, install script, JSON metadata — all at once.
-3. **Validate against the checklist** (see below) before finishing.
+2. **Check eligibility** (new scripts only, before writing any file): Verify the app meets `.github/pull_request_template.md`'s "Application Requirements" —
+   - **600+ stars** on its host (GitHub, GitLab, a Gitea/Forgejo instance, or Codeberg — the template says "GitHub stars" but the same bar applies in spirit on every forge this agent supports)
+   - **6+ months old**
+   - **Actively maintained** (recent commits/releases)
+   - **Official release tarballs/binaries published**
+
+   Look up the actual star count and repo age from the forge (API or repo page) — do not guess. If stars are under 600, or another requirement is clearly unmet, **stop and flag it to the user immediately**, quoting the real numbers, instead of generating scripts likely to be closed without review. Proceed only if the user explicitly confirms they want to continue anyway.
+3. **Generate three files**: CT script, install script, JSON metadata — all at once.
+4. **Validate against the checklist** (see below) before finishing.
 
 ## Mandatory Rules (from AGENTS.md)
 
@@ -24,9 +31,11 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
 - `fetch_and_deploy_gh_release "<app>" "owner/repo" "<mode>" ["latest"] ["/opt/<app>"] ["<asset-pattern>"]` — GitHub. Modes: `tarball` (source), `binary` (.deb), `prebuild` (prebuilt archive), `singlefile` (single binary). The resolved version is written to `~/.<app>` (read it back with `cat ~/.<app>` when you need the version at build/runtime).
 - `fetch_and_deploy_gl_release` / `fetch_and_deploy_gl_tag` — GitLab (self-hosted or gitlab.com). Set `GITLAB_URL="https://gitlab.example.org"` (default `https://gitlab.com`) and optional `GITLAB_TOKEN`. Same modes as GitHub. Do NOT use the GitHub helper for GitLab repos.
 - `fetch_and_deploy_codeberg_release` — Codeberg. `fetch_and_deploy_from_url` — last resort for a fixed URL when no release API fits (still avoids hand-rolled curl/tar).
-- Multi-arch assets: build the asset pattern with `arch_resolve "x86_64" "arm64"` (returns the arch-correct token) instead of hardcoding the architecture.
+- Multi-arch assets: call `arch_resolve "x86_64" "arm64"` **inline** inside the asset pattern string — e.g. `"pdfcpu_*_Linux_$(arch_resolve "x86_64" "arm64").tar.xz"` — instead of hardcoding the architecture. Don't pre-assign it to a variable (`ARCH=$(arch_resolve)`) unless that value is genuinely read more than once elsewhere in the script.
+- **Tag-only repos** (publish tags but no Releases): `fetch_and_deploy_gh_tag "<app>" "owner/repo"` / `check_for_gh_tag` / `get_latest_gh_tag "owner/repo" [prefix]`, and the GitLab equivalent `get_latest_gl_tag "owner/repo" ["glob"]`.
+- **Releaseless repos** (deployed straight from a branch, e.g. RSSHub): `fetch_and_deploy_gh_branch "<app>" "owner/repo" ["branch"]` / `check_for_gh_branch` — shallow-clones/fast-forwards and tracks the short SHA in `~/.<app>`. Never hand-roll `git clone`/`git pull` for either case.
 
-**Update checks:** `check_for_gh_release "<app>" "owner/repo"` / `check_for_gl_release` (with `GITLAB_URL`) return 0 when a newer release exists. `get_latest_github_release "owner/repo"` returns just the version string.
+**Update checks:** `check_for_gh_release "<app>" "owner/repo"` / `check_for_gl_release` (with `GITLAB_URL`) / `check_for_codeberg_release` return 0 when a newer release exists. `get_latest_github_release "owner/repo"` / `get_latest_gitlab_release "owner/repo" [strip_v]` / `get_latest_codeberg_release "owner/repo"` return just the version string.
 
 **Runtimes:** `NODE_VERSION="22" NODE_MODULE="pnpm@x" setup_nodejs` · `setup_go` (no arg = latest; NEVER pin a bare `1.23` — the download URL needs a full `1.23.x`) · `RUST_CRATES="..." setup_rust` · `UV_PYTHON="3.12" setup_uv` · `RUBY_VERSION setup_ruby` · `JAVA_VERSION setup_java` · `PHP_VERSION="8.3" PHP_MODULE="gd,intl,mysql" PHP_FPM="YES" setup_php` (note: `PHP_MODULE`, singular).
 
@@ -34,7 +43,13 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
 
 **Tools/infra:** `setup_composer` · `setup_ffmpeg` · `setup_imagemagick` · `setup_gs` · `setup_yq` · `setup_adminer` · `setup_hwaccel` · `setup_nltk`.
 
-**Repos, services, TLS:** `setup_deb822_repo "name" "<gpg_url>" "<repo_url>" "<suite>" ["component"] ["archs"]` for 3rd-party APT repos (never hand-roll GPG keys + sources) · `safe_service_restart <svc>` · `ensure_dependencies <pkg...>` (installs jq/openssl/etc. on demand) · `install_packages_with_retry <pkg...>` · `create_self_signed_cert "<app>"` → `/etc/ssl/<app>/<app>.{crt,key}` (SAN = hostname + container IP + localhost; never hand-roll openssl).
+**Repos, services, TLS:** `setup_deb822_repo "name" "<gpg_url>" "<repo_url>" "<suite>" ["component"] ["archs"]` for 3rd-party APT repos (never hand-roll GPG keys + sources) — when a repo isn't deb822-shaped, fall back to `download_gpg_key "<url>" "<output_path>" ["dearmor"]` + `verify_gpg_fingerprint` and `prepare_repository_setup "<pkg>..."` instead of hand-rolled `curl`/`gpg`/`apt-key` · `safe_service_restart <svc>` · `ensure_dependencies <pkg...>` (installs jq/openssl/etc. on demand) · `install_packages_with_retry <pkg...>` / `upgrade_packages_with_retry <pkg...>` · `curl_with_retry "<url>" "<outfile>"` for any download not covered by `fetch_and_deploy_*` · `create_self_signed_cert "<app>"` → `/etc/ssl/<app>/<app>.{crt,key}` (SAN = hostname + container IP + localhost; never hand-roll openssl) · `nginx_enable_site "<app>"` — write the vhost yourself via heredoc to `/etc/nginx/sites-available/<app>`, then call this to symlink into `sites-enabled`, drop the default site, run `nginx -t`, and reload; never hand-roll the `ln -sf` / `rm -f` / restart dance · `get_php_fpm_socket` for a PHP app's nginx `fastcgi_pass` instead of a hardcoded socket path.
+
+**Prompting for input:** prefer `prompt_input_required "<message>" "<fallback>" [timeout] ["var_x"]` (and `prompt_input`/`prompt_confirm`/`prompt_select`) over raw `read -rp` — they already do the env-var-first check, unattended-mode fallback (`is_unattended`), TTY check, and timeout that rule 24 below requires by hand; `prompt_input_required` also tracks unset fields in `MISSING_REQUIRED_VALUES` for an end-of-script summary.
+
+**Docker exception:** `ensure_docker`/`setup_docker` exist, but only for `tools/addon/*.sh` scripts that intentionally manage a Compose stack (e.g. `arcane.sh`) — never for `ct/`/`install/` app scripts.
+
+**Alpine:** `var_os="alpine"` routes the same function names (`fetch_and_deploy_gh_release`, `setup_yq`, `setup_adminer`, `setup_uv`, `setup_java`, `setup_go`, `setup_composer`, etc.) through Alpine-specific implementations — call the same functions regardless of OS.
 
 ### Data Persistence & Updates (CRITICAL)
 
@@ -64,6 +79,9 @@ Browser APIs like `crypto.subtle` (Web Crypto / PKCE), `navigator.storage.getDir
 - Do NOT use `echo`/`printf`/`tee` for file creation — use heredocs.
 - Do NOT create external shell scripts, custom credentials files, or unnecessary system users.
 - All `apt` / `npm` / build commands must be prefixed with `$STD`.
+- Do NOT hand-roll the nginx enable dance (`ln -sf sites-available→sites-enabled`, `rm -f sites-enabled/default`, manual `systemctl restart`) — write the vhost, then call `nginx_enable_site "<app>"`.
+- Do NOT hand-roll `git clone`/`git pull` for a repo with no GitHub Releases — use `fetch_and_deploy_gh_tag`/`check_for_gh_tag` (tag-only) or `fetch_and_deploy_gh_branch`/`check_for_gh_branch` (releaseless, branch-tracked).
+- Do NOT add decorative comment banners (`====`/`----`/`####`) or comments that just restate the next line — comment only the non-obvious (a workaround, a timing dependency, a surprising constraint).
 
 ### JSON Metadata
 
@@ -147,9 +165,12 @@ changes nothing.
 - [ ] Every `read` in the install script is guarded by `-z "${var_x:-}"`, so the value can be supplied up front
 - [ ] Each such `var_x` is exported in `ct/<app>.sh` and declared in JSON `app_vars`, with names that match exactly
 - [ ] Backups go to `/opt`, not `/tmp`
-- [ ] Multi-arch asset patterns use `arch_resolve` (no hardcoded arch)
+- [ ] Multi-arch asset patterns use `arch_resolve` inline (no hardcoded arch, no single-use `ARCH=$(arch_resolve)` variable)
 - [ ] 3rd-party APT repos via `setup_deb822_repo`; self-signed TLS via `create_self_signed_cert`
 - [ ] GitLab sources use `fetch_and_deploy_gl_release`/`check_for_gl_release` with `GITLAB_URL`
+- [ ] Nginx sites enabled via `nginx_enable_site`, not hand-rolled symlinks/restart
+- [ ] Tag-only/releaseless repos use `fetch_and_deploy_gh_tag`/`fetch_and_deploy_gh_branch`, not hand-rolled `git clone`/`git pull`
+- [ ] No decorative banner comments or comments that restate the obvious
 
 ## Output Format
 

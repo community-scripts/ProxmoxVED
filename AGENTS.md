@@ -24,6 +24,10 @@ All scripts follow an identical structure. Deviations are not acceptable.
 
 We do **NOT use Docker** for our installation scripts. All applications are installed directly on the system.
 
+**Scoped exception:** `ensure_docker` / `setup_docker` exist in `tools.func`, but only
+for `tools/addon/*.sh` scripts that intentionally manage a Docker Compose stack (e.g.
+`arcane.sh`, `mqttx.sh`) — never for `ct/`/`install/` app scripts, which stay bare-metal.
+
 ---
 
 ## 📁 Script Types and Their Structure
@@ -177,6 +181,29 @@ cleanup_lxc
 | `fetch_and_deploy_gh_release` | Fetches and installs GitHub Release   | `fetch_and_deploy_gh_release "app" "owner/repo" "tarball"` |
 | `check_for_gh_release`        | Checks for new version                | `if check_for_gh_release "app" "owner/repo"; then`         |
 | `get_latest_github_release`   | Returns latest release version string | `VERSION=$(get_latest_github_release "owner/repo")`        |
+| `fetch_and_deploy_gl_release` / `fetch_and_deploy_gl_tag` | GitLab equivalents (self-hosted or gitlab.com) | `GITLAB_URL="https://gitlab.example.org" fetch_and_deploy_gl_release "app" "owner/repo" "tarball"` |
+| `fetch_and_deploy_codeberg_release` / `check_for_codeberg_release` | Codeberg equivalents | `fetch_and_deploy_codeberg_release "app" "owner/repo" "tarball"` |
+| `fetch_and_deploy_from_url`   | Last resort for a fixed URL when no release API fits | still avoids hand-rolled curl/tar |
+| `get_latest_gitlab_release "owner/repo" [strip_v]` / `get_latest_codeberg_release "owner/repo"` | Version string only, GitLab/Codeberg equivalents of `get_latest_github_release` | `VERSION=$(get_latest_gitlab_release "owner/repo")` |
+
+**Repos that only publish tags, not Releases:**
+
+| Function                      | Description                                                               | Example                                              |
+| ------------------------------ | ---------------------------------------------------------------------------| ------------------------------------------------------ |
+| `fetch_and_deploy_gh_tag`     | Deploys from a tag instead of a GitHub Release                            | `fetch_and_deploy_gh_tag "guacd" "apache/guacamole-server"` |
+| `check_for_gh_tag`            | Update check for tag-only repos, same interface as `check_for_gh_release` | `if check_for_gh_tag "guacd" "apache/guacamole-server"; then` |
+| `get_latest_gh_tag "owner/repo" [prefix]` | Latest tag name, sorted with `sort -V`                         | `TAG=$(get_latest_gh_tag "owner/repo")`              |
+| `get_latest_gl_tag "owner/repo" ["glob"]` | Latest GitLab tag, optionally filtered by glob                 | `get_latest_gl_tag "owner/repo" "web-v*"`            |
+
+**Repos with no releases or tags at all — deployed straight from a branch (e.g. RSSHub):**
+
+| Function                      | Description                                                                                     | Example                                              |
+| ------------------------------ | --------------------------------------------------------------------------------------------------| ------------------------------------------------------ |
+| `fetch_and_deploy_gh_branch`  | Shallow-clones on first run, fast-forwards on later runs; records the short SHA in `~/.<app>`     | `fetch_and_deploy_gh_branch "app" "owner/repo" "main"` |
+| `check_for_gh_branch`         | Compares the recorded SHA against the branch tip                                                  | `if check_for_gh_branch "app" "owner/repo"; then`    |
+
+Never hand-roll `git clone`/`git pull` for a tag-only or rolling-release app — these two
+pairs exist specifically to avoid that (see Anti-Pattern 27).
 
 **Modes for `fetch_and_deploy_gh_release`:**
 
@@ -221,7 +248,7 @@ if GH_INCLUDE_PRERELEASE=1 check_for_gh_release "app" "owner/repo"; then
 | `setup_rust`   | `RUST_VERSION`, `RUST_CRATES` | `RUST_CRATES="monolith" setup_rust`                  |
 | `setup_ruby`   | `RUBY_VERSION`                | `RUBY_VERSION="3.3" setup_ruby`                      |
 | `setup_java`   | `JAVA_VERSION`                | `JAVA_VERSION="21" setup_java`                       |
-| `setup_php`    | `PHP_VERSION`, `PHP_MODULES`  | `PHP_VERSION="8.3" PHP_MODULES="redis,gd" setup_php` |
+| `setup_php`    | `PHP_VERSION`, `PHP_MODULE`   | `PHP_VERSION="8.3" PHP_MODULE="redis,gd" setup_php`  |
 
 ### Database Setup
 
@@ -229,10 +256,13 @@ if GH_INCLUDE_PRERELEASE=1 check_for_gh_release "app" "owner/repo"; then
 | --------------------- | ------------------------------------ | ----------------------------------------------------------- |
 | `setup_postgresql`    | `PG_VERSION`, `PG_MODULES`           | `PG_VERSION="16" setup_postgresql`                          |
 | `setup_postgresql_db` | `PG_DB_NAME`, `PG_DB_USER`           | `PG_DB_NAME="mydb" PG_DB_USER="myuser" setup_postgresql_db` |
+| `setup_mariadb`       | -                                     | `setup_mariadb`                                              |
 | `setup_mariadb_db`    | `MARIADB_DB_NAME`, `MARIADB_DB_USER` | `MARIADB_DB_NAME="mydb" setup_mariadb_db`                   |
 | `setup_mysql`         | `MYSQL_VERSION`                      | `setup_mysql`                                               |
+| `setup_mysql_db`      | `MYSQL_DB_NAME`, `MYSQL_DB_USER`     | `MYSQL_DB_NAME="mydb" setup_mysql_db`                       |
 | `setup_mongodb`       | `MONGO_VERSION`                      | `setup_mongodb`                                             |
 | `setup_clickhouse`    | -                                    | `setup_clickhouse`                                          |
+| `setup_meilisearch`   | -                                    | `setup_meilisearch`                                          |
 
 ### Tools & Utilities
 
@@ -244,6 +274,57 @@ if GH_INCLUDE_PRERELEASE=1 check_for_gh_release "app" "owner/repo"; then
 | `setup_imagemagick` | Install ImageMagick                |
 | `setup_gs`          | Install Ghostscript                |
 | `setup_hwaccel`     | Configure hardware acceleration    |
+| `setup_yq`          | Install `yq` (YAML processor)      |
+| `setup_nltk`        | Install Python NLTK + data corpora |
+
+### Repos, Services, TLS & Downloads
+
+| Function                                                        | Description                                                                                  | Example |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | --------- |
+| `setup_deb822_repo "name" "<gpg_url>" "<repo_url>" "<suite>" ["component"] ["archs"]` | Adds a 3rd-party APT repo the deb822 way — never hand-roll GPG keys + sources.list | `setup_deb822_repo "grafana" "https://apt.grafana.com/gpg.key" "https://apt.grafana.com" "stable" "main"` |
+| `download_gpg_key "<url>" "<output_path>" ["dearmor"]`          | Fallback when a repo isn't deb822-shaped — retries, validates, mirrors, and auto-detects binary vs. ASCII-armored keys | `download_gpg_key "https://example.com/key.asc" "/etc/apt/keyrings/example.gpg" "dearmor"` |
+| `verify_gpg_fingerprint "<key_file>" "<expected_fingerprint>"`  | Confirms a downloaded key matches the expected fingerprint before trusting it                | pair with `download_gpg_key` for repos you don't control |
+| `prepare_repository_setup "<pkg>..."`                           | Cleans stale repos/keyrings for the named packages and validates APT before adding a new source | `prepare_repository_setup "mariadb" "mysql"` |
+| `curl_with_retry "<url>" "<outfile>" [opts]`                    | Retrying curl (honors `CURL_RETRIES`/`CURL_TIMEOUT`) — use for any download not covered by `fetch_and_deploy_*` | never hand-roll a bare `curl`/`wget` loop |
+| `install_packages_with_retry <pkg...>`                          | APT install with retry                                                                        | `install_packages_with_retry nginx redis` |
+| `upgrade_packages_with_retry <pkg...>`                          | APT upgrade with retry, for specific packages                                                | `upgrade_packages_with_retry "mariadb-server" "mariadb-client"` |
+| `safe_service_restart <svc>`                                    | Restarts a systemd service, tolerant of a unit that isn't running yet                        | `safe_service_restart nginx` |
+| `create_self_signed_cert "<app>"`                               | Writes `/etc/ssl/<app>/<app>.{crt,key}` — SAN covers hostname + container IP + localhost; never hand-roll `openssl` | see [Secure-Context Web Apps](#secure-context-web-apps-https) below |
+| `arch_resolve "x86_64" "arm64"`                                 | Returns the arch-correct token for a multi-arch release asset pattern instead of hardcoding it | `fetch_and_deploy_gh_release "pdfcpu" "pdfcpu/pdfcpu" "prebuild" "latest" "/opt/pdfcpu" "pdfcpu_*_Linux_$(arch_resolve "x86_64" "arm64").tar.xz"` |
+
+Call it inline inside the asset-pattern string, as above. Don't pre-assign the result to
+a variable unless that value is genuinely read more than once:
+
+```bash
+# ❌ WRONG - ARCH is only ever read once; the variable adds nothing
+ARCH=$(arch_resolve)
+fetch_and_deploy_gh_release "safebucket" "safebucket/safebucket" "singlefile" "latest" "/opt/safebucket" "safebucket-linux-${ARCH}"
+
+# ✅ CORRECT - call it inline
+fetch_and_deploy_gh_release "safebucket" "safebucket/safebucket" "singlefile" "latest" "/opt/safebucket" "safebucket-linux-$(arch_resolve)"
+```
+
+This is the same "No Pointless Variables" principle from the top of this document — it
+just comes up often enough with `arch_resolve` specifically to call out here.
+
+### Secure-Context Web Apps (HTTPS)
+
+Browser APIs like `crypto.subtle` (Web Crypto / PKCE), `navigator.storage.getDirectory`
+(OPFS), service workers, and `SharedArrayBuffer` are only available in a **secure
+context** (HTTPS or `localhost`). An app that uses any of them breaks over plain
+`http://<IP>` with errors such as `crypto.subtle is unavailable in insecure contexts` or
+`Cannot read properties of undefined (reading 'getDirectory')`. When the app (SPA or
+backend console) relies on these:
+
+- Terminate TLS with `create_self_signed_cert "<app>"` (its SAN already covers the
+  container IP) behind an nginx `listen 443 ssl` server, redirect `:80 → :443`, and
+  proxy to the app on an internal port (or serve the static root directly). Enable the
+  vhost with `nginx_enable_site "<app>"`, same as any other site.
+- If the source uses `SharedArrayBuffer` (grep for it), also set cross-origin isolation
+  on the HTTPS server: `add_header Cross-Origin-Opener-Policy same-origin always;` and
+  `add_header Cross-Origin-Embedder-Policy require-corp always;`.
+- In `notes`, tell users to accept the self-signed certificate (on every port the login
+  flow touches) and point them at the `https://` URL.
 
 **FFmpeg acquisition (`FFMPEG_TYPE`):**
 
@@ -274,6 +355,54 @@ them is not. Use `repo` or `FFMPEG_LICENSE=lgpl` when an app requires LGPL FFmpe
 | `install_packages_with_retry` | APT install with retry                                 | `install_packages_with_retry nginx redis` |
 | `create_backup`               | Backs up paths before an update                        | `create_backup /opt/app/.env /opt/app/data` |
 | `restore_backup`              | Restores everything `create_backup` recorded           | `restore_backup`                          |
+
+### Nginx Site Enablement
+
+| Function            | Description                                                                                            | Example                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------- |
+| `nginx_enable_site`  | Symlinks a vhost from `sites-available` into `sites-enabled`, removes the default site, validates with `nginx -t`, and reloads nginx | `nginx_enable_site "appname"` |
+
+The vhost content is always app-specific, so write it yourself with a heredoc into
+`/etc/nginx/sites-available/<app>` — then hand the enable/reload dance to the helper
+instead of repeating it by hand:
+
+```bash
+msg_info "Configuring Nginx"
+cat <<EOF >/etc/nginx/sites-available/appname
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+    }
+}
+EOF
+nginx_enable_site "appname"
+msg_ok "Configured Nginx"
+```
+
+`nginx_enable_site` replaces the hand-rolled:
+
+```bash
+ln -sf /etc/nginx/sites-available/appname /etc/nginx/sites-enabled/appname
+rm -f /etc/nginx/sites-enabled/default
+systemctl restart nginx
+```
+
+Unlike most copies of that snippet scattered across the repo, it always runs `nginx -t`
+before reloading — a bad vhost fails the install with a clear error instead of silently
+leaving nginx down or serving stale config.
+
+For PHP apps behind nginx, get the FPM socket path from `get_php_fpm_socket` instead of
+hardcoding it in the vhost's `fastcgi_pass`:
+
+```bash
+PHP_SOCK=$(get_php_fpm_socket)
+# use in the heredoc: fastcgi_pass unix:${PHP_SOCK};
+```
 
 ---
 
@@ -683,6 +812,99 @@ declaration the website cannot offer it as a field.
 `install/forgejo-runner-install.sh` and `install/pangolin-install.sh` follow
 this.
 
+**Built-in alternative:** `core.func` also ships `prompt_input_required "<message>" "<fallback>" [timeout] ["var_x"]`,
+`prompt_input`, `prompt_confirm`, and `prompt_select` — they wrap this exact
+env-var-first check plus unattended-mode detection (`is_unattended`), a TTY check, and a
+timeout-with-fallback, and (for `prompt_input_required`) track every field that fell back
+in `MISSING_REQUIRED_VALUES` for an end-of-script summary. Prefer them in new scripts
+over the raw `read -rp` pattern above; the manual pattern still works and existing
+scripts using it are not wrong.
+
+```bash
+var_admin_user=$(prompt_input_required "Admin username:" "admin" 60 "var_admin_user")
+```
+
+### 25. Hand-rolled Nginx Site Enablement
+
+```bash
+# ❌ WRONG - repeating the enable/reload dance by hand
+ln -sf /etc/nginx/sites-available/appname /etc/nginx/sites-enabled/appname
+rm -f /etc/nginx/sites-enabled/default
+systemctl restart nginx
+
+# ✅ CORRECT - use the helper (symlinks, drops default, validates, reloads)
+nginx_enable_site "appname"
+```
+
+Writing the vhost itself still needs a heredoc into `sites-available` — only the
+enable/reload part is what `nginx_enable_site` replaces.
+
+### 26. Decorative Comment Banners / Comments That Restate the Code
+
+```bash
+# ❌ WRONG - banner separators and comments that just repeat the next line
+# ==============================================================================
+# CONFIGURATION
+# ==============================================================================
+APP="AppName"
+
+# Enable error handling
+set -Eeuo pipefail
+trap 'error_handler' ERR
+
+# Wait for API to start
+sleep 5
+
+# Create credentials file
+cat >"${CONFIG_DIR}/INSTALLATION_INFO.txt" <<EOF
+...
+EOF
+
+# ✅ CORRECT - let the code speak; comment only the non-obvious
+APP="AppName"
+
+set -Eeuo pipefail
+trap 'error_handler' ERR
+
+sleep 5
+
+cat >"${CONFIG_DIR}/INSTALLATION_INFO.txt" <<EOF
+...
+EOF
+```
+
+Only comment what the code can't say for itself — a workaround, a timing dependency, a
+non-obvious constraint. If deleting the comment wouldn't confuse the next reader, delete
+it. Never use `====`/`----`/`####` banner separators to break a script into sections;
+`msg_info`/function boundaries already do that job.
+
+### 27. Hand-rolled `git clone`/`git pull` for Tag-only or Rolling-release Apps
+
+```bash
+# ❌ WRONG - hand-rolled git clone/pull because the repo has no GitHub Releases
+git clone https://github.com/owner/repo /opt/appname
+cd /opt/appname && git pull
+
+# ✅ CORRECT - repo publishes tags but no Releases
+fetch_and_deploy_gh_tag "appname" "owner/repo"
+# ...
+if check_for_gh_tag "appname" "owner/repo"; then
+  CLEAN_INSTALL=1 fetch_and_deploy_gh_tag "appname" "owner/repo"
+fi
+
+# ✅ CORRECT - repo publishes neither releases nor tags (deployed from a branch)
+fetch_and_deploy_gh_branch "appname" "owner/repo" "main"
+# ...
+if check_for_gh_branch "appname" "owner/repo" "main"; then
+  CLEAN_INSTALL=1 fetch_and_deploy_gh_branch "appname" "owner/repo" "main"
+fi
+```
+
+`fetch_and_deploy_gh_release`/`check_for_gh_release` are for repos with GitHub Releases.
+When a repo only tags commits, use the `_gh_tag` pair; when it has neither, use the
+`_gh_branch` pair (it shallow-clones and fast-forwards, tracking the short SHA in
+`~/.<app>` the same way the others track a version).
+
 ---
 
 ## 📝 Important Rules
@@ -875,6 +1097,9 @@ cleanup_lxc
 - [ ] `motd_ssh`, `customize`, `cleanup_lxc` at the end
 - [ ] No custom download/version-check logic
 - [ ] No default `(Patience)` text in msg_info labels
+- [ ] Nginx sites enabled via `nginx_enable_site`, not hand-rolled `ln -sf`/`rm -f`/`systemctl restart`
+- [ ] No decorative comment banners (`====`/`----`/`####`) or comments that just restate the next line
+- [ ] Tag-only or releaseless (branch-tracking) repos use `fetch_and_deploy_gh_tag`/`fetch_and_deploy_gh_branch`, not hand-rolled `git clone`/`git pull`
 - [ ] JSON metadata file created in `json/<appname>.json`
 
 ---
@@ -1072,6 +1297,18 @@ Or no credentials:
 3. **Ask when uncertain** instead of introducing wrong patterns
 4. **Consistency > Creativity** - follow established patterns
 5. **Test local variables** - use `${VAR:-default}` pattern for optional values
+6. **Check eligibility before scaffolding a new app** - new-script PRs must meet the
+   Application Requirements in [`.github/pull_request_template.md`](.github/pull_request_template.md):
+   **600+ stars** (GitHub, GitLab, Gitea/Forgejo, or Codeberg), **6+ months old**,
+   **actively maintained**, and **official release tarballs published**. Look up the
+   real star count on the app's forge and flag the user immediately if it falls short,
+   before generating any files.
+7. **Alpine is supported transparently** - setting `var_os="alpine"` routes the same
+   helper function names (`fetch_and_deploy_gh_release`, `check_for_gh_release`,
+   `setup_yq`, `setup_adminer`, `setup_uv`, `setup_java`, `setup_go`, `setup_composer`,
+   ...) through Alpine-specific implementations. Call the same functions regardless of
+   `var_os` — never branch script logic on the OS yourself for things these functions
+   already handle.
 
 ---
 
