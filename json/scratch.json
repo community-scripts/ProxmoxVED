@@ -32,12 +32,12 @@
     },
     "notes": [
         {
-            "text": "This is the offline Scratch-GUI editor only. There are no user accounts, no cloud save, and no access to the online Scratch community — projects are saved/loaded as local .sb3 files from the browser.",
-            "type": "info"
+            "text": "The 4 CPU / 6 GB RAM default is only for the one-time build: the installer clones scratch-editor and runs 'npm run build' across the whole workspace (scratch-storage, scratch-vm, scratch-render, scratch-paint, scratch-gui, ...), and that webpack/TypeScript build peaked at ~4 GB RAM and ran noticeably faster with more CPU cores in testing. Once the build finishes, the container only serves the compiled static files via nginx and idles at a fraction of that — feel free to shrink CPU/RAM afterwards (e.g. 1 CPU / 512 MB) if you want to reclaim host resources, and raise them again before running the update script.",
+            "type": "warning"
         },
         {
-            "text": "The build step is memory-hungry (webpack builds of scratch-vm/scratch-render/scratch-gui peaked around 4 GB in testing) — 6 GB is allocated by default. This is only needed during the build; you can shrink the container's RAM afterwards since normal operation is just nginx serving static files.",
-            "type": "warning"
+            "text": "This is the offline Scratch-GUI editor only. There are no user accounts, no cloud save, and no access to the online Scratch community — projects are saved/loaded as local .sb3 files from the browser.",
+            "type": "info"
         }
     ]
 }
