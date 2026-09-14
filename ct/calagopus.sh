@@ -8,12 +8,13 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 # Source: https://calagopus.com/
 
 APP="Calagopus"
-var_tags="${var_tags:-panel;game-server;docker}"
-var_cpu="${var_cpu:-2}"
+var_tags="${var_tags:-panel;game-server}"
+var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-4096}"
-var_disk="${var_disk:-15}"
+var_disk="${var_disk:-40}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -26,33 +27,29 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/calagopus-panel/compose.yml ]]; then
+  if [[ ! -f /usr/local/bin/calagopus-panel ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  msg_info "Pulling Latest Images"
-  docker compose -f /opt/calagopus-panel/compose.yml pull
-  msg_ok "Pulled Latest Images"
+  if check_for_gh_release "calagopus-panel" "calagopus/panel"; then
+    msg_info "Stopping Service"
+    systemctl stop calagopus-panel
+    msg_ok "Stopped Service"
 
-  msg_info "Restarting Services"
-  docker compose -f /opt/calagopus-panel/compose.yml up -d --remove-orphans
-  msg_ok "Restarted Services"
+    create_backup /etc/calagopus/.env /var/lib/calagopus /var/lib/calagopus-wings
 
-  msg_ok "Updated Successfully!"
+    fetch_and_deploy_gh_release "calagopus-panel" "calagopus/panel" "singlefile" "latest" "/usr/local/bin" "panel-rs-aio-$(arch_resolve x86_64 aarch64)-linux"
+
+    restore_backup
+
+    msg_info "Starting Service"
+    systemctl start calagopus-panel
+    msg_ok "Started Service"
+    msg_ok "Updated Successfully!"
+  fi
   exit
 }
-
-CHOICES=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CALAGOPUS VARIANT" \
-  --checklist "Select image options (Spacebar = toggle, Enter = confirm):" 14 60 3 \
-  "aio" "All-in-One (Panel + Wings bundled)" ON \
-  "heavy" "Heavy (includes extension build tools)" OFF \
-  "nightly" "Nightly build (not for production)" OFF \
-  3>&1 1>&2 2>&3)
-
-[[ $CHOICES == *'"aio"'* ]] && export CALAGOPUS_AIO="yes" || export CALAGOPUS_AIO="no"
-[[ $CHOICES == *'"heavy"'* ]] && export CALAGOPUS_HEAVY="yes" || export CALAGOPUS_HEAVY="no"
-[[ $CHOICES == *'"nightly"'* ]] && export CALAGOPUS_NIGHTLY="yes" || export CALAGOPUS_NIGHTLY="no"
 
 start
 build_container

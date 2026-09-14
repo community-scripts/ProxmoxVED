@@ -14,58 +14,63 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y curl
+$STD apt install -y valkey
+systemctl enable -q --now valkey-server
 msg_ok "Installed Dependencies"
+
+PG_VERSION="18" setup_postgresql
+PG_DB_NAME="panel" PG_DB_USER="calagopus" setup_postgresql_db
 
 setup_docker
 
-if [[ "${CALAGOPUS_AIO:-yes}" == "yes" ]]; then
-  if [[ "${CALAGOPUS_NIGHTLY:-no}" == "yes" && "${CALAGOPUS_HEAVY:-no}" == "yes" ]]; then
-    IMAGE_TAG="nightly-heavy-aio"
-  elif [[ "${CALAGOPUS_NIGHTLY:-no}" == "yes" ]]; then
-    IMAGE_TAG="nightly-aio"
-  elif [[ "${CALAGOPUS_HEAVY:-no}" == "yes" ]]; then
-    IMAGE_TAG="heavy-aio"
-  else
-    IMAGE_TAG="aio"
-  fi
-else
-  if [[ "${CALAGOPUS_NIGHTLY:-no}" == "yes" && "${CALAGOPUS_HEAVY:-no}" == "yes" ]]; then
-    IMAGE_TAG="nightly-heavy"
-  elif [[ "${CALAGOPUS_NIGHTLY:-no}" == "yes" ]]; then
-    IMAGE_TAG="nightly"
-  elif [[ "${CALAGOPUS_HEAVY:-no}" == "yes" ]]; then
-    IMAGE_TAG="heavy"
-  else
-    IMAGE_TAG="latest"
-  fi
-fi
+fetch_and_deploy_gh_release "calagopus-panel" "calagopus/panel" "singlefile" "latest" "/usr/local/bin" "panel-rs-aio-$(arch_resolve x86_64 aarch64)-linux"
 
-msg_info "Setting Up Calagopus"
-mkdir -p /opt/calagopus-panel
-cd /opt/calagopus-panel
-
-if [[ "${CALAGOPUS_AIO:-yes}" == "yes" ]]; then
-  $STD curl -fsSL "https://raw.githubusercontent.com/calagopus/panel/refs/heads/main/compose.aio.yml" -o compose.yml
-elif [[ "${CALAGOPUS_HEAVY:-no}" == "yes" ]]; then
-  $STD curl -fsSL "https://raw.githubusercontent.com/calagopus/panel/refs/heads/main/compose.heavy.yml" -o compose.yml
-else
-  $STD curl -fsSL "https://raw.githubusercontent.com/calagopus/panel/refs/heads/main/compose.yml" -o compose.yml
-fi
-
-if [[ "${CALAGOPUS_NIGHTLY:-no}" == "yes" ]]; then
-  sed -i "s|:aio\b|:${IMAGE_TAG}|g; s|:latest\b|:${IMAGE_TAG}|g; s|:heavy\b|:${IMAGE_TAG}|g" compose.yml
-fi
+msg_info "Configuring Calagopus"
+mkdir -p /etc/calagopus /var/lib/calagopus /var/log/calagopus
+mkdir -p /etc/calagopus-wings /var/lib/calagopus-wings /var/log/calagopus-wings /tmp/calagopus-wings
 
 APP_ENCRYPTION_KEY=$(openssl rand -hex 16)
-sed -i "s/CHANGEME/${APP_ENCRYPTION_KEY}/g" compose.yml
+cat <<EOF >/etc/calagopus/.env
+DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}
+DATABASE_MIGRATE=true
+REDIS_URL=redis://localhost
+PORT=8000
+APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY}
+APP_LOG_DIRECTORY=/var/log/calagopus
+APP_PRIMARY=true
+APP_ENABLE_WINGS_PROXY=true
+APP_USE_DECRYPTION_CACHE=true
+APP_USE_INTERNAL_CACHE=true
+AIO_BASE_WINGS_CONFIGURATION=/etc/calagopus/wings-config.yml
+EOF
+chmod 600 /etc/calagopus/.env
 
-[[ "${CALAGOPUS_AIO:-yes}" == "yes" ]] && echo 'app_name: Calagopus' >/opt/calagopus-panel/wings-config.yml
-msg_ok "Set Up Calagopus"
+cat <<EOF >/etc/calagopus/wings-config.yml
+app_name: Calagopus
+EOF
+msg_ok "Configured Calagopus"
 
-msg_info "Starting Calagopus"
-$STD docker compose up -d
-msg_ok "Started Calagopus"
+msg_info "Creating Service"
+cat <<EOF >/etc/systemd/system/calagopus-panel.service
+[Unit]
+Description=Calagopus Panel
+After=network.target postgresql.service valkey-server.service docker.service
+Requires=postgresql.service valkey-server.service docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/etc/calagopus
+EnvironmentFile=/etc/calagopus/.env
+ExecStart=/usr/local/bin/calagopus-panel
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now calagopus-panel
+msg_ok "Created Service"
 
 motd_ssh
 customize
