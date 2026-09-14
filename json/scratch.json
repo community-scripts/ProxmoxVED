@@ -18,8 +18,8 @@
             "type": "default",
             "script": "ct/scratch.sh",
             "resources": {
-                "cpu": 2,
-                "ram": 2048,
+                "cpu": 4,
+                "ram": 6144,
                 "hdd": 8,
                 "os": "Debian",
                 "version": "13"
@@ -36,7 +36,7 @@
             "type": "info"
         },
         {
-            "text": "The build step needs at least 2 GB RAM; it is not required afterwards for normal operation.",
+            "text": "The build step is memory-hungry (webpack builds of scratch-vm/scratch-render/scratch-gui peaked around 4 GB in testing) — 6 GB is allocated by default. This is only needed during the build; you can shrink the container's RAM afterwards since normal operation is just nginx serving static files.",
             "type": "warning"
         }
     ]
