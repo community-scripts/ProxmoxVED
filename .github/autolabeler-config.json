@@ -5,7 +5,6 @@
             "includeGlobs": [
                 "ct/**",
                 "install/**",
-                "misc/**",
                 "turnkey/**",
                 "vm/**"
             ],
@@ -18,14 +17,10 @@
             "includeGlobs": [
                 "ct/**",
                 "install/**",
-                "misc/**",
                 "turnkey/**",
                 "vm/**"
             ],
             "excludeGlobs": [
-                "misc/build.func",
-                "misc/install.func",
-                "misc/api.func"
             ]
         }
     ],
@@ -35,7 +30,6 @@
             "includeGlobs": [
                 "ct/**",
                 "install/**",
-                "misc/**",
                 "turnkey/**",
                 "vm/**"
             ],
@@ -48,8 +42,6 @@
             "includeGlobs": [
                 "*.md",
                 ".github/**",
-                "misc/*.func",
-                "misc/create_lxc.sh",
                 "api/**"
             ],
             "excludeGlobs": []
@@ -59,8 +51,6 @@
         {
             "fileStatus": null,
             "includeGlobs": [
-                "misc/*.func",
-                "misc/create_lxc.sh"
             ],
             "excludeGlobs": []
         }
@@ -78,8 +68,7 @@
         {
             "fileStatus": null,
             "includeGlobs": [
-                "api/**",
-                "misc/api.func"
+                "api/**"
             ],
             "excludeGlobs": []
         }
@@ -106,9 +95,6 @@
         {
             "fileStatus": null,
             "includeGlobs": [
-                "misc/build.func",
-                "misc/install.func",
-                "misc/create_lxc.sh"
             ],
             "excludeGlobs": []
         }

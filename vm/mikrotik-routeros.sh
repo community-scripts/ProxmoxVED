@@ -5,278 +5,171 @@
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
-source /dev/stdin <<<$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/api.func")
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
+load_functions
 
-function header_info {
-  cat <<"EOF"
-    __  ____ __              __  _ __      ____              __            ____  _____    ________  ______
-   /  |/  (_) /___________  / /_(_) /__   / __ \____  __  __/ /____  _____/ __ \/ ___/   / ____/ / / / __ \
-  / /|_/ / / //_/ ___/ __ \/ __/ / //_/  / /_/ / __ \/ / / / __/ _ \/ ___/ / / /\__ \   / /   / /_/ / /_/ /
- / /  / / / ,< / /  / /_/ / /_/ / ,<    / _, _/ /_/ / /_/ / /_/  __/ /  / /_/ /___/ /  / /___/ __  / _, _/
-/_/  /_/_/_/|_/_/   \____/\__/_/_/|_|  /_/ |_|\____/\__,_/\__/\___/_/   \____//____/   \____/_/ /_/_/ |_|
-
-EOF
-}
-clear
-header_info
-echo -e "Loading..."
 GEN_MAC=$(echo '00 60 2f'$(od -An -N3 -t xC /dev/urandom) | sed -e 's/ /:/g' | tr '[:lower:]' '[:upper:]')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
-NSAPP="mikrotik-router-os"
+APP="MikroTik RouterOS"
+APP_TYPE="vm"
+NSAPP="mikrotik-routeros"
 var_os="mikrotik"
 var_version=" "
 DISK_SIZE="1G"
-YW=$(echo "\033[33m")
-BL=$(echo "\033[36m")
-HA=$(echo "\033[1;34m")
-RD=$(echo "\033[01;31m")
-BGN=$(echo "\033[4;92m")
-GN=$(echo "\033[1;92m")
-DGN=$(echo "\033[32m")
-CL=$(echo "\033[m")
-BFR="\\r\\033[K"
-HOLD="-"
-CM="${GN}✓${CL}"
-set -o errexit
-set -o errtrace
-set -o nounset
-set -o pipefail
-shopt -s expand_aliases
-alias die='EXIT=$? LINE=$LINENO error_exit'
-trap die ERR
+
+THIN="discard=on,ssd=1,"
+
+header_info
+echo -e "Loading..."
+set -e
+trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
-trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
-trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
-function error_exit() {
-  trap - ERR
-  local reason="Unknown failure occurred."
-  local msg="${1:-$reason}"
-  local flag="${RD}‼ ERROR ${CL}$EXIT@$LINE"
-  echo -e "$flag $msg" 1>&2
-  [ ! -z ${VMID-} ] && cleanup_vmid
-  exit $EXIT
-}
+trap 'post_update_to_api "failed" "130"' SIGINT
+trap 'post_update_to_api "failed" "143"' SIGTERM
+trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
-function get_valid_nextid() {
-  local try_id
-  try_id=$(pvesh get /cluster/nextid)
-  while true; do
-    if [ -f "/etc/pve/qemu-server/${try_id}.conf" ] || [ -f "/etc/pve/lxc/${try_id}.conf" ]; then
-      try_id=$((try_id + 1))
-      continue
-    fi
-    if lvs --noheadings -o lv_name | grep -qE "(^|[-_])${try_id}($|[-_])"; then
-      try_id=$((try_id + 1))
-      continue
-    fi
-    break
-  done
-  echo "$try_id"
-}
-
-function cleanup_vmid() {
-  if $(qm status $VMID &>/dev/null); then
-    if [ "$(qm status $VMID | awk '{print $2}')" == "running" ]; then
-      qm stop $VMID
-    fi
-    qm destroy $VMID
-  fi
-}
-function cleanup() {
-  popd >/dev/null
-  rm -rf $TEMP_DIR
-}
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if ! pveversion | grep -Eq "pve-manager/8\.[1-4](\.[0-9]+)*"; then
-  msg_error "This version of Proxmox Virtual Environment is not supported"
-  echo -e "Requires Proxmox Virtual Environment Version 8.1 or later."
-  echo -e "Exiting..."
-  sleep 2
-  exit
-fi
-if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "Mikrotik RouterOS CHR VM" --yesno "This will create a New Mikrotik RouterOS CHR VM. Proceed?" 10 58); then
-  echo "User selected Yes"
-else
-  clear
-  echo -e "⚠ User exited script \n"
-  exit
-fi
 
-function msg_info() {
-  local msg="$1"
-  echo -ne " ${HOLD} ${YW}${msg}..."
-}
-function msg_ok() {
-  local msg="$1"
-  echo -e "${BFR} ${CM} ${GN}${msg}${CL}"
-}
 function default_settings() {
-  METHOD="default"
+  vm_apply_machine_type "i440fx"
   VMID=$(get_valid_nextid)
-  echo -e "${DGN}Using Virtual Machine ID: ${BGN}$VMID${CL}"
-  echo -e "${DGN}Using Hostname: ${BGN}mikrotik-routeros-chr${CL}"
-  HN=mikrotik-routeros-chr
-  echo -e "${DGN}Allocated Cores: ${BGN}1${CL}"
+  DISK_SIZE="8G"
+  DISK_CACHE=""
+  HN="mikrotik-routeros-chr"
+  CPU_TYPE=""
   CORE_COUNT="2"
-  echo -e "${DGN}Allocated RAM: ${BGN}256${CL}"
   RAM_SIZE="512"
-  echo -e "${DGN}Using Bridge: ${BGN}vmbr0${CL}"
   BRG="vmbr0"
-  echo -e "${DGN}Using MAC Address: ${BGN}$GEN_MAC${CL}"
-  MAC=$GEN_MAC
-  echo -e "${DGN}Using VLAN: ${BGN}Default${CL}"
+  MAC="$GEN_MAC"
   VLAN=""
-  echo -e "${DGN}Using Interface MTU Size: ${BGN}Default${CL}"
   MTU=""
-  echo -e "${DGN}Start VM when completed: ${BGN}no${CL}"
-  START_VM="no"
-  echo -e "${BL}Creating a Mikrotik RouterOS CHR VM using the above default settings${CL}"
+  START_VM="yes"
+  CLOUD_INIT="no"
+  METHOD="default"
+  vm_echo_default_settings
 }
+
+function get_mikrotik_version() {
+  local mode="$1"
+  local rss_url
+  local tree_name
+
+  case "$mode" in
+  s) rss_url="https://cdn.mikrotik.com/routeros/latest-stable.rss" ;;
+  d) rss_url="https://cdn.mikrotik.com/routeros/latest-development.rss" ;;
+  l) rss_url="https://cdn.mikrotik.com/routeros/latest-long-term.rss" ;;
+  t) rss_url="https://cdn.mikrotik.com/routeros/latest-testing.rss" ;;
+  *) return 0 ;;
+  esac
+
+  local rss_content
+  rss_content=$(curl -fsSL $rss_url 2>/dev/null)
+  if [ -n "$rss_content" ]; then
+    local version
+    version=$(echo "$rss_content" | grep -oP '<title>RouterOS \K[0-9.]+(?= \[)' 2>/dev/null || echo "$rss_content" | sed -n 's/.*<title>RouterOS \([0-9.]\+\) \[.*/\1/p' 2>/dev/null)
+    if [[ "$version" =~ ^[0-9]+\.[0-9]+ ]]; then
+      echo "$version"
+      return 0
+    fi
+  fi
+
+  case "$mode" in
+  s) tree_name="Stable release tree" ;;
+  d) tree_name="Development release tree" ;;
+  l) tree_name="Long-term release tree" ;;
+  t) tree_name="Testing release tree" ;;
+  esac
+
+  local html
+  html=$(curl -fsSL "https://mikrotik.com/download/changelogs" 2>/dev/null)
+  if [ -n "$html" ]; then
+    local start_line
+    start_line=$(echo "$html" | grep -n "$tree_name" | cut -d: -f1 | head -n1)
+    if [[ "$start_line" =~ ^[0-9]+$ ]]; then
+      local line
+      line=$(echo "$html" | tail -n +"$start_line" | grep -m 1 -E "c-(stable|longTerm|testing|development)-v|RouterOS [0-9]+\.[0-9]+" 2>/dev/null)
+
+      local version
+      version=$(echo "$line" | sed -n 's/.*c-[^"]*-v\([0-9_.a-zA-Z-]\+\).*/\1/p' | tr '_' '.' 2>/dev/null)
+      [ -z "$version" ] && version=$(echo "$line" | grep -oP 'RouterOS \K[0-9]+\.[0-9]+(\.[0-9]+)?' 2>/dev/null)
+
+      if [[ "$version" =~ ^[0-9]+\.[0-9]+ ]]; then
+        echo "$version"
+        return 0
+      fi
+    fi
+  fi
+
+  for minor in $(seq 50 -1 15); do
+    local test_version="7.${minor}"
+    if curl -fsSL -I "https://download.mikrotik.com/routeros/${test_version}/chr-${test_version}.img.zip" 2>/dev/null | grep -q "200 OK"; then
+      echo "$test_version"
+      return 0
+    fi
+  done
+
+  return 0
+}
+
 function advanced_settings() {
   METHOD="advanced"
-  [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
-  VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    echo -e "${DGN}Using Virtual Machine ID: ${BGN}$VMID${CL}"
+  vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
+  vm_prompt_machine_type "i440fx"
+  vm_prompt_disk_size "8G"
+  vm_prompt_disk_cache "none"
+  vm_prompt_hostname "mikrotik-routeros-chr"
+  vm_prompt_cpu_model "kvm64"
+  vm_prompt_cpu_cores "2"
+  vm_prompt_ram "512"
+  vm_prompt_bridge "vmbr0"
+  vm_prompt_mac "$GEN_MAC"
+  vm_prompt_vlan
+  vm_prompt_mtu
+  vm_prompt_verbose "no"
+  vm_prompt_start_vm "yes"
+
+  if vm_confirm_advanced_settings "Ready to create a MikroTik RouterOS VM?"; then
+    echo -e "${CREATING}${BOLD}${DGN}Creating a MikroTik RouterOS VM using the above advanced settings${CL}"
   else
-    exit
-  fi
-  VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 mikrotik-routeros-chr --title "HOSTNAME" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    HN=$(echo ${VM_NAME,,} | tr -d ' ')
-    echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
-  else
-    exit
-  fi
-  CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    echo -e "${DGN}Allocated Cores: ${BGN}$CORE_COUNT${CL}"
-  else
-    exit
-  fi
-  RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 512 --title "RAM" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    echo -e "${DGN}Allocated RAM: ${BGN}$RAM_SIZE${CL}"
-  else
-    exit
-  fi
-  BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 vmbr0 --title "BRIDGE" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    echo -e "${DGN}Using Bridge: ${BGN}$BRG${CL}"
-  else
-    exit
-  fi
-  MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address" 8 58 $GEN_MAC --title "MAC ADDRESS" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    MAC="$MAC1"
-    echo -e "${DGN}Using MAC Address: ${BGN}$MAC1${CL}"
-  else
-    exit
-  fi
-  VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for default)" 8 58 --title "VLAN" 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    if [ -z $VLAN1 ]; then
-      VLAN1="Default" VLAN=""
-      echo -e "${DGN}Using Vlan: ${BGN}$VLAN1${CL}"
-    else
-      VLAN=",tag=$VLAN1"
-      echo -e "${DGN}Using Vlan: ${BGN}$VLAN1${CL}"
-    fi
-  fi
-  MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3)
-  exitstatus=$?
-  if [ $exitstatus = 0 ]; then
-    if [ -z $MTU1 ]; then
-      MTU1="Default" MTU=""
-      echo -e "${DGN}Using Interface MTU Size: ${BGN}$MTU1${CL}"
-    else
-      MTU=",mtu=$MTU1"
-      echo -e "${DGN}Using Interface MTU Size: ${BGN}$MTU1${CL}"
-    fi
-  fi
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start Mikrotik RouterOS CHR VM when completed?" 10 58); then
-    echo -e "${DGN}Start Mikrotik RouterOS CHR VM when completed: ${BGN}yes${CL}"
-    START_VM="yes"
-  else
-    echo -e "${DGN}Start Mikrotik RouterOS CHR VM when completed: ${BGN}no${CL}"
-    START_VM="no"
-  fi
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create Mikrotik RouterOS VM?" 10 58); then
-    echo -e "${RD}Creating Mikrotik RouterOS CHR VM using the above advanced settings${CL}"
-  else
-    clear
     header_info
-    echo -e "${RD}Using Advanced Settings${CL}"
+    echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
     advanced_settings
   fi
 }
-function start_script() {
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?" --no-button Advanced 10 58); then
-    clear
-    header_info
-    echo -e "${BL}Using Default Settings${CL}"
-    default_settings
-  else
-    clear
-    header_info
-    echo -e "${RD}Using Advanced Settings${CL}"
-    advanced_settings
-  fi
-}
-start_script
+
+
+vm_preflight
+vm_start_script "Use Default Settings?" 10 58
 
 post_to_api_vm
-msg_info "Validating Storage"
-while read -r line; do
-  TAG=$(echo $line | awk '{print $1}')
-  TYPE=$(echo $line | awk '{printf "%-10s", $2}')
-  FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
-  ITEM="  Type: $TYPE Free: $FREE "
-  OFFSET=2
-  if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-} ]]; then
-    MSG_MAX_LENGTH=$((${#ITEM} + $OFFSET))
-  fi
-  STORAGE_MENU+=("$TAG" "$ITEM" "OFF")
-done < <(pvesm status -content images | awk 'NR>1')
-VALID=$(pvesm status -content images | awk 'NR>1')
-if [ -z "$VALID" ]; then
-  echo -e "\n${RD}⚠ Unable to detect a valid storage location.${CL}"
-  echo -e "Exiting..."
-  exit
-elif [ $((${#STORAGE_MENU[@]} / 3)) -eq 1 ]; then
-  STORAGE=${STORAGE_MENU[0]}
-else
-  while [ -z "${STORAGE:+x}" ]; do
-    STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-      "Which storage pool would you like to use for the Mikrotik RouterOS CHR VM?\n\n" \
-      16 $(($MSG_MAX_LENGTH + 23)) 6 \
-      "${STORAGE_MENU[@]}" 3>&1 1>&2 2>&3)
-  done
-fi
-msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
-msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Getting URL for Mikrotik RouterOS CHR Disk Image"
+vm_select_storage "$HN"
+msg_info "Getting URL for Latest Mikrotik RouterOS CHR Disk Image"
 
-URL=https://download.mikrotik.com/routeros/7.15.3/chr-7.15.3.img.zip
+MIK_VER=$(get_mikrotik_version s)
+
+if [ -n "$MIK_VER" ]; then
+  msg_ok "Latest stable version: ${CL}${BL}$MIK_VER${CL}."
+else
+  msg_error "Could not get latest version"
+  msg_ok "Defaulting to version 7.20"
+  MIK_VER="7.20"
+fi
+
+URL=https://download.mikrotik.com/routeros/$MIK_VER/chr-$MIK_VER.img.zip
 
 sleep 2
-msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}$FILE${CL}"
+msg_ok "Downloading from URL: ${CL}${BL}${URL}${CL}"
+# A mirror serving an error page returns 200, so size decides whether this
+# is an image. Anything real here is far above 5 MB.
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((5 * 1024 * 1024)) || exit 115
 msg_info "Extracting Mikrotik RouterOS CHR Disk Image"
-gunzip -f -S .zip $FILE
+# Decompress out of the cache rather than over it, gunzip eats its input.
+FILE="$(basename "${CACHE_FILE%.zip}")"
+gunzip -c -S .zip "$CACHE_FILE" >"$FILE"
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
 nfs | dir)
@@ -294,6 +187,11 @@ zfspool)
   DISK_REF=""
   DISK_IMPORT="-format raw"
   ;;
+*)
+  DISK_EXT=""
+  DISK_REF=""
+  DISK_IMPORT="-format raw"
+  ;;
 esac
 
 DISK_VAR="vm-${VMID}-disk-0${DISK_EXT:-}"
@@ -304,46 +202,18 @@ msg_info "Creating Mikrotik RouterOS CHR VM"
 qm create $VMID -tablet 0 -localtime 1 -cores $CORE_COUNT -memory $RAM_SIZE -name $HN \
   -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-qm importdisk $VMID ${FILE%.*} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
+qm importdisk $VMID "$FILE" $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
   -scsi0 "$DISK_REF" \
   -boot order=scsi0 >/dev/null
 
-DESCRIPTION=$(
-  cat <<EOF
-<div align='center'>
-  <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
-    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
-  </a>
+set_description
+vm_resize_disk
 
-  <h2 style='font-size: 24px; margin: 20px 0;'>Mikrotik RouterOS CHR</h2>
-
-  <p style='margin: 16px 0;'>
-    <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
-      <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
-    </a>
-  </p>
-
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-comments fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
-  </span>
-  <span style='margin: 0 10px;'>
-    <i class="fa fa-exclamation-circle fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVE/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
-  </span>
-</div>
-EOF
-)
-qm set "$VMID" -description "$DESCRIPTION" >/dev/null
 msg_ok "Mikrotik RouterOS CHR VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Mikrotik RouterOS CHR VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started Mikrotik RouterOS CHR VM"
 fi
 post_update_to_api "done" "none"

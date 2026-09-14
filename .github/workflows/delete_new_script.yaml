@@ -18,16 +18,30 @@ jobs:
         id: generate-token-merge
         uses: actions/create-github-app-token@v2
         with:
-          app-id: ${{ secrets.APP_ID_APPROVE_AND_MERGE }}
-          private-key: ${{ secrets.APP_KEY_APPROVE_AND_MERGE }}
+          app-id: ${{ vars.GHAPP_MERGEBOT_ID }}
+          private-key: ${{ secrets.GHAPP_MERGEBOT_PRIVATE_KEY }}
           owner: community-scripts
           repositories: ProxmoxVED
 
       - name: Extract Issue Info and Script Type
         id: extract_info
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
-          TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | tr -d ' ')
-          BODY='${{ github.event.issue.body }}'
+          BODY="$ISSUE_BODY"
+
+          # TITLE (slug): from the "Name of the Script" field in the issue body, normalized to
+          # the repo's lowercase + spaces->dashes convention (e.g. "Alpine Cinny" -> "alpine-cinny").
+          # This must match the slug move-to-main-repo.yaml used to create the files, otherwise the
+          # delete branch would not find them. Falls back to the title if the field is absent.
+          NAME_RAW=$(printf '%s\n' "$BODY" \
+            | sed -n '/^###[[:space:]]*Name of the Script/,/^###/p' \
+            | sed '1d;/^###/d;/^[[:space:]]*$/d' | head -n1)
+          if [ -z "$NAME_RAW" ]; then
+            NAME_RAW="$ISSUE_TITLE"
+          fi
+          TITLE=$(echo "$NAME_RAW" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]\+/-/g')
 
           echo "TITLE=$TITLE" >> $GITHUB_ENV
 

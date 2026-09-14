@@ -1,0 +1,408 @@
+name: Discord testing-thread lifecycle (ready / defer / close)
+
+on:
+  issues:
+    types:
+      - labeled
+      - unlabeled
+      - closed
+
+permissions:
+  issues: write
+  actions: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Ready For Testing added -> create (or re-open) the Discord thread + comment
+  # ---------------------------------------------------------------------------
+  ready:
+    runs-on: ubuntu-latest
+    if: |
+      github.repository == 'community-scripts/ProxmoxVED'
+      && github.event.action == 'labeled'
+      && github.event.label.name == 'Ready For Testing'
+    steps:
+      - name: Extract Script Name and Type
+        id: extract_info
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          # DISPLAY name: original issue-title capitalization (prose + Discord thread name)
+          echo "DISPLAY=$ISSUE_TITLE" >> $GITHUB_ENV
+
+          # SLUG: from the "Name of the Script" field in the issue body, normalized to the
+          # repo's lowercase + spaces->dashes convention (e.g. "Alpine Cinny" -> "alpine-cinny").
+          NAME_RAW=$(printf '%s\n' "$ISSUE_BODY" \
+            | sed -n '/^###[[:space:]]*Name of the Script/,/^###/p' \
+            | sed '1d;/^###/d;/^[[:space:]]*$/d' | head -n1)
+          if [ -z "$NAME_RAW" ]; then
+            # Fallback for issues not created from the template: use the title.
+            NAME_RAW="$ISSUE_TITLE"
+          fi
+          SLUG=$(echo "$NAME_RAW" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]\+/-/g')
+          echo "SLUG=$SLUG" >> $GITHUB_ENV
+
+          # Extract script type from issue body (using env var to handle special chars)
+          if echo "$ISSUE_BODY" | grep -qi "CT (LXC Container)"; then
+            SCRIPT_TYPE="ct"
+          elif echo "$ISSUE_BODY" | grep -qi "VM (Virtual Machine)"; then
+            SCRIPT_TYPE="vm"
+          elif echo "$ISSUE_BODY" | grep -qi "Addon (tools/addon)"; then
+            SCRIPT_TYPE="addon"
+          elif echo "$ISSUE_BODY" | grep -qi "PVE Tool (tools/pve)"; then
+            SCRIPT_TYPE="pve"
+          else
+            # Fallback: detect by filename pattern or default to ct
+            if [[ "$SLUG" == *"-vm"* ]]; then
+              SCRIPT_TYPE="vm"
+            else
+              SCRIPT_TYPE="ct"
+            fi
+          fi
+
+          echo "SCRIPT_TYPE=$SCRIPT_TYPE" >> $GITHUB_ENV
+          echo "Detected script type: $SCRIPT_TYPE for slug: $SLUG (display: $DISPLAY)"
+
+      - name: Check if Files Exist in community-scripts/ProxmoxVED
+        id: check_files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="community-scripts/ProxmoxVED"
+          API_URL="https://api.github.com/repos/$REPO/contents"
+          SLUG="${{ env.SLUG }}"
+          SCRIPT_TYPE="${{ env.SCRIPT_TYPE }}"
+
+          # Define files based on script type
+          case "$SCRIPT_TYPE" in
+            ct)
+              FILES=(
+                "ct/${SLUG}.sh"
+                "install/${SLUG}-install.sh"
+                "json/${SLUG}.json"
+              )
+              ;;
+            vm)
+              FILES=(
+                "vm/${SLUG}.sh"
+                "json/${SLUG}.json"
+              )
+              ;;
+            addon)
+              FILES=(
+                "tools/addon/${SLUG}.sh"
+                "json/${SLUG}.json"
+              )
+              ;;
+            pve)
+              FILES=(
+                "tools/pve/${SLUG}.sh"
+              )
+              ;;
+          esac
+
+          EXISTING_FILES=()
+
+          for FILE in "${FILES[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GH_TOKEN" "$API_URL/$FILE")
+            if [ "$STATUS" -eq 200 ]; then
+              EXISTING_FILES+=("$FILE")
+              echo "$FILE exists in $REPO"
+            else
+              echo "$FILE does NOT exist in $REPO"
+            fi
+          done
+          echo "EXISTING_FILES=${EXISTING_FILES[*]}" >> $GITHUB_ENV
+
+      - name: Create message to send
+        id: create_message
+        run: |
+          SLUG="${{ env.SLUG }}"
+          DISPLAY="${{ env.DISPLAY }}"
+          SCRIPT_TYPE="${{ env.SCRIPT_TYPE }}"
+
+          VAR="The ${DISPLAY} script is ready for testing:\n"
+
+          # Generate correct command based on script type
+          case "$SCRIPT_TYPE" in
+            ct)
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${SLUG}.sh)\"\`\`\`\n"
+              ;;
+            vm)
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/vm/${SLUG}.sh)\"\`\`\`\n"
+              ;;
+            addon)
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/tools/addon/${SLUG}.sh)\"\`\`\`\n"
+              ;;
+            pve)
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/tools/pve/${SLUG}.sh)\"\`\`\`\n"
+              ;;
+          esac
+
+          # Try to get JSON info (may not exist for all types)
+          JSON_FILE=""
+          case "$SCRIPT_TYPE" in
+            ct|vm|addon)
+              JSON_FILE="json/${SLUG}.json"
+              ;;
+          esac
+
+          if [[ -n "$JSON_FILE" ]]; then
+            JSON=$(curl -fsSL "https://github.com/community-scripts/ProxmoxVED/raw/main/${JSON_FILE}" 2>/dev/null || echo "{}")
+
+            if [[ "$JSON" != "{}" && "$JSON" != "" ]]; then
+              username=$(echo "$JSON" | jq -r '.default_credentials.username // empty')
+              password=$(echo "$JSON" | jq -r '.default_credentials.password // empty')
+
+              if [[ -n "$username" || -n "$password" ]]; then
+                VAR+="Default credentials:\n"
+                [[ -n "$username" ]] && VAR+="Username: $username\n"
+                [[ -n "$password" ]] && VAR+="Password: $password\n"
+                VAR+="\n"
+              fi
+
+              # Get notes
+              mapfile -t notes_array < <(echo "$JSON" | jq -r '.notes[]?.text // empty' 2>/dev/null)
+              if [ ${#notes_array[@]} -gt 0 ]; then
+                for note in "${notes_array[@]}"; do
+                  [[ -n "$note" ]] && VAR+="$note\n"
+                done
+                VAR+="\n"
+              fi
+            fi
+          fi
+
+          VAR+="Note: This is not in the official repo yet—it's just a dev version! After merging into ProxmoxVE, it will need to be recreated.\n\n"
+          VAR+="Discussion & issue tracking:\n"
+          VAR+="${{ github.event.issue.html_url }}"
+          echo "message=$VAR" >> $GITHUB_ENV
+
+      - name: Check if Discord thread exists
+        id: check_thread
+        run: |
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+
+          THREAD_ID=$(curl -s -X GET "https://discord.com/api/v10/guilds/${{ secrets.DISCORD_GUILD_ID }}/threads/active" \
+          -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+          -H "Content-Type: application/json" | \
+          jq -r --arg TITLE "$ISSUE_TITLE" --arg PARENT_ID "${{ secrets.DISCORD_CHANNEL_ID }}" \
+          '.threads[] | select(.parent_id == $PARENT_ID and .name == ("Wanted Tester for " + $TITLE)) | .id')
+
+          if [ -n "$THREAD_ID" ]; then
+            echo "thread_exists=true" >> "$GITHUB_OUTPUT"
+            echo "thread_id=$THREAD_ID" >> "$GITHUB_OUTPUT"
+          else
+            echo "thread_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Unlock existing Discord thread (re-labeled after deferral)
+        if: steps.check_thread.outputs.thread_exists == 'true'
+        run: |
+          curl -s -X PATCH "https://discord.com/api/v10/channels/${{ steps.check_thread.outputs.thread_id }}" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"locked": false}'
+
+      - name: Unlock GitHub issue (re-labeled after deferral)
+        if: steps.check_thread.outputs.thread_exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method DELETE /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/lock || true
+
+      - name: Create a forumpost in Discord
+        if: steps.check_thread.outputs.thread_exists != 'true'
+        id: post_to_discord
+        env:
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          TITLE: ${{ github.event.issue.title }}
+          MESSAGE: ${{ env.message }}
+        run: |
+          JSON_PAYLOAD=$(jq -n --arg name "Wanted Tester for $TITLE" --arg content "$MESSAGE" '{name: $name, message: {content: $content | gsub("\\\\n"; "\n")}, applied_tags: []}')
+          echo "JSON Payload: $JSON_PAYLOAD"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://discord.com/api/v10/channels/$DISCORD_CHANNEL_ID/threads" \
+            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD")
+
+          HTTP_BODY=$(echo "$RESPONSE" | head -n -1)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          THREAD_ID=$(echo "$HTTP_BODY" | jq -r '.id')
+
+          STATUS_CODE=$(echo "$RESPONSE" | tail -n 1)
+          if [[ "$HTTP_CODE" == "201" && -n "$THREAD_ID" ]]; then
+            echo "Discord post created successfully!"
+          else
+            echo "Response: $RESPONSE"
+            echo "Failed to create Discord post! Status code: $STATUS_CODE"
+            exit 1
+          fi
+
+      - name: Comment on Issue
+        if: steps.check_thread.outputs.thread_exists != 'true'
+        id: comment_on_issue
+        env:
+          MESSAGE: ${{ env.message }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo -e "$MESSAGE" > comment.txt
+          sed -i '/Discussion & issue tracking:/,$d' comment.txt
+          gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --body-file comment.txt
+
+      - name: Push script JSON to PocketBase
+        if: env.SCRIPT_TYPE == 'ct' || env.SCRIPT_TYPE == 'vm' || env.SCRIPT_TYPE == 'addon'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run push_json_to_pocketbase.yml --repo ${{ github.repository }} -f script_slug=${{ env.SLUG }}
+
+  # ---------------------------------------------------------------------------
+  # deferred added OR Ready For Testing removed -> lock the Discord thread.
+  # On the 'deferred' label only: also post a GitHub note and lock the issue.
+  # ---------------------------------------------------------------------------
+  lock:
+    runs-on: ubuntu-latest
+    if: |
+      github.repository == 'community-scripts/ProxmoxVED' && (
+        (github.event.action == 'labeled'   && github.event.label.name == 'deferred') ||
+        (github.event.action == 'unlabeled' && github.event.label.name == 'Ready For Testing')
+      )
+    steps:
+      - name: Find Discord thread
+        id: find_thread
+        run: |
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+
+          THREAD_ID=$(curl -s "https://discord.com/api/v10/guilds/${{ secrets.DISCORD_GUILD_ID }}/threads/active" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" | \
+            jq -r --arg TITLE "$ISSUE_TITLE" --arg PARENT_ID "${{ secrets.DISCORD_CHANNEL_ID }}" \
+            '.threads[] | select(.parent_id == $PARENT_ID and .name == ("Wanted Tester for " + $TITLE)) | .id')
+
+          if [ -n "$THREAD_ID" ]; then
+            echo "Found thread: $THREAD_ID"
+            echo "thread_id=$THREAD_ID" >> "$GITHUB_OUTPUT"
+          else
+            echo "No Discord thread found for: $ISSUE_TITLE"
+          fi
+
+      - name: Get last GitHub issue comment
+        if: steps.find_thread.outputs.thread_id != ''
+        id: last_comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LAST=$(gh issue view ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --comments \
+            --json comments \
+            --jq '.comments[-1].body // empty')
+
+          if [[ -z "$LAST" ]]; then
+            LAST=$(gh issue view ${{ github.event.issue.number }} \
+              --repo ${{ github.repository }} \
+              --json body \
+              --jq '.body')
+          fi
+
+          {
+            echo "last_comment<<EOF"
+            echo "$LAST"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post deferral notice to Discord thread
+        if: steps.find_thread.outputs.thread_id != '' && github.event.action == 'labeled' && github.event.label.name == 'deferred'
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          THREAD_ID: ${{ steps.find_thread.outputs.thread_id }}
+          LAST_COMMENT: ${{ steps.last_comment.outputs.last_comment }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        run: |
+          MESSAGE="$(printf '⏸️ **This script has been deferred.**\n\nLast update from the issue:\n\n%s\n\n🔗 %s' "$LAST_COMMENT" "$ISSUE_URL")"
+          JSON_PAYLOAD=$(jq -n --arg content "$MESSAGE" '{content: $content}')
+          curl -s -X POST "https://discord.com/api/v10/channels/$THREAD_ID/messages" \
+            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD"
+
+      - name: Lock Discord thread
+        if: steps.find_thread.outputs.thread_id != ''
+        run: |
+          curl -s -X PATCH "https://discord.com/api/v10/channels/${{ steps.find_thread.outputs.thread_id }}" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"locked": true}'
+
+      - name: Add deferral note to GitHub issue
+        if: github.event.action == 'labeled' && github.event.label.name == 'deferred'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --body "⏸️ This script has been **deferred**. The Discord testing thread has been locked. Re-add the \`Ready For Testing\` label to resume testing."
+
+      - name: Lock GitHub issue
+        if: github.event.action == 'labeled' && github.event.label.name == 'deferred'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method PUT /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/lock \
+            -f lock_reason=resolved
+
+  # ---------------------------------------------------------------------------
+  # Issue closed -> delete the Discord thread
+  # ---------------------------------------------------------------------------
+  close:
+    runs-on: ubuntu-latest
+    if: github.repository == 'community-scripts/ProxmoxVED' && github.event.action == 'closed'
+    env:
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+    steps:
+      - name: Get thread-ID and delete thread
+        run: |
+          THREAD_ID=$(curl -s -X GET "https://discord.com/api/v10/guilds/${{ secrets.DISCORD_GUILD_ID }}/threads/active" \
+          -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+          -H "Content-Type: application/json" | \
+          jq -r --arg TITLE "$ISSUE_TITLE" --arg PARENT_ID "${{ secrets.DISCORD_CHANNEL_ID }}" \
+          '.threads[] | select(.parent_id == $PARENT_ID and .name == ("Wanted Tester for " + $TITLE)) | .id')
+
+          if [ -n "$THREAD_ID" ]; then
+            echo "Thread found: $THREAD_ID. Deleting..."
+            curl -X DELETE "https://discord.com/api/v10/channels/$THREAD_ID" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}"
+          else
+            echo "No thread found for issue: $ISSUE_TITLE"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Migration To ProxmoxVE added -> delete the Discord thread (moving upstream)
+  # ---------------------------------------------------------------------------
+  migrate:
+    runs-on: ubuntu-latest
+    if: |
+      github.repository == 'community-scripts/ProxmoxVED'
+      && github.event.action == 'labeled'
+      && github.event.label.name == 'Migration To ProxmoxVE'
+    env:
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+    steps:
+      - name: Get thread-ID and delete thread
+        run: |
+          THREAD_ID=$(curl -s -X GET "https://discord.com/api/v10/guilds/${{ secrets.DISCORD_GUILD_ID }}/threads/active" \
+          -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+          -H "Content-Type: application/json" | \
+          jq -r --arg TITLE "$ISSUE_TITLE" --arg PARENT_ID "${{ secrets.DISCORD_CHANNEL_ID }}" \
+          '.threads[] | select(.parent_id == $PARENT_ID and .name == ("Wanted Tester for " + $TITLE)) | .id')
+
+          if [ -n "$THREAD_ID" ]; then
+            echo "Thread found: $THREAD_ID. Deleting (migration to ProxmoxVE)..."
+            curl -X DELETE "https://discord.com/api/v10/channels/$THREAD_ID" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}"
+          else
+            echo "No thread found for issue: $ISSUE_TITLE"
+          fi

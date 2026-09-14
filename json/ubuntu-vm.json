@@ -1,0 +1,51 @@
+{
+  "name": "Ubuntu",
+  "slug": "ubuntu-vm",
+  "categories": [
+    2
+  ],
+  "date_created": "2026-09-08",
+  "type": "vm",
+  "updateable": false,
+  "privileged": false,
+  "architectures": [
+    "amd64"
+  ],
+  "interface_port": null,
+  "documentation": "https://help.ubuntu.com/",
+  "website": "https://ubuntu.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ubuntu.webp",
+  "description": "Ubuntu Server as a cloud image, with a choice of release at start: 26.04 LTS, 25.04, 24.04 LTS or 22.04 LTS.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "vm/ubuntu-vm.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 7,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The script asks which Ubuntu release to install. It replaces the former separate ubuntu2204/2404/2410/2504/2604-vm scripts; 24.10 was dropped because it is end of life and its cloud image has been removed from the mirror.",
+      "type": "info"
+    },
+    {
+      "text": "Cloud-Init is optional and off by default. Without it the disk is only resized on the Proxmox side, so the guest may need its root filesystem expanded manually after first boot.",
+      "type": "info"
+    },
+    {
+      "text": "If you use Cloud-init, checkout cloud-init discussion: `https://github.com/community-scripts/ProxmoxVE/discussions/272`",
+      "type": "info"
+    }
+  ]
+}

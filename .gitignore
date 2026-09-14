@@ -15,3 +15,5 @@ vm/vm-manager.sh
 vm/debian-13-vm.sh
 stars.json
 stars.txt
+.DS_Store
+LOCAL_IDEAS.md

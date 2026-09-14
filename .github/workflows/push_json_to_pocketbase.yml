@@ -4,6 +4,11 @@ on:
   issues:
     types:
       - labeled
+  push:
+    branches:
+      - main
+    paths:
+      - "json/**.json"
   workflow_dispatch:
     inputs:
       script_slug:
@@ -16,6 +21,7 @@ jobs:
     runs-on: self-hosted
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
       (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'Ready For Testing'))
     steps:
       - name: Checkout Repository
@@ -58,6 +64,23 @@ jobs:
             exit 0
           fi
 
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            count=0
+            BEFORE="${{ github.event.before }}"
+            if [[ -z "$BEFORE" || "$BEFORE" =~ ^0+$ ]]; then
+              BEFORE="HEAD~1"
+            fi
+            while IFS= read -r f; do
+              [[ -f "$f" ]] || continue
+              jq -e '.slug' "$f" >/dev/null 2>&1 || continue
+              echo "$f" >> changed_app_jsons.txt
+              count=$((count + 1))
+            done < <(git diff --name-only --diff-filter=d "$BEFORE" "${{ github.sha }}" -- 'json/*.json')
+            echo "count=${count}" >> "$GITHUB_OUTPUT"
+            echo "Push: queued ${count} changed JSON file(s)."
+            exit 0
+          fi
+
           # Extract slug from issue title (lowercase, spaces to dashes)
           ISSUE_TITLE="${{ github.event.issue.title }}"
           script_slug=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g')
@@ -81,10 +104,11 @@ jobs:
       - name: Push to PocketBase
         if: steps.changed.outputs.count != '0'
         env:
-          POCKETBASE_URL: ${{ secrets.POCKETBASE_URL }}
-          POCKETBASE_COLLECTION: ${{ secrets.POCKETBASE_COLLECTION }}
+          POCKETBASE_URL: ${{ vars.POCKETBASE_URL }}
+          POCKETBASE_COLLECTION: ${{ vars.POCKETBASE_COLLECTION }}
           POCKETBASE_ADMIN_EMAIL: ${{ secrets.POCKETBASE_ADMIN_EMAIL }}
           POCKETBASE_ADMIN_PASSWORD: ${{ secrets.POCKETBASE_ADMIN_PASSWORD }}
+          ALLOW_CREATE: ${{ github.event_name != 'push' }}
         run: |
           node << 'ENDSCRIPT'
           (async function() {
@@ -129,6 +153,10 @@ jobs:
           const raw = process.env.POCKETBASE_URL.replace(/\/$/, '');
           const apiBase = /\/api$/i.test(raw) ? raw : raw + '/api';
           const coll = process.env.POCKETBASE_COLLECTION;
+          // A plain push may only refresh scripts that are already published.
+          // Publishing a new one requires the 'Ready For Testing' label or a manual dispatch.
+          const allowCreate = process.env.ALLOW_CREATE === 'true';
+          const pushedSlugs = [];
           const files = fs.readFileSync('changed_app_jsons.txt', 'utf8').trim().split(/\s+/).filter(Boolean);
           const authUrl = apiBase + '/collections/users/auth-with-password';
           console.log('Auth URL: ' + authUrl);
@@ -230,6 +258,19 @@ jobs:
             if (resolvedType) payload.type = resolvedType;
             var resolvedCats = (data.categories || []).map(function(n) { return categoryNameToPbId[categoryIdToName[n]]; }).filter(Boolean);
             if (resolvedCats.length) payload.categories = resolvedCats;
+            // architectures replaces has_arm: a boolean could say "also ARM" but
+            // not "ARM only" or "amd64 only". A json file written before the
+            // field existed is read through the old key so nothing drops.
+            if (Array.isArray(data.architectures)) {
+              payload.architectures = data.architectures.filter(function (a) { return a === 'amd64' || a === 'arm64'; });
+            } else if (data.has_arm !== undefined) {
+              payload.architectures = (data.has_arm === true || data.has_arm === 'true') ? ['amd64', 'arm64'] : ['amd64'];
+            }
+            if (Array.isArray(data.platforms)) {
+              payload.platforms = data.platforms.filter(function (p) { return p === 'pve' || p === 'incus'; });
+            }
+            if (Array.isArray(data.app_vars)) payload.app_vars = data.app_vars;
+            if (data.repository !== undefined) payload.repository = data.repository;
             if (data.version !== undefined) payload.version = data.version;
             if (data.changelog !== undefined) payload.changelog = data.changelog;
             if (data.screenshots !== undefined) payload.screenshots = data.screenshots;
@@ -247,7 +288,8 @@ jobs:
                 body: JSON.stringify(payload)
               });
               if (!r.ok) throw new Error('PATCH failed: ' + r.body);
-            } else {
+              pushedSlugs.push(data.slug);
+            } else if (allowCreate) {
               console.log('Creating', file, '(slug=' + data.slug + ')');
               const r = await request(recordsUrl, {
                 method: 'POST',
@@ -255,9 +297,13 @@ jobs:
                 body: JSON.stringify(payload)
               });
               if (!r.ok) throw new Error('POST failed: ' + r.body);
+              pushedSlugs.push(data.slug);
+            } else {
+              console.log('Skipping', file, '(slug=' + data.slug + ') - not published yet; add the "Ready For Testing" label to the issue to publish it.');
             }
           }
-          console.log('Done.');
+          fs.writeFileSync('pushed_slugs.txt', pushedSlugs.join('\n'));
+          console.log('Done. Pushed ' + pushedSlugs.length + ' of ' + files.length + ' file(s).');
           })().catch(e => { console.error(e); process.exit(1); });
           ENDSCRIPT
         shell: bash
@@ -265,14 +311,18 @@ jobs:
       - name: Revalidate Frontend Cache
         if: steps.changed.outputs.count != '0'
         env:
-          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
-          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+          REVALIDATE_SECRET: ${{ secrets.FRONTEND_INGEST_SECRET }}
         run: |
           if [[ -z "$FRONTEND_URL" || -z "$REVALIDATE_SECRET" ]]; then
             echo "FRONTEND_URL or REVALIDATE_SECRET not set, skipping revalidation."
             exit 0
           fi
-          SLUGS=$(cat changed_app_jsons.txt | xargs -I{} basename {} .json | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          if [[ ! -s pushed_slugs.txt ]]; then
+            echo "Nothing was pushed to PocketBase, skipping revalidation."
+            exit 0
+          fi
+          SLUGS=$(jq -R -s -c 'split("\n") | map(select(length > 0))' < pushed_slugs.txt)
           echo "Revalidating tags: scripts, categories — slugs: $SLUGS"
           curl -sf -X POST "${FRONTEND_URL}/api/revalidate" \
             -H "Authorization: Bearer ${REVALIDATE_SECRET}" \

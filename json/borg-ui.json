@@ -1,0 +1,58 @@
+{
+  "name": "Borg-UI",
+  "slug": "borg-ui",
+  "categories": [
+    2
+  ],
+  "date_created": "2026-08-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": ["amd64"],
+  "interface_port": 8081,
+  "documentation": "https://github.com/karanhudia/borg-ui#readme",
+  "website": "https://github.com/karanhudia/borg-ui",
+  "repository": "https://github.com/karanhudia/borg-ui",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/borgbackup.webp",
+  "description": "Borg-UI is a web frontend for BorgBackup. It replaces the borg command line for everyday work: creating and browsing repositories, scheduling backups, inspecting archives and restoring files, all from the browser. Borg 1 and Borg 2 are installed alongside it, at the versions the upstream release pins.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/borg-ui.sh",
+      "config_path": "/opt/borg-ui/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "admin123"
+  },
+  "notes": [
+    {
+      "text": "Log in with admin / admin123 and change the password immediately - the UI prompts for it on first login.",
+      "type": "warning"
+    },
+    {
+      "text": "Borg 1 and Borg 2 are both installed, as 'borg' and 'borg2'. Their versions are not chosen by this script: they are read from docker/runtime-base.env in the upstream repository, which is Borg-UI's declared single source of truth, so an update follows whatever the release pins. rclone is installed from the same file for rclone:// repositories and cloud mirroring.",
+      "type": "info"
+    },
+    {
+      "text": "This container backs up what it can see. Mount the directories you want to protect into the LXC, and for remote repositories deploy an SSH key from the UI to the target host.",
+      "type": "warning"
+    },
+    {
+      "text": "ENABLE_STARTUP_LICENSE_SYNC is set to false in /opt/borg-ui/.env so the container does not contact the upstream licence service on every start. Set it to true if you use a paid licence.",
+      "type": "info"
+    },
+    {
+      "text": "Application data lives in /opt/borg-ui_data. The Borg repositories themselves are wherever you point them - those are the ones that actually matter for backups.",
+      "type": "info"
+    }
+  ]
+}

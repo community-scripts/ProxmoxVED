@@ -32,7 +32,12 @@ We do **NOT use Docker** for our installation scripts. All applications are inst
 
 ```bash
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+# Engine comes from community-scripts/core; this repo only ships the scripts.
+# Local checkout wins (COMMUNITY_SCRIPTS_CORE_DIR, else a sibling ../core), so a
+# fork/branch of core can be tested without touching this file.
+_cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
+source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
+
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: AuthorName (GitHubUsername)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -46,6 +51,10 @@ var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
+
+# Values the install script accepts up front (see "Application Settings").
+# Without the export they never reach the container.
+#export var_admin_user="${var_admin_user:-}"
 
 header_info "$APP"
 variables
@@ -67,18 +76,13 @@ function update_script() {
     systemctl stop appname
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Data"
-    cp -r /opt/appname/data /opt/appname_data_backup
-    msg_ok "Backed up Data"
+    create_backup /opt/appname/.env /opt/appname/data
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 
-    # Build steps...
+    restore_backup
 
-    msg_info "Restoring Data"
-    cp -r /opt/appname_data_backup/. /opt/appname/data
-    rm -rf /opt/appname_data_backup
-    msg_ok "Restored Data"
+    # Build steps...
 
     msg_info "Starting Service"
     systemctl start appname
@@ -94,8 +98,8 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:PORT${CL}"
+echo -e "${INFO}${YW}Access it using the following URL:${CL}"
+echo -e "${GATEWAY}${BGN}http://${IP}:PORT${CL}"
 ```
 
 ### Install Script (`install/AppName-install.sh`)
@@ -196,6 +200,15 @@ fetch_and_deploy_gh_release "appname" "owner/repo" "singlefile" "latest" "/opt/a
 CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 ```
 
+**Pre-release projects:** `/releases/latest` on GitHub hides pre-releases. For projects
+that only ship betas (e.g. RustFS), set `GH_INCLUDE_PRERELEASE=1` — it applies to both
+`fetch_and_deploy_gh_release` and `check_for_gh_release`:
+
+```bash
+GH_INCLUDE_PRERELEASE=1 fetch_and_deploy_gh_release "app" "owner/repo" "prebuild" "latest" "/opt/app" "app-linux-amd64.zip"
+if GH_INCLUDE_PRERELEASE=1 check_for_gh_release "app" "owner/repo"; then
+```
+
 **Version file:** After `fetch_and_deploy_gh_release`, the deployed version is stored in `~/.appname`. You can read it with `cat ~/.appname` — useful when you need the version later (e.g. for build-time environment variables).
 
 ### Runtime/Language Setup
@@ -227,10 +240,30 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 | ------------------- | ---------------------------------- |
 | `setup_adminer`     | Installs Adminer for DB management |
 | `setup_composer`    | Install PHP Composer               |
-| `setup_ffmpeg`      | Install FFmpeg                     |
+| `setup_ffmpeg`      | Install FFmpeg (see below)         |
 | `setup_imagemagick` | Install ImageMagick                |
 | `setup_gs`          | Install Ghostscript                |
 | `setup_hwaccel`     | Configure hardware acceleration    |
+
+**FFmpeg acquisition (`FFMPEG_TYPE`):**
+
+| Value                        | Source                                    | When to use                                        |
+| ---------------------------- | ----------------------------------------- | -------------------------------------------------- |
+| `repo` *(default)*           | Distribution package (`apt install ffmpeg`) | Almost always. Debian 13 ships 7.1.x.             |
+| `github`                     | Prebuilt static build from BtbN/FFmpeg-Builds | Newer than the distro, or a specific release line |
+| `minimal` / `medium` / `full`| Compiled from source                      | Only for codecs the above cannot provide           |
+
+```bash
+setup_ffmpeg                                    # distribution package
+FFMPEG_TYPE="github" setup_ffmpeg               # latest master, GPL
+FFMPEG_TYPE="github" FFMPEG_LICENSE="lgpl" setup_ffmpeg
+FFMPEG_TYPE="github" FFMPEG_VERSION="n7.1" setup_ffmpeg
+FFMPEG_TYPE="full" setup_ffmpeg                 # 20+ min build, avoid
+```
+
+Source builds use `--enable-gpl --enable-nonfree`. Those binaries must not be
+redistributed - building them on the target host for its own use is fine, shipping
+them is not. Use `repo` or `FFMPEG_LICENSE=lgpl` when an app requires LGPL FFmpeg.
 
 ### Helper Utilities
 
@@ -239,6 +272,8 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 | `$LOCAL_IP`                   | Always available - contains the container's IP address | `echo "Access: http://${LOCAL_IP}:3000"`  |
 | `ensure_dependencies`         | Checks/installs dependencies                           | `ensure_dependencies curl jq`             |
 | `install_packages_with_retry` | APT install with retry                                 | `install_packages_with_retry nginx redis` |
+| `create_backup`               | Backs up paths before an update                        | `create_backup /opt/app/.env /opt/app/data` |
+| `restore_backup`              | Restores everything `create_backup` recorded           | `restore_backup`                          |
 
 ---
 
@@ -373,6 +408,7 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo"
 - `setup_gs`
 - `setup_adminer`
 - `setup_hwaccel`
+- `create_backup` / `restore_backup`
 
 ### 9. Creating Unnecessary System Users
 
@@ -521,24 +557,26 @@ RES_VERSION=$(cat ~/.restic)
 VERSION=$(get_latest_github_release "restic/restic")
 ```
 
-### 19. Backing Up to /tmp in Update Scripts
+### 19. Hand-rolled Backups in Update Scripts
 
 ```bash
-# ❌ WRONG - /tmp can be cleared by the system
+# ❌ WRONG - manual cp/mv dance (and /tmp can be cleared by the system)
 msg_info "Backing up Configuration"
 cp /opt/appname/.env /tmp/appname.env.bak
 msg_ok "Backed up Configuration"
 # ... update ...
 cp /tmp/appname.env.bak /opt/appname/.env
 
-# ✅ CORRECT - back up directly into /opt
-msg_info "Backing up Configuration"
-cp /opt/appname/.env /opt/appname.env.bak
-msg_ok "Backed up Configuration"
+# ✅ CORRECT - use the helpers (they bring their own msg_info/msg_ok)
+create_backup /opt/appname/.env /opt/appname/data
 # ... update ...
-cp /opt/appname.env.bak /opt/appname/.env
-rm -f /opt/appname.env.bak
+restore_backup
 ```
+
+`create_backup` stores into `/opt/<NSAPP>.backup` (override with `BACKUP_DIR`),
+records a manifest so `restore_backup` needs no arguments, uses `cp -a` so
+permissions survive, skips re-backing-up on a retry so the last-known-good copy
+is kept, and aborts the update if the backup itself fails.
 
 ### 20. Using "(Patience)" in msg_info by Default
 
@@ -617,6 +655,34 @@ msg_ok "Installed Dependencies"
 
 **When to omit the dependency block entirely:** If the app only needs packages provided by `setup_*` helpers (e.g., Node.js, PostgreSQL, Go) or is a prebuilt binary with no native deps, skip the "Installing Dependencies" block completely.
 
+### 24. Prompting Without an Escape Hatch
+
+A `read` that always fires cannot be answered in advance, so the script can only
+ever be installed by hand. Read the variable first and prompt only when it is
+unset:
+
+```bash
+# ❌ WRONG - the environment is overwritten before it is ever read.
+# read assigns an empty string when stdin is closed, so the :- fallback
+# fires and whatever the caller passed is gone.
+read -rp "${TAB3}Admin username: " admin_user
+admin_user="${admin_user:-admin}"
+
+# ✅ CORRECT
+if [[ -z "${var_admin_user:-}" ]]; then
+  read -rp "${TAB3}Admin username: " var_admin_user
+fi
+var_admin_user="${var_admin_user:-admin}"
+```
+
+Name it `var_<something>` — the same namespace the container variables use —
+export it from `ct/<app>.sh`, and declare it in the JSON `app_vars`. All three
+are needed: without the export it never reaches the container, and without the
+declaration the website cannot offer it as a field.
+
+`install/forgejo-runner-install.sh` and `install/pangolin-install.sh` follow
+this.
+
 ---
 
 ## 📝 Important Rules
@@ -633,6 +699,80 @@ var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
+```
+
+**Optional declarations**
+
+| Variable      | Values                   | Meaning                                                      |
+| ------------- | ------------------------ | ------------------------------------------------------------ |
+| `var_gpu`     | `yes` / `no`             | Offer GPU passthrough. Set for transcoding and AI workloads. |
+| `var_arm64`   | `yes` / `no` / *(unset)* | arm64 support — see below.                                   |
+| `var_testurl` | an `https://` URL        | Where feedback for this script goes — see below.             |
+
+`var_testurl` names the thread collecting feedback for a script that is still
+being tested. Create the issue, then point the script at it:
+
+```bash
+var_testurl="${var_testurl:-https://github.com/community-scripts/ProxmoxVED/issues/2135}"
+```
+
+The container then asks for feedback on every login, in its Proxmox description,
+through a `testing` tag, and on the last line of the install — always with that
+one link, so a tester never has to work out where to report.
+
+Leaving it out changes nothing: a script here still gets the generic development
+warning. Only `https://` URLs are accepted, and a rejected value falls back to
+that generic warning rather than failing the build. It is not settable from a
+`.vars` file, because it describes the script rather than the user's
+preferences.
+
+Keep it set if the script is promoted to ProxmoxVE while feedback is still
+wanted — the request follows the script and stops naming ProxmoxVED.
+
+`var_arm64` has three states. **Only claim `yes` when it has actually been run on
+arm64** — the mere existence of an arm64 artifact is not verification:
+
+- `yes` — verified working, proceeds silently
+- `no` — known broken (x64-only artifact, x86 dependency, CUDA), aborts
+- *unset* — never tried. The user is told so and asked whether to attempt it
+  anyway, with a pointer to report the result. Aborts non-interactively.
+
+Leave the line in place but commented out, so the option stays discoverable
+where someone would look for it:
+
+```bash
+#var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
+```
+
+When setting it to `no`, state the reason next to it — otherwise the value
+degrades back into "nobody checked".
+
+**Application settings**
+
+Anything the install script should be able to receive up front is declared here
+too, and **must be exported** — `lxc-attach` carries the caller's environment,
+but only what was exported:
+
+```bash
+export var_admin_user="${var_admin_user:-}"
+export var_admin_token="${var_admin_token:-}"
+```
+
+Without the export the variable stays on the host, the install script finds it
+empty, and an unattended run stops at a prompt inside the container where
+nobody can answer it. Declare the same names in the JSON `app_vars` so the
+website can offer them as fields.
+
+If a value is required, fail early — checking it in the CT script costs the
+user seconds, checking it inside the container costs a full build:
+
+```bash
+if [[ -n "${mode:-}" ]]; then
+  if [[ -z "${var_admin_token:-}" ]]; then
+    msg_error "var_admin_token is required for unattended installs."
+    exit 1
+  fi
+fi
 ```
 
 ### Update-Script Pattern
@@ -656,24 +796,19 @@ function update_script() {
     systemctl stop appname
     msg_ok "Stopped Service"
 
-    # 4. Backup data (if present)
-    msg_info "Backing up Data"
-    cp -r /opt/appname/data /opt/appname_data_backup
-    msg_ok "Backed up Data"
+    # 4. Backup config/data (if present) - has its own messages, do not wrap
+    create_backup /opt/appname/.env /opt/appname/data
 
     # 5. Perform clean install
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 
-    # 6. Rebuild (if needed)
+    # 6. Restore BEFORE any build step that reads the config
+    restore_backup
+
+    # 7. Rebuild (if needed)
     cd /opt/appname
     $STD npm install
     $STD npm run build
-
-    # 7. Restore data
-    msg_info "Restoring Data"
-    cp -r /opt/appname_data_backup/. /opt/appname/data
-    rm -rf /opt/appname_data_backup
-    msg_ok "Restored Data"
 
     # 8. Start service
     msg_info "Starting Service"
@@ -780,6 +915,9 @@ Every application requires a JSON metadata file in `json/<appname>.json`.
   "interface_port": 3000,
   "documentation": "https://docs.appname.com/",
   "website": "https://appname.com/",
+  "repository": "https://github.com/owner/appname",
+  "architectures": ["amd64"],
+  "platforms": ["pve"],
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/appname.webp",
   "description": "Short description of the application and its purpose.",
   "install_methods": [
@@ -818,11 +956,46 @@ Every application requires a JSON metadata file in `json/<appname>.json`.
 | `interface_port`      | number  | Primary web interface port (or `null`)             |
 | `documentation`       | string  | Link to official docs                              |
 | `website`             | string  | Link to official website                           |
+| `repository`          | string  | Upstream repository as a full URL. A bare `owner/repo` could only ever mean GitHub, and the release sync also reads GitLab, Gitea, Forgejo and Codeberg |
+| `architectures`       | array   | Must agree with `var_arm64` in the CT script — that is the one `arch_check` obeys. `yes` → `["amd64", "arm64"]`, `no` → `["amd64"]`, unset → omit the field. The site reads an absent field as amd64, so "known broken" and "never tried" look the same there; only `var_arm64` keeps them apart |
 | `logo`                | string  | URL to application logo (preferably selfhst icons) |
 | `description`         | string  | Brief description of the application               |
 | `install_methods`     | array   | Installation configurations                        |
 | `default_credentials` | object  | Default username/password (or null)                |
 | `notes`               | array   | Additional notes/warnings                          |
+
+### Optional Fields
+
+| Field       | Type  | Description                                                                 |
+| ----------- | ----- | --------------------------------------------------------------------------- |
+| `platforms` | array | `["pve"]`, `["incus"]` or both. Omit to mean Proxmox VE                      |
+| `app_vars`  | array | Values the install script accepts up front, so a deployment can run unattended |
+
+`app_vars` describes what the script already reads from the environment. Name
+each one `var_<something>`, read it before prompting, and export it from
+`ct/<app>.sh` — without the export it never reaches the container:
+
+```bash
+# ct/appname.sh
+export var_admin_user="${var_admin_user:-}"
+
+# install/appname-install.sh
+if [[ -z "${var_admin_user:-}" ]]; then
+  read -r -p "${TAB3}Admin username: " var_admin_user
+fi
+var_admin_user="${var_admin_user:-admin}"
+```
+
+```json
+"app_vars": [
+  { "name": "var_admin_user", "label": "Admin Username", "type": "text", "default": "admin" },
+  { "name": "var_admin_pass", "label": "Admin Password", "type": "password", "secret": true, "required": true }
+]
+```
+
+`type` is one of `text`, `password`, `number`, `boolean` (emits `yes`/`no`) or
+`select` (with `options`). A declaration whose `name` the script never reads
+produces a generated command that looks right and changes nothing.
 
 ### Categories
 

@@ -8,6 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
+    "architectures": ["amd64"],
     "interface_port": 80,
     "documentation": "https://github.com/stoatchat/self-hosted",
     "website": "https://stoat.chat",

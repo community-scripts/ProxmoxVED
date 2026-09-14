@@ -1,0 +1,49 @@
+{
+  "name": "ZimaOS",
+  "slug": "zimaos-vm",
+  "categories": [
+    2
+  ],
+  "date_created": "2026-08-31",
+  "type": "vm",
+  "updateable": false,
+  "privileged": false,
+  "architectures": ["amd64"],
+  "interface_port": 80,
+  "documentation": "https://www.zimaspace.com/docs/",
+  "website": "https://github.com/IceWhaleTech/ZimaOS",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/zimaos.webp",
+  "description": "ZimaOS is the successor to CasaOS: a NAS operating system with an app store, ZFS-backed storage, RAID support and A/B system updates. It targets the Zima hardware line but runs on any x86-64 machine with UEFI.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "vm/zimaos-vm.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 64,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "This VM boots an installer image. Open the console after creation and complete the installation there, selecting scsi0 as the target disk.",
+      "type": "info"
+    },
+    {
+      "text": "ZimaOS does not print its IP address on the console. Read it from the Proxmox summary once the guest agent is running.",
+      "type": "info"
+    },
+    {
+      "text": "For a real NAS, add a second disk in Proxmox and let ZimaOS manage it. Keeping data off the system disk survives reinstalls.",
+      "type": "info"
+    }
+  ]
+}

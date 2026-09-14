@@ -20,8 +20,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v2
         with:
-          app-id: ${{ vars.PUSH_MAIN_APP_ID }}
-          private-key: ${{ secrets.PUSH_MAIN_APP_SECRET }}
+          app-id: ${{ vars.GHAPP_SYNC_ID }}
+          private-key: ${{ secrets.GHAPP_SYNC_PRIVATE_KEY }}
           owner: community-scripts
           repositories: |
             ProxmoxVE
@@ -32,7 +32,7 @@ jobs:
         with:
           ref: main
           repository: community-scripts/ProxmoxVED
-          token: ${{ secrets.GH_MERGE_PAT }}
+          token: ${{ secrets.GH_CROSS_REPO_TOKEN }}
 
       - name: List Issues and Extract Script Type
         id: list_issues
@@ -60,11 +60,23 @@ jobs:
             exit 1
           fi
 
-          script_name=$(echo "$filtered_issue" | jq -r '.title' | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+          issue_title=$(echo "$filtered_issue" | jq -r '.title')
           issue_nr=$(echo "$filtered_issue" | jq -r '.number')
           issue_body=$(echo "$filtered_issue" | jq -r '.body')
 
+          # script_name (slug): from the "Name of the Script" field in the issue body,
+          # normalized to the repo's lowercase + spaces->dashes convention
+          # (e.g. "Alpine Cinny" -> "alpine-cinny"). Falls back to the title if absent.
+          name_raw=$(printf '%s\n' "$issue_body" \
+            | sed -n '/^###[[:space:]]*Name of the Script/,/^###/p' \
+            | sed '1d;/^###/d;/^[[:space:]]*$/d' | head -n1)
+          if [ -z "$name_raw" ]; then
+            name_raw="$issue_title"
+          fi
+          script_name=$(echo "$name_raw" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]\+/-/g')
+
           echo "Script Name: $script_name"
+          echo "Issue Title: $issue_title"
           echo "Issue Number: $issue_nr"
 
           # Detect script type from issue body
@@ -90,6 +102,12 @@ jobs:
           echo "script_name=$script_name" >> $GITHUB_OUTPUT
           echo "issue_nr=$issue_nr" >> $GITHUB_OUTPUT
           echo "script_type=$script_type" >> $GITHUB_OUTPUT
+          echo "issue_title=$issue_title" >> $GITHUB_OUTPUT
+          {
+            echo "issue_body<<ISSUE_BODY_EOF"
+            echo "$issue_body"
+            echo "ISSUE_BODY_EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Check if script files exist
         id: check_files
@@ -208,11 +226,30 @@ jobs:
               cp ../ct/headers/${script_name} ct/headers/ 2>/dev/null || true
               cp ../install/${script_name}-install.sh install/
 
+              # var_testurl points at the testing issue in ProxmoxVED. A script
+              # arriving here has finished testing, so the request goes away
+              # with it. This has to happen BEFORE the ProxmoxVED -> ProxmoxVE
+              # rewrite below, which would otherwise turn the link into an
+              # issue number that does not exist in this repository.
+              sed -i '/^[[:space:]]*var_testurl=/d' ct/${script_name}.sh
+
               # Update URLs in ct script
               sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
-              sed -i "s|https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
               sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" ct/${script_name}.sh
               sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" install/${script_name}-install.sh
+
+              # A script on the core engine resolves its scripts base at runtime
+              # rather than naming a repo in a URL, so every rewrite above finds
+              # nothing to change in it and it keeps the engine's default --
+              # which is ProxmoxVED. It then looks for its own install/ script in
+              # the repo it has just left and 404s. State the base explicitly:
+              # once a user fetches the ct/ script with curl there is nothing
+              # left for the engine to infer it from.
+              if grep -q "community-scripts/core/main" ct/${script_name}.sh &&
+                 ! grep -q "^_CS_DEFAULT_URL=" ct/${script_name}.sh; then
+                sed -i "1a _CS_DEFAULT_URL=\"https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main\"" ct/${script_name}.sh
+                echo "Set the scripts base to ProxmoxVE in ct/${script_name}.sh"
+              fi
               ;;
             vm)
               cp ../vm/${script_name}.sh vm/
@@ -254,15 +291,24 @@ jobs:
         id: create_pull_request
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          ISSUE_TITLE: ${{ steps.list_issues.outputs.issue_title }}
+          ISSUE_BODY: ${{ steps.list_issues.outputs.issue_body }}
+          ISSUE_NR: ${{ steps.list_issues.outputs.issue_nr }}
         run: |
-          script_name="${{ steps.list_issues.outputs.script_name }}"
-          script_type="${{ steps.list_issues.outputs.script_type }}"
+          # PR body = original issue content + automated-migration footer
+          printf '%s\n' "$ISSUE_BODY" > pr_body.md
+          {
+            echo ""
+            echo "---"
+            echo "Automated migration from ProxmoxVED (community-scripts/ProxmoxVED#${ISSUE_NR})."
+          } >> pr_body.md
+
           gh pr create \
             --repo community-scripts/ProxmoxVE \
             --head "$branch_name" \
             --base main \
-            --title "${script_name}" \
-            --body "Automated migration of **${script_name}** (type: ${script_type}) from ProxmoxVED to ProxmoxVE."
+            --title "$ISSUE_TITLE" \
+            --body-file pr_body.md
           PR_NUMBER=$(gh pr list --repo community-scripts/ProxmoxVE --head "$branch_name" --json number --jq '.[].number')
           echo "PR_NUMBER=$PR_NUMBER"
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
@@ -274,3 +320,15 @@ jobs:
         run: |
           gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "A PR has been created for ${{ steps.list_issues.outputs.script_name }}: community-scripts/ProxmoxVE#${{ steps.create_pull_request.outputs.pr_number }}"
           gh issue edit ${{ steps.list_issues.outputs.issue_nr }} --remove-label "Migration To ProxmoxVE" --add-label "Started Migration To ProxmoxVE"
+
+      - name: Announce migration in the Discord thread
+        if: steps.create_pull_request.outputs.pr_number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The label above is set with GITHUB_TOKEN and therefore raises no
+          # 'labeled' event, so the Discord workflow is dispatched explicitly.
+          gh workflow run discord-thread-lifecycle.yml \
+            --repo ${{ github.repository }} \
+            -f issue_number=${{ steps.list_issues.outputs.issue_nr }} \
+            -f mode=migrate

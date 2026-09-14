@@ -1,0 +1,472 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2026 tteck
+# Author: tteck (tteckster)
+#         Jon Spriggs (jontheniceguy)
+# License: MIT
+# https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Based on work from https://i12bretro.github.io/tutorials/0405.html
+
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
+load_functions
+
+RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
+METHOD=""
+APP="OpenWrt"
+APP_TYPE="vm"
+NSAPP="openwrt-vm"
+var_os="openwrt"
+var_version=" "
+DISK_SIZE="1G"
+GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
+GEN_MAC_LAN=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
+
+HA=$(echo "\033[1;34m")
+
+header_info
+echo -e "\n Loading..."
+
+set -Eeo pipefail
+trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
+trap cleanup EXIT
+trap 'post_update_to_api "failed" "130"' SIGINT
+trap 'post_update_to_api "failed" "143"' SIGTERM
+trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
+
+TEMP_DIR=$(mktemp -d)
+pushd $TEMP_DIR >/dev/null
+function send_line_to_vm() {
+  echo -e "${DGN}Sending line: ${YW}$1${CL}"
+  for ((i = 0; i < ${#1}; i++)); do
+    character=${1:i:1}
+    case $character in
+    " ") character="spc" ;;
+    "-") character="minus" ;;
+    "=") character="equal" ;;
+    ",") character="comma" ;;
+    ".") character="dot" ;;
+    "/") character="slash" ;;
+    "'") character="apostrophe" ;;
+    ";") character="semicolon" ;;
+    '\') character="backslash" ;;
+    '`') character="grave_accent" ;;
+    "[") character="bracket_left" ;;
+    "]") character="bracket_right" ;;
+    "_") character="shift-minus" ;;
+    "+") character="shift-equal" ;;
+    "?") character="shift-slash" ;;
+    "<") character="shift-comma" ;;
+    ">") character="shift-dot" ;;
+    '"') character="shift-apostrophe" ;;
+    ":") character="shift-semicolon" ;;
+    "|") character="shift-backslash" ;;
+    "~") character="shift-grave_accent" ;;
+    "{") character="shift-bracket_left" ;;
+    "}") character="shift-bracket_right" ;;
+    "A") character="shift-a" ;;
+    "B") character="shift-b" ;;
+    "C") character="shift-c" ;;
+    "D") character="shift-d" ;;
+    "E") character="shift-e" ;;
+    "F") character="shift-f" ;;
+    "G") character="shift-g" ;;
+    "H") character="shift-h" ;;
+    "I") character="shift-i" ;;
+    "J") character="shift-j" ;;
+    "K") character="shift-k" ;;
+    "L") character="shift-l" ;;
+    "M") character="shift-m" ;;
+    "N") character="shift-n" ;;
+    "O") character="shift-o" ;;
+    "P") character="shift-p" ;;
+    "Q") character="shift-q" ;;
+    "R") character="shift-r" ;;
+    "S") character="shift-s" ;;
+    "T") character="shift-t" ;;
+    "U") character="shift-u" ;;
+    "V") character="shift-v" ;;
+    "W") character="shift-w" ;;
+    "X") character="shift=x" ;;
+    "Y") character="shift-y" ;;
+    "Z") character="shift-z" ;;
+    "!") character="shift-1" ;;
+    "@") character="shift-2" ;;
+    "#") character="shift-3" ;;
+    '$') character="shift-4" ;;
+    "%") character="shift-5" ;;
+    "^") character="shift-6" ;;
+    "&") character="shift-7" ;;
+    "*") character="shift-8" ;;
+    "(") character="shift-9" ;;
+    ")") character="shift-0" ;;
+    esac
+    qm sendkey $VMID "$character"
+  done
+  qm sendkey $VMID ret
+}
+
+TEMP_DIR=$(mktemp -d)
+pushd $TEMP_DIR >/dev/null
+
+function default_settings() {
+  VMID=$(get_valid_nextid)
+  HN="openwrt"
+  CORE_COUNT="1"
+  RAM_SIZE="256"
+  BRG="vmbr0"
+  LAN_BRG="vmbr0"
+  MAC=$GEN_MAC
+  LAN_MAC=$GEN_MAC_LAN
+  VLAN=""
+  LAN_VLAN=""
+  LAN_IP_ADDR="192.168.1.1"
+  LAN_NETMASK="255.255.255.0"
+  MTU=""
+  START_VM="yes"
+  METHOD="default"
+  DISK_SIZE="1G"
+  echo -e "${CONTAINERID}${BOLD}${DGN}VMID: ${BGN}${VMID}${CL}"
+  echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM: ${BGN}${RAM_SIZE}${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
+  echo -e "${BRIDGE}${BOLD}${DGN}WAN Bridge: ${BGN}${BRG}${CL}"
+  echo -e "${BRIDGE}${BOLD}${DGN}LAN Bridge: ${BGN}${LAN_BRG}${CL}"
+  echo -e "${MACADDRESS}${BOLD}${DGN}WAN MAC: ${BGN}${MAC}${CL}"
+  echo -e "${MACADDRESS}${BOLD}${DGN}LAN MAC: ${BGN}${LAN_MAC}${CL}"
+}
+
+function advanced_settings() {
+  METHOD="advanced"
+  [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
+  while true; do
+    if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$VMID" ]; then
+        VMID=$(get_valid_nextid)
+      fi
+      if pct status "$VMID" &>/dev/null || qm status "$VMID" &>/dev/null; then
+        echo -e "${CROSS}${RD} ID $VMID is already in use${CL}"
+        sleep 2
+        continue
+      fi
+      echo -e "${DGN}Virtual Machine ID: ${BGN}$VMID${CL}"
+      break
+    else
+      exit_script
+    fi
+  done
+
+  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 openwrt --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z $VM_NAME ]; then
+      HN="openwrt"
+    else
+      HN=$(echo "${VM_NAME,,}" | tr -cs 'a-z0-9-' '-' | sed 's/^-//;s/-$//')
+      if [ "$HN" != "${VM_NAME,,}" ]; then
+        whiptail --backtitle "Proxmox VE Helper Scripts" --title "HOSTNAME ADJUSTED" --msgbox "Invalid characters detected. Hostname has been adjusted to:\n\n  $HN" 10 58
+      fi
+    fi
+    echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
+  else
+    exit_script
+  fi
+
+  while true; do
+    if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 1 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$CORE_COUNT" ]; then CORE_COUNT="1"; fi
+      if [[ "$CORE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+        echo -e "${DGN}Allocated Cores: ${BGN}$CORE_COUNT${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "CPU Cores must be a positive integer (e.g., 1)." 8 58
+    else
+      exit_script
+    fi
+  done
+
+  while true; do
+    if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 256 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$RAM_SIZE" ]; then RAM_SIZE="256"; fi
+      if [[ "$RAM_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+        echo -e "${DGN}Allocated RAM: ${BGN}$RAM_SIZE${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "RAM Size must be a positive integer in MiB (e.g., 256)." 8 58
+    else
+      exit_script
+    fi
+  done
+
+  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+    --inputbox "Set Disk Size in GiB (e.g., 1, 2, 4)" 8 58 "1" \
+    --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
+      DISK_SIZE="${DISK_SIZE}G"
+    fi
+    echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
+  else
+    exit_script
+  fi
+
+  if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN Bridge" 8 58 vmbr0 --title "WAN BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z $BRG ]; then
+      BRG="vmbr0"
+    fi
+    echo -e "${DGN}Using WAN Bridge: ${BGN}$BRG${CL}"
+  else
+    exit_script
+  fi
+
+  if LAN_BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN Bridge" 8 58 vmbr0 --title "LAN BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z $LAN_BRG ]; then
+      LAN_BRG="vmbr0"
+    fi
+    echo -e "${DGN}Using LAN Bridge: ${BGN}$LAN_BRG${CL}"
+  else
+    exit_script
+  fi
+
+  if LAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router IP" 8 58 $LAN_IP_ADDR --title "LAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z $LAN_IP_ADDR ]; then
+      LAN_IP_ADDR="192.168.1.1"
+    fi
+    echo -e "${DGN}Using LAN IP ADDRESS: ${BGN}$LAN_IP_ADDR${CL}"
+  else
+    exit_script
+  fi
+
+  if LAN_NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router netmask" 8 58 $LAN_NETMASK --title "LAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z $LAN_NETMASK ]; then
+      LAN_NETMASK="255.255.255.0"
+    fi
+    echo -e "${DGN}Using LAN NETMASK: ${BGN}$LAN_NETMASK${CL}"
+  else
+    exit_script
+  fi
+
+  if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN MAC Address" 8 58 $GEN_MAC --title "WAN MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z $MAC1 ]; then
+      MAC="$GEN_MAC"
+    else
+      MAC="$MAC1"
+    fi
+    echo -e "${DGN}Using WAN MAC Address: ${BGN}$MAC${CL}"
+  else
+    exit_script
+  fi
+
+  if MAC2=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN MAC Address" 8 58 $GEN_MAC_LAN --title "LAN MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+    if [ -z $MAC2 ]; then
+      LAN_MAC="$GEN_MAC_LAN"
+    else
+      LAN_MAC="$MAC2"
+    fi
+    echo -e "${DGN}Using LAN MAC Address: ${BGN}$LAN_MAC${CL}"
+  else
+    exit_script
+  fi
+
+  while true; do
+    if VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN Vlan (leave blank for default)" 8 58 --title "WAN VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$VLAN1" ]; then
+        VLAN1="Default"
+        VLAN=""
+        echo -e "${DGN}Using WAN Vlan: ${BGN}$VLAN1${CL}"
+        break
+      fi
+      if [[ "$VLAN1" =~ ^[0-9]+$ ]] && [ "$VLAN1" -ge 1 ] && [ "$VLAN1" -le 4094 ]; then
+        VLAN=",tag=$VLAN1"
+        echo -e "${DGN}Using WAN Vlan: ${BGN}$VLAN1${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "VLAN must be a number between 1 and 4094, or leave blank for default." 8 58
+    else
+      exit_script
+    fi
+  done
+
+  while true; do
+    if VLAN2=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN Vlan" 8 58 999 --title "LAN VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$VLAN2" ]; then
+        VLAN2="Default"
+        LAN_VLAN=""
+        echo -e "${DGN}Using LAN Vlan: ${BGN}$VLAN2${CL}"
+        break
+      fi
+      if [[ "$VLAN2" =~ ^[0-9]+$ ]] && [ "$VLAN2" -ge 1 ] && [ "$VLAN2" -le 4094 ]; then
+        LAN_VLAN=",tag=$VLAN2"
+        echo -e "${DGN}Using LAN Vlan: ${BGN}$VLAN2${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "VLAN must be a number between 1 and 4094, or leave blank for default." 8 58
+    else
+      exit_script
+    fi
+  done
+
+  while true; do
+    if MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [ -z "$MTU1" ]; then
+        MTU1="Default"
+        MTU=""
+        echo -e "${DGN}Using Interface MTU Size: ${BGN}$MTU1${CL}"
+        break
+      fi
+      if [[ "$MTU1" =~ ^[0-9]+$ ]] && [ "$MTU1" -ge 576 ] && [ "$MTU1" -le 65520 ]; then
+        MTU=",mtu=$MTU1"
+        echo -e "${DGN}Using Interface MTU Size: ${BGN}$MTU1${CL}"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "MTU Size must be a number between 576 and 65520, or leave blank for default." 8 58
+    else
+      exit_script
+    fi
+  done
+
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
+    START_VM="yes"
+  else
+    START_VM="no"
+  fi
+  echo -e "${DGN}Start VM when completed: ${BGN}$START_VM${CL}"
+
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create OpenWrt VM?" --no-button Do-Over 10 58); then
+    echo -e "${RD}Creating a OpenWrt VM using the above advanced settings${CL}"
+  else
+    header_info
+    echo -e "${RD}Using Advanced Settings${CL}"
+    advanced_settings
+  fi
+}
+
+
+vm_preflight
+vm_start_script "Use Default Settings?" 10 58
+post_to_api_vm
+
+vm_select_storage "$HN"
+msg_info "Getting URL for OpenWrt Disk Image"
+
+response=$(curl -fsSL https://openwrt.org)
+stableversion=$(echo "$response" | sed -n 's/.*Current stable release - OpenWrt \([0-9.]\+\).*/\1/p' | head -n 1)
+URL="https://downloads.openwrt.org/releases/$stableversion/targets/x86/64/openwrt-$stableversion-x86-64-generic-ext4-combined.img.gz"
+
+msg_ok "${CL}${BL}${URL}${CL}"
+# A mirror serving an error page returns 200, so size decides whether this
+# is an image. Anything real here is far above 5 MB.
+CACHE_FILE="$(vm_image_cache_path "$URL")"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((5 * 1024 * 1024)) || exit 115
+
+# Decompress out of the cache rather than over it, gunzip eats its input.
+FILE="$(basename "${CACHE_FILE%.gz}")"
+gunzip -c "$CACHE_FILE" >"$FILE"
+msg_ok "Extracted OpenWrt Disk Image ${CL}${BL}$FILE${CL}"
+
+msg_info "Creating OpenWrt VM"
+qm create $VMID -cores $CORE_COUNT -memory $RAM_SIZE -name $HN \
+  -onboot 1 -ostype l26 -scsihw virtio-scsi-pci --tablet 0 >/dev/null
+vm_mark_created
+if [[ "$(pvesm status | awk -v s=$STORAGE '$1==s {print $2}')" == "dir" ]]; then
+  qm set $VMID -efidisk0 ${STORAGE}:0,efitype=4m,size=4M >/dev/null
+else
+  pvesm alloc $STORAGE $VMID vm-$VMID-disk-0 4M >/dev/null
+  qm set $VMID -efidisk0 ${STORAGE}:vm-$VMID-disk-0,efitype=4m,size=4M >/dev/null
+fi
+
+IMPORT_OUT="$(qm importdisk $VMID $FILE $STORAGE --format raw 2>&1 || true)"
+DISK_REF="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk '\([^']\+\)'.*/\1/p")"
+
+if [[ -z "$DISK_REF" ]]; then
+  DISK_REF="$(pvesm list "$STORAGE" | awk -v id="$VMID" '$1 ~ ("vm-"id"-disk-") {print $1}' | sort | tail -n1)"
+fi
+
+if [[ -z "$DISK_REF" ]]; then
+  msg_error "Unable to determine imported disk reference."
+  echo "$IMPORT_OUT"
+  exit 226
+fi
+
+qm set $VMID \
+  -scsi0 ${DISK_REF} \
+  -boot order=scsi0 \
+  -tags community-script >/dev/null
+msg_ok "Attached disk"
+
+msg_info "Resizing disk to ${DISK_SIZE}"
+qm disk resize "$VMID" scsi0 "${DISK_SIZE}" >/dev/null
+msg_ok "Resized disk to ${DISK_SIZE}"
+
+set_description
+
+msg_ok "Created OpenWrt VM ${CL}${BL}(${HN})"
+
+# Started here whatever START_VM says: the network has to be configured from
+# inside the guest before the VM is any use.
+msg_info "Booting OpenWrt to configure its network interfaces"
+$STD qm start $VMID
+sleep 15
+VM_STATE=""
+for i in {1..30}; do
+  # A missing config means the VM is gone, not slow. Waiting out the other 29
+  # tries only bought 29 more copies of the same error.
+  if ! VM_STATE="$(qm status "$VMID" 2>&1)"; then
+    msg_error "VM $VMID no longer exists: ${VM_STATE}"
+    exit 226
+  fi
+  [[ "$VM_STATE" == *running* ]] && break
+  sleep 1
+done
+
+if [[ "$VM_STATE" != *running* ]]; then
+  msg_error "VM $VMID did not reach running state: ${VM_STATE}"
+  exit 226
+fi
+sleep 5
+msg_ok "OpenWrt is running"
+
+msg_info "Configuring network interfaces in OpenWrt"
+send_line_to_vm ""
+send_line_to_vm "uci delete network.@device[0]"
+send_line_to_vm "uci set network.wan=interface"
+send_line_to_vm "uci set network.wan.device=eth1"
+send_line_to_vm "uci set network.wan.proto=dhcp"
+send_line_to_vm "uci delete network.lan"
+send_line_to_vm "uci set network.lan=interface"
+send_line_to_vm "uci set network.lan.device=eth0"
+send_line_to_vm "uci set network.lan.proto=static"
+send_line_to_vm "uci set network.lan.ipaddr=${LAN_IP_ADDR}"
+send_line_to_vm "uci set network.lan.netmask=${LAN_NETMASK}"
+send_line_to_vm "uci commit"
+send_line_to_vm "poweroff"
+msg_ok "Network interfaces configured in OpenWrt"
+
+msg_info "Waiting for OpenWrt to shut down"
+for i in {1..60}; do
+  VM_STATE="$(qm status "$VMID" 2>&1)" || break
+  [[ "$VM_STATE" == *stopped* ]] && break
+  sleep 2
+done
+if [[ "$VM_STATE" != *stopped* ]]; then
+  msg_error "OpenWrt did not shut down: ${VM_STATE}"
+  exit 226
+fi
+msg_ok "OpenWrt has shut down"
+
+msg_info "Adding bridge interfaces on Proxmox side"
+qm set $VMID \
+  -net0 virtio,bridge=${LAN_BRG},macaddr=${LAN_MAC}${LAN_VLAN}${MTU} \
+  -net1 virtio,bridge=${BRG},macaddr=${MAC}${VLAN}${MTU} >/dev/null
+msg_ok "Bridge interfaces added"
+
+if [ "$START_VM" = "yes" ]; then
+  msg_info "Starting OpenWrt VM"
+  $STD qm start $VMID
+  msg_ok "Started OpenWrt VM"
+fi
+
+VLAN_FINISH=""
+if [ -z "$VLAN" ] && [ "${VLAN2:-}" != "999" ]; then
+  VLAN_FINISH=" Please remember to adjust the VLAN tags to suit your network."
+fi
+post_update_to_api "done" "none"
+msg_ok "Completed Successfully!${VLAN_FINISH:+\n$VLAN_FINISH}"

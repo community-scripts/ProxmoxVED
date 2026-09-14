@@ -1,0 +1,47 @@
+{
+  "name": "Arch Linux",
+  "slug": "archlinux-vm",
+  "categories": [
+    2
+  ],
+  "date_created": "2025-06-16",
+  "type": "vm",
+  "updateable": false,
+  "privileged": false,
+  "architectures": [
+    "amd64"
+  ],
+  "interface_port": null,
+  "documentation": "https://wiki.archlinux.org/",
+  "website": "https://archlinux.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/archlinux.webp",
+  "description": "Arch Linux is a rolling-release distribution built around simplicity and user control. Packages arrive as upstream releases them, and the system is assembled rather than preconfigured.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "vm/archlinux-vm.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 4,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Cloud-Init is enabled by default. Configure your SSH key and credentials in the Proxmox Cloud-Init tab before starting the VM.",
+      "type": "info"
+    },
+    {
+      "text": "If you use Cloud-init, checkout cloud-init discussion: `https://github.com/community-scripts/ProxmoxVE/discussions/272`",
+      "type": "info"
+    }
+  ]
+}

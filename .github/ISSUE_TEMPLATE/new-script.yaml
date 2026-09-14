@@ -27,6 +27,17 @@ body:
         - PVE Tool (tools/pve)
     validations:
       required: true
+  - type: dropdown
+    id: arm64_support
+    attributes:
+      label: Does this script support arm64?
+      description: amd64 support is assumed.
+      options:
+        - arm64 supported
+        - arm64 not tested
+        - arm64 not supported
+    validations:
+      required: true
   - type: textarea
     id: task_details
     attributes:

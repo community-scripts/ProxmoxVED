@@ -19,9 +19,22 @@ msg_info "Installing Base Dependencies"
 $STD apt install -y curl wget ca-certificates
 msg_ok "Installed Base Dependencies"
 
-# msg_info "Downloading and executing tools.func test suite"
-# bash <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/test-tools-func.sh)
-# msg_ok "Test suite completed"
+setup_imagemagick
+
+# msg_info "Installing Proxmox Backup Server"
+# setup_deb822_repo \
+#   "proxmox-backup-server" \
+#   "https://enterprise.proxmox.com/debian/proxmox-archive-keyring-trixie.gpg" \
+#   "http://download.proxmox.com/debian/pbs" \
+#   "trixie" \
+#   "pbs-no-subscription"
+
+# export DEBIAN_FRONTEND=noninteractive
+# export IFUPDOWN2_NO_IFRELOAD=1
+# $STD apt install -y proxmox-backup-server
+# msg_ok "Installed Proxmox Backup Server"
+
+#RUST_PROFILE="minimal" RUST_TOOLCHAIN="stable" setup_rust
 
 motd_ssh
 customize

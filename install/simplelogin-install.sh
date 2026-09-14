@@ -22,7 +22,8 @@ $STD apt install -y \
   pkg-config \
   libpq-dev \
   cmake \
-  pkg-config \
+  ninja-build \
+  clang \
   redis-server \
   nginx \
   postfix \
@@ -41,8 +42,8 @@ msg_info "Installing SimpleLogin (Patience)"
 cd /opt/simplelogin
 $STD uv venv
 $STD uv pip install setuptools hatchling editables
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
 $STD uv sync --locked --no-dev --no-build-isolation --no-install-package newrelic
-
 VENV_SITE=$(/opt/simplelogin/.venv/bin/python -c "import site; print(site.getsitepackages()[0])")
 mkdir -p "${VENV_SITE}/newrelic"
 cat <<'STUB' >"${VENV_SITE}/newrelic/__init__.py"
@@ -62,9 +63,12 @@ msg_info "Configuring SimpleLogin"
 FLASK_SECRET=$(openssl rand -hex 32)
 
 mkdir -p /opt/simplelogin/dkim
-$STD opendkim-genkey -b 2048 -d example.com -s dkim -D /opt/simplelogin/dkim
-chmod 600 /opt/simplelogin/dkim/dkim.private
-
+$STD openssl genrsa -traditional -out /opt/simplelogin/dkim/dkim.private 2048
+$STD openssl rsa -in /opt/simplelogin/dkim/dkim.private -pubout -out /opt/simplelogin/dkim/dkim.public.key
+DKIM_PUB=$(openssl rsa -in /opt/simplelogin/dkim/dkim.private -pubout 2>/dev/null | grep -v '^-----' | tr -d '\n')
+cat <<EOF >/opt/simplelogin/dkim/dkim.dns.txt
+dkim._domainkey.EMAIL_DOMAIN. IN TXT ( "v=DKIM1; k=rsa; p=${DKIM_PUB}" )
+EOF
 $STD openssl genrsa -out /opt/simplelogin/openid-rsa.key 2048
 $STD openssl rsa -in /opt/simplelogin/openid-rsa.key -pubout -out /opt/simplelogin/openid-rsa.pub
 
@@ -141,6 +145,7 @@ $STD postmap /etc/postfix/transport
 postconf -e "relay_domains = example.com, pgsql:/etc/postfix/pgsql-relay-domains.cf"
 postconf -e "transport_maps = hash:/etc/postfix/transport, pgsql:/etc/postfix/pgsql-transport-maps.cf"
 postconf -e "smtpd_recipient_restrictions = permit_mynetworks, reject_unauth_destination"
+postconf -e "inet_protocols = ipv4"
 $STD systemctl restart postfix
 msg_ok "Configured Postfix"
 
