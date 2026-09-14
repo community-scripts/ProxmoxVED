@@ -60,7 +60,7 @@ fi
 APP_ENCRYPTION_KEY=$(openssl rand -hex 16)
 sed -i "s/CHANGEME/${APP_ENCRYPTION_KEY}/g" compose.yml
 
-[[ "${CALAGOPUS_AIO:-yes}" == "yes" ]] && echo 'app_name: Calagopus' >/opt/calagopus/wings-config.yml
+[[ "${CALAGOPUS_AIO:-yes}" == "yes" ]] && echo 'app_name: Calagopus' >/opt/calagopus-panel/wings-config.yml
 msg_ok "Set Up Calagopus"
 
 msg_info "Starting Calagopus"

@@ -37,7 +37,7 @@
             "type": "info"
         },
         {
-            "text": "The encryption key is generated automatically and saved to ~/calagopus.info. Back it up — losing it will make existing data unreadable.",
+            "text": "The encryption key is generated automatically and saved to /opt/calagopus-panel/compose.yml. Back it up, losing it will make existing data unreadable.",
             "type": "warning"
         },
         {
