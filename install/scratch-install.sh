@@ -35,6 +35,7 @@ msg_ok "Cloned Scratch Editor"
 msg_info "Building Scratch GUI (this can take several minutes)"
 cd /opt/scratch-editor
 export NODE_OPTIONS="--max-old-space-size=2560"
+export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 $STD npm install
 $STD npm run build
 msg_ok "Built Scratch GUI"
