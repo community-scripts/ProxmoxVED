@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: <your-github-handle>
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Source: https://github.com/scratchfoundation/scratch-editor
+
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+verb_ip6
+catch_errors
+setting_up_container
+network_check
+update_os
+
+msg_info "Installing Dependencies"
+$STD apt-get install -y --no-install-recommends \
+  build-essential \
+  python3 \
+  libcairo2-dev \
+  libpango1.0-dev \
+  libjpeg-dev \
+  libgif-dev \
+  librsvg2-dev \
+  git \
+  nginx
+msg_ok "Installed Dependencies"
+
+NODE_VERSION="24" setup_nodejs
+
+msg_info "Cloning Scratch Editor"
+$STD git clone --depth 1 https://github.com/scratchfoundation/scratch-editor.git /opt/scratch-editor
+msg_ok "Cloned Scratch Editor"
+
+msg_info "Building Scratch GUI (this can take several minutes)"
+cd /opt/scratch-editor
+export NODE_OPTIONS="--max-old-space-size=2560"
+$STD npm install
+$STD npm run build
+msg_ok "Built Scratch GUI"
+
+msg_info "Configuring nginx"
+rm -rf /var/www/scratch
+cp -a /opt/scratch-editor/packages/scratch-gui/build /var/www/scratch
+cat <<EOF >/etc/nginx/sites-available/scratch.conf
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    root /var/www/scratch;
+    index index.html;
+
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+}
+EOF
+nginx_enable_site scratch.conf
+systemctl enable -q --now nginx
+msg_ok "Configured nginx"
+
+motd_ssh
+customize
+cleanup_lxc
