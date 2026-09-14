@@ -36,17 +36,21 @@ function update_script() {
     exit
   fi
 
-  msg_info "Updating $APP"
-  cd /opt/scratch-editor
-  export NODE_OPTIONS="--max-old-space-size=2560"
-  export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-  git pull origin main
-  $STD npm install
-  $STD npm run build
-  rm -rf /var/www/scratch
-  cp -a /opt/scratch-editor/packages/scratch-gui/build /var/www/scratch
-  systemctl reload nginx
-  msg_ok "Updated $APP"
+  if check_for_gh_release "scratch-editor" "scratchfoundation/scratch-editor"; then
+    msg_info "Updating $APP"
+    export NODE_OPTIONS="--max-old-space-size=2560"
+    export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "scratch-editor" "scratchfoundation/scratch-editor" "tarball"
+    cd /opt/scratch-editor
+    $STD npm install
+    $STD npm run build
+    rm -rf /var/www/scratch
+    cp -a /opt/scratch-editor/packages/scratch-gui/build /var/www/scratch
+    systemctl reload nginx
+    msg_ok "Updated $APP"
+  else
+    msg_ok "No update required, ${APP} is already at the latest version"
+  fi
   exit
 }
 

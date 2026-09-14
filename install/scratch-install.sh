@@ -22,15 +22,12 @@ $STD apt-get install -y --no-install-recommends \
   libjpeg-dev \
   libgif-dev \
   librsvg2-dev \
-  git \
   nginx
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
 
-msg_info "Cloning Scratch Editor"
-$STD git clone --depth 1 https://github.com/scratchfoundation/scratch-editor.git /opt/scratch-editor
-msg_ok "Cloned Scratch Editor"
+fetch_and_deploy_gh_release "scratch-editor" "scratchfoundation/scratch-editor" "tarball"
 
 msg_info "Building Scratch GUI (this can take several minutes)"
 cd /opt/scratch-editor
