@@ -20,8 +20,8 @@
       "script": "ct/valhalla.sh",
       "config_path": "/opt/valhalla_data/valhalla.json",
       "resources": {
-        "cpu": 4,
-        "ram": 8192,
+        "cpu": 6,
+        "ram": 6144,
         "hdd": 24,
         "os": "Debian",
         "version": "13"
@@ -50,7 +50,7 @@
       "type": "info"
     },
     {
-      "text": "The default 24GB disk / 8192MB RAM only covers the build. Routing tiles need several times the compressed extract size in free disk, so resize the container before building tiles for large regions.",
+      "text": "The default 24GB disk / 6144MB RAM only covers the build. Routing tiles need several times the compressed extract size in free disk, so resize the container before building tiles for large regions.",
       "type": "warning"
     }
   ]
