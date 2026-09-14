@@ -13,6 +13,17 @@ setting_up_container
 network_check
 update_os
 
+msg_warn "WARNING: This script will run an external installer from a third-party source (https://dietpi.com/)."
+msg_warn "The following code is NOT maintained or audited by our repository."
+msg_warn "If you have any doubts or concerns, please review the installer code before proceeding:"
+msg_custom "${TAB3}${GATEWAY}${BGN}${CL}" "\e[1;34m" "→  https://raw.githubusercontent.com/MichaIng/DietPi/master/.build/images/dietpi-installer"
+echo
+read -r -p "${TAB3}Do you want to continue? [y/N]: " CONFIRM
+if [[ ! "$CONFIRM" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+  msg_error "Aborted by user. No changes have been made."
+  exit 10
+fi
+
 motd_ssh
 
 msg_info "Converting Debian to DietPi"
@@ -24,6 +35,10 @@ msg_ok "Converted Debian to DietPi"
 msg_info "Configuring DietPi"
 sed -i -e 's/^AUTO_SETUP_NET_ETHERNET_ENABLED=.*/AUTO_SETUP_NET_ETHERNET_ENABLED=0/' \
   -e "s/^AUTO_SETUP_NET_HOSTNAME=.*/AUTO_SETUP_NET_HOSTNAME=$(hostname)/" /boot/dietpi.txt
+if [[ -n "${PASSWORD:-}" ]]; then
+  sed -i '/^AUTO_SETUP_GLOBAL_PASSWORD=/d' /boot/dietpi.txt
+  echo "AUTO_SETUP_GLOBAL_PASSWORD=$PASSWORD" >>/boot/dietpi.txt
+fi
 rm -f /etc/apt/sources.list.d/debian.sources
 msg_ok "Configured DietPi"
 

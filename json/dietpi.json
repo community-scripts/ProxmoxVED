@@ -12,6 +12,9 @@
   "documentation": "https://dietpi.com/docs/",
   "website": "https://dietpi.com/",
   "repository": "https://github.com/MichaIng/DietPi",
+  "architectures": [
+    "amd64"
+  ],
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/dietpi.webp",
   "description": "DietPi is a lightweight Debian-based OS with a curated software catalogue (dietpi-software) and simple configuration tools. The script creates a Debian LXC and converts it with the official dietpi-installer.",
   "install_methods": [
@@ -39,6 +42,10 @@
     },
     {
       "text": "SSH server, locale, software picks and more can be preconfigured in /boot/dietpi.txt before that restart.",
+      "type": "info"
+    },
+    {
+      "text": "A root password set in the advanced settings is applied to root and the dietpi user at that restart. Without one, both get the password dietpi.",
       "type": "info"
     }
   ]
