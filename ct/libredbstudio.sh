@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Engine comes from community-scripts/core; this repo only ships the scripts.
-# A local core checkout wins (COMMUNITY_SCRIPTS_CORE_DIR, else a sibling ../core),
-# so a fork or branch of core can be tested without editing this file.
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
@@ -36,38 +33,20 @@ function update_script() {
   fi
 
   if check_for_gh_release "libredb-studio" "libredb/libredb-studio"; then
-    # An empty architecture would widen the asset pattern below and the engine
-    # would fall back to the first .deb in the release, which is the desktop
-    # package. Resolve it first and stop here instead.
-    ARCH="$(arch_resolve)" || {
-      msg_error "Could not resolve the container architecture"
-      exit 1
-    }
+    # Two debs per arch; without ${ARCH} the glob matches the desktop package.
+    ARCH="$(arch_resolve)"
 
     msg_info "Stopping Service"
     systemctl stop libredb-studio
     msg_ok "Stopped Service"
 
-    # The env file holds the only copy of the generated JWT secret and admin
-    # password. It is a dpkg conffile, so an upgrade keeps it, but a future
-    # package claiming that path would not.
     create_backup /etc/libredb-studio/env
 
-    # The release carries two .deb files per architecture: the server package
-    # and libredb-studio-desktop. Without this pattern the desktop package
-    # sorts first and gets installed instead.
-    # The package ships /etc/libredb-studio/env as a conffile and the install
-    # script rewrote it, so keep the local copy on upgrade.
-    if ! DPKG_FORCE_CONFOLD=1 fetch_and_deploy_gh_release "libredb-studio" \
-      "libredb/libredb-studio" "binary" "latest" "" "libredb-studio_*_${ARCH}.deb"; then
+    DPKG_FORCE_CONFOLD=1 fetch_and_deploy_gh_release "libredb-studio" "libredb/libredb-studio" "binary" "latest" "" "libredb-studio_*_${ARCH}.deb"
+
+    if [[ ! -x /usr/bin/libredb-studio ]] || [[ ! -f /usr/lib/systemd/system/libredb-studio.service ]]; then
       restore_backup
-      msg_error "Update failed, starting the previous version again"
       systemctl start libredb-studio
-      exit 1
-    fi
-    if [[ ! -x /usr/bin/libredb-studio ]] ||
-      [[ ! -f /usr/lib/systemd/system/libredb-studio.service ]]; then
-      restore_backup
       msg_error "The installed package is not the server build"
       exit 1
     fi
