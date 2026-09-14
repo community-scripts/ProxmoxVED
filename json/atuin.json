@@ -1,0 +1,50 @@
+{
+  "name": "Atuin",
+  "slug": "atuin",
+  "categories": [
+    0
+  ],
+  "date_created": "2026-08-11",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": ["amd64"],
+  "interface_port": 8888,
+  "documentation": "https://docs.atuin.sh/latest/",
+  "website": "https://atuin.sh",
+  "repository": "https://github.com/atuinsh/atuin",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/atuin.webp",
+  "description": "Sync your shell history across all of your machines with end-to-end encryption, and search with extra recorded context around shell commands. Self-hosted Atuin server for maximum privacy.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/atuin.sh",
+      "config_path": "/opt/atuin/server.toml",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Configuration lives in /opt/atuin/server.toml",
+      "type": "info"
+    },
+    {
+      "text": "Registration is open by default, do not forget to close if required",
+      "type": "info"
+    },
+    {
+      "text": "Credentials are saved in /root/atuin.creds",
+      "type": "info"
+    }
+  ]
+}
