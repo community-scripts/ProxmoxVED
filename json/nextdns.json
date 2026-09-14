@@ -1,0 +1,66 @@
+{
+  "name": "NextDNS",
+  "slug": "nextdns",
+  "categories": [
+    5
+  ],
+  "date_created": "2026-08-23",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://github.com/nextdns/nextdns/wiki",
+  "website": "https://nextdns.io/",
+  "repository": "https://github.com/nextdns/nextdns",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nextdns.webp",
+  "description": "NextDNS is a DNS-over-HTTPS (DoH) client and resolver that blocks ads, trackers and malware using cloud-managed profiles. This script installs a minimal Debian LXC with the official NextDNS CLI from the NextDNS apt repository, prompts for your profile ID, and configures router mode so DNS is served on TCP/UDP port 53.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/nextdns.sh",
+      "config_path": "/etc/nextdns.conf",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "app_vars": [
+    {
+      "name": "var_nextdns_profile",
+      "label": "NextDNS Profile ID",
+      "type": "text",
+      "required": true,
+      "help": "From https://my.nextdns.io — used with nextdns install -profile … -report-client-info -setup-router"
+    }
+  ],
+  "notes": [
+    {
+      "text": "During install you will be asked for your NextDNS profile ID (or pass var_nextdns_profile). The script runs: nextdns install -profile <id> -report-client-info -setup-router",
+      "type": "info"
+    },
+    {
+      "text": "Create or copy your profile ID from https://my.nextdns.io before running the script.",
+      "type": "info"
+    },
+    {
+      "text": "After install, NextDNS listens on TCP/UDP port 53. Point DHCP clients at the container IP:53, or set the container as upstream DNS on your router. There is no local web UI (profiles are managed at my.nextdns.io).",
+      "type": "info"
+    },
+    {
+      "text": "Router mode (-setup-router) makes this LXC the DNS server for your network.",
+      "type": "info"
+    },
+    {
+      "text": "Updates use the official NextDNS apt repository (repo.nextdns.io). Run the container update script or apt upgrade inside the LXC.",
+      "type": "info"
+    }
+  ]
+}
