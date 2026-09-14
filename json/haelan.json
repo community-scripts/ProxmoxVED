@@ -1,0 +1,52 @@
+{
+  "name": "Haelan",
+  "slug": "haelan",
+  "categories": [9],
+  "date_created": "2026-09-14",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 4235,
+  "documentation": "https://github.com/bardesss/haelan#readme",
+  "website": "https://bardesss.github.io/haelan/",
+  "repository": "https://github.com/bardesss/haelan",
+  "platforms": ["pve"],
+  "logo": "https://cdn.jsdelivr.net/gh/bardesss/haelan@master/assets/brand/mark.svg",
+  "description": "Haelan mirrors your household's Google Health data into a SQLite database you own and gives you eight pages of dashboards over it: sleep, heart rate, activity, weight and the rest. Multi-user, no telemetry, no cloud component.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/haelan.sh",
+      "config_path": "/etc/systemd/system/haelan.service",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 12,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The database is empty on first boot, so the container opens on a setup wizard rather than a login. You create the admin account there.",
+      "type": "info"
+    },
+    {
+      "text": "A Google Cloud OAuth client has to be created by hand once, in the Google console. Google exposes no API for it and the credentials must belong to whoever owns the data, so no installer can do this step. The wizard walks you through it and prints the values to paste.",
+      "type": "warning"
+    },
+    {
+      "text": "Your OAuth client stays unverified, so everyone granting consent sees an unverified-app warning. That is expected. Google also refuses a raw IP as a redirect target and requires HTTPS for anything that is not localhost, so granting consent from another device needs Tailscale or a reverse proxy holding a real certificate.",
+      "type": "warning"
+    },
+    {
+      "text": "Storage grows by roughly 120 MB per person-year, and the default seven daily backups are seven more copies of the database on top of that. Data lives in /opt/haelan_data and survives updates.",
+      "type": "info"
+    }
+  ]
+}
