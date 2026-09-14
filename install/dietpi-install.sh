@@ -28,7 +28,7 @@ motd_ssh
 
 msg_info "Converting Debian to DietPi"
 curl -fsSL https://raw.githubusercontent.com/MichaIng/DietPi/master/.build/images/dietpi-installer -o /tmp/dietpi-installer
-$STD env GITBRANCH=master HW_MODEL=75 DISTRO_TARGET=8 GUEST_NETWORK_REQUIRED=1 WIFI_REQUIRED=0 IMAGE_CREATOR=community-scripts PREIMAGE_INFO='Proxmox Debian LXC template' bash /tmp/dietpi-installer
+$STD env G_INTERACTIVE=0 GITBRANCH=master HW_MODEL=75 DISTRO_TARGET=8 GUEST_NETWORK_REQUIRED=1 IMAGE_CREATOR=community-scripts PREIMAGE_INFO='Proxmox Debian LXC template' bash /tmp/dietpi-installer
 rm -f /tmp/dietpi-installer
 msg_ok "Converted Debian to DietPi"
 
