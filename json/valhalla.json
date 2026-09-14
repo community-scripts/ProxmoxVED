@@ -20,8 +20,8 @@
       "script": "ct/valhalla.sh",
       "config_path": "/opt/valhalla_data/valhalla.json",
       "resources": {
-        "cpu": 4,
-        "ram": 8192,
+        "cpu": 6,
+        "ram": 6144,
         "hdd": 24,
         "os": "Debian",
         "version": "13"
@@ -38,7 +38,7 @@
       "type": "info"
     },
     {
-      "text": "No routing tiles are built during install. Find your region's extract at https://download.geofabrik.de/ (browse to a continent, then country/region, and copy the .osm.pbf download link), then build the graph with: /opt/valhalla_data/build-tiles.sh <pbf-url>. Avoid planet-wide data unless the container is sized for it.",
+      "text": "No routing tiles are built during install. Find your region's extract at https://download.geofabrik.de/ (browse to a continent, then country/region, and copy the .osm.pbf download link), then build the graph with: /opt/valhalla_data/build-tiles.sh {pbf-url}. Avoid planet-wide data unless the container is sized for it.",
       "type": "warning"
     },
     {
@@ -50,7 +50,7 @@
       "type": "info"
     },
     {
-      "text": "The default 24GB disk / 8192MB RAM only covers the build. Routing tiles need several times the compressed extract size in free disk, so resize the container before building tiles for large regions.",
+      "text": "The default 24GB disk / 6144MB RAM only covers the build. Routing tiles need several times the compressed extract size in free disk, so resize the container before building tiles for large regions.",
       "type": "warning"
     }
   ]
