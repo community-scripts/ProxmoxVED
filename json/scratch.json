@@ -1,0 +1,43 @@
+{
+    "name": "Scratch",
+    "slug": "scratch",
+    "categories": [],
+    "date_created": "2026-09-14",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "architectures": ["amd64"],
+    "interface_port": 80,
+    "documentation": "https://github.com/scratchfoundation/scratch-editor",
+    "website": "https://scratch.mit.edu/",
+    "repository": "https://github.com/scratchfoundation/scratch-editor",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/scratch.webp",
+    "description": "Self-hosted offline build of the official MIT Scratch 3.0 editor — no accounts, no online community features, just the block-based programming editor served as static files via nginx.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/scratch.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 6144,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "The 4 CPU / 6 GB RAM default is only for the one-time build: the installer clones scratch-editor and runs 'npm run build' across the whole workspace (scratch-storage, scratch-vm, scratch-render, scratch-paint, scratch-gui, ...), and that webpack/TypeScript build peaked at ~4 GB RAM and ran noticeably faster with more CPU cores in testing. Once the build finishes, the container only serves the compiled static files via nginx and idles at a fraction of that — feel free to shrink CPU/RAM afterwards (e.g. 1 CPU / 512 MB) if you want to reclaim host resources, and raise them again before running the update script.",
+            "type": "warning"
+        },
+        {
+            "text": "This is the offline Scratch-GUI editor only. There are no user accounts, no cloud save, and no access to the online Scratch community — projects are saved/loaded as local .sb3 files from the browser.",
+            "type": "info"
+        }
+    ]
+}
