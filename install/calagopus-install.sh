@@ -42,8 +42,8 @@ else
 fi
 
 msg_info "Setting Up Calagopus"
-mkdir -p /opt/calagopus
-cd /opt/calagopus
+mkdir -p /opt/calagopus-panel
+cd /opt/calagopus-panel
 
 if [[ "${CALAGOPUS_AIO:-yes}" == "yes" ]]; then
   $STD curl -fsSL "https://raw.githubusercontent.com/calagopus/panel/refs/heads/main/compose.aio.yml" -o compose.yml

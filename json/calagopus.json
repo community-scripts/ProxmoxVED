@@ -17,7 +17,7 @@
         {
             "type": "default",
             "script": "ct/calagopus.sh",
-            "config_path": "/opt/calagopus/compose.yml",
+            "config_path": "/opt/calagopus-panel/compose.yml",
             "resources": {
                 "cpu": 4,
                 "ram": 4096,

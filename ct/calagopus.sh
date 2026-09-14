@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
@@ -25,17 +26,17 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/calagopus/compose.yml ]]; then
+  if [[ ! -f /opt/calagopus-panel/compose.yml ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
   msg_info "Pulling Latest Images"
-  docker compose -f /opt/calagopus/compose.yml pull
+  docker compose -f /opt/calagopus-panel/compose.yml pull
   msg_ok "Pulled Latest Images"
 
   msg_info "Restarting Services"
-  docker compose -f /opt/calagopus/compose.yml up -d --remove-orphans
+  docker compose -f /opt/calagopus-panel/compose.yml up -d --remove-orphans
   msg_ok "Restarted Services"
 
   msg_ok "Updated Successfully!"
