@@ -54,6 +54,10 @@ rejected on sight.
 script. Nothing else. No `run_app()`, no `install_deps()`, no wrappers around a helper.
 Write the commands in order, top to bottom.
 
+**One exception:** the per-OS functions the engine dispatches to
+(`setup_alpine`, `update_deb_based`, …). Those are a contract, not helpers of your
+own — see "Alpine and Multi-OS Scripts".
+
 ### 6. **Python Goes Through `uv`, Always**
 
 No `python3 -m venv`, no `pip install`, no `virtualenv`, no `python3-pip` in the
@@ -115,6 +119,131 @@ The template ships this line commented out:
   and then say so.
 
 Check by listing the release assets of the upstream repo, not by assuming.
+
+---
+
+## 🏔️ Alpine and Multi-OS Scripts
+
+An application is offered on Alpine in one of two shapes. Pick one; do not invent a third.
+
+### Shape A — Alpine only
+
+The app has no Debian variant. One pair of files, prefixed:
+
+- `ct/alpine-<app>.sh`, `install/alpine-<app>-install.sh`
+- `APP="Alpine-<AppName>"`, `var_tags` contains `alpine`
+- `var_os="${var_os:-alpine}"`, `var_version="${var_version:-3.24}"` (the Alpine release, not a Debian one)
+- Smaller defaults are the point: typically `var_ram` 256–512, `var_disk` 1–3
+
+### Shape B — Debian and Alpine in one script
+
+The app runs on both. **One** `ct/<app>.sh` and **one** `install/<app>-install.sh`,
+never a second copy. The CT script asks, then branches only the resource defaults:
+
+```bash
+APP="Adguard"
+var_tags="${var_tags:-adblock}"
+var_cpu="${var_cpu:-1}"
+var_unprivileged="${var_unprivileged:-1}"
+if [[ -z "${var_os:-}" ]] && command -v pveversion >/dev/null 2>&1; then
+  var_os=$(msg_menu "Choose the container OS"     "debian" "Debian 13"     "alpine" "Alpine (smaller footprint)")
+fi
+
+if [[ "${var_os:-}" == "alpine" ]]; then
+  var_ram="${var_ram:-256}"
+  var_disk="${var_disk:-1}"
+  var_version="${var_version:-3.24}"
+else
+  var_ram="${var_ram:-512}"
+  var_disk="${var_disk:-2}"
+  var_version="${var_version:-13}"
+fi
+```
+
+The `-z "${var_os:-}"` guard matters: it lets `var_os=alpine bash -c ...` skip the menu.
+
+### The dispatch contract
+
+The engine calls one function per OS family. **Defining the function is how your script
+declares support for that family** — if it is missing, the engine aborts with a clear
+error instead of silently doing nothing.
+
+| You call | Engine runs | Define in |
+| -------- | ----------- | --------- |
+| `run_os_setup` | `setup_deb_based` / `setup_alpine` / `setup_rhel_based` / `setup_suse_based` / `setup_arch_based` / `setup_gentoo_based` | install script |
+| `run_os_update` | `update_deb_based` / `update_alpine` / … | CT script, inside `update_script()` |
+
+Install script: define the families you support, then call `run_os_setup` once, before
+the footer.
+
+```bash
+setup_deb_based() {
+  msg_info "Installing AdGuard Home"
+  $STD apt install -y adguardhome
+  msg_ok "Installed AdGuard Home"
+}
+
+setup_alpine() {
+  msg_info "Installing AdGuard Home"
+  $STD apk add --no-cache adguardhome
+  msg_ok "Installed AdGuard Home"
+}
+
+run_os_setup
+
+motd_ssh
+customize
+cleanup_lxc
+```
+
+CT script: same idea, dispatched from `update_script()`.
+
+```bash
+update_deb_based() {
+  msg_error "Adguard Home can only be updated via the user interface."
+}
+
+update_alpine() {
+  msg_info "Updating AdGuard Home"
+  $STD /opt/AdGuardHome/AdGuardHome --update
+  msg_ok "Updated AdGuard Home"
+}
+
+function update_script() {
+  header_info
+  check_container_storage
+  check_container_resources
+  run_os_update
+}
+```
+
+### What differs on Alpine
+
+| | Debian | Alpine |
+| --- | ------ | ------ |
+| Packages | `$STD apt install -y ...` | `$STD apk add --no-cache ...` |
+| Service unit | `/etc/systemd/system/<name>.service` | `/etc/init.d/<name>` (`#!/sbin/openrc-run`) |
+| Enable + start | `systemctl enable -q --now <name>` | `rc-update add <name> default` + `rc-service <name> start` |
+| Restart | `systemctl restart <name>` | `rc-service <name> restart` |
+| OS upgrade | handled by `update_os` | `$STD apk -U upgrade` |
+
+OpenRC service file:
+
+```bash
+cat <<EOF >/etc/init.d/adguardhome
+#!/sbin/openrc-run
+name="AdGuardHome"
+description="AdGuard Home Service"
+command="/opt/AdGuardHome/AdGuardHome"
+command_background="yes"
+pidfile="/run/adguardhome.pid"
+EOF
+chmod +x /etc/init.d/adguardhome
+```
+
+There is no systemd on Alpine: `systemctl`, `daemon-reload` and `.service` files in an
+`setup_alpine` block are a guaranteed failure. Many `setup_*` helpers are Debian-only —
+check before calling one from an Alpine branch.
 
 ---
 
@@ -1283,6 +1412,9 @@ cleanup_lxc
 - [ ] No `useradd`/`runuser`/`su -c` — the script runs as root
 - [ ] No engine comment block above `_cs_boot` in the CT script
 - [ ] `var_arm64` decided (yes/no) with the reason in the PR, or explicitly left to the user
+- [ ] Alpine variant, if any, follows Shape A or Shape B — never a duplicated script
+- [ ] `setup_*`/`update_*` defined for every OS family the script claims to support
+- [ ] No `systemctl`/`.service` inside an Alpine branch — OpenRC only
 
 ---
 
