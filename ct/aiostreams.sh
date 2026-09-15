@@ -39,9 +39,6 @@ function update_script() {
     systemctl stop aiostreams
     msg_ok "Stopped Service"
 
-    create_backup /opt/aiostreams/.env \
-                  /opt/aiostreams/data
-
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "aiostreams" "Viren070/AIOStreams" "tarball" "latest" "" "" "v"
     AIOSTREAMS_TAG="v$(cat ~/.aiostreams)"
 
@@ -79,8 +76,6 @@ function update_script() {
 EOF
     msg_ok "Generated Version Metadata"
 
-    restore_backup
-
     msg_info "Starting Service"
     systemctl start aiostreams
     msg_ok "Started Service"
@@ -98,4 +93,4 @@ echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"
 echo -e "${INFO}${YW} No authentication is enabled by default.${CL}"
-echo -e "${INFO}${YW} Set AIOSTREAMS_AUTH in /opt/aiostreams/.env to secure the dashboard.${CL}"
+echo -e "${INFO}${YW} Set AIOSTREAMS_AUTH in /opt/aiostreams_data/.env to secure the dashboard.${CL}"

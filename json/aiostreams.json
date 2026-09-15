@@ -19,7 +19,7 @@
     {
       "type": "default",
       "script": "ct/aiostreams.sh",
-      "config_path": "/opt/aiostreams/.env",
+      "config_path": "/opt/aiostreams_data/.env",
       "resources": {
         "cpu": 2,
         "ram": 2048,
@@ -35,15 +35,15 @@
   },
   "notes": [
     {
-      "text": "No authentication is enabled by default. Set AIOSTREAMS_AUTH in /opt/aiostreams/.env to secure the dashboard.",
+      "text": "No authentication is enabled by default. Set AIOSTREAMS_AUTH in /opt/aiostreams_data/.env to secure the dashboard.",
       "type": "warning"
     },
     {
-      "text": "SECRET_KEY is generated automatically and cannot be changed after first run without invalidating existing encrypted configs. Back up /opt/aiostreams/.env.",
+      "text": "SECRET_KEY is generated automatically and cannot be changed after first run without invalidating existing encrypted configs. Back up /opt/aiostreams_data/.env.",
       "type": "warning"
     },
     {
-      "text": "Uses SQLite by default. Edit DATABASE_URI in /opt/aiostreams/.env to use PostgreSQL instead.",
+      "text": "Uses SQLite by default (stored under /opt/aiostreams_data, along with every other on-disk cache the addon keeps - all derived from DATABASE_URI's directory). Edit DATABASE_URI in /opt/aiostreams_data/.env to use PostgreSQL instead.",
       "type": "info"
     },
     {
