@@ -10,7 +10,7 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 # Source: https://github.com/Viren070/AIOStreams
 
 APP="AIOStreams"
-var_tags="${var_tags:-media;streaming}"
+var_tags="${var_tags:-media;streaming;stremio}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
