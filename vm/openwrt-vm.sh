@@ -226,7 +226,7 @@ function advanced_settings() {
     exit_script
   fi
 
-  if LAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router IP" 8 58 $LAN_IP_ADDR --title "LAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if LAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router IP" 8 58 "${LAN_IP_ADDR:-192.168.1.1}" --title "LAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $LAN_IP_ADDR ]; then
       LAN_IP_ADDR="192.168.1.1"
     fi
@@ -235,7 +235,7 @@ function advanced_settings() {
     exit_script
   fi
 
-  if LAN_NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router netmask" 8 58 $LAN_NETMASK --title "LAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if LAN_NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router netmask" 8 58 "${LAN_NETMASK:-255.255.255.0}" --title "LAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $LAN_NETMASK ]; then
       LAN_NETMASK="255.255.255.0"
     fi

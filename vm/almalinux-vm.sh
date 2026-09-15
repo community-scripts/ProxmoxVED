@@ -93,7 +93,7 @@ function advanced_settings() {
   vm_prompt_disk_cache "none"
   vm_prompt_hostname "almalinux"
   vm_prompt_cpu_model "kvm64"
-  if [[ "$var_version" == "10" && -z "$CPU_TYPE" ]]; then
+  if [[ "$var_version" == "10" && -z "${CPU_TYPE:-}" ]]; then
     CPU_TYPE="$ALMA_CPU"
     msg_warn "AlmaLinux 10 needs an x86-64-v3 CPU - keeping ${CPU_TYPE# -cpu } instead of kvm64"
   fi
