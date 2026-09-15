@@ -4,6 +4,9 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+**Writing a `ct/` or `install/` script? [AGENTS.md](../AGENTS.md) is binding and takes
+precedence over everything here.** Read it first, including the anti-pattern list.
+
 ---
 
 ## 1. Think Before Coding

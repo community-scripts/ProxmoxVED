@@ -37,7 +37,7 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
 
 **Update checks:** `check_for_gh_release "<app>" "owner/repo"` / `check_for_gl_release` (with `GITLAB_URL`) / `check_for_codeberg_release` return 0 when a newer release exists. `get_latest_github_release "owner/repo"` / `get_latest_gitlab_release "owner/repo" [strip_v]` / `get_latest_codeberg_release "owner/repo"` return just the version string.
 
-**Runtimes:** `NODE_VERSION="22" NODE_MODULE="pnpm@x" setup_nodejs` · `setup_go` (no arg = latest; NEVER pin a bare `1.23` — the download URL needs a full `1.23.x`) · `RUST_CRATES="..." setup_rust` · `UV_PYTHON="3.12" setup_uv` · `RUBY_VERSION setup_ruby` · `JAVA_VERSION setup_java` · `PHP_VERSION="8.3" PHP_MODULE="gd,intl,mysql" PHP_FPM="YES" setup_php` (note: `PHP_MODULE`, singular).
+**Runtimes:** `NODE_VERSION="22" NODE_MODULE="pnpm@x" setup_nodejs` · `setup_go` (no arg = latest; NEVER pin a bare `1.23` — the download URL needs a full `1.23.x`) · `RUST_CRATES="..." setup_rust` · `PYTHON_VERSION="3.12" setup_uv` · `RUBY_VERSION setup_ruby` · `JAVA_VERSION setup_java` · `PHP_VERSION="8.3" PHP_MODULE="gd,intl,mysql" PHP_FPM="YES" setup_php` (note: `PHP_MODULE`, singular).
 
 **Databases:** `setup_postgresql` + `PG_DB_NAME PG_DB_USER PG_DB_EXTENSIONS="vector,pg_stat_statements" [PG_DB_GRANT_SUPERUSER="true"] setup_postgresql_db` (list every extension the app's schema enables — non-trusted ones like `pg_stat_statements`/`vector` need pre-creating; grant SUPERUSER only when the app truly needs it) · `setup_mariadb` + `setup_mariadb_db` · `setup_mysql` + `setup_mysql_db` · `setup_mongodb` · `setup_clickhouse` · `setup_meilisearch`.
 

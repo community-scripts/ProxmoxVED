@@ -1,6 +1,21 @@
-# 🤖 AI Contribution Guidelines for ProxmoxVED
+# 🤖 AI Working Instructions for ProxmoxVED
 
-> **This documentation is intended for all AI assistants (GitHub Copilot, Claude, ChatGPT, etc.) contributing to this project.**
+> **For every AI assistant (GitHub Copilot, Claude, ChatGPT, Codex, …) producing scripts for this project.**
+
+This is a **work instruction, not a style guide**. Every rule below is mandatory.
+A pull request that breaks any of them is rejected without review — reviewer time
+is the scarce resource here, not generation time.
+
+Two rules override everything else:
+
+1. **Do not invent.** If a helper exists, call it. If you are unsure whether one
+   exists, search `tools.func` before writing a single line of your own.
+2. **Do not guess the application.** Read its upstream repository first
+   (see "Research the upstream project"). A script written from assumptions about
+   how an app installs is worthless, however clean the bash looks.
+
+If a rule genuinely cannot be followed for a specific application, **stop and say so
+in the PR description**. Do not work around it silently.
 
 ## 🎯 Core Principles
 
@@ -28,6 +43,79 @@ We do **NOT use Docker** for our installation scripts. All applications are inst
 for `tools/addon/*.sh` scripts that intentionally manage a Docker Compose stack (e.g.
 `arcane.sh`, `mqttx.sh`) — never for `ct/`/`install/` app scripts, which stay bare-metal.
 
+**If the application can only be installed via Docker, stop.** Do not wrap a container
+runtime, do not translate a `Dockerfile` into `docker run`, do not submit the PR. Say in
+the issue that the app is Docker-only and leave it. A Docker-based `ct/` script is
+rejected on sight.
+
+### 5. **No Functions of Your Own**
+
+`ct/` and `install/` scripts define exactly one function: `update_script()` in the CT
+script. Nothing else. No `run_app()`, no `install_deps()`, no wrappers around a helper.
+Write the commands in order, top to bottom.
+
+### 6. **Python Goes Through `uv`, Always**
+
+No `python3 -m venv`, no `pip install`, no `virtualenv`, no `python3-pip` in the
+dependency list. Use `setup_uv` and then `uv`. See "Python Applications".
+
+### 7. **Write the Application's Name, Not a Placeholder**
+
+Every string a user sees names the real tool: `msg_info "Stopping Nautobot"`, not
+`msg_info "Stopping ${APPLICATION}"` or `"Stopping $APP"`. Placeholders belong in this
+document, never in a script you submit.
+
+---
+
+## 🔬 Research the Upstream Project First
+
+Before writing anything, open the application's repository and read it. The files
+below tell you what the install actually needs. Guessing produces the scripts we
+reject.
+
+| File | Read it for |
+| ---- | ----------- |
+| `Dockerfile` | The real install sequence: build steps, runtime version, entrypoint, required system packages. This is the single most useful file — it is the upstream author's own install script. |
+| `docker-compose.yml` | Extra services the app expects: PostgreSQL, MariaDB, Redis, Valkey, MongoDB, MeiliSearch. Each one maps to a `setup_*` helper. Also reveals volumes (→ what to back up) and ports. |
+| `.env.example` / `.env.sample` | Every configuration key the app reads, and which ones are mandatory. Your `.env` must match these names exactly. |
+| `package.json` | Node only: the `engines` field gives the required Node major for `NODE_VERSION`; `scripts.build` gives the build command; `packageManager` says npm vs pnpm vs yarn. |
+| `pyproject.toml` / `uv.lock` / `requirements.txt` | Python only: the required Python version for `PYTHON_VERSION`, and whether `uv sync` (lockfile present) or `uv pip install -r requirements.txt` applies. |
+| `go.mod`, `Cargo.toml`, `composer.json`, `*.csproj` | The language version to pass to the matching `setup_*`. |
+| `README` / `docs/` install page | Migrations, first-run commands, admin bootstrap. |
+
+State what you found in the PR description: runtime version, database, and where
+the install steps came from. "I read the Dockerfile" is a reviewable claim;
+a script with no stated source is not.
+
+**Two traps:**
+
+- A `Dockerfile` that only copies a prebuilt artifact means the real build lives in
+  CI. Look at `.github/workflows/` for the build, and prefer
+  `fetch_and_deploy_gh_release` over rebuilding from source.
+- A `docker-compose.yml` service you skip is a missing dependency at runtime, not a
+  simplification. If the app needs Redis, call `setup_redis` — do not hope it is optional.
+
+---
+
+## 🧭 Deciding `var_arm64`
+
+The template ships this line commented out:
+
+```bash
+#var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
+```
+
+**Do not leave it commented and move on.** Decide, and say why in the PR:
+
+- `var_arm64="${var_arm64:-yes}"` — the project publishes `arm64`/`aarch64` release
+  assets, or is pure Node/Python/PHP with no native prebuilt binaries.
+- `var_arm64="${var_arm64:-no}"` — release assets are `amd64` only, or the install
+  pulls an x86-only binary (many Go/Rust projects, anything with a bundled Chromium).
+- Leave it commented **only** if you genuinely cannot tell from the release assets —
+  and then say so.
+
+Check by listing the release assets of the upstream repo, not by assuming.
+
 ---
 
 ## 📁 Script Types and Their Structure
@@ -36,9 +124,6 @@ for `tools/addon/*.sh` scripts that intentionally manage a Docker Compose stack 
 
 ```bash
 #!/usr/bin/env bash
-# Engine comes from community-scripts/core; this repo only ships the scripts.
-# Local checkout wins (COMMUNITY_SCRIPTS_CORE_DIR, else a sibling ../core), so a
-# fork/branch of core can be tested without touching this file.
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 
@@ -243,9 +328,9 @@ if GH_INCLUDE_PRERELEASE=1 check_for_gh_release "app" "owner/repo"; then
 | Function       | Variable(s)                   | Example                                              |
 | -------------- | ----------------------------- | ---------------------------------------------------- |
 | `setup_nodejs` | `NODE_VERSION`, `NODE_MODULE` | `NODE_VERSION="22" setup_nodejs`                     |
-| `setup_uv`     | `UV_PYTHON`                   | `UV_PYTHON="3.12" setup_uv`                          |
+| `setup_uv`     | `PYTHON_VERSION`              | `PYTHON_VERSION="3.12" setup_uv`                     |
 | `setup_go`     | `GO_VERSION`                  | `GO_VERSION="1.22" setup_go`                         |
-| `setup_rust`   | `RUST_VERSION`, `RUST_CRATES` | `RUST_CRATES="monolith" setup_rust`                  |
+| `setup_rust`   | `RUST_TOOLCHAIN`, `RUST_CRATES` | `RUST_CRATES="monolith" setup_rust`                |
 | `setup_ruby`   | `RUBY_VERSION`                | `RUBY_VERSION="3.3" setup_ruby`                      |
 | `setup_java`   | `JAVA_VERSION`                | `JAVA_VERSION="21" setup_java`                       |
 | `setup_php`    | `PHP_VERSION`, `PHP_MODULE`   | `PHP_VERSION="8.3" PHP_MODULE="redis,gd" setup_php`  |
@@ -907,6 +992,95 @@ When a repo only tags commits, use the `_gh_tag` pair; when it has neither, use 
 
 ---
 
+### 28. Defining Your Own Functions
+
+```bash
+# ❌ WRONG - helper functions in an install script
+run_nb() {
+  runuser -u nautobot -- /opt/nautobot/bin/nautobot-server "$@"
+}
+run_nb migrate
+run_nb collectstatic --noinput
+
+# ✅ CORRECT - write the commands out
+$STD /opt/nautobot/bin/nautobot-server migrate
+$STD /opt/nautobot/bin/nautobot-server collectstatic --noinput
+```
+
+The only function in a CT script is `update_script()`. Install scripts define none.
+A wrapper you call twice is not worth the indirection; a wrapper you call once is noise.
+
+### 29. Bare-Metal Python Instead of `uv`
+
+```bash
+# ❌ WRONG - venv + pip, and python3-pip as a dependency
+$STD apt install -y python3-pip python3-venv
+python3 -m venv /opt/app
+$STD /opt/app/bin/pip install --upgrade pip wheel
+$STD /opt/app/bin/pip install myapp
+
+# ✅ CORRECT - uv, with the Python version the project asks for
+PYTHON_VERSION="3.12" setup_uv
+$STD uv venv /opt/app/.venv
+$STD uv pip install -p /opt/app/.venv/bin/python myapp
+```
+
+With a lockfile (`uv.lock`) in the project, use `uv sync` instead:
+
+```bash
+cd /opt/app
+$STD uv sync --locked --no-editable --no-install-project
+```
+
+`setup_uv` reads **`PYTHON_VERSION`**. `UV_PYTHON` is ignored — it does nothing.
+
+### 30. Placeholder Names in User-Facing Messages
+
+```bash
+# ❌ WRONG - the user sees a variable name, or a generic word
+msg_info "Stopping ${APPLICATION}"
+msg_info "Stopping $APP"
+msg_info "Updating Application"
+
+# ✅ CORRECT - the tool's name, written out
+msg_info "Stopping Nautobot"
+msg_ok "Stopped Nautobot"
+```
+
+Same for service names, paths and the `.env`: `/opt/nautobot`, `nautobot.service`.
+Never `${APPLICATION}` or `${APP_NAME}` in a submitted script.
+
+### 31. Creating a Dedicated Service User Because Upstream Says So
+
+```bash
+# ❌ WRONG - upstream's docs assume a shared server, not a single-app LXC
+useradd --system --shell /bin/bash --home-dir /opt/nautobot nautobot
+$STD runuser -u nautobot -- /opt/nautobot/bin/nautobot-server migrate
+
+# ✅ CORRECT - the container is the isolation boundary; run as root
+$STD /opt/nautobot/bin/nautobot-server migrate
+```
+
+Upstream install guides target multi-tenant hosts. An LXC runs one application.
+`runuser`, `su -c` and `sudo -u` do not belong in these scripts (see also #9, #12).
+
+### 32. The Engine Comment Block Above `_cs_boot`
+
+```bash
+# ❌ WRONG - these three lines must not be in a ct/ script
+#!/usr/bin/env bash
+# Engine comes from community-scripts/core; this repo only ships the scripts.
+# Local checkout wins (COMMUNITY_SCRIPTS_CORE_DIR, else a sibling ../core), so a
+# fork/branch of core can be tested without touching this file.
+_cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-...}"
+
+# ✅ CORRECT - shebang, then straight into the bootstrap
+#!/usr/bin/env bash
+_cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-...}"
+```
+
+---
+
 ## 📝 Important Rules
 
 ### Variable Declarations (CT Script)
@@ -1101,23 +1275,33 @@ cleanup_lxc
 - [ ] No decorative comment banners (`====`/`----`/`####`) or comments that just restate the next line
 - [ ] Tag-only or releaseless (branch-tracking) repos use `fetch_and_deploy_gh_tag`/`fetch_and_deploy_gh_branch`, not hand-rolled `git clone`/`git pull`
 - [ ] JSON metadata file created in `json/<appname>.json`
+- [ ] Upstream `Dockerfile`/`docker-compose.yml`/`.env.example` read, and findings named in the PR description
+- [ ] **No functions defined** beyond `update_script()` in the CT script
+- [ ] Python uses `setup_uv` + `uv` — no `venv`, no `pip`, no `python3-pip` dependency
+- [ ] `PYTHON_VERSION` (not `UV_PYTHON`) passed to `setup_uv`
+- [ ] Every user-facing message names the application, no `${APPLICATION}`/`$APP` placeholders
+- [ ] No `useradd`/`runuser`/`su -c` — the script runs as root
+- [ ] No engine comment block above `_cs_boot` in the CT script
+- [ ] `var_arm64` decided (yes/no) with the reason in the PR, or explicitly left to the user
 
 ---
 
-## 📖 Reference: Good Example (Termix)
+## 📖 Reference: Good Example (Journiv)
 
-### CT Script: [ct/termix.sh](ct/termix.sh)
+Read both files end to end before writing your own. They are short on purpose.
 
-- Uses `check_for_gh_release` for version checking
-- Uses `CLEAN_INSTALL=1 fetch_and_deploy_gh_release` for clean updates
-- Backup/restore of `/opt/termix/data`
-- Correct structure with all required variables
+### CT Script: [ct/journiv.sh](ct/journiv.sh)
 
-### Install Script: [install/termix-install.sh](install/termix-install.sh)
+- No engine comment block above `_cs_boot`
+- `check_for_gh_release` for the version check
+- One function only: `update_script()`
+- Every message names Journiv
 
-- `NODE_VERSION="22" setup_nodejs` instead of manual installation
-- `fetch_and_deploy_gh_release "termix" "Termix-SSH/Termix"` instead of wget/curl
-- Clean service configuration
+### Install Script: [install/journiv-install.sh](install/journiv-install.sh)
+
+- 131 lines, **zero** functions of its own, zero comment banners
+- `setup_postgresql` / `setup_postgresql_db` / `setup_uv` instead of hand-rolled setup
+- `uv sync` for Python, no `venv`, no `pip`
 - Correct footer with `motd_ssh`, `customize`, `cleanup_lxc`
 
 ---
