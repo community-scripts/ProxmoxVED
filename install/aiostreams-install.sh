@@ -32,12 +32,15 @@ corepack enable
 msg_ok "Enabled Corepack"
 
 msg_info "Configuring Application"
-mkdir -p /opt/aiostreams/data
-cp /opt/aiostreams/.env.sample /opt/aiostreams/.env
+mkdir -p /opt/aiostreams_data
+cp /opt/aiostreams/.env.sample /opt/aiostreams_data/.env
 SECRET_KEY=$(openssl rand -hex 32)
-sed -i "s|^BASE_URL=.*|BASE_URL=http://${LOCAL_IP}:3000|" /opt/aiostreams/.env
-sed -i "s|^SECRET_KEY=.*|SECRET_KEY=${SECRET_KEY}|" /opt/aiostreams/.env
-sed -i "s|^# PORT=3000|PORT=3000|" /opt/aiostreams/.env
+sed -i \
+  -e "s|^BASE_URL=.*|BASE_URL=http://${LOCAL_IP}:3000|" \
+  -e "s|^SECRET_KEY=.*|SECRET_KEY=${SECRET_KEY}|" \
+  -e "s|^# PORT=3000|PORT=3000|" \
+  -e "s|^DATABASE_URI=sqlite://./data/db.sqlite|DATABASE_URI=sqlite:///opt/aiostreams_data/db.sqlite|" \
+  /opt/aiostreams_data/.env
 msg_ok "Configured Application"
 
 msg_info "Building AIOStreams (Patience)"
@@ -85,7 +88,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/aiostreams
-EnvironmentFile=/opt/aiostreams/.env
+EnvironmentFile=/opt/aiostreams_data/.env
 Environment="NODE_OPTIONS=--max-semi-space-size=8 --expose-gc"
 Environment="LD_PRELOAD=${MIMALLOC_LIB}"
 ExecStart=/usr/bin/node /opt/aiostreams/packages/server/dist/server.js
