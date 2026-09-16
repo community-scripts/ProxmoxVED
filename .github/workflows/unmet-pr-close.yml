@@ -67,6 +67,101 @@ jobs:
               return;
             }
 
+            // --- Ping author if new ct/ or install/ files were added without checking "New script" ---
+            // This only pings — it never closes the PR — since it's just a nudge to fix miscategorization.
+            try {
+              const perPage = 100;
+              let page = 1;
+              let files = [];
+              while (true) {
+                const resp = await github.rest.pulls.listFiles({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number,
+                  per_page: perPage,
+                  page
+                });
+                files = files.concat(resp.data);
+                if (resp.data.length < perPage) break;
+                page++;
+              }
+
+              const newScriptFiles = files.filter(f =>
+                f.status === "added" && (f.filename.startsWith("ct/") || f.filename.startsWith("install/"))
+              );
+
+              const newScriptLineForPing = findLine("🆕 **New script**");
+              const newScriptCheckedForPing = newScriptLineForPing && checkboxChecked(newScriptLineForPing);
+
+              if (newScriptFiles.length > 0 && !newScriptCheckedForPing) {
+                const marker = "<!-- new-script-files-ping -->";
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  per_page: 100
+                });
+                const alreadyPinged = comments.some(c => c.body && c.body.includes(marker));
+                if (!alreadyPinged) {
+                  const author = context.payload.pull_request.user.login;
+                  const fileList = newScriptFiles.map(f => "- `" + f.filename + "`").join("\n");
+                  const message =
+                    marker + "\n" +
+                    "👋 @" + author + " this PR adds new file(s) under `ct/` or `install/`, but the **🆕 New script** box in the **Type of Change** section isn't checked:\n\n" +
+                    fileList + "\n\n" +
+                    "If this is a new script submission, please check that box and fill out the **📦 Application Requirements** section — it's required for review.\n" +
+                    "If this isn't actually a new script (e.g. a rename or a shared helper file), you can ignore this message.";
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    body: message
+                  });
+                }
+              }
+            } catch (err) {
+              console.log("New-script-file ping check failed: " + err.message);
+            }
+
+            // --- LLM / AI disclosure check (applies to ALL PRs, not just new scripts) ---
+            // Template-version-gated: only enforced if the disclosure prompt exists in the body,
+            // so PRs opened before this section was added aren't retroactively closed.
+            const llmDisclosureIdx = lines.findIndex(l => l.includes("describe to which degree, if any, an LLM was used"));
+            if (llmDisclosureIdx !== -1) {
+              let disclosureText = "";
+              for (let i = llmDisclosureIdx + 1; i < lines.length; i++) {
+                const trimmed = lines[i].trim();
+                if (trimmed.startsWith("##") || trimmed === "---") break;
+                if (trimmed === "" || trimmed.startsWith(">") || trimmed.startsWith("<!--")) continue;
+                disclosureText += trimmed + " ";
+              }
+              disclosureText = disclosureText.trim();
+              if (!disclosureText) {
+                const message =
+                  "❌ **Pull Request Closed – Missing AI/LLM Disclosure**\n\n" +
+                  "This PR's **🤖 AI Assistance** section is missing the required description of whether, and to what degree, an LLM was used to create it.\n\n" +
+                  "Please reopen with that line filled in, e.g. *\"No LLM used\"* or *\"Claude Sonnet 4.5, high reasoning, used for the install script, then manually reviewed\"*. " +
+                  "This is informational, not a penalty — it just helps reviewers calibrate scrutiny.\n\n" +
+                  "---\n\n" +
+                  "⚠ **Maintainer note**\n\n" +
+                  "**Please do not ping or repeatedly contact maintainers to reopen this PR.** Open a fresh PR with the disclosure filled in instead.";
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: message
+                });
+                await github.rest.pulls.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number,
+                  state: "closed"
+                });
+                core.setFailed("PR is missing the required LLM disclosure description.");
+                return;
+              }
+            }
+
             // --- New script check ---
             const newScriptLine = findLine("🆕 **New script**");
             if (!newScriptLine || !checkboxChecked(newScriptLine)) {

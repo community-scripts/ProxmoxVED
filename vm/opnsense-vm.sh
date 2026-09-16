@@ -326,7 +326,7 @@ function advanced_settings() {
     exit_script
   fi
 
-  if IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN IP" 8 58 $IP_ADDR --title "LAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN IP" 8 58 "${IP_ADDR:-}" --title "LAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $IP_ADDR ]; then
       echo -e "${DGN}Using DHCP AS LAN IP ADDRESS${CL}"
     else
@@ -335,7 +335,7 @@ function advanced_settings() {
         exit
       fi
       echo -e "${DGN}Using LAN IP ADDRESS: ${BGN}$IP_ADDR${CL}"
-      if LAN_GW=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN GATEWAY IP" 8 58 $LAN_GW --title "LAN GATEWAY IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if LAN_GW=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN GATEWAY IP" 8 58 "${LAN_GW:-}" --title "LAN GATEWAY IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
         if [ -z $LAN_GW ]; then
           echo -e "${DGN}Gateway needs to be set if ip is not dhcp${CL}"
           exit_script
@@ -346,7 +346,7 @@ function advanced_settings() {
         fi
         echo -e "${DGN}Using LAN GATEWAY ADDRESS: ${BGN}$LAN_GW${CL}"
       fi
-      if NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN netmask (24 for example)" 8 58 $NETMASK --title "LAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN netmask (24 for example)" 8 58 "${NETMASK:-}" --title "LAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
         if [ -z $NETMASK ]; then
           echo -e "${DGN}Netmask needs to be set if ip is not dhcp${CL}"
         fi
@@ -392,7 +392,7 @@ function advanced_settings() {
     exit_script
   fi
 
-  if WAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN IP" 8 58 $WAN_IP_ADDR --title "WAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if WAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN IP" 8 58 "${WAN_IP_ADDR:-}" --title "WAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $WAN_IP_ADDR ]; then
       echo -e "${DGN}Using DHCP AS WAN IP ADDRESS${CL}"
     else
@@ -401,7 +401,7 @@ function advanced_settings() {
         exit
       fi
       echo -e "${DGN}Using WAN IP ADDRESS: ${BGN}$WAN_IP_ADDR${CL}"
-      if WAN_GW=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN GATEWAY IP" 8 58 $WAN_GW --title "WAN GATEWAY IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if WAN_GW=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN GATEWAY IP" 8 58 "${WAN_GW:-}" --title "WAN GATEWAY IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
         if [ -z $WAN_GW ]; then
           echo -e "${DGN}Gateway needs to be set if ip is not dhcp${CL}"
           exit_script
@@ -414,7 +414,7 @@ function advanced_settings() {
       else
         exit_script
       fi
-      if WAN_NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN netmask (24 for example)" 8 58 $WAN_NETMASK --title "WAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if WAN_NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN netmask (24 for example)" 8 58 "${WAN_NETMASK:-}" --title "WAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
         if [ -z $WAN_NETMASK ]; then
           echo -e "${DGN}WAN Netmask needs to be set if ip is not dhcp${CL}"
         fi

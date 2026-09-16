@@ -50,7 +50,7 @@ function default_settings() {
   vm_apply_machine_type "q35"
   DISK_SIZE="32G"
   DISK_CACHE=""
-  HN="haos${BRANCH}"
+  HN="homeassistant"
   CPU_TYPE=""
   CORE_COUNT="2"
   RAM_SIZE="4096"
@@ -65,7 +65,10 @@ function default_settings() {
 
 function advanced_settings() {
   METHOD="advanced"
-  if vm_dialog radiolist "Homeassistant OS Version" --cancel-button Exit-Script "Choose Version" 10 58 3 \n    "$stable" "Stable  " ON \n    "$beta" "Beta  " OFF \n    "$dev" "Dev  " OFF; then
+  if vm_dialog radiolist "Homeassistant OS Version" --cancel-button Exit-Script "Choose Version" 10 58 3 \
+    "$stable" "Stable  " ON \
+    "$beta" "Beta  " OFF \
+    "$dev" "Dev  " OFF; then
     BRANCH="$VM_DIALOG_RESULT"
     var_version="${BRANCH}"
     echo -e "${DGN}Using HAOS Version: ${BGN}$BRANCH${CL}"
@@ -77,7 +80,7 @@ function advanced_settings() {
   vm_prompt_machine_type "q35"
   vm_prompt_disk_size "$DISK_SIZE" "Set Disk Size in GiB (e.g., 10, 20)"
   vm_prompt_disk_cache "writethrough"
-  vm_prompt_hostname "haos${BRANCH}"
+  vm_prompt_hostname "homeassistant"
   vm_prompt_cpu_model "kvm64"
   vm_prompt_cpu_cores "2"
   vm_prompt_ram "4096"
@@ -158,18 +161,8 @@ vm_resize_disk
 set_description
 msg_ok "Created Homeassistant OS VM ${CL}${BL}(${HN})"
 
-if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
-  KEEP_IMAGE="${VM_KEEP_IMAGE:-yes}"
-elif vm_dialog yesno "Image Cache" \
-  "Keep downloaded Home Assistant OS image for future VMs?\n\nFile: $CACHE_FILE" 10 70; then
-  KEEP_IMAGE="yes"
-else
-  KEEP_IMAGE="no"
-fi
-
-if [[ "$KEEP_IMAGE" == "yes" ]]; then
-  msg_ok "Keeping cached image"
-else
+# vm_fetch_image --cache keeps it, as it does for every other VM script.
+if [[ "${VM_KEEP_IMAGE:-yes}" != "yes" ]]; then
   rm -f "$CACHE_FILE"
   msg_ok "Deleted cached image"
 fi

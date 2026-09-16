@@ -4,6 +4,9 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+**Writing a `ct/` or `install/` script? [AGENTS.md](../AGENTS.md) is binding and takes
+precedence over everything here.** Read it first, including the anti-pattern list.
+
 ---
 
 ## 1. Think Before Coding
@@ -27,6 +30,7 @@ Before implementing:
 - No abstractions for single-use code.
 - No "flexibility" or "configurability" that wasn't requested.
 - No error handling for impossible scenarios.
+- No comment banners (`====`/`----`) or comments that just restate the next line - let the code speak, comment only the non-obvious.
 - If you write 200 lines and it could be 50, rewrite it.
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
