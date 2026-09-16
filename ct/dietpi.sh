@@ -45,3 +45,4 @@ description
 
 msg_ok "Completed successfully!"
 msg_custom "🚀" "${GN}" "${APP} setup has been successfully initialized!"
+echo -e "${INFO}${YW} Restart the container once, DietPi's first run setup then continues on the console.${CL}"
