@@ -78,7 +78,7 @@ function advanced_settings() {
 
 
 vm_preflight
-vm_start_script "Use Default Settings?" 10 58
+vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 2 GB RAM\n• 10 GB Disk" 13 58
 
 post_to_api_vm
 

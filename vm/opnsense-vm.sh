@@ -463,7 +463,7 @@ function advanced_settings() {
 
 
 vm_preflight
-vm_start_script "Use Default Settings?" 10 58
+vm_start_script "Use Default Settings?\n\nDefaults:\n• 4 CPU Cores\n• 8 GB RAM" 12 58
 post_to_api_vm
 
 vm_select_storage "$HN"
