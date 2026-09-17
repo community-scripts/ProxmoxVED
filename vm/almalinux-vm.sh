@@ -52,8 +52,9 @@ else
 fi
 
 # AlmaLinux 10 raises the baseline to x86-64-v3; 8 and 9 still run on v2 hosts.
+# That baseline is x86-only, so on aarch64 the default CPU model stands.
 case "$var_version" in
-10) ALMA_CPU=" -cpu x86-64-v3" ;;
+10) ALMA_CPU="$(vm_arch_resolve " -cpu x86-64-v3" "")" ;;
 9 | 8) ALMA_CPU="" ;;
 *)
   msg_error "Unsupported AlmaLinux version '${var_version}'"
@@ -93,7 +94,7 @@ function advanced_settings() {
   vm_prompt_disk_cache "none"
   vm_prompt_hostname "almalinux"
   vm_prompt_cpu_model "kvm64"
-  if [[ "$var_version" == "10" && -z "${CPU_TYPE:-}" ]]; then
+  if [[ "$var_version" == "10" && -z "${CPU_TYPE:-}" && -n "$ALMA_CPU" ]]; then
     CPU_TYPE="$ALMA_CPU"
     msg_warn "AlmaLinux 10 needs an x86-64-v3 CPU - keeping ${CPU_TYPE# -cpu } instead of kvm64"
   fi
@@ -132,7 +133,8 @@ if ! command -v virt-customize &>/dev/null; then
 fi
 
 msg_info "Retrieving the URL for the ${APP} Qcow2 Disk Image"
-URL="https://repo.almalinux.org/almalinux/${var_version}/cloud/x86_64/images/AlmaLinux-${var_version}-GenericCloud-latest.x86_64.qcow2"
+ALMA_ARCH="$(vm_arch_resolve x86_64 aarch64)"
+URL="https://repo.almalinux.org/almalinux/${var_version}/cloud/${ALMA_ARCH}/images/AlmaLinux-${var_version}-GenericCloud-latest.${ALMA_ARCH}.qcow2"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 CACHE_FILE="$(vm_image_cache_path "$URL")"
@@ -193,7 +195,7 @@ fi
 msg_info "Creating an ${APP}"
 qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
   -name "$HN" -tags community-script -net0 virtio,bridge="$BRG",macaddr="$MAC""$VLAN""$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc "$STORAGE" "$VMID" "$DISK0" 4M 1>&/dev/null
+vm_alloc_efi_disk "$DISK0"
 pvesm alloc "$STORAGE" "$VMID" "$DISK2" 4M 1>&/dev/null
 qm importdisk "$VMID" "${WORK_FILE}" "$STORAGE" ${DISK_IMPORT:-} 1>&/dev/null
 qm set "$VMID" \
@@ -219,8 +221,13 @@ fi
 
 post_update_to_api "done" "none"
 
-msg_ok "Completed successfully!"
+echo -e "\n${INFO}${BOLD}${GN}${APP} Configuration Summary:${CL}"
+echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
+echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
+echo -e "${TAB}${DGN}Release: ${BGN}AlmaLinux ${var_version} (${ALMA_ARCH})${CL}"
 if [ -n "${CLOUDINIT_CRED_FILE:-}" ]; then
-  echo -e "${INFO}${YW} Cloud-Init credentials saved to: ${BGN}${CLOUDINIT_CRED_FILE}${CL}"
+  echo -e "${TAB}${DGN}Cloud-Init credentials: ${BGN}${CLOUDINIT_CRED_FILE}${CL}"
 fi
+
+msg_ok "Completed successfully!\n"
 

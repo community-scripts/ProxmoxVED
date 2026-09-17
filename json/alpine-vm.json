@@ -8,7 +8,7 @@
   "type": "vm",
   "updateable": true,
   "privileged": false,
-  "architectures": ["amd64"],
+  "architectures": ["amd64", "arm64"],
   "interface_port": null,
   "documentation": "https://wiki.alpinelinux.org/",
   "website": "https://alpinelinux.org/cloud/",

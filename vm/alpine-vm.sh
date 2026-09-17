@@ -99,7 +99,8 @@ msg_info "Retrieving the URL for the Alpine cloud image"
 # The release number and the -r revision both live in the filename, so the
 # directory has to be listed rather than guessed.
 CLOUD_DIR="https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/cloud"
-FILE=$(curl -fsSL "${CLOUD_DIR}/" 2>/dev/null | grep -oP 'href="\Kgeneric_alpine-[0-9.]+-x86_64-uefi-cloudinit-r[0-9]+\.qcow2(?=")' | sort -V | tail -1)
+ALPINE_ARCH="$(vm_arch_resolve x86_64 aarch64)"
+FILE=$(curl -fsSL "${CLOUD_DIR}/" 2>/dev/null | grep -oP 'href="\Kgeneric_alpine-[0-9.]+-'"${ALPINE_ARCH}"'-uefi-cloudinit-r[0-9]+\.qcow2(?=")' | sort -V | tail -1)
 if [[ -z "$FILE" ]]; then
   msg_error "Could not determine the current Alpine cloud image"
   exit 1
@@ -139,7 +140,7 @@ fi
 msg_info "Creating an Alpine VM"
 qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
   -name "$HN" -tags community-script -net0 virtio,bridge="$BRG",macaddr="$MAC""$VLAN""$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc "$STORAGE" "$VMID" "$DISK0" 4M 1>&/dev/null
+vm_alloc_efi_disk "$DISK0"
 pvesm alloc "$STORAGE" "$VMID" "$DISK2" 4M 1>&/dev/null
 qm importdisk "$VMID" "$WORK_FILE" "$STORAGE" -format "$DISK_IMPORT_FORMAT" 1>&/dev/null
 qm set "$VMID" \
@@ -167,7 +168,7 @@ post_update_to_api "done" "none"
 echo -e "\n${INFO}${BOLD}${GN}Alpine VM Configuration Summary:${CL}"
 echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
 echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
-echo -e "${TAB}${DGN}Release: ${BGN}Alpine ${ALPINE_VERSION}${CL}"
+echo -e "${TAB}${DGN}Release: ${BGN}Alpine ${ALPINE_VERSION} (${ALPINE_ARCH})${CL}"
 if [ -n "${CLOUDINIT_CRED_FILE:-}" ]; then
   echo -e "${TAB}${DGN}Cloud-Init credentials: ${BGN}${CLOUDINIT_CRED_FILE}${CL}"
 fi

@@ -88,7 +88,7 @@ function default_settings() {
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
   echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
-  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
+  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}$(vm_cpu_model_label)${CL}"
   echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
   echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
   echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
@@ -135,7 +135,8 @@ vm_define_disk_references 2
 DISK_IMPORT="-format ${DISK_IMPORT_FORMAT}"
 
 msg_info "Retrieving the URL for the ${APP} Disk Image"
-URL="https://cloud-images.ubuntu.com/releases/server/${UBUNTU_CODENAME}/release/ubuntu-${var_version}-server-cloudimg-amd64.img"
+UBUNTU_ARCH="$(vm_arch_resolve amd64 arm64)"
+URL="https://cloud-images.ubuntu.com/releases/server/${UBUNTU_CODENAME}/release/ubuntu-${var_version}-server-cloudimg-${UBUNTU_ARCH}.img"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 CACHE_FILE="$(vm_image_cache_path "$URL")"
@@ -150,7 +151,7 @@ vm_prepare_cloud_image "$FILE" "$HN" || true
 msg_info "Creating a ${APP}"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
+vm_alloc_efi_disk "$DISK0"
 qm importdisk $VMID $FILE $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \

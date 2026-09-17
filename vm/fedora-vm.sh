@@ -101,8 +101,9 @@ MIRROR="https://dl.fedoraproject.org/pub/fedora/linux/releases"
 FEDORA_RELEASE=$(curl -fsSL "$MIRROR/" 2>/dev/null | grep -oP 'href="\K[0-9]+(?=/")' | sort -rn | head -1)
 [[ -z "$FEDORA_RELEASE" ]] && FEDORA_RELEASE="44"
 
-IMAGE_DIR="${MIRROR}/${FEDORA_RELEASE}/Cloud/x86_64/images"
-FILE=$(curl -fsSL "${IMAGE_DIR}/" 2>/dev/null | grep -oP 'href="\KFedora-Cloud-Base-Generic-[^"]+\.x86_64\.qcow2(?=")' | sort -V | tail -1)
+FEDORA_ARCH="$(vm_arch_resolve x86_64 aarch64)"
+IMAGE_DIR="${MIRROR}/${FEDORA_RELEASE}/Cloud/${FEDORA_ARCH}/images"
+FILE=$(curl -fsSL "${IMAGE_DIR}/" 2>/dev/null | grep -oP 'href="\KFedora-Cloud-Base-Generic-[^"]+\.'"${FEDORA_ARCH}"'\.qcow2(?=")' | sort -V | tail -1)
 if [[ -z "$FILE" ]]; then
   msg_error "Could not determine the current Fedora Cloud image"
   exit 1
@@ -140,7 +141,7 @@ fi
 msg_info "Creating a Fedora VM"
 qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
   -name "$HN" -tags community-script -net0 virtio,bridge="$BRG",macaddr="$MAC""$VLAN""$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc "$STORAGE" "$VMID" "$DISK0" 4M 1>&/dev/null
+vm_alloc_efi_disk "$DISK0"
 pvesm alloc "$STORAGE" "$VMID" "$DISK2" 4M 1>&/dev/null
 qm importdisk "$VMID" "$WORK_FILE" "$STORAGE" -format "$DISK_IMPORT_FORMAT" 1>&/dev/null
 qm set "$VMID" \
@@ -168,7 +169,7 @@ post_update_to_api "done" "none"
 echo -e "\n${INFO}${BOLD}${GN}Fedora VM Configuration Summary:${CL}"
 echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
 echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
-echo -e "${TAB}${DGN}Release: ${BGN}Fedora ${FEDORA_RELEASE}${CL}"
+echo -e "${TAB}${DGN}Release: ${BGN}Fedora ${FEDORA_RELEASE} (${FEDORA_ARCH})${CL}"
 if [ -n "${CLOUDINIT_CRED_FILE:-}" ]; then
   echo -e "${TAB}${DGN}Cloud-Init credentials: ${BGN}${CLOUDINIT_CRED_FILE}${CL}"
 fi
