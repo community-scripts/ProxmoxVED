@@ -1,0 +1,79 @@
+{
+  "name": "UniFi Protect Backup",
+  "slug": "unifi-protect-backup",
+  "categories": [7, 15],
+  "date_created": "2026-09-16",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://github.com/ep1cman/unifi-protect-backup/blob/main/README.md",
+  "website": "https://github.com/ep1cman/unifi-protect-backup",
+  "repository": "https://github.com/ep1cman/unifi-protect-backup",
+  "architectures": ["amd64"],
+  "platforms": ["pve"],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/unifi.webp",
+  "description": "Backs up UniFi Protect motion and smart-detection event clips to local or rclone-supported off-site storage in real time.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/unifi-protect-backup.sh",
+      "config_path": "/opt/unifi-protect-backup/.env",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "app_vars": [
+    {
+      "name": "var_ufp_address",
+      "label": "UniFi Protect Address",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "var_ufp_username",
+      "label": "UniFi Protect Local Username",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "var_ufp_password",
+      "label": "UniFi Protect Local Password",
+      "type": "password",
+      "secret": true,
+      "required": true
+    },
+    {
+      "name": "var_ufp_ssl_verify",
+      "label": "Verify UniFi Protect TLS Certificate",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "name": "var_rclone_retention",
+      "label": "Backup Retention",
+      "type": "text",
+      "default": "30d"
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Create a dedicated local UniFi Protect user with access to the cameras before installation.",
+      "type": "info"
+    },
+    {
+      "text": "The initial configuration stores clips locally. Configure an rclone remote and update RCLONE_DESTINATION in /opt/unifi-protect-backup/.env for off-site storage.",
+      "type": "info"
+    }
+  ]
+}
+
