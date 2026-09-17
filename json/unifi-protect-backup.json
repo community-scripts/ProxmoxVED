@@ -59,6 +59,12 @@
       "label": "Backup Retention",
       "type": "text",
       "default": "30d"
+    },
+    {
+      "name": "var_missing_range",
+      "label": "Initial Missing Event Lookback",
+      "type": "text",
+      "default": "1h"
     }
   ],
   "default_credentials": {
@@ -73,7 +79,10 @@
     {
       "text": "The initial configuration stores clips locally. Configure an rclone remote and update RCLONE_DESTINATION in /opt/unifi-protect-backup/.env for off-site storage.",
       "type": "info"
+    },
+    {
+      "text": "The default container disk is 4 GB. Select Advanced Install to choose a larger disk when retaining clips locally.",
+      "type": "warning"
     }
   ]
 }
-
