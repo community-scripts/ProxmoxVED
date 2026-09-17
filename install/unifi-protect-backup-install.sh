@@ -28,31 +28,12 @@ cd /opt/unifi-protect-backup
 $STD uv sync --locked --no-editable
 msg_ok "Installed UniFi Protect Backup"
 
-if [[ -z "${var_ufp_address:-}" ]]; then
-  read -r -p "${TAB3}UniFi Protect address: " var_ufp_address
-fi
-if [[ -z "${var_ufp_address:-}" ]]; then
-  msg_error "UniFi Protect address is required"
-  exit 1
-fi
-if [[ -z "${var_ufp_username:-}" ]]; then
-  read -r -p "${TAB3}UniFi Protect local username: " var_ufp_username
-fi
-if [[ -z "${var_ufp_username:-}" ]]; then
-  msg_error "UniFi Protect local username is required"
-  exit 1
-fi
-
+prompt_input_required "UniFi Protect address" "" 60 "var_ufp_address"
+prompt_input_required "UniFi Protect local username" "" 60 "var_ufp_username"
 if [[ -z "${var_ufp_password:-}" ]]; then
   read -r -s -p "${TAB3}UniFi Protect local password: " var_ufp_password
   echo
 fi
-
-if [[ -z "${var_ufp_password:-}" ]]; then
-  msg_error "UniFi Protect local password is required"
-  exit 1
-fi
-
 var_ufp_ssl_verify="${var_ufp_ssl_verify:-false}"
 var_rclone_retention="${var_rclone_retention:-30d}"
 var_ufp_password="${var_ufp_password//\\/\\\\}"
