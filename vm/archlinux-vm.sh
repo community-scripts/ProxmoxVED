@@ -36,7 +36,7 @@ pushd $TEMP_DIR >/dev/null
 function default_settings() {
   vm_apply_machine_type "i440fx"
   VMID=$(get_valid_nextid)
-  DISK_SIZE="4G"
+  DISK_SIZE="10G"
   DISK_CACHE=""
   HN="arch-linux"
   CPU_TYPE=""
@@ -55,7 +55,7 @@ function advanced_settings() {
   METHOD="advanced"
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "i440fx"
-  vm_prompt_disk_size "4G"
+  vm_prompt_disk_size "10G"
   vm_prompt_disk_cache "none"
   vm_prompt_hostname "arch-linux"
   vm_prompt_cpu_model "kvm64"
@@ -80,74 +80,34 @@ function advanced_settings() {
 
 
 vm_preflight
-vm_start_script "Use Default Settings?\n\nDefaults:\n• 1 CPU Core\n• 1 GB RAM\n• 4 GB Disk" 13 58
+vm_start_script "Use Default Settings?\n\nDefaults:\n• 1 CPU Core\n• 1 GB RAM\n• 10 GB Disk" 13 58
 post_to_api_vm
 
 vm_select_storage "$HN"
 msg_info "Retrieving the URL for the Arch Linux .iso File"
 URL=https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
+FILENAME="archlinux-x86_64.iso"
+# -cdrom resolves against the iso content dir, so the download has to land
+# there rather than in the image cache.
+CACHE_FILE="/var/lib/vz/template/iso/${FILENAME}"
+mkdir -p "$(dirname "$CACHE_FILE")"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-CACHE_FILE="$(vm_image_cache_path "$URL")"
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
-FILE="$(basename "$CACHE_FILE")"
-# Work on a copy: vm_prepare_cloud_image rewrites the image, which would
-# poison the cache for every later VM.
-cp -f "$CACHE_FILE" "$FILE"
-
-# Console, guest agent, machine-id and root login -- the image was
-# imported untouched before, so it had none of them.
-vm_prepare_cloud_image "$FILE" "$HN" || true
-
-STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')
-case $STORAGE_TYPE in
-nfs | dir | cifs)
-  DISK_EXT=".qcow2"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="--format qcow2"
-  THIN=""
-  ;;
-btrfs)
-  DISK_EXT=".raw"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="--format raw"
-  THIN=""
-  ;;
-*)
-  DISK_EXT=""
-  DISK_REF=""
-  DISK_IMPORT="--format raw"
-  ;;
-esac
 
 msg_info "Creating a Arch Linux VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 
-if qm disk import --help >/dev/null 2>&1; then
-  IMPORT_CMD=(qm disk import)
-else
-  IMPORT_CMD=(qm importdisk)
-fi
-
-IMPORT_OUT="$("${IMPORT_CMD[@]}" "$VMID" "${FILE}" "$STORAGE" ${DISK_IMPORT:-} 2>&1 || true)"
-DISK_REF_IMPORTED="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk '\([^']\+\)'.*/\1/p" | tr -d "\r\"'")"
-[[ -z "$DISK_REF_IMPORTED" ]] && DISK_REF_IMPORTED="$(pvesm list "$STORAGE" | awk -v id="$VMID" '$5 ~ ("vm-"id"-disk-") {print $1":"$5}' | sort | tail -n1)"
-[[ -z "$DISK_REF_IMPORTED" ]] && {
-  msg_error "Unable to determine imported disk reference."
-  echo "$IMPORT_OUT"
-  exit 226
-}
-msg_ok "Imported disk (${CL}${BL}${DISK_REF_IMPORTED}${CL})"
-
+# The ISO is the installer, not the system: an empty disk takes scsi0 and wins
+# the boot order as soon as something is on it.
 qm set $VMID \
   -efidisk0 ${STORAGE}:0,efitype=4m \
-  -scsi0 ${DISK_REF_IMPORTED},${DISK_CACHE}${THIN%,} \
-  -ide2 ${STORAGE}:cloudinit \
-  -boot order=scsi0 \
+  -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
+  -cdrom local:iso/${FILENAME} \
+  -boot order='scsi0;ide2' \
   -serial0 socket >/dev/null
 set_description
-vm_resize_disk
 
 msg_ok "Created a Arch Linux VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
@@ -156,5 +116,18 @@ if [ "$START_VM" == "yes" ]; then
   msg_ok "Started Arch Linux VM"
 fi
 post_update_to_api "done" "none"
+
+echo -e "\n${INFO}${BOLD}${GN}Arch Linux VM Configuration Summary:${CL}"
+echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
+echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
+echo -e "${TAB}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
+
+echo -e "\n${INFO}${BOLD}${YW}Next Steps:${CL}"
+echo -e "${TAB}1. Open the VM Console in Proxmox - the live ISO logs in as root by itself"
+echo -e "${TAB}2. Run ${BL}archinstall${CL}, or install by hand, onto ${BL}/dev/sda${CL}"
+echo -e "${TAB}3. Detach the ISO afterwards (${BL}qm set ${VMID} --ide2 none${CL}) -- the boot"
+echo -e "${TAB}   order already prefers the disk"
+echo -e "${TAB}4. The ISO carries no Cloud-Init and no guest agent. Install"
+echo -e "${TAB}   ${BL}qemu-guest-agent${CL} in the guest for Proxmox to show its IP"
 
 msg_ok "Completed successfully!\n"
