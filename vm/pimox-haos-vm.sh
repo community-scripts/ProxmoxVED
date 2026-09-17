@@ -42,6 +42,8 @@ trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
+vm_require_arch arm64
+
 vm_preflight
 
 TEMP_DIR=$(mktemp -d)

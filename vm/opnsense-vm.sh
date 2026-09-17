@@ -33,6 +33,8 @@ trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
+vm_require_arch amd64
+
 function check_disk_space() {
   local path="$1"
   local required_gb="$2"

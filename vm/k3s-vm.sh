@@ -130,7 +130,7 @@ function select_cloud_init() {
 
 function get_image_url() {
   local arch
-  arch=$(dpkg --print-architecture)
+  arch=$(vm_arch_resolve amd64 arm64)
   case $OS_TYPE in
   debian)
     if [ "$USE_CLOUD_INIT" = "yes" ]; then
@@ -252,7 +252,7 @@ done
 msg_info "Creating a ${OS_DISPLAY} VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
+vm_alloc_efi_disk "$DISK0"
 qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \
@@ -262,33 +262,23 @@ qm set $VMID \
 
 vm_resize_disk
 
-case "$(dpkg --print-architecture)" in
-amd64)
-  K9S_ARCH="amd64"
-  ;;
-arm64)
-  K9S_ARCH="arm64"
-  ;;
-*)
-  K9S_ARCH="amd64"
-  ;;
-esac
-K9S_URL="https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_${K9S_ARCH}.tar.gz"
+TOOL_ARCH="$(vm_arch_resolve amd64 arm64)"
+K9S_URL="https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_${TOOL_ARCH}.tar.gz"
 msg_info "Add in Image K3s & Helm"
 virt-customize -q -a "${FILE}" \
   --hostname "${HN}" \
   --install curl,wget,tar,ca-certificates,gnupg,iptables \
   --run-command 'curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644' \
   --run-command 'ln -sf /usr/local/bin/k3s /usr/local/bin/kubectl' \
-  --run-command 'wget -q https://get.helm.sh/helm-v3.18.1-linux-amd64.tar.gz -O /tmp/helm.tar.gz' \
+  --run-command "wget -q https://get.helm.sh/helm-v3.18.1-linux-${TOOL_ARCH}.tar.gz -O /tmp/helm.tar.gz" \
   --run-command 'tar -xzf /tmp/helm.tar.gz -C /tmp' \
-  --run-command 'mv /tmp/linux-amd64/helm /usr/local/bin/helm' \
+  --run-command "mv /tmp/linux-${TOOL_ARCH}/helm /usr/local/bin/helm" \
   --run-command 'chmod +x /usr/local/bin/helm' \
   --run-command 'echo "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> /root/.bashrc' >/dev/null
 
 msg_ok "Added in Image K3s & Helm"
 
-msg_info "Adding k9s (${K9S_ARCH})"
+msg_info "Adding k9s (${TOOL_ARCH})"
 if curl -fsSL "$K9S_URL" -o /tmp/k9s.tar.gz; then
   if virt-customize -q -a "${FILE}" \
     --upload /tmp/k9s.tar.gz:/tmp/k9s.tar.gz \

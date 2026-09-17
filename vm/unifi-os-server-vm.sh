@@ -37,6 +37,8 @@ trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
 trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
 
+vm_require_arch amd64
+
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 
