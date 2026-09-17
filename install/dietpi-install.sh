@@ -43,4 +43,6 @@ rm -f /etc/apt/sources.list.d/debian.sources
 msg_ok "Configured DietPi"
 
 customize
+# Autologin on tty1 only: DietPi's first run setup runs on the first console that logs in, and the Proxmox UI attaches to tty1
+rm -f /etc/systemd/system/console-getty.service.d/override.conf
 cleanup_lxc
