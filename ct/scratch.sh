@@ -8,11 +8,6 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 
 APP="Scratch"
 var_tags="${var_tags:-education;programming}"
-# 4 CPU / 6 GB RAM are needed only for the one-time build: `npm run build` compiles
-# the whole scratch-editor workspace (scratch-vm, scratch-render, scratch-gui, ...)
-# with webpack/TypeScript, which peaked at ~4 GB RAM in testing and benefits from
-# extra cores. Once installed, the container just serves static files via nginx and
-# idles far below this - safe to shrink afterwards, raise again before update_script.
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-6144}"
 var_disk="${var_disk:-8}"
@@ -37,19 +32,18 @@ function update_script() {
   fi
 
   if check_for_gh_release "scratch-editor" "scratchfoundation/scratch-editor"; then
-    msg_info "Updating $APP"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "scratch-editor" "scratchfoundation/scratch-editor" "tarball"
+
+    msg_info "Building Scratch"
     export NODE_OPTIONS="--max-old-space-size=2560"
     export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "scratch-editor" "scratchfoundation/scratch-editor" "tarball"
     cd /opt/scratch-editor
     $STD npm install
     $STD npm run build
     rm -rf /var/www/scratch
     cp -a /opt/scratch-editor/packages/scratch-gui/build /var/www/scratch
     systemctl reload nginx
-    msg_ok "Updated $APP"
-  else
-    msg_ok "No update required, ${APP} is already at the latest version"
+    msg_ok "Built Scratch"
   fi
   exit
 }

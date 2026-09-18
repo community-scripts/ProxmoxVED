@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y --no-install-recommends \
+$STD apt install -y \
   build-essential \
   python3 \
   libcairo2-dev \

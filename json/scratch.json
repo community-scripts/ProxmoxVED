@@ -32,7 +32,7 @@
     },
     "notes": [
         {
-            "text": "The 4 CPU / 6 GB RAM default is only for the one-time build: the installer clones scratch-editor and runs 'npm run build' across the whole workspace (scratch-storage, scratch-vm, scratch-render, scratch-paint, scratch-gui, ...), and that webpack/TypeScript build peaked at ~4 GB RAM and ran noticeably faster with more CPU cores in testing. Once the build finishes, the container only serves the compiled static files via nginx and idles at a fraction of that — feel free to shrink CPU/RAM afterwards (e.g. 1 CPU / 512 MB) if you want to reclaim host resources, and raise them again before running the update script.",
+            "text": "The default 4 CPU / 6 GB RAM is only needed for the initial build; the container idles much lower afterwards and can be shrunk.",
             "type": "warning"
         },
         {
