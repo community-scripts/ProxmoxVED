@@ -18,6 +18,7 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_arm64="${var_arm64:-yes}" # upstream ships official multi-arch (amd64+arm64) images; not independently verified on arm64 hardware by this script's author
 var_unprivileged="${var_unprivileged:-1}"
+var_fuse="${var_fuse:-no}" # set yes (or answer the advanced-install prompt) to add features: fuse=1, needed for the optional Shares > FUSE library mount
 
 header_info "$APP"
 variables
@@ -39,6 +40,7 @@ function update_script() {
     systemctl stop aiostreams
     msg_ok "Stopped Service"
 
+    ensure_dependencies jq
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "aiostreams" "Viren070/AIOStreams" "tarball" "latest" "" "" "v"
     AIOSTREAMS_TAG="v$(cat ~/.aiostreams)"
 
@@ -54,7 +56,6 @@ function update_script() {
     msg_ok "Built Application"
 
     msg_info "Generating Version Metadata"
-    ensure_dependencies jq
     mkdir -p /opt/aiostreams/resources
     AIOSTREAMS_VERSION=$(jq -r '.version' /opt/aiostreams/package.json)
     AIOSTREAMS_DESC=$(jq -r '.description' /opt/aiostreams/package.json)

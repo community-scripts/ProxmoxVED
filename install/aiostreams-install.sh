@@ -23,15 +23,13 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
+ensure_dependencies jq
 
 fetch_and_deploy_gh_release "aiostreams" "Viren070/AIOStreams" "tarball" "latest" "" "" "v"
 AIOSTREAMS_TAG="v$(cat ~/.aiostreams)"
 
-msg_info "Enabling Corepack"
-corepack enable
-msg_ok "Enabled Corepack"
-
 msg_info "Configuring Application"
+corepack enable
 mkdir -p /opt/aiostreams_data
 cp /opt/aiostreams/.env.sample /opt/aiostreams_data/.env
 SECRET_KEY=$(openssl rand -hex 32)
@@ -54,7 +52,6 @@ cp -r /opt/aiostreams/packages/server/src/static /opt/aiostreams/packages/server
 msg_ok "Built AIOStreams"
 
 msg_info "Generating Version Metadata"
-ensure_dependencies jq
 mkdir -p /opt/aiostreams/resources
 AIOSTREAMS_VERSION=$(jq -r '.version' /opt/aiostreams/package.json)
 AIOSTREAMS_DESC=$(jq -r '.description' /opt/aiostreams/package.json)
@@ -76,9 +73,8 @@ cat <<EOF >/opt/aiostreams/resources/metadata.json
 EOF
 msg_ok "Generated Version Metadata"
 
-MIMALLOC_LIB=$(dpkg -L libmimalloc3 | grep -E '/libmimalloc\.so\.[0-9]+$' | head -1)
-
 msg_info "Creating Service"
+MIMALLOC_LIB=$(dpkg -L libmimalloc3 | grep -E '/libmimalloc\.so\.[0-9]+$' | head -1)
 cat <<EOF >/etc/systemd/system/aiostreams.service
 [Unit]
 Description=AIOStreams
