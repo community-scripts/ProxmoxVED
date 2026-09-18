@@ -1,0 +1,45 @@
+{
+  "instructions": "This repository is a testbed for Proxmox VE helper scripts. AGENTS.md and .github/agents/pve-script-creator.agent.md are binding, not advisory: when a diff contradicts them, leave a review comment quoting the rule it breaks instead of only mentioning it in the summary.\n\nThe shell engine lives in the separate community-scripts/core repository, which is attached as a pattern repository. ct/ and install/ scripts are not standalone -- they source core's build.func and call its helper functions. Before flagging an undefined function or a missing import, look for it in core; before suggesting hand-written download, version-check or runtime-setup logic, check whether core already provides a helper for it, because AGENTS.md forbids reimplementing those.\n\nvm/ scripts change here first and reach ProxmoxVE only by merge, so never suggest editing ProxmoxVE directly.",
+  "patternRepositories": ["community-scripts/core"],
+  "customContext": {
+    "files": [
+      {
+        "path": "AGENTS.md",
+        "description": "Binding conventions for every script in this repository: required header block, helper functions that must be used instead of hand-rolled logic, the anti-pattern list, var_arm64 rules, and Alpine/multi-OS handling.",
+        "scope": ["ct/**", "install/**", "vm/**", "json/**", "tools/**"]
+      },
+      {
+        "path": ".github/agents/pve-script-creator.agent.md",
+        "description": "Structure and checklist a new or changed app script must satisfy: the CT/install/JSON trio, application requirements, and the pre-merge checklist.",
+        "scope": ["ct/**", "install/**", "json/**"]
+      },
+      {
+        "path": ".github/pull_request_template.md",
+        "description": "Application requirements a newly added script must meet (600+ stars, 6+ months old, actively maintained, official release artifacts).",
+        "scope": ["ct/**", "install/**", "json/**"]
+      }
+    ],
+    "rules": [
+      {
+        "rule": "Never accept hand-written download, extraction, version-check or runtime-setup logic where core already ships a helper (fetch_and_deploy_gh_release, check_for_gh_release, setup_nodejs, setup_uv, setup_java, setup_mongodb, setup_deb822_repo, curl_download, arch_resolve). Reimplementing these is listed as an anti-pattern in AGENTS.md.",
+        "scope": ["ct/**", "install/**", "vm/**"]
+      },
+      {
+        "rule": "Reject Docker-based installations. Applications are installed bare-metal into the container.",
+        "scope": ["ct/**", "install/**"]
+      },
+      {
+        "rule": "A pinned upstream URL that embeds a version or a distribution codename will rot. Flag it and ask for a variant resolved at runtime.",
+        "scope": ["ct/**", "install/**", "vm/**"]
+      },
+      {
+        "rule": "Adding or changing an app script means all three files move together: ct/<app>.sh, install/<app>-install.sh and json/<app>.json. Flag a PR that touches one and not the others.",
+        "scope": ["ct/**", "install/**", "json/**"]
+      }
+    ]
+  },
+  "commentTypes": ["logic", "syntax", "style", "info", "advice", "checks", "notes"],
+  "strictness": 2,
+  "triggerOnUpdates": true,
+  "ignorePatterns": "docs/**"
+}

@@ -51,11 +51,14 @@ else
   exit_script
 fi
 
-# AlmaLinux 10 raises the baseline to x86-64-v3; 8 and 9 still run on v2 hosts.
-# That baseline is x86-only, so on aarch64 the default CPU model stands.
+# glibc aborts with exit 127 when the CPU is below the release baseline, which
+# the kernel then reports as "Attempted to kill init". kvm64 is only v1, so 9
+# and 10 both need a model named here. The baselines are x86-only, so on
+# aarch64 the default model stands.
 case "$var_version" in
 10) ALMA_CPU="$(vm_arch_resolve " -cpu x86-64-v3" "")" ;;
-9 | 8) ALMA_CPU="" ;;
+9) ALMA_CPU="$(vm_arch_resolve " -cpu x86-64-v2-AES" "")" ;;
+8) ALMA_CPU="" ;;
 *)
   msg_error "Unsupported AlmaLinux version '${var_version}'"
   exit 1
@@ -63,10 +66,10 @@ case "$var_version" in
 esac
 APP="AlmaLinux ${var_version} VM"
 
-# The GenericCloud image has no other way in, so this is not a choice; set once
-# here rather than in default_settings, where the advanced path missed it and
-# vm_provision then skipped provisioning entirely.
-USE_CLOUD_INIT="yes"
+# The GenericCloud image sets no password and has no console login, so the only
+# question is which credentials.
+CLOUDINIT_REQUIRED=1
+vm_prompt_cloud_init "almalinux"
 
 function default_settings() {
   vm_apply_machine_type "q35"
@@ -81,8 +84,9 @@ function default_settings() {
   MAC="$GEN_MAC"
   VLAN=""
   MTU=""
-  START_VM="no"
+  START_VM="yes"
   METHOD="default"
+  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
   vm_echo_default_settings
 }
 
@@ -94,9 +98,9 @@ function advanced_settings() {
   vm_prompt_disk_cache "none"
   vm_prompt_hostname "almalinux"
   vm_prompt_cpu_model "kvm64"
-  if [[ "$var_version" == "10" && -z "${CPU_TYPE:-}" && -n "$ALMA_CPU" ]]; then
+  if [[ -z "${CPU_TYPE:-}" && -n "$ALMA_CPU" ]]; then
     CPU_TYPE="$ALMA_CPU"
-    msg_warn "AlmaLinux 10 needs an x86-64-v3 CPU - keeping ${CPU_TYPE# -cpu } instead of kvm64"
+    msg_warn "AlmaLinux ${var_version} will not boot on kvm64 - keeping ${CPU_TYPE# -cpu }"
   fi
   vm_prompt_cpu_cores "2"
   vm_prompt_ram "2048"
@@ -144,13 +148,15 @@ FILE="$(basename "$CACHE_FILE")"
 # ==============================================================================
 # IMAGE CUSTOMIZATION
 # ==============================================================================
-msg_info "Customizing ${FILE} image"
-
 WORK_FILE=$(mktemp --suffix=.qcow2)
 cp "$CACHE_FILE" "$WORK_FILE"
 popd >/dev/null
 rm -rf "$TEMP_DIR"
+# vm_prepare_cloud_image draws its own spinner, so this one has to start after
+# it -- otherwise the three calls below run with nothing on screen.
 vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
+
+msg_info "Customizing ${FILE} image"
 virt-customize -q -a "$WORK_FILE" --run-command "systemctl disable systemd-firstboot.service 2>/dev/null; rm -f /etc/systemd/system/sysinit.target.wants/systemd-firstboot.service; ln -sf /dev/null /etc/systemd/system/systemd-firstboot.service" >/dev/null 2>&1 || true
 virt-customize -q -a "$WORK_FILE" --run-command "systemctl enable serial-getty@ttyS0.service" >/dev/null 2>&1 || true
 virt-customize -q -a "$WORK_FILE" --selinux-relabel >/dev/null 2>&1 || true

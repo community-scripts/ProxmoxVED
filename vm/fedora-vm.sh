@@ -115,12 +115,13 @@ URL="${IMAGE_DIR}/${FILE}"
 CACHE_FILE="$(vm_image_cache_path "$URL")"
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
 
-msg_info "Customizing ${FILE}"
 WORK_FILE=$(mktemp --suffix=.qcow2)
 cp "$CACHE_FILE" "$WORK_FILE"
 popd >/dev/null
 rm -rf "$TEMP_DIR"
 vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
+
+msg_info "Customizing ${FILE}"
 virt-customize -q -a "$WORK_FILE" --run-command "systemctl enable serial-getty@ttyS0.service" >/dev/null 2>&1 || true
 virt-customize -q -a "$WORK_FILE" --selinux-relabel >/dev/null 2>&1 || true
 msg_ok "Customized image"
