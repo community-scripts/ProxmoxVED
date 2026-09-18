@@ -36,23 +36,18 @@ $STD apt install -y \
   fonts-noto-core
 msg_ok "Installed Dependencies"
 
-GO_VERSION="1.27" setup_go
-
-# pdfcpu (one of Gotenberg's PDF engines) - use the prebuilt release binary
-case "$(dpkg --print-architecture)" in
-arm64) PDFCPU_ARCH="arm64" ;;
-*) PDFCPU_ARCH="x86_64" ;;
-esac
-fetch_and_deploy_gh_release "pdfcpu" "pdfcpu/pdfcpu" "prebuild" "latest" "/opt/pdfcpu" "pdfcpu_*_Linux_${PDFCPU_ARCH}.tar.xz"
+fetch_and_deploy_gh_release "pdfcpu" "pdfcpu/pdfcpu" "prebuild" "latest" "/opt/pdfcpu" "pdfcpu_*_Linux_$(arch_resolve "x86_64" "arm64").tar.xz"
 ln -sf "$(find /opt/pdfcpu -type f -name pdfcpu | head -n1)" /usr/local/bin/pdfcpu
 
 msg_info "Installing unoconverter"
-UNOCONVERTER_VERSION=$(get_latest_github_release "gotenberg/unoconverter")
-curl -fsSL "https://raw.githubusercontent.com/gotenberg/unoconverter/${UNOCONVERTER_VERSION}/unoconv" -o /usr/local/bin/unoconverter
+UNOCONVERTER_VERSION=$(get_latest_github_release "gotenberg/unoconverter" "false")
+download_file "https://raw.githubusercontent.com/gotenberg/unoconverter/${UNOCONVERTER_VERSION}/unoconv" /usr/local/bin/unoconverter
 chmod +x /usr/local/bin/unoconverter
 msg_ok "Installed unoconverter"
 
 fetch_and_deploy_gh_release "gotenberg" "gotenberg/gotenberg" "tarball" "latest" "/opt/gotenberg"
+
+GO_VERSION="$(awk '$1=="go"{print $2}' /opt/gotenberg/go.mod | cut -d. -f1,2)" setup_go
 
 msg_info "Building Gotenberg (Patience)"
 cd /opt/gotenberg
@@ -80,6 +75,7 @@ Environment=QPDF_BIN_PATH=/usr/bin/qpdf
 Environment=EXIFTOOL_BIN_PATH=/usr/bin/exiftool
 Environment=PDFCPU_BIN_PATH=/usr/local/bin/pdfcpu
 Environment=CHROMIUM_BIN_PATH=/usr/bin/chromium
+Environment=CHROMIUM_HYPHEN_DATA_DIR_PATH=/opt/gotenberg/build/chromium-hyphen-data
 Environment=LIBREOFFICE_BIN_PATH=/usr/lib/libreoffice/program/soffice.bin
 Environment=UNOCONVERTER_BIN_PATH=/usr/local/bin/unoconverter
 Environment=OTEL_TRACES_EXPORTER=none

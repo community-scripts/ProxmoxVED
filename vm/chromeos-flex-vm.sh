@@ -29,6 +29,8 @@ trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
+vm_require_arch amd64
+
 # /var/tmp rather than /tmp, the same choice opnsense-vm.sh makes: the extracted
 # recovery image is about 9.5 GB and /tmp is a tmpfs sized from RAM on a stock
 # Proxmox host (7.7 GiB on a 16 GB machine), so unzip runs it out of space.

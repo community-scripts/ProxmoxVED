@@ -47,6 +47,8 @@ trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
+vm_require_arch amd64
+
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
@@ -147,7 +149,7 @@ function advanced_settings() {
 }
 
 
-vm_start_script "Use Default Settings?" 10 58
+vm_start_script "Use Default Settings?\n\nDefaults:\n• 4 CPU Cores\n• 4 GB RAM\n• 20 GB Disk" 13 58
 post_to_api_vm
 
 vm_select_storage "$HN"

@@ -68,15 +68,31 @@ for script in "$VM_DIR"/*.sh; do
   adv=$(awk '/^(function )?advanced_settings\(\)/,/^}/' "$script")
   [[ -z "$adv" ]] && continue
 
+  # if/elif/while prefixes count as assignments too: `if VAR=$(whiptail ...)`
+  # is how every one of these wizards reads a value.
+  assign='^\s*(if|elif|while|until)?\s*\K[A-Z][A-Z0-9_]*(?==)'
+
   reads=$(grep -oP '\$\{?\K[A-Z][A-Z0-9_]*' <<<"$adv" | sort -u)
-  writes=$(grep -oP '^\s*\K[A-Z][A-Z0-9_]*(?==)' <<<"$adv" | sort -u)
+  writes=$(grep -oP "$assign" <<<"$adv" | sort -u)
   dwrites=$(awk '/^(function )?default_settings\(\)/,/^}/' "$script" |
-    grep -oP '^\s*\K[A-Z][A-Z0-9_]*(?==)' | sort -u)
+    grep -oP "$assign" | sort -u)
+  # Assigned in the script body, so it is set whichever path runs.
+  twrites=$(awk '
+      /^(function )?default_settings\(\)/,/^}/ {next}
+      /^(function )?advanced_settings\(\)/,/^}/ {next}
+      {print}
+    ' "$script" | grep -oP "$assign" | sort -u)
 
   for v in $(comm -12 <(echo "$reads") <(echo "$dwrites")); do
-    grep -qx "$v" <<<"$writes" && continue
+    grep -qx "$v" <<<"$twrites" && continue
     # Supplying a default inline is exactly the fix, so ${VAR:-something} passes.
     grep -q "\${$v:-" <<<"$adv" && continue
+
+    # Assigned here, but is it read before that? `if IP=$(whiptail ... $IP ...)`
+    # writes and reads on one line, and the read happens first.
+    wline=$(grep -nP "^\s*(if|elif|while|until)?\s*${v}=" <<<"$adv" | head -1 | cut -d: -f1)
+    rline=$(grep -nP "\\\$\{?${v}\b" <<<"$adv" | head -1 | cut -d: -f1)
+    [[ -n "$wline" && -n "$rline" && "$rline" -gt "$wline" ]] && continue
     echo "::error file=$script::advanced_settings reads \$$v, which only default_settings assigns -- it will be empty on the advanced path"
     fail=1
   done

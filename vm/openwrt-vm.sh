@@ -34,6 +34,8 @@ trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
+vm_require_arch amd64
+
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 function send_line_to_vm() {
@@ -226,7 +228,7 @@ function advanced_settings() {
     exit_script
   fi
 
-  if LAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router IP" 8 58 $LAN_IP_ADDR --title "LAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if LAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router IP" 8 58 "${LAN_IP_ADDR:-192.168.1.1}" --title "LAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $LAN_IP_ADDR ]; then
       LAN_IP_ADDR="192.168.1.1"
     fi
@@ -235,7 +237,7 @@ function advanced_settings() {
     exit_script
   fi
 
-  if LAN_NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router netmask" 8 58 $LAN_NETMASK --title "LAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if LAN_NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a router netmask" 8 58 "${LAN_NETMASK:-255.255.255.0}" --title "LAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $LAN_NETMASK ]; then
       LAN_NETMASK="255.255.255.0"
     fi
@@ -341,7 +343,7 @@ function advanced_settings() {
 
 
 vm_preflight
-vm_start_script "Use Default Settings?" 10 58
+vm_start_script "Use Default Settings?\n\nDefaults:\n• 1 CPU Core\n• 256 MB RAM\n• 1 GB Disk" 13 58
 post_to_api_vm
 
 vm_select_storage "$HN"

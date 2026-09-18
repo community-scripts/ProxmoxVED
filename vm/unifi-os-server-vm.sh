@@ -37,6 +37,8 @@ trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
 trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
 
+vm_require_arch amd64
+
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 
@@ -232,7 +234,7 @@ function advanced_settings() {
 
 vm_preflight
 
-vm_start_script "Use Default Settings?" 10 58
+vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 6 GB RAM\n• 32 GB Disk\n• Cloud-Init enabled" 14 58
 post_to_api_vm
 
 msg_info "Checking system resources"

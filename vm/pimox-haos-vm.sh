@@ -42,6 +42,8 @@ trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
+vm_require_arch arm64
+
 vm_preflight
 
 TEMP_DIR=$(mktemp -d)
@@ -206,7 +208,7 @@ function advanced_settings() {
     advanced_settings
   fi
 }
-vm_start_script "Use Default Settings?" 10 58
+vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 4 GB RAM\n• 32 GB Disk" 13 58
 post_to_api_vm
 while read -r line; do
   TAG=$(echo $line | awk '{print $1}')
