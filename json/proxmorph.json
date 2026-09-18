@@ -1,0 +1,42 @@
+{
+  "name": "ProxMorph",
+  "slug": "proxmorph",
+  "categories": [
+    99
+  ],
+  "date_created": "2026-09-15",
+  "type": "pve",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": null,
+  "website": "https://github.com/IT-BAER/proxmorph",
+  "repository": "https://github.com/IT-BAER/proxmorph",
+  "architectures": [
+    "amd64"
+  ],
+  "platforms": [
+    "pve"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/proxmorph.webp",
+  "description": "ProxMorph adds custom theme for ProxmoxVE, like Dracula or Solarized.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "tools/pve/proxmorph.sh",
+      "config_path": "/opt/proxmorph",
+      "resources": {
+        "cpu": null,
+        "ram": null,
+        "hdd": null,
+        "os": null,
+        "version": "PVE 8.x / 9.x"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
