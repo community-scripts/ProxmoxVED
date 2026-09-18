@@ -106,26 +106,12 @@ function select_os() {
 }
 
 function select_cloud_init() {
+  # Ubuntu cloud images configure netplan from cloud-init only, so there the
+  # question is which credentials rather than whether.
   if [ "$OS_TYPE" = "ubuntu" ]; then
-    USE_CLOUD_INIT="yes"
-    echo -e "${CLOUD:-${TAB}☁️${TAB}${CL}}${BOLD}${DGN}Cloud-Init: ${BGN}yes (Ubuntu requires Cloud-Init)${CL}"
-    return
+    CLOUDINIT_REQUIRED=1
   fi
-
-  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
-    USE_CLOUD_INIT="${VM_CLOUD_INIT:-no}"
-    echo -e "${CLOUD:-${TAB}☁️${TAB}${CL}}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
-    return
-  fi
-
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT" \
-    --yesno "Enable Cloud-Init for VM configuration?\n\nCloud-Init allows automatic configuration of:\n- User accounts and passwords\n- SSH keys\n- Network settings (DHCP/Static)\n- DNS configuration\n\nYou can also configure these settings later in Proxmox UI." 16 68); then
-    USE_CLOUD_INIT="yes"
-    echo -e "${CLOUD:-${TAB}☁️${TAB}${CL}}${BOLD}${DGN}Cloud-Init: ${BGN}yes${CL}"
-  else
-    USE_CLOUD_INIT="no"
-    echo -e "${CLOUD:-${TAB}☁️${TAB}${CL}}${BOLD}${DGN}Cloud-Init: ${BGN}no${CL}"
-  fi
+  vm_prompt_cloud_init "$OS_TYPE"
 }
 
 function get_image_url() {
@@ -145,21 +131,18 @@ function get_image_url() {
   esac
 }
 
-get_valid_nextid
-cleanup_vmid
-cleanup
-post_update_to_api "done" "none"
-[[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]] && rm -rf "$TEMP_DIR"
 vm_preflight
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 
+# The OS picks the image and the image decides whether Cloud-Init is optional,
+# so both are settled before the Default/Advanced fork rather than inside it.
+select_os
+select_cloud_init
+
 function default_settings() {
   vm_apply_machine_type "q35"
-  select_os
-  select_cloud_init
-
   VMID=$(get_valid_nextid)
   DISK_SIZE="10G"
   DISK_CACHE=""
@@ -173,13 +156,12 @@ function default_settings() {
   MTU=""
   START_VM="yes"
   METHOD="default"
+  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
   vm_echo_default_settings
 }
 
 function advanced_settings() {
   METHOD="advanced"
-  select_os
-  select_cloud_init
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
   vm_prompt_disk_size "10G"
