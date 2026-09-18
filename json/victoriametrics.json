@@ -1,0 +1,48 @@
+{
+  "name": "VictoriaMetrics",
+  "slug": "victoriametrics",
+  "categories": [9],
+  "date_created": "2026-09-17",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8428,
+  "documentation": "https://docs.victoriametrics.com/victoriametrics/",
+  "website": "https://victoriametrics.com/",
+  "repository": "https://github.com/VictoriaMetrics/VictoriaMetrics",
+  "architectures": ["amd64", "arm64"],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/victoriametrics.webp",
+  "description": "VictoriaMetrics is a fast, cost-effective and scalable open-source time series database and monitoring solution designed to handle high volumes of metrics data with minimal resource usage.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/victoriametrics.sh",
+      "config_path": "/etc/systemd/system/victoriametrics.service",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "VictoriaMetrics has no built-in authentication. Use a reverse proxy with authentication for production deployments.",
+      "type": "warning"
+    },
+    {
+      "text": "Data is stored in /opt/victoriametrics_data and persists across updates.",
+      "type": "info"
+    },
+    {
+      "text": "This is the single-node version. For cluster deployments, see VictoriaMetrics Cluster documentation.",
+      "type": "info"
+    }
+  ]
+}
