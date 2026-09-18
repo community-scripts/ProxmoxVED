@@ -38,7 +38,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "victorialogs" "VictoriaMetrics/VictoriaLogs" "prebuild" "latest" "/opt/victorialogs" "victoria-logs-linux-$(arch_resolve amd64 arm64)-v*[0-9].tar.gz"
-    fetch_and_deploy_gh_release "vlutils" "VictoriaMetrics/VictoriaLogs" "prebuild" "latest" "/opt/victorialogs" "vlutils-linux-$(arch_resolve amd64 arm64)-v*[0-9].tar.gz"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "vlutils" "VictoriaMetrics/VictoriaLogs" "prebuild" "latest" "/opt/vlutils" "vlutils-linux-$(arch_resolve amd64 arm64)-v*[0-9].tar.gz"
 
     msg_info "Starting Service"
     systemctl start victorialogs

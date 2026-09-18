@@ -40,7 +40,7 @@
       "type": "info"
     },
     {
-      "text": "vlutils (vlogscli, vlagent, vlogsgenerator) are installed alongside the server in /opt/victorialogs.",
+      "text": "vlutils (vlogscli, vlagent) are installed in /opt/vlutils.",
       "type": "info"
     }
   ]
