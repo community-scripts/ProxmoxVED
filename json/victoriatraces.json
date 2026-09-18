@@ -1,0 +1,48 @@
+{
+  "name": "VictoriaTraces",
+  "slug": "victoriatraces",
+  "categories": [9],
+  "date_created": "2026-09-17",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 10428,
+  "documentation": "https://docs.victoriametrics.com/victoriatraces/",
+  "website": "https://victoriametrics.com/products/victoriatraces/",
+  "repository": "https://github.com/VictoriaMetrics/VictoriaTraces",
+  "architectures": ["amd64", "arm64"],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/victoriametrics.webp",
+  "description": "VictoriaTraces is a fast and cost-effective distributed tracing database that can efficiently handle terabytes of trace spans with minimal resource usage.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/victoriatraces.sh",
+      "config_path": "/etc/systemd/system/victoriatraces.service",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "VictoriaTraces has no built-in authentication. Use a reverse proxy with authentication for production deployments.",
+      "type": "warning"
+    },
+    {
+      "text": "Data is stored in /opt/victoriatraces_data and persists across updates.",
+      "type": "info"
+    },
+    {
+      "text": "Accepts traces via OTLP HTTP protocol on the same port.",
+      "type": "info"
+    }
+  ]
+}
