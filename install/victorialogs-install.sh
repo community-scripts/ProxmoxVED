@@ -16,11 +16,8 @@ update_os
 fetch_and_deploy_gh_release "victorialogs" "VictoriaMetrics/VictoriaLogs" "prebuild" "latest" "/opt/victorialogs" "victoria-logs-linux-$(arch_resolve amd64 arm64)-v*[0-9].tar.gz"
 fetch_and_deploy_gh_release "vlutils" "VictoriaMetrics/VictoriaLogs" "prebuild" "latest" "/opt/vlutils" "vlutils-linux-$(arch_resolve amd64 arm64)-v*[0-9].tar.gz"
 
-msg_info "Setting up Data Directory"
-mkdir -p /opt/victorialogs_data
-msg_ok "Set up Data Directory"
-
 msg_info "Creating Service"
+mkdir -p /opt/victorialogs_data
 cat <<EOF >/etc/systemd/system/victorialogs.service
 [Unit]
 Description=VictoriaLogs Service
