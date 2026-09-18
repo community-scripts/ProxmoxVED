@@ -45,4 +45,8 @@ msg_ok "Configured DietPi"
 customize
 # Autologin on tty1 only: DietPi's first run setup runs on the first console that logs in, and the Proxmox UI attaches to tty1
 rm -f /etc/systemd/system/console-getty.service.d/override.conf
+# agetty takes the "-" after the baud rates as the terminal type, and DietPi's first run setup dies on TERM=-
+if [[ -f /etc/systemd/system/container-getty@1.service.d/override.conf ]]; then
+  sed -i 's/ - linux$/ linux/' /etc/systemd/system/container-getty@1.service.d/override.conf
+fi
 cleanup_lxc
