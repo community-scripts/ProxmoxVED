@@ -15,7 +15,7 @@ var_disk="${var_disk:-10}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
-var_arm64="${var_arm64:-yes}"
+#var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
 
 header_info "$APP"
 variables
@@ -38,6 +38,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "victorialogs" "VictoriaMetrics/VictoriaLogs" "prebuild" "latest" "/opt/victorialogs" "victoria-logs-linux-$(arch_resolve amd64 arm64)-v*[0-9].tar.gz"
+    fetch_and_deploy_gh_release "vlutils" "VictoriaMetrics/VictoriaLogs" "prebuild" "latest" "/opt/victorialogs" "vlutils-linux-$(arch_resolve amd64 arm64)-v*[0-9].tar.gz"
 
     msg_info "Starting Service"
     systemctl start victorialogs

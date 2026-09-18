@@ -10,7 +10,6 @@
   "documentation": "https://docs.victoriametrics.com/victorialogs/",
   "website": "https://victoriametrics.com/products/victorialogs/",
   "repository": "https://github.com/VictoriaMetrics/VictoriaLogs",
-  "architectures": ["amd64", "arm64"],
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/victoriametrics.webp",
   "description": "VictoriaLogs is a fast, cost-effective and scalable open-source log database that can efficiently handle terabytes of logs with minimal resources.",
   "install_methods": [
@@ -38,6 +37,10 @@
     },
     {
       "text": "Data is stored in /opt/victorialogs_data and persists across updates.",
+      "type": "info"
+    },
+    {
+      "text": "vlutils (vlogscli, vlagent, vlogsgenerator) are installed alongside the server in /opt/victorialogs.",
       "type": "info"
     }
   ]
