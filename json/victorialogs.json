@@ -1,0 +1,47 @@
+{
+  "name": "VictoriaLogs",
+  "slug": "victorialogs",
+  "categories": [9],
+  "date_created": "2026-09-17",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 9428,
+  "documentation": "https://docs.victoriametrics.com/victorialogs/",
+  "website": "https://victoriametrics.com/products/victorialogs/",
+  "repository": "https://github.com/VictoriaMetrics/VictoriaLogs",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/victoriametrics.webp",
+  "description": "VictoriaLogs is a fast, cost-effective and scalable open-source log database that can efficiently handle terabytes of logs with minimal resources.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/victorialogs.sh",
+      "config_path": "/etc/systemd/system/victorialogs.service",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "VictoriaLogs has no built-in authentication. Use a reverse proxy with authentication for production deployments.",
+      "type": "warning"
+    },
+    {
+      "text": "Data is stored in /opt/victorialogs_data and persists across updates.",
+      "type": "info"
+    },
+    {
+      "text": "vlutils (vlogscli, vlagent) are installed in /opt/vlutils.",
+      "type": "info"
+    }
+  ]
+}
