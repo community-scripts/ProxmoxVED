@@ -49,6 +49,10 @@
       "type": "info"
     },
     {
+      "text": "One Anubis instance protects one TARGET. For another service, copy /etc/anubis/main.env to /etc/anubis/<name>.env with its own BIND, METRICS_BIND and TARGET and run `systemctl enable --now anubis@<name>`. Alternatively point TARGET at a reverse proxy that routes by Host header and a single instance covers all its sites.",
+      "type": "info"
+    },
+    {
       "text": "Bot policies live in /etc/anubis/main.botPolicies.yaml (a copy of the upstream default). Prometheus metrics are exposed on port 9090.",
       "type": "info"
     }
