@@ -20,6 +20,9 @@ setup_deb822_repo \
   "$(get_os_info codename)" \
   "main"
 
+var_admin_user="${var_admin_user:-admin}"
+var_admin_pass="${var_admin_pass:-$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)}"
+
 msg_info "Installing Tvheadend"
 echo "tvheadend tvheadend/admin_username string ${var_admin_user}" | debconf-set-selections
 echo "tvheadend tvheadend/admin_password password ${var_admin_pass}" | debconf-set-selections
