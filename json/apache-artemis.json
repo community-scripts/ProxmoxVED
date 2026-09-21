@@ -1,0 +1,39 @@
+{
+  "name": "Apache-Artemis",
+  "slug": "apache-artemis",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-09-30",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": ["amd64"],
+  "interface_port": 8161,
+  "documentation": "https://artemis.apache.org/",
+  "website": "https://artemis.apache.org/",
+  "repository": "https://github.com/apache/artemis",
+  "logo": "https://artemis.apache.org/assets/img/favicon.png",
+  "description": "Apache Artemis™ is multi-protocol message broker, supporting various industry standard protocols such as AMQP 1.0, MQTT 3.1.1, MQTT 5, and STOMP. This enables users to connect from across a broad range of languages and platforms, using clients written in Java, JavaScript, C, C++, Python, .Net, and more. Artemis offers the power and flexibility to support your messaging use-case.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/apache-artemis.sh",
+      "config_path": "/opt/artemis/test_broker/etc",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 3,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+
+  ]
+}
