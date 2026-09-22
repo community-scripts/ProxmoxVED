@@ -129,9 +129,9 @@ msg_ok "Configured Supervisor"
 msg_info "Creating Environment"
 MQTT_USERNAME="bunker"
 MQTT_PASSWORD="bunker"
-JWT_SECRET=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | cut -c1-48)
-API_KEY=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | cut -c1-48)
-AUTH_SECRET=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | cut -c1-48)
+JWT_SECRET=$(random_password 48)
+API_KEY=$(random_password 48)
+AUTH_SECRET=$(random_password 48)
 cat <<EOF >/etc/bunkerm/bunkerm.env
 MQTT_BROKER=localhost
 MQTT_PORT=1900

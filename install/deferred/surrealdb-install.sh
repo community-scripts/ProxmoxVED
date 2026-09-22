@@ -19,7 +19,7 @@ ln -sf /opt/surrealdb/surreal /usr/local/bin/surreal
 
 msg_info "Configuring SurrealDB"
 mkdir -p /opt/surrealdb/data
-SURREALDB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+SURREALDB_PASS=$(random_password 13)
 cat <<EOF >/opt/surrealdb/.env
 SURREALDB_PASS=${SURREALDB_PASS}
 EOF

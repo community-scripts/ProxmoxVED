@@ -30,7 +30,7 @@ msg_info "Configuring Razzia"
 mkdir -p /opt/razzia-config
 cat <<EOF >/opt/razzia-config/game.json
 {
-  "managerPassword": "$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)"
+  "managerPassword": "$(random_password 13)"
 }
 EOF
 msg_ok "Configured Razzia"

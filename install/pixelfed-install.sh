@@ -37,7 +37,7 @@ PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="bcmath,ctype,curl,exif,gd,imagick,in
 setup_composer
 
 msg_info "Configuring Redis"
-REDIS_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+REDIS_PASS=$(random_password 13)
 sed -i "s/^# requirepass foobared/requirepass $REDIS_PASS/" /etc/redis/redis.conf
 sed -i "s/^requirepass .*/requirepass $REDIS_PASS/" /etc/redis/redis.conf
 systemctl restart redis-server

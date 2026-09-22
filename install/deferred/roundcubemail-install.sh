@@ -30,7 +30,7 @@ msg_ok "Installed Dependencies"
 msg_info "Setting up PostgreSQL"
 DB_NAME=roundcube_db
 DB_USER=roundcube_user
-DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
+DB_PASS="$(random_password 13)"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH ENCODING 'UTF8';"
 $STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"

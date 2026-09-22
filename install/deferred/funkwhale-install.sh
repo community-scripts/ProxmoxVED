@@ -95,7 +95,7 @@ DB_NAME=funkwhale
 DB_USER=funkwhale
 DB_EXTENSION_UNACCENT=unaccent
 DB_EXTENSION_CITEXT=citext
-DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
+DB_PASS="$(random_password 13)"
 SECRET_KEY="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)"
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMPLATE template0;"
@@ -113,7 +113,7 @@ msg_ok "Set up PostgreSQL database"
 msg_info "Setting up Funkwhale and systemd"
 FUNKWHALE_USER=funkwhale_su
 FUNKWHALE_MAIL=mail@example.com
-FUNKWHALE_PASS="$(openssl rand -base64 18 | cut -c1-13)"
+FUNKWHALE_PASS="$(random_password 13)"
 echo -e "Funkwhale Superuser: \e[32m$FUNKWHALE_USER\e[0m" >>~/funkwhale.creds
 echo -e "Funkwhale Mail: \e[32m$FUNKWHALE_MAIL\e[0m" >>~/funkwhale.creds
 echo -e "Funkwhale Superuser Password: \e[32m$FUNKWHALE_PASS\e[0m" >>~/funkwhale.creds

@@ -78,7 +78,7 @@ msg_ok "Initialized Castopod Database"
 msg_info "Creating Castopod Superadmin"
 CASTOPOD_ADMIN_USERNAME="admin"
 CASTOPOD_ADMIN_EMAIL="admin@${LOCAL_IP}.nip.io"
-CASTOPOD_ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-20)"
+CASTOPOD_ADMIN_PASSWORD="$(random_password 20)"
 if ! printf '%s\n%s\n' "${CASTOPOD_ADMIN_PASSWORD}" "${CASTOPOD_ADMIN_PASSWORD}" |
   runuser -u www-data -- php /opt/castopod/spark install:create-superadmin \
     -n "${CASTOPOD_ADMIN_USERNAME}" \

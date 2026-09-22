@@ -85,7 +85,7 @@ $STD dotnet publish Utilities/AliasVault.InstallCli/AliasVault.InstallCli.csproj
 msg_ok "Built AliasVault Applications"
 
 msg_info "Generating Secrets and Configuration"
-ADMIN_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
+ADMIN_PASS=$(random_password 16)
 ADMIN_HASH=$(dotnet /opt/aliasvault/installcli/AliasVault.InstallCli.dll hash-password "$ADMIN_PASS")
 ADMIN_GENERATED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 JWT_KEY=$(openssl rand -base64 32)

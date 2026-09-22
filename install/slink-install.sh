@@ -37,7 +37,7 @@ msg_info "Setting up API"
 cd /opt/slink/services/api
 [[ -f .env.example ]] && cp .env.example .env
 APP_SECRET=$(openssl rand -hex 16)
-ADMIN_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c12)
+ADMIN_PASS=$(random_password 12)
 JWT_PASS=$(openssl rand -hex 16)
 {
   echo ""

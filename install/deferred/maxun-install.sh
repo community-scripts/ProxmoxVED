@@ -46,10 +46,10 @@ fetch_and_deploy_gh_release "maxun" "getmaxun/maxun" "tarball" "latest" "/opt/ma
 
 msg_info "Setting up Variables"
 MINIO_USER="minio_admin"
-MINIO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-JWT_SECRET=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c48)
+MINIO_PASS=$(random_password 13)
+JWT_SECRET=$(random_password 48)
 ENCRYPTION_KEY=$(openssl rand -hex 32)
-SESSION_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c32)
+SESSION_SECRET=$(random_password 32)
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 msg_ok "Variables configured"
 
