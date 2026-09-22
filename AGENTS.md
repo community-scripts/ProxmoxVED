@@ -441,6 +441,20 @@ fetch_and_deploy_gh_release "appname" "owner/repo" "singlefile" "latest" "/opt/a
 CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 ```
 
+`CLEAN_INSTALL=1` empties the target first, dotfiles included. Anything the
+install script put there that the release tarball does not carry — a downloaded
+data directory, a symlink into `/opt` — is gone with it. List those paths in
+`CLEAN_INSTALL_KEEP` (space-separated, relative to the target, nesting allowed)
+and they survive the wipe:
+
+```bash
+CLEAN_INSTALL_KEEP="geodata data/uploads" CLEAN_INSTALL=1 \
+  fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
+```
+
+Config dotfiles like `.env` stay with `create_backup`/`restore_backup` — use
+that, not `CLEAN_INSTALL_KEEP`, so a build step still sees them restored.
+
 **Pre-release projects:** `/releases/latest` on GitHub hides pre-releases. For projects
 that only ship betas (e.g. RustFS), set `GH_INCLUDE_PRERELEASE=1` — it applies to both
 `fetch_and_deploy_gh_release` and `check_for_gh_release`:
@@ -490,6 +504,7 @@ if GH_INCLUDE_PRERELEASE=1 check_for_gh_release "app" "owner/repo"; then
 | `setup_hwaccel`     | Configure hardware acceleration    |
 | `setup_yq`          | Install `yq` (YAML processor)      |
 | `setup_nltk`        | Install Python NLTK + data corpora |
+| `random_password`   | Alphanumeric secret, default 24    |
 
 ### Repos, Services, TLS & Downloads
 
@@ -730,6 +745,10 @@ NODE_VERSION="22" setup_nodejs
 CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo"
 ```
 
+The core reopens the outer block once the inner one closes, so a wrapped call no
+longer swallows it — but the rule stands: the reader still gets two "installing"
+lines for one step, and the outer one times a step it does not own.
+
 **Functions with built-in messages (NEVER wrap in msg blocks):**
 
 - `fetch_and_deploy_gh_release`
@@ -873,7 +892,7 @@ cleanup_lxc
 ```bash
 # ❌ WRONG - manual database creation
 DB_USER="myuser"
-DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
+DB_PASS=$(random_password 13)
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE mydb WITH OWNER $DB_USER;"
 $STD sudo -u postgres psql -d mydb -c "CREATE EXTENSION IF NOT EXISTS postgis;"
@@ -1207,6 +1226,21 @@ _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-...}"
 #!/usr/bin/env bash
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-...}"
 ```
+
+### 33. Hand-Rolled Password Generation
+
+```bash
+# ❌ WRONG - yields fewer characters than asked for, because the filter runs
+# after the length is fixed, and the pipe can take a SIGPIPE under pipefail
+ADMIN_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 32)
+
+# ✅ CORRECT - exactly 32 alphanumeric characters
+ADMIN_PASS=$(random_password 32)
+```
+
+`random_password` is deliberately alphanumeric: base64 carries `/` and `+`, which
+break the DSN and URL strings these values get pasted into. For a hex token
+(`SECRET_KEY`, JWT) `openssl rand -hex 32` stays fine — it is already URL-safe.
 
 ---
 
