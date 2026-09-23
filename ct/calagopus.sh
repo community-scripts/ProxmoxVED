@@ -14,7 +14,7 @@ var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-40}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-var_arm64="${var_arm64:-no}"
+var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -37,7 +37,7 @@ function update_script() {
     systemctl stop calagopus-panel
     msg_ok "Stopped Service"
 
-    create_backup /etc/calagopus/.env /var/lib/calagopus /var/lib/calagopus-wings
+    create_backup /etc/calagopus/.env /var/lib/calagopus
 
     fetch_and_deploy_gh_release "calagopus-panel" "calagopus/panel" "singlefile" "latest" "/usr/local/bin" "panel-rs-aio-$(arch_resolve x86_64 aarch64)-linux"
 

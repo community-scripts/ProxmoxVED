@@ -12,6 +12,7 @@
     "documentation": "https://calagopus.com/docs",
     "website": "https://calagopus.com",
     "repository": "https://github.com/calagopus/panel",
+    "architectures": ["amd64", "arm64"],
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/calagopus.webp",
     "description": "Modern game server management panel built in Rust. Deploy, monitor, and manage Minecraft, Hytale, and other game servers with industry-leading performance.",
     "install_methods": [
@@ -20,9 +21,9 @@
             "script": "ct/calagopus.sh",
             "config_path": "/etc/calagopus/.env",
             "resources": {
-                "cpu": 2,
+                "cpu": 4,
                 "ram": 4096,
-                "hdd": 15,
+                "hdd": 40,
                 "os": "Debian",
                 "version": "13"
             }
