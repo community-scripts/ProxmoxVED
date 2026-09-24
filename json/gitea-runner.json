@@ -1,0 +1,86 @@
+{
+  "name": "Gitea Runner",
+  "slug": "gitea-runner",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-09-24",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": null,
+  "documentation": "https://docs.gitea.com/runner/",
+  "website": "https://gitea.com/gitea/runner",
+  "repository": "https://gitea.com/gitea/runner",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/gitea.webp",
+  "description": "Gitea Runner (act_runner) is the daemon that executes CI/CD jobs for Gitea Actions. It connects to your Gitea instance, polls for queued workflow runs, and executes tasks using either host execution or containerized engines.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/gitea-runner.sh",
+      "config_path": "/etc/gitea-runner/config.yaml",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    },
+    {
+      "type": "alpine",
+      "script": "ct/gitea-runner.sh",
+      "config_path": "/etc/gitea-runner/config.yaml",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Alpine",
+        "version": "3.24"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "app_vars": [
+    {
+      "name": "var_gitea_url",
+      "label": "Gitea Instance URL",
+      "type": "text",
+      "required": false,
+      "help": "URL of your Gitea instance (e.g. http://192.168.1.100:3000 or https://gitea.example.com)"
+    },
+    {
+      "name": "var_gitea_token",
+      "label": "Registration Token",
+      "type": "password",
+      "secret": true,
+      "required": false,
+      "help": "Runner registration token from Gitea (Site Administration > Actions > Runners or Repo/Org Settings > Actions > Runners)"
+    }
+  ],
+  "notes": [
+    {
+      "text": "Supports both Debian 13 and Alpine 3.24. The installer prompts for the OS or accepts var_os=alpine / var_os=debian.",
+      "type": "info"
+    },
+    {
+      "text": "To register the runner, obtain a registration token in Gitea under Site Administration > Actions > Runners, then run: `gitea-runner -c /etc/gitea-runner/config.yaml register --instance <URL> --token <TOKEN>`.",
+      "type": "info"
+    },
+    {
+      "text": "After registering, start the runner daemon service with `systemctl start gitea-runner` (Debian) or `rc-service gitea-runner start` (Alpine).",
+      "type": "info"
+    },
+    {
+      "text": "Docker is installed and enabled by default for containerized workflow execution. Ensure nested virtualization is enabled on the LXC.",
+      "type": "info"
+    }
+  ]
+}
