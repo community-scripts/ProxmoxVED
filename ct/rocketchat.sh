@@ -16,7 +16,7 @@ var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-#var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
+var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
 
 # lxc-attach carries the caller's environment, but only what was exported, so
@@ -53,17 +53,17 @@ function update_script() {
     CLEAN_INSTALL=1 fetch_and_deploy_from_url "https://releases.rocket.chat/${RELEASE}/download" "/opt/rocketchat"
     echo "${RELEASE}" >~/.rocketchat
 
-    msg_info "Building ${APP} ${RELEASE} (Patience)"
+    msg_info "Building Rocket.Chat ${RELEASE} (Patience)"
     cd /opt/rocketchat/programs/server || exit
     $STD npm install
-    msg_ok "Built ${APP} ${RELEASE}"
+    msg_ok "Built Rocket.Chat ${RELEASE}"
 
     msg_info "Starting Service"
     systemctl start rocketchat
     msg_ok "Started Service"
     msg_ok "Updated Successfully!"
   else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+    msg_ok "No update required. Rocket.Chat is already at ${RELEASE}"
   fi
   exit
 }

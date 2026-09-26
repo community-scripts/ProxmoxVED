@@ -9,7 +9,8 @@
     "updateable": true,
     "privileged": false,
     "architectures": [
-        "amd64"
+        "amd64",
+        "arm64"
     ],
     "interface_port": 3000,
     "documentation": "https://docs.rocket.chat/docs/deploy-rocketchat",
