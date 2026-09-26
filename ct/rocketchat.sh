@@ -19,14 +19,10 @@ var_version="${var_version:-13}"
 var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
 
-# lxc-attach carries the caller's environment, but only what was exported, so
-# without this the install script never sees the answer and always prompts.
 export var_admin_email="${var_admin_email:-}"
 
 header_info "$APP"
 variables
-# variables() derives NSAPP from APP by lowercasing and stripping spaces only,
-# so the dot in "Rocket.Chat" would send it looking for rocket.chat-install.sh.
 NSAPP="rocketchat"
 var_install="${NSAPP}-install"
 color
@@ -42,8 +38,6 @@ function update_script() {
     exit
   fi
 
-  # Rocket.Chat ships no GitHub release assets, so check_for_gh_release cannot be
-  # used. releases.rocket.chat/latest/info is the authoritative stable tag.
   RELEASE=$(curl -fsSL https://releases.rocket.chat/latest/info | jq -r '.tag')
   if [[ "${RELEASE}" != "$(cat ~/.rocketchat 2>/dev/null)" ]]; then
     msg_info "Stopping Service"
@@ -54,7 +48,7 @@ function update_script() {
     echo "${RELEASE}" >~/.rocketchat
 
     msg_info "Building Rocket.Chat ${RELEASE} (Patience)"
-    cd /opt/rocketchat/programs/server || exit
+    cd /opt/rocketchat/programs/server
     $STD npm install
     msg_ok "Built Rocket.Chat ${RELEASE}"
 

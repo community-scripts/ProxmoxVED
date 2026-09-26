@@ -13,31 +13,18 @@ setting_up_container
 network_check
 update_os
 
-# Asked up front, before the ~250 MB download and the native-module build, so an
-# interactive run is not left sitting on a prompt minutes in. An unattended run
-# sets var_admin_email in the environment and is never asked.
 if [[ -z "${var_admin_email:-}" ]]; then
-  # `|| true` is load-bearing: an unattended run reaches this over lxc-attach
-  # with no tty, so read hits EOF and returns 1, which the error trap would
-  # otherwise turn into a failed install before anything is downloaded.
+  # unattended runs have no tty: read returns 1 on EOF
   read -r -p "${TAB3}Admin email address: " var_admin_email || true
 fi
-# The Proxmox web console sends a carriage return with the line and read keeps
-# it, so a perfectly good address arrives as $'user@host\r' and fails the check
-# below. Strip whitespace before validating; an address cannot contain any.
 var_admin_email="${var_admin_email//[[:space:]]/}"
 var_admin_email="${var_admin_email:-admin@example.com}"
 if [[ ! "$var_admin_email" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then
-  # Rocket.Chat silently drops an invalid ADMIN_EMAIL and leaves the admin with
-  # no address at all, which is harder to notice than this warning.
   msg_warn "Invalid email '${var_admin_email}', falling back to admin@example.com"
   var_admin_email="admin@example.com"
 fi
 
 msg_info "Installing Dependencies"
-# build-essential and python3 are for node-gyp: the bundle compiles native
-# modules on install and @sematext/gc-stats has no prebuilt binary to fall back
-# on. graphicsmagick is the image backend named by the official Debian guide.
 $STD apt install -y \
   build-essential \
   python3 \
@@ -45,25 +32,12 @@ $STD apt install -y \
   jq
 msg_ok "Installed Dependencies"
 
-# Rocket.Chat 8.x exits on MongoDB <7.0 and warns below 8.0 (support for <8.0 is
-# dropped in Rocket.Chat 9). releases.rocket.chat reports 8.0 as the compatible
-# series, so that is what gets installed.
 MONGO_VERSION="8.0" setup_mongodb
 
-# The server bundle validates only the Node.js MAJOR line against the version it
-# was built with (bundle/.node_version.txt, currently v22.x), so the NodeSource
-# 22 line satisfies it.
-#
-# npm is pinned to 10 because the bundle is built with npm 10 and does not
-# install under npm 12: npm 12 refuses the bundle's remote tarball dependency
-# (EALLOWREMOTE on source-map-support), and the bundle's own npm-rebuild.js
-# calls `npm rebuild --update-binary`, a flag npm 12 rejects outright.
+# npm 12 cannot install this bundle
 NODE_VERSION="22" NPM_VERSION="10" setup_nodejs
 
 msg_info "Configuring MongoDB Replica Set"
-# Rocket.Chat requires a replica set: it dropped oplog tailing in 8.0 and now
-# relies on change streams and multi-document transactions, neither of which a
-# standalone mongod provides. A single member is enough.
 if ! grep -q "^replication:" /etc/mongod.conf; then
   cat <<EOF >>/etc/mongod.conf
 replication:
@@ -84,31 +58,16 @@ for _ in {1..60}; do
 done
 msg_ok "Configured MongoDB Replica Set"
 
-# The prebuilt Meteor bundle is published on releases.rocket.chat, not as a
-# GitHub release asset, so fetch_and_deploy_gh_release does not apply.
-# /latest/info names the current stable tag; the GitHub API cannot be used here
-# because backport releases on older majors are published after newer ones and
-# would win a "latest" query. The archive unpacks to a single bundle/ directory,
-# which fetch_and_deploy_from_url strips into the target.
 RELEASE=$(curl -fsSL https://releases.rocket.chat/latest/info | jq -r '.tag')
 fetch_and_deploy_from_url "https://releases.rocket.chat/${RELEASE}/download" "/opt/rocketchat"
 echo "${RELEASE}" >~/.rocketchat
 
 msg_info "Building Rocket.Chat ${RELEASE} (Patience)"
-cd /opt/rocketchat/programs/server || exit
+cd /opt/rocketchat/programs/server
 $STD npm install
 msg_ok "Built Rocket.Chat ${RELEASE}"
 
 msg_info "Creating Configuration"
-# Kept outside /opt/rocketchat so an update, which replaces the bundle
-# wholesale, leaves it untouched.
-#
-# The admin is seeded from the environment and the setup wizard is marked
-# completed on purpose. The wizard's last step ("Awaiting confirmation") mails a
-# confirmation code, and a fresh bare-metal install has no MAIL_URL, so the mail
-# never leaves the box and the wizard cannot be finished from the UI -- the
-# admin created in step 1 is then locked out behind it. insertAdminUserFromEnv()
-# only fires while no admin exists, so these stay inert on every later boot.
 ADMIN_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | cut -c1-24)
 mkdir -p /etc/rocketchat
 cat <<EOF >/etc/rocketchat/rocketchat.env
