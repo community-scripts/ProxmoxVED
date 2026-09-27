@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/pgsty/silo
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -28,9 +28,9 @@ EOF
 chmod 600 /etc/default/silo
 msg_ok "Configured Silo"
 
-msg_info "Starting Service"
+msg_info "Starting Silo"
 systemctl enable -q --now silo
-msg_ok "Started Service"
+msg_ok "Started Silo"
 
 motd_ssh
 customize
