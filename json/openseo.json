@@ -1,0 +1,67 @@
+{
+  "name": "OpenSEO",
+  "slug": "openseo",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-09-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3001,
+  "documentation": "https://github.com/every-app/open-seo/tree/main/docs",
+  "website": "https://openseo.so/",
+  "repository": "https://github.com/every-app/open-seo",
+  "logo": "https://cdn.jsdelivr.net/gh/every-app/open-seo@main/public/android-chrome-192x192.png",
+  "description": "OpenSEO is an open source SEO platform for keyword research, rank tracking, competitor analysis, backlinks and site audits, powered by the pay-as-you-go DataForSEO API.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/openseo.sh",
+      "config_path": "/opt/openseo/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "app_vars": [
+    {
+      "name": "var_dataforseo_api_key",
+      "label": "DataForSEO API Key",
+      "type": "password",
+      "secret": true,
+      "required": false,
+      "help": "Base64 of your DataForSEO login:password (printf 'email:password' | base64). Can be set later in /opt/openseo/.env."
+    }
+  ],
+  "notes": [
+    {
+      "text": "OpenSEO runs with AUTH_MODE=local_noauth: there is no login, anyone who reaches port 3001 is the admin. Keep it on a private network or behind an auth-protected reverse proxy.",
+      "type": "warning"
+    },
+    {
+      "text": "SEO data comes from the paid DataForSEO API (pay-as-you-go, $50 minimum top-up). DATAFORSEO_API_KEY is the base64 of your DataForSEO login:password.",
+      "type": "info"
+    },
+    {
+      "text": "The configuration is baked in at build time: after editing /opt/openseo/.env (DATAFORSEO_API_KEY, ALLOWED_HOST, OPENSEO_TELEMETRY_DISABLED...), a restart is not enough. Rebuild with 'cd /opt/openseo && env -i PATH=\"$PATH\" HOME=/root pnpm run build && systemctl restart openseo'.",
+      "type": "warning"
+    },
+    {
+      "text": "Behind a reverse proxy, set ALLOWED_HOST to the public hostname in /opt/openseo/.env, then rebuild.",
+      "type": "info"
+    },
+    {
+      "text": "OpenSEO sends an anonymous usage heartbeat. Set OPENSEO_TELEMETRY_DISABLED=1 in /opt/openseo/.env, then rebuild, to turn it off.",
+      "type": "info"
+    }
+  ]
+}
