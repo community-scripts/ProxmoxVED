@@ -1,0 +1,53 @@
+{
+  "name": "Silo",
+  "slug": "silo",
+  "categories": [
+    11
+  ],
+  "date_created": "2026-09-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 9001,
+  "documentation": "https://silo.pgsty.com/docs/",
+  "website": "https://silo.pgsty.com/",
+  "repository": "https://github.com/pgsty/silo",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/pgsty-silo.webp",
+  "description": "Silo is an S3-compatible object storage server, a community-maintained fork of the open-source MinIO server by PGSTY. It carries on the AGPL release line after upstream MinIO stopped community distribution, with security fixes and the full web console restored. It keeps the MinIO storage format, MINIO_* variables and S3 API, so existing MinIO data and clients keep working.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/silo.sh",
+      "config_path": "/etc/default/silo",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "silo-admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The root password is generated at install and stored as MINIO_ROOT_PASSWORD in /etc/default/silo. Use it to log into the console on port 9001, then create dedicated access keys for your S3 clients.",
+      "type": "warning"
+    },
+    {
+      "text": "Two ports: 9000 serves the S3 API, 9001 the web console. Object data lives in /opt/silo_data - back that up, or better, give the container a dedicated disk and point MINIO_VOLUMES at it.",
+      "type": "info"
+    },
+    {
+      "text": "Coming from MinIO? Silo reads the same data directory and MINIO_* settings. See https://silo.pgsty.com/compatibility/migration/ before moving an existing deployment.",
+      "type": "info"
+    }
+  ]
+}
