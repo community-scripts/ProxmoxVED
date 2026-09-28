@@ -68,6 +68,7 @@ javaHome: ""
 jvmOpts:
   - "-Dtmm.contentfolder=/opt/tinymediamanager_data"
   - "-Dtmm.noupdate=true"
+  - "-Dtmm.legacy.filechooser=true"
 env:
   - "_JAVA_AWT_WM_NONREPARENTING=1"
 EOF

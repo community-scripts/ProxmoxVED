@@ -25,6 +25,7 @@ $STD apt install -y \
   libxrender1 \
   libxtst6 \
   libxi6 \
+  libmediainfo0v5 \
   fonts-dejavu-core \
   xz-utils
 msg_ok "Installed Dependencies"
@@ -53,6 +54,7 @@ javaHome: ""
 jvmOpts:
   - "-Dtmm.contentfolder=/opt/tinymediamanager_data"
   - "-Dtmm.noupdate=true"
+  - "-Dtmm.legacy.filechooser=true"
 env:
   - "_JAVA_AWT_WM_NONREPARENTING=1"
 EOF
