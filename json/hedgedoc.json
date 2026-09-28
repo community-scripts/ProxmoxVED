@@ -1,0 +1,57 @@
+{
+  "name": "HedgeDoc",
+  "slug": "hedgedoc",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-09-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 3000,
+  "documentation": "https://docs.hedgedoc.org/",
+  "website": "https://hedgedoc.org/",
+  "repository": "https://github.com/hedgedoc/hedgedoc",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/hedgedoc.webp",
+  "description": "HedgeDoc (formerly CodiMD) is a self-hosted, real-time collaborative Markdown editor. Several people can write the same note at once in the browser, with support for diagrams, math, slide presentations and per-note sharing permissions.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/hedgedoc.sh",
+      "config_path": "/opt/hedgedoc_data/config.json",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. Use Sign In to register the first user with an email address and password. Guests can read notes but cannot create them.",
+      "type": "info"
+    },
+    {
+      "text": "Registration is open to anyone who can reach the instance. Once your accounts exist, set \"allowEmailRegister\": false in /opt/hedgedoc_data/config.json and run systemctl restart hedgedoc. Further users can then be added from the shell: cd /opt/hedgedoc && NODE_ENV=production CMD_CONFIG_FILE=/opt/hedgedoc_data/config.json bin/manage_users --add user@example.com",
+      "type": "warning"
+    },
+    {
+      "text": "The domain in config.json must match the address in the browser, otherwise the page loads without scripts. It is set to the container IP with urlAddPort. Behind a reverse proxy set domain to your hostname, urlAddPort to false and protocolUseSSL to true for HTTPS, then restart hedgedoc.",
+      "type": "warning"
+    },
+    {
+      "text": "Configuration, the session secret and uploaded images live in /opt/hedgedoc_data and survive updates. Notes are stored in the PostgreSQL database hedgedoc.",
+      "type": "info"
+    }
+  ]
+}

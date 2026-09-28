@@ -1,0 +1,52 @@
+{
+  "name": "PriceBuddy",
+  "slug": "pricebuddy",
+  "categories": [
+    23
+  ],
+  "date_created": "2026-09-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64"
+  ],
+  "interface_port": 80,
+  "documentation": "https://pricebuddy.jez.me/",
+  "website": "https://pricebuddy.jez.me/",
+  "repository": "https://github.com/jez500/pricebuddy",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/pricebuddy.webp",
+  "description": "PriceBuddy is a self-hosted price tracker. Paste a product URL from almost any store and it checks price and stock on a schedule, keeps the price history, compares the same product across retailers, and notifies you by email, Pushover, Gotify, ntfy, Telegram, Discord or Apprise when a deal moves in your favour.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/pricebuddy.sh",
+      "config_path": "/opt/pricebuddy/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 3072,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin@example.com",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The admin password is generated at install and stored as APP_USER_PASSWORD in /opt/pricebuddy/.env. Log in with admin@example.com, then change the email and password under Account settings.",
+      "type": "warning"
+    },
+    {
+      "text": "Stores set to the API (browser) scraper service are rendered by the bundled SeleniumBase Scrapper, a headless Google Chrome on 127.0.0.1:3000 (service seleniumbase-scrapper). The default HTTP scraper does not use it.",
+      "type": "info"
+    },
+    {
+      "text": "The configuration is cached. After editing /opt/pricebuddy/.env (for example APP_URL and ASSET_URL behind a reverse proxy), run 'php artisan config:cache' in /opt/pricebuddy and restart pricebuddy-worker.",
+      "type": "info"
+    }
+  ]
+}

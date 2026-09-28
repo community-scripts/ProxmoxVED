@@ -90,7 +90,8 @@ msg_info "Retrieving the URL for the ZimaOS installer"
 # Older guides import a ready-made .img as the system disk. Since 1.x IceWhale
 # only ships an installer, so this boots the ISO and lets it write the disk.
 RELEASE_API="https://api.github.com/repos/IceWhaleTech/ZimaOS/releases/latest"
-URL=$(curl -fsSL "$RELEASE_API" 2>/dev/null | grep -oP '"browser_download_url":\s*"\K[^"]+_installer\.iso' | head -1)
+RELEASE_JSON="$(curl -fsSL "$RELEASE_API" 2>/dev/null)"
+URL=$(echo "$RELEASE_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]+_installer\.iso' | head -1)
 if [[ -z "$URL" ]]; then
   msg_error "Could not determine the current ZimaOS installer"
   msg_error "GitHub rate-limits unauthenticated requests to 60 per hour; try again shortly."
@@ -98,7 +99,13 @@ if [[ -z "$URL" ]]; then
 fi
 
 FILENAME="$(basename "$URL")"
-ZIMAOS_VERSION="$(echo "$FILENAME" | grep -oP 'zimaos-x86_64-\K[0-9.]+(?=_installer)')"
+# The tag is authoritative, and it is not always digits and dots: IceWhale
+# tags pre-releases such as 1.8.0-beta1 without setting the prerelease flag,
+# so releases/latest serves them and a numeric-only match finds nothing.
+ZIMAOS_VERSION="$(echo "$RELEASE_JSON" | grep -oP '"tag_name":\s*"\K[^"]+' | head -1 || true)"
+if [[ -z "$ZIMAOS_VERSION" ]]; then
+  ZIMAOS_VERSION="unknown"
+fi
 CACHE_DIR="/var/lib/vz/template/iso"
 CACHE_FILE="${CACHE_DIR}/${FILENAME}"
 

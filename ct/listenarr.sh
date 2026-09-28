@@ -4,18 +4,17 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/rustfs/rustfs
+# Source: https://github.com/Listenarrs/Listenarr
 
-APP="RustFS"
-var_tags="${var_tags:-storage;s3}"
+APP="Listenarr"
+var_tags="${var_tags:-arr;audiobook}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
-var_disk="${var_disk:-20}"
+var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-#var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
+var_arm64="${var_arm64:-no}" # upstream publishes a linux-x64 build only
 var_unprivileged="${var_unprivileged:-1}"
-var_testurl="${var_testurl:-https://github.com/community-scripts/ProxmoxVED/issues/2131}"
 
 header_info "$APP"
 variables
@@ -27,22 +26,21 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /etc/default/rustfs ]]; then
+  if [[ ! -d /opt/listenarr ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  if GH_INCLUDE_PRERELEASE=1 check_for_gh_release "rustfs" "rustfs/rustfs"; then
-    msg_info "Stopping Service"
-    systemctl stop rustfs
-    msg_ok "Stopped Service"
+  if GH_INCLUDE_PRERELEASE=1 check_for_gh_release "listenarr" "Listenarrs/Listenarr"; then
+    msg_info "Stopping Listenarr"
+    systemctl stop listenarr
+    msg_ok "Stopped Listenarr"
 
-    GH_INCLUDE_PRERELEASE=1 CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustfs" "rustfs/rustfs" "prebuild" "latest" "/opt/rustfs" "rustfs-linux-$(arch_resolve x86_64 aarch64)-gnu-*.zip"
-    chmod +x /opt/rustfs/rustfs
+    GH_INCLUDE_PRERELEASE=1 CLEAN_INSTALL=1 fetch_and_deploy_gh_release "listenarr" "Listenarrs/Listenarr" "prebuild" "latest" "/opt/listenarr" "listenarr-*-linux-x64.zip"
 
-    msg_info "Starting Service"
-    systemctl start rustfs
-    msg_ok "Started Service"
+    msg_info "Starting Listenarr"
+    systemctl start listenarr
+    msg_ok "Started Listenarr"
     msg_ok "Updated successfully!"
   fi
   exit
@@ -54,6 +52,5 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW}Console:${CL}"
-echo -e "${GATEWAY}${BGN}http://${IP}:9001${CL}"
-echo -e "${INFO}${YW}S3 API on port 9000 - keys are in /etc/default/rustfs${CL}"
+echo -e "${INFO}${YW}Access it using the following URL:${CL}"
+echo -e "${GATEWAY}${BGN}http://${IP}:4545${CL}"
