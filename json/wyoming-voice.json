@@ -1,0 +1,57 @@
+{
+  "name": "Wyoming Voice",
+  "slug": "wyoming-voice",
+  "categories": [
+    16
+  ],
+  "date_created": "2026-09-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": null,
+  "documentation": "https://www.home-assistant.io/voice_control/voice_remote_local_assistant/",
+  "website": "https://www.home-assistant.io/voice_control/",
+  "repository": "https://github.com/rhasspy/wyoming-faster-whisper",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rhasspy.webp",
+  "description": "Wyoming Voice runs the two speech services a local Home Assistant Assist pipeline needs: wyoming-faster-whisper for speech-to-text on port 10300 and wyoming-piper for text-to-speech on port 10200, each spoken to over the Wyoming protocol. Nothing is sent to a cloud service, so Assist and Voice PE hardware keep working without internet access.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/wyoming-voice.sh",
+      "config_path": "/etc/systemd/system/wyoming-faster-whisper.service",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 12,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no web interface. Add the container twice in Home Assistant under Settings > Devices & Services > Add Integration > Wyoming Protocol: once as <container-ip> port 10300 (speech-to-text) and once as <container-ip> port 10200 (text-to-speech), then select both in Settings > Voice assistants.",
+      "type": "info"
+    },
+    {
+      "text": "The Whisper model (small-int8) and the Piper voice (en_US-lessac-medium) are downloaded during install into /opt/wyoming-voice, so the first Assist request is not a cold start. To use a different model or voice, edit --model in /etc/systemd/system/wyoming-faster-whisper.service or --voice in /etc/systemd/system/wyoming-piper.service and restart that service; it is fetched on next start.",
+      "type": "info"
+    },
+    {
+      "text": "Transcription is CPU-only and scales with core count. small-int8 on 4 cores transcribes roughly 1.8x faster than realtime; drop to base-int8 or tiny-int8 on fewer cores, and raise them if responses feel slow.",
+      "type": "info"
+    },
+    {
+      "text": "Both services listen on 0.0.0.0 with no authentication, because the Wyoming protocol has none. Keep the container on a trusted network segment.",
+      "type": "warning"
+    }
+  ]
+}
