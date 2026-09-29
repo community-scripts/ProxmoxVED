@@ -1,0 +1,51 @@
+{
+  "name": "HAProxy Cluster Manager",
+  "slug": "haproxy-manager",
+  "categories": [
+    21,
+    4
+  ],
+  "date_created": "2026-09-28",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": ["amd64", "arm64"],
+  "interface_port": 8080,
+  "documentation": "https://github.com/avandeputte/haproxy-manager/tree/main/docs",
+  "website": "https://github.com/avandeputte/haproxy-manager",
+  "repository": "https://github.com/avandeputte/haproxy-manager",
+  "logo": "https://cdn.jsdelivr.net/gh/avandeputte/haproxy-manager@main/static/icon.svg",
+  "description": "HAProxy Cluster Manager is a web UI for HAProxy, Keepalived and acme.sh: publish services, obtain Let's Encrypt certificates, and run a cluster of nodes on a shared virtual IP with settings and certificates syncing between them. There is no database — the whole configuration is one file.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/haproxy-manager.sh",
+      "config_path": "/var/lib/haproxy-manager/config.json",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The generated administrator password and API key are in /root/haproxy-manager.creds.",
+      "type": "info"
+    },
+    {
+      "text": "Update from this script rather than the app's own Updates page: both install the same files, but this one keeps the package database and the version check in step.",
+      "type": "info"
+    },
+    {
+      "text": "For a multi-node cluster, disable IP filtering in the container's Proxmox firewall settings: the shared virtual IP is not the container's own address and would otherwise be dropped. Unicast VRRP is derived from the node list automatically.",
+      "type": "warning"
+    }
+  ]
+}
