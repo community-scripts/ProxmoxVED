@@ -1,0 +1,53 @@
+{
+  "name": "YTPTube",
+  "slug": "ytptube",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-09-29",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8081,
+  "documentation": "https://github.com/arabcoders/ytptube/blob/master/FAQ.md",
+  "website": "https://github.com/arabcoders/ytptube",
+  "repository": "https://github.com/arabcoders/ytptube",
+  "logo": "https://cdn.jsdelivr.net/gh/arabcoders/ytptube@master/ui/public/images/favicon.png",
+  "description": "YTPTube is a self-hosted web interface and download manager for yt-dlp. It queues one-off URLs, playlists, channels and live streams, checks sources on a schedule with Tasks, stores reusable yt-dlp options as Presets and applies them by metadata with Conditions. It sends notifications through Apprise or webhooks, writes Kodi-style NFO sidecars for media libraries, and has a file browser, a built-in player, an HTTP API and browser extensions.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/ytptube.sh",
+      "config_path": "/opt/ytptube_data/config/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 3072,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default login. The first visitor to the web UI creates the admin account, so open it right after the install. To reset a password, stop the service and run: cd /opt/ytptube && YTP_CONFIG_PATH=/opt/ytptube_data/config .venv/bin/python -m app.scripts.reset_password --username <name>",
+      "type": "warning"
+    },
+    {
+      "text": "Downloads are saved to /opt/ytptube_data/downloads (YTP_DOWNLOAD_PATH in /etc/systemd/system/ytptube.service). To store them on a NAS or share them with Plex, Jellyfin or Emby, bind-mount the media folder there, e.g. pct set <CTID> -mp0 /mnt/media/youtube,mp=/opt/ytptube_data/downloads, then restart the container. In an unprivileged container the host folder must be writable by UID 100000.",
+      "type": "info"
+    },
+    {
+      "text": "Extra settings (YTP_* variables from the FAQ) go in /opt/ytptube_data/config/.env; the database, presets and logs live in the same folder. Everything under /opt/ytptube_data survives updates. yt-dlp is refreshed on every service start (YTP_YTDLP_AUTO_UPDATE).",
+      "type": "info"
+    },
+    {
+      "text": "The PO-token provider (bgutil) that the Docker image bundles is not installed. YouTube works without it, because yt-dlp solves its challenges with the installed deno, but the log shows a bgutil warning. To use a provider, run it elsewhere and add --extractor-args \"youtubepot-bgutilhttp:base_url=http://<ip>:4416\" to a preset.",
+      "type": "info"
+    }
+  ]
+}
