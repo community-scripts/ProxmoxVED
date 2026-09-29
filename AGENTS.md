@@ -253,6 +253,7 @@ check before calling one from an Alpine branch.
 
 ```bash
 #!/usr/bin/env bash
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 
@@ -1203,8 +1204,9 @@ Upstream install guides target multi-tenant hosts. An LXC runs one application.
 # fork/branch of core can be tested without touching this file.
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-...}"
 
-# ✅ CORRECT - shebang, then straight into the bootstrap
+# ✅ CORRECT - shebang, the scripts base, then straight into the bootstrap
 #!/usr/bin/env bash
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-...}"
 ```
 
@@ -1411,6 +1413,7 @@ cleanup_lxc
 - [ ] Every user-facing message names the application, no `${APPLICATION}`/`$APP` placeholders
 - [ ] No `useradd`/`runuser`/`su -c` — the script runs as root
 - [ ] No engine comment block above `_cs_boot` in the CT script
+- [ ] Line 2 of the CT script pins `_CS_DEFAULT_URL` to ProxmoxVED
 - [ ] `var_arm64` decided (yes/no) with the reason in the PR, or explicitly left to the user
 - [ ] Alpine variant, if any, follows Shape A or Shape B — never a duplicated script
 - [ ] `setup_*`/`update_*` defined for every OS family the script claims to support

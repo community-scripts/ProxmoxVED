@@ -15,6 +15,7 @@ other without editing a URL in 104 files.
 Each `ct/*.sh` keeps a single bootstrap block:
 
 ```bash
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 ```
@@ -28,6 +29,10 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
    derives `COMMUNITY_SCRIPTS_URL` from that checkout's git remote and branch —
    so in-container fetches and `/usr/bin/update` follow your fork once the
    branch is pushed.
+4. With no checkout to derive it from (a script run through `curl`),
+   `COMMUNITY_SCRIPTS_URL` falls back to `_CS_DEFAULT_URL`. The engine's own
+   default is ProxmoxVE, which does not have a script under test yet, so every
+   script here pins it to ProxmoxVED. The pin is removed on promotion.
 
 Explicit environment variables always win over both.
 

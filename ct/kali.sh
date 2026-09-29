@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main"
 # Engine comes from community-scripts/core; this repo only ships the scripts.
 # Local checkout wins (COMMUNITY_SCRIPTS_CORE_DIR, else a sibling ../core), so a
 # fork/branch of core can be tested without touching this file.
