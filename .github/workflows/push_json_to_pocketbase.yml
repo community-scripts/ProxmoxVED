@@ -16,13 +16,16 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   push-json:
     runs-on: self-hosted
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'push' ||
-      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'Ready For Testing'))
+      (github.event_name == 'issues' && github.event.label.name == 'Ready For Testing')
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -31,11 +34,14 @@ jobs:
 
       - name: Get JSON file for script
         id: changed
+        env:
+          INPUT_SLUG: ${{ github.event.inputs.script_slug }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
           : > changed_app_jsons.txt
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            script_slug="${{ github.event.inputs.script_slug }}"
+            script_slug="$INPUT_SLUG"
             if [[ "$script_slug" == "*" || "$script_slug" == "all" ]]; then
               count=0
               for f in json/*.json; do
@@ -82,7 +88,6 @@ jobs:
           fi
 
           # Extract slug from issue title (lowercase, spaces to dashes)
-          ISSUE_TITLE="${{ github.event.issue.title }}"
           script_slug=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g')
           file="json/${script_slug}.json"
 
@@ -279,8 +284,11 @@ jobs:
               headers: { 'Authorization': token }
             });
             const list = JSON.parse(listRes.body);
-            const existingId = list.items && list.items[0] && list.items[0].id;
-            if (existingId) {
+            const existing = list.items && list.items[0];
+            const existingId = existing && existing.id;
+            if (existing && existing.is_dev === false) {
+              console.log('Skipping', file, '(slug=' + data.slug + ') - live ProxmoxVE record, left to ProxmoxVE.');
+            } else if (existingId) {
               console.log('Updating', file, '(slug=' + data.slug + ')');
               const r = await request(recordsUrl + '/' + existingId, {
                 method: 'PATCH',

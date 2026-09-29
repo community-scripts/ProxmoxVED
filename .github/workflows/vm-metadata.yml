@@ -16,6 +16,9 @@ on:
       - "json/**.json"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest

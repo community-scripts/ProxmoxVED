@@ -4,10 +4,18 @@ on:
   issues:
     types: [closed]
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 jobs:
   delete-files:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'Started Migration To ProxmoxVE') && github.repository == 'community-scripts/ProxmoxVED'
+    if: >-
+      contains(github.event.issue.labels.*.name, 'Started Migration To ProxmoxVE') &&
+      github.event.issue.state_reason == 'completed' &&
+      github.repository == 'community-scripts/ProxmoxVED'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,6 +50,10 @@ jobs:
             NAME_RAW="$ISSUE_TITLE"
           fi
           TITLE=$(echo "$NAME_RAW" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]\+/-/g')
+          if [[ ! "$TITLE" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; then
+            echo "::error::'Name of the Script' does not give a valid slug."
+            exit 1
+          fi
 
           echo "TITLE=$TITLE" >> $GITHUB_ENV
 
@@ -73,8 +85,6 @@ jobs:
         run: |
           REPO="community-scripts/ProxmoxVE"
           API_URL="https://api.github.com/repos/$REPO/contents"
-          TITLE="${{ env.TITLE }}"
-          SCRIPT_TYPE="${{ env.SCRIPT_TYPE }}"
 
           # Define files based on script type
           case "$SCRIPT_TYPE" in
@@ -82,19 +92,16 @@ jobs:
               FILES=(
                 "ct/${TITLE}.sh"
                 "install/${TITLE}-install.sh"
-                "frontend/public/json/${TITLE}.json"
               )
               ;;
             vm)
               FILES=(
                 "vm/${TITLE}.sh"
-                "frontend/public/json/${TITLE}.json"
               )
               ;;
             addon)
               FILES=(
                 "tools/addon/${TITLE}.sh"
-                "frontend/public/json/${TITLE}.json"
               )
               ;;
             pve)
@@ -104,28 +111,24 @@ jobs:
               ;;
           esac
 
-          EXISTS=false
+          # Only delete here once every script file has arrived in ProxmoxVE.
+          EXISTS=true
           for FILE in "${FILES[@]}"; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GH_TOKEN" "$API_URL/$FILE")
             if [ "$STATUS" -eq 200 ]; then
-              EXISTS=true
               echo "$FILE exists in $REPO"
             else
+              EXISTS=false
               echo "$FILE does NOT exist in $REPO"
             fi
           done
-
-          if [ "$EXISTS" = false ]; then
-            echo "No matching files found in $REPO. Exiting..."
-            exit 0
-          fi
+          echo "exists=$EXISTS" >> "$GITHUB_OUTPUT"
 
       - name: Commit and Push Changes
+        if: steps.check_files.outputs.exists == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TITLE="${{ env.TITLE }}"
-          SCRIPT_TYPE="${{ env.SCRIPT_TYPE }}"
           branch="delete_files_${TITLE}"
 
           git config --global user.name "github-actions[bot]"

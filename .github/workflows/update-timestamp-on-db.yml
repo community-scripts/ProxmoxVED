@@ -11,6 +11,9 @@ on:
       - "turnkey/**/*.sh"
       - "vm/**/*.sh"
 
+permissions:
+  contents: read
+
 jobs:
   update-script-timestamp:
     runs-on: self-hosted
@@ -153,6 +156,10 @@ jobs:
               const record = list.items && list.items[0];
               if (!record) {
                 console.log('Slug not in DB, skipping: ' + slug);
+                continue;
+              }
+              if (record.is_dev === false) {
+                console.log('Live ProxmoxVE record, skipping: ' + slug);
                 continue;
               }
               const patchRes = await request(recordsUrl + '/' + record.id, {

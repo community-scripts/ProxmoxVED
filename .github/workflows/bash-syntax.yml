@@ -21,6 +21,9 @@ on:
 # .func files. This repo ships scripts, so that is what gets checked here —
 # all of them, not the three-file sample the old job used.
 
+permissions:
+  contents: read
+
 jobs:
   bash-n:
     runs-on: ubuntu-latest

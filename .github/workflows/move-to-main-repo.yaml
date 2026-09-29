@@ -74,6 +74,10 @@ jobs:
             name_raw="$issue_title"
           fi
           script_name=$(echo "$name_raw" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]\+/-/g')
+          if [[ ! "$script_name" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; then
+            echo "::error::'Name of the Script' does not give a valid slug."
+            exit 1
+          fi
 
           echo "Script Name: $script_name"
           echo "Issue Title: $issue_title"
@@ -103,17 +107,20 @@ jobs:
           echo "issue_nr=$issue_nr" >> $GITHUB_OUTPUT
           echo "script_type=$script_type" >> $GITHUB_OUTPUT
           echo "issue_title=$issue_title" >> $GITHUB_OUTPUT
+          # A fixed delimiter could be closed from inside the issue body.
+          delim="EOF_$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
           {
-            echo "issue_body<<ISSUE_BODY_EOF"
+            echo "issue_body<<$delim"
             echo "$issue_body"
-            echo "ISSUE_BODY_EOF"
+            echo "$delim"
           } >> $GITHUB_OUTPUT
 
       - name: Check if script files exist
         id: check_files
+        env:
+          script_name: ${{ steps.list_issues.outputs.script_name }}
+          script_type: ${{ steps.list_issues.outputs.script_type }}
         run: |
-          script_name="${{ steps.list_issues.outputs.script_name }}"
-          script_type="${{ steps.list_issues.outputs.script_type }}"
           files_found="true"
           missing_files=""
 
@@ -161,10 +168,12 @@ jobs:
         if: steps.check_files.outputs.files_found == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          script_name: ${{ steps.list_issues.outputs.script_name }}
+          script_type: ${{ steps.list_issues.outputs.script_type }}
+          issue_nr: ${{ steps.list_issues.outputs.issue_nr }}
+          missing: ${{ steps.check_files.outputs.missing }}
         run: |
-          script_name="${{ steps.list_issues.outputs.script_name }}"
-          script_type="${{ steps.list_issues.outputs.script_type }}"
-          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "Not all required files were found for **$script_name** (type: $script_type). Please check the files and try again. Missing: ${{ steps.check_files.outputs.missing }}"
+          gh issue comment "$issue_nr" --body "Not all required files were found for **$script_name** (type: $script_type). Please check the files and try again. Missing: $missing"
           exit 1
 
       - name: Get GitHub App User ID
@@ -179,19 +188,21 @@ jobs:
           git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
 
       - name: Prepare branch name
+        env:
+          script_name: ${{ steps.list_issues.outputs.script_name }}
         run: |
-          script_name="${{ steps.list_issues.outputs.script_name }}"
           timestamp=$(date +%s)
           branch_name="add-script-${script_name//[^a-zA-Z0-9_-]/}-${timestamp}"
           echo "Using branch: $branch_name"
           echo "branch_name=$branch_name" >> $GITHUB_ENV
 
       - name: Clone ProxmoxVE and Copy Files
+        env:
+          script_name: ${{ steps.list_issues.outputs.script_name }}
+          script_type: ${{ steps.list_issues.outputs.script_type }}
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          script_name="${{ steps.list_issues.outputs.script_name }}"
-          script_type="${{ steps.list_issues.outputs.script_type }}"
-
-          git clone https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/community-scripts/ProxmoxVE.git ProxmoxVE
+          git clone "https://x-access-token:${APP_TOKEN}@github.com/community-scripts/ProxmoxVE.git" ProxmoxVE
           cd ProxmoxVE
 
           # Check if branch already exists remotely and delete it
@@ -307,9 +318,12 @@ jobs:
         if: steps.create_pull_request.outputs.pr_number
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          script_name: ${{ steps.list_issues.outputs.script_name }}
+          issue_nr: ${{ steps.list_issues.outputs.issue_nr }}
+          pr_number: ${{ steps.create_pull_request.outputs.pr_number }}
         run: |
-          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "A PR has been created for ${{ steps.list_issues.outputs.script_name }}: community-scripts/ProxmoxVE#${{ steps.create_pull_request.outputs.pr_number }}"
-          gh issue edit ${{ steps.list_issues.outputs.issue_nr }} --remove-label "Migration To ProxmoxVE" --add-label "Started Migration To ProxmoxVE"
+          gh issue comment "$issue_nr" --body "A PR has been created for ${script_name}: community-scripts/ProxmoxVE#${pr_number}"
+          gh issue edit "$issue_nr" --remove-label "Migration To ProxmoxVE" --add-label "Started Migration To ProxmoxVE"
 
       - name: Announce migration in the Discord thread
         if: steps.create_pull_request.outputs.pr_number
