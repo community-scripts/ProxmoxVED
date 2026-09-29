@@ -14,14 +14,24 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            // Skip entirely if the PR is flagged keep-open.
-            const prLabels = (context.payload.pull_request.labels || []).map(l => l.name);
+            // Nothing here closes a PR. Problems are listed in one comment, the PR is
+            // marked stale, and stale_pr_close.yml closes it after 7 days unless it is
+            // fixed or a maintainer sets keep-open.
+            const MARKER = "<!-- requirements-check -->";
+            const LABEL = "requirements missing";
+            const TEAM = "@community-scripts/contributor";
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const number = pr.number;
+            const author = pr.user.login;
+
+            const prLabels = (pr.labels || []).map(l => l.name);
             if (prLabels.includes("keep-open")) {
               console.log("PR has keep-open label — skipping requirement check.");
               return;
             }
 
-            const body = context.payload.pull_request.body || "";
+            const body = pr.body || "";
             const lines = body.split("\n");
             function checkboxChecked(line) {
               return /\[\s*x\s*\]/i.test(line);
@@ -30,92 +40,32 @@ jobs:
               return lines.find(l => l.includes(text));
             }
 
-            // --- Template presence check (runs FIRST, before anything else) ---
-            // The "📦 Application Requirements" header is unique to the ProxmoxVED template.
-            // If it's absent, the contributor used the wrong template OR no template at all.
-            // Close the PR with a clear message regardless of what else is in the body.
-            const templateSentinel = findLine("📦 Application Requirements");
-            if (!templateSentinel) {
-              const message =
-                "❌ **Pull Request Closed – PR Template Not Used**\n\n" +
-                "The PR description is missing the **📦 Application Requirements** section, which means this PR was not opened with the ProxmoxVED PR template.\n\n" +
-                "This usually happens in one of two ways:\n" +
-                "- The **main repo's** PR template was used instead of the ProxmoxVED one, or\n" +
-                "- The template was cleared or overwritten with a custom description.\n\n" +
-                "The ProxmoxVED template contains required sections (Type of Change, Code & Security Review, Application Requirements, Source) that the maintainers rely on to review submissions. A custom description — no matter how thorough — cannot replace it.\n\n" +
-                "### What to do\n" +
-                "1. Open a **new PR** in this repository.\n" +
-                "2. When the PR form loads, the ProxmoxVED template should appear automatically in the description. If it doesn't, copy it manually from " +
-                "[`.github/pull_request_template.md`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/pull_request_template.md).\n" +
-                "3. Fill out the checkboxes and relevant sections — you can keep your original write-up by pasting it into the Description section of the template.\n\n" +
-                "---\n\n" +
-                "⚠ **Maintainer note**\n\n" +
-                "**Please do not ping or repeatedly contact maintainers to reopen this PR.** Open a fresh PR with the correct template instead.";
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: message
-              });
-              await github.rest.pulls.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.issue.number,
-                state: "closed"
-              });
-              core.setFailed("PR opened without the ProxmoxVED template (Application Requirements section missing).");
-              return;
-            }
-
             // --- Ping author if new ct/ or install/ files were added without checking "New script" ---
-            // This only pings — it never closes the PR — since it's just a nudge to fix miscategorization.
             try {
-              const perPage = 100;
-              let page = 1;
-              let files = [];
-              while (true) {
-                const resp = await github.rest.pulls.listFiles({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: context.issue.number,
-                  per_page: perPage,
-                  page
-                });
-                files = files.concat(resp.data);
-                if (resp.data.length < perPage) break;
-                page++;
-              }
-
+              const files = await github.paginate(github.rest.pulls.listFiles, {
+                owner, repo, pull_number: number, per_page: 100
+              });
               const newScriptFiles = files.filter(f =>
                 f.status === "added" && (f.filename.startsWith("ct/") || f.filename.startsWith("install/"))
               );
-
               const newScriptLineForPing = findLine("🆕 **New script**");
               const newScriptCheckedForPing = newScriptLineForPing && checkboxChecked(newScriptLineForPing);
 
               if (newScriptFiles.length > 0 && !newScriptCheckedForPing) {
                 const marker = "<!-- new-script-files-ping -->";
-                const { data: comments } = await github.rest.issues.listComments({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  per_page: 100
+                const comments = await github.paginate(github.rest.issues.listComments, {
+                  owner, repo, issue_number: number, per_page: 100
                 });
-                const alreadyPinged = comments.some(c => c.body && c.body.includes(marker));
-                if (!alreadyPinged) {
-                  const author = context.payload.pull_request.user.login;
+                if (!comments.some(c => c.body && c.body.includes(marker))) {
                   const fileList = newScriptFiles.map(f => "- `" + f.filename + "`").join("\n");
-                  const message =
-                    marker + "\n" +
-                    "👋 @" + author + " this PR adds new file(s) under `ct/` or `install/`, but the **🆕 New script** box in the **Type of Change** section isn't checked:\n\n" +
-                    fileList + "\n\n" +
-                    "If this is a new script submission, please check that box and fill out the **📦 Application Requirements** section — it's required for review.\n" +
-                    "If this isn't actually a new script (e.g. a rename or a shared helper file), you can ignore this message.";
                   await github.rest.issues.createComment({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: context.issue.number,
-                    body: message
+                    owner, repo, issue_number: number,
+                    body:
+                      marker + "\n" +
+                      "👋 @" + author + " this PR adds new file(s) under `ct/` or `install/`, but the **🆕 New script** box in the **Type of Change** section isn't checked:\n\n" +
+                      fileList + "\n\n" +
+                      "If this is a new script submission, please check that box and fill out the **📦 Application Requirements** section — it's required for review.\n" +
+                      "If this isn't actually a new script (e.g. a rename or a shared helper file), you can ignore this message."
                   });
                 }
               }
@@ -123,131 +73,114 @@ jobs:
               console.log("New-script-file ping check failed: " + err.message);
             }
 
-            // --- LLM / AI disclosure check (applies to ALL PRs, not just new scripts) ---
-            // Template-version-gated: only enforced if the disclosure prompt exists in the body,
-            // so PRs opened before this section was added aren't retroactively closed.
-            const llmDisclosureIdx = lines.findIndex(l => l.includes("describe to which degree, if any, an LLM was used"));
-            if (llmDisclosureIdx !== -1) {
-              let disclosureText = "";
-              for (let i = llmDisclosureIdx + 1; i < lines.length; i++) {
-                const trimmed = lines[i].trim();
-                if (trimmed.startsWith("##") || trimmed === "---") break;
-                if (trimmed === "" || trimmed.startsWith(">") || trimmed.startsWith("<!--")) continue;
-                disclosureText += trimmed + " ";
+            const problems = [];
+
+            if (!findLine("📦 Application Requirements")) {
+              problems.push(
+                "The description does not use the ProxmoxVED PR template (the **📦 Application Requirements** section is missing). " +
+                "Paste [`.github/pull_request_template.md`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/pull_request_template.md) " +
+                "into the description and fill it in; your own write-up can go under **Description**."
+              );
+            } else {
+              // Template-version-gated: only enforced if the disclosure prompt exists in the body.
+              const llmDisclosureIdx = lines.findIndex(l => l.includes("describe to which degree, if any, an LLM was used"));
+              if (llmDisclosureIdx !== -1) {
+                let disclosureText = "";
+                for (let i = llmDisclosureIdx + 1; i < lines.length; i++) {
+                  const trimmed = lines[i].trim();
+                  if (trimmed.startsWith("##") || trimmed === "---") break;
+                  if (trimmed === "" || trimmed.startsWith(">") || trimmed.startsWith("<!--")) continue;
+                  disclosureText += trimmed + " ";
+                }
+                if (!disclosureText.trim()) {
+                  problems.push(
+                    "The **🤖 AI Assistance** section does not say whether, or how far, an LLM was used, e.g. *\"No LLM used\"* or " +
+                    "*\"Claude Sonnet 4.5, high reasoning, used for the install script, then manually reviewed\"*."
+                  );
+                }
               }
-              disclosureText = disclosureText.trim();
-              if (!disclosureText) {
-                const message =
-                  "❌ **Pull Request Closed – Missing AI/LLM Disclosure**\n\n" +
-                  "This PR's **🤖 AI Assistance** section is missing the required description of whether, and to what degree, an LLM was used to create it.\n\n" +
-                  "Please reopen with that line filled in, e.g. *\"No LLM used\"* or *\"Claude Sonnet 4.5, high reasoning, used for the install script, then manually reviewed\"*. " +
-                  "This is informational, not a penalty — it just helps reviewers calibrate scrutiny.\n\n" +
-                  "---\n\n" +
-                  "⚠ **Maintainer note**\n\n" +
-                  "**Please do not ping or repeatedly contact maintainers to reopen this PR.** Open a fresh PR with the disclosure filled in instead.";
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: message
-                });
-                await github.rest.pulls.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: context.issue.number,
-                  state: "closed"
-                });
-                core.setFailed("PR is missing the required LLM disclosure description.");
-                return;
+
+              const newScriptLine = findLine("🆕 **New script**");
+              if (newScriptLine && checkboxChecked(newScriptLine)) {
+                const requirements = [
+                  "The application is **at least 6 months old**",
+                  "The application is **actively maintained**",
+                  "The application has **600+ GitHub stars**",
+                  "Official **release tarballs** are published",
+                  "I understand that not all scripts will be accepted"
+                ];
+                for (const req of requirements) {
+                  const line = findLine(req);
+                  if (!line || !checkboxChecked(line)) problems.push(req);
+                }
+
+                const architectureOptions = ["**arm64 supported**", "**arm64 not tested**", "**arm64 not supported**"];
+                if (!architectureOptions.some(req => { const line = findLine(req); return line && checkboxChecked(line); })) {
+                  problems.push("One arm64 support option (`arm64 supported`, `arm64 not tested`, or `arm64 not supported`) must be checked");
+                }
+
+                const aiNoUsedLine = findLine("**No AI used**");
+                const aiWasUsedLine = findLine("**AI was used**");
+                if ((aiNoUsedLine || aiWasUsedLine) &&
+                    !((aiNoUsedLine && checkboxChecked(aiNoUsedLine)) || (aiWasUsedLine && checkboxChecked(aiWasUsedLine)))) {
+                  problems.push("One AI assistance option (`No AI used` or `AI was used – confirmed compliance with AGENTS.md and pve-script-creator.agent.md`) must be checked");
+                }
+
+                const noDockerLine = findLine("**No Docker / Docker Compose**");
+                if (noDockerLine && !checkboxChecked(noDockerLine)) {
+                  problems.push("`No Docker / Docker Compose` must be confirmed – the application must run bare-metal");
+                }
+
+                const noGitPullLine = findLine("**No git pull**");
+                if (noGitPullLine && !checkboxChecked(noGitPullLine)) {
+                  problems.push("`No git pull` must be confirmed – use `fetch_and_deploy_gh_release` (or the Codeberg/GitLab/URL variants) instead");
+                }
               }
             }
 
-            // --- New script check ---
-            const newScriptLine = findLine("🆕 **New script**");
-            if (!newScriptLine || !checkboxChecked(newScriptLine)) {
-              console.log("Not a new script PR — skipping requirement check.");
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: number, per_page: 100
+            });
+            const mine = comments.find(c => c.body && c.body.includes(MARKER));
+
+            if (problems.length === 0) {
+              if (mine && !mine.body.startsWith(MARKER + "\n✅")) {
+                await github.rest.issues.updateComment({
+                  owner, repo, comment_id: mine.id,
+                  body: MARKER + "\n✅ **Requirements check passed.** Thanks for fixing the description — the `stale` mark has been removed."
+                });
+              }
+              if (prLabels.includes(LABEL)) {
+                for (const name of [LABEL, "stale"]) {
+                  if (prLabels.includes(name)) {
+                    await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name });
+                  }
+                }
+              }
               return;
             }
 
-            // --- Requirement checklist ---
-            const requirements = [
-              "The application is **at least 6 months old**",
-              "The application is **actively maintained**",
-              "The application has **600+ GitHub stars**",
-              "Official **release tarballs** are published",
-              "I understand that not all scripts will be accepted"
-            ];
+            const text =
+              MARKER + "\n" +
+              "### ⚠️ Not ready for review yet\n\n" +
+              "@" + author + ", this pull request is missing the following:\n\n" +
+              problems.map(p => "- " + p).join("\n") + "\n\n" +
+              "**Edit the PR description** to fix it — no new PR needed. This check runs again on every edit and clears itself once everything is in place.\n\n" +
+              "Until then the PR is marked `stale` and will be closed in **7 days**.\n\n" +
+              "---\n\n" +
+              TEAM + " please take a look: close it, comment, or set `keep-open` to keep it.";
 
-            const missing = [];
-            for (const req of requirements) {
-              const line = findLine(req);
-              if (!line || !checkboxChecked(line)) {
-                missing.push(req);
+            if (mine) {
+              if (mine.body !== text) {
+                await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body: text });
               }
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: number, body: text });
             }
 
-            const architectureOptions = [
-              "**arm64 supported**",
-              "**arm64 not tested**",
-              "**arm64 not supported**"
-            ];
-            const hasArchitectureSelection = architectureOptions.some(req => {
-              const line = findLine(req);
-              return line && checkboxChecked(line);
-            });
-            if (!hasArchitectureSelection) {
-              missing.push("One arm64 support option (`arm64 supported`, `arm64 not tested`, or `arm64 not supported`) must be checked");
+            const toAdd = [LABEL, "stale"].filter(name => !prLabels.includes(name));
+            if (toAdd.length > 0) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: toAdd });
             }
 
-            // Only enforce template-version-gated checks if the section exists in the PR body.
-            // This prevents old PRs (opened before the section was added) from being closed on sync.
-            const aiNoUsedLine = findLine("**No AI used**");
-            const aiWasUsedLine = findLine("**AI was used**");
-            if (aiNoUsedLine || aiWasUsedLine) {
-              const hasAISelection = (aiNoUsedLine && checkboxChecked(aiNoUsedLine)) ||
-                                     (aiWasUsedLine && checkboxChecked(aiWasUsedLine));
-              if (!hasAISelection) {
-                missing.push("One AI assistance option (`No AI used` or `AI was used – confirmed compliance with AGENTS.md and pve-script-creator.agent.md`) must be checked");
-              }
-            }
-
-            const noDockerLine = findLine("**No Docker / Docker Compose**");
-            if (noDockerLine && !checkboxChecked(noDockerLine)) {
-              missing.push("`No Docker / Docker Compose` must be confirmed – the application must run bare-metal");
-            }
-
-            const noGitPullLine = findLine("**No git pull**");
-            if (noGitPullLine && !checkboxChecked(noGitPullLine)) {
-              missing.push("`No git pull` must be confirmed – use `fetch_and_deploy_gh_release` (or the Codeberg/GitLab/URL variants) instead");
-            }
-
-            if (missing.length > 0) {
-              let list = "";
-              for (const m of missing) {
-                list += "- " + m + "\n";
-              }
-              const message =
-                "❌ **Pull Request Closed – Application Requirements Not Met**\n\n" +
-                "This pull request is marked as **🆕 New script**, but the required application criteria were not confirmed.\n\n" +
-                "The following requirement confirmations are missing:\n\n" +
-                list +
-                "\nNew application submissions must meet the project requirements before being considered.\n" +
-                "Please wait until the application satisfies the criteria before submitting a new PR.\n\n" +
-                "---\n\n" +
-                "⚠ **Maintainer note**\n\n" +
-                "The team periodically reviews closed submissions. If a project is still considered valuable to the ecosystem, maintainers may reopen the PR even if it does not fully meet the thresholds.\n\n" +
-                "**Please do not ping or repeatedly contact maintainers to reopen PRs.**";
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: message
-              });
-              await github.rest.pulls.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.issue.number,
-                state: "closed"
-              });
-              core.setFailed("Application requirements checklist incomplete.");
-            }
+            core.setFailed("Requirements check: " + problems.length + " item(s) missing.");
