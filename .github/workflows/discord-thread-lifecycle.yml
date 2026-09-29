@@ -145,52 +145,105 @@ jobs:
       # -----------------------------------------------------------------------
       # Ready For Testing
       # -----------------------------------------------------------------------
-      - name: Extract script name and type
+      - name: Resolve the script to test
         if: env.MODE == 'ready'
         run: |
           ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json body --jq '.body // ""')
+          RAW=https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main
 
-          # SLUG: from the "Name of the Script" field, normalized to the repo's
-          # lowercase + spaces->dashes convention ("Alpine Cinny" -> "alpine-cinny").
-          NAME_RAW=$(printf '%s\n' "$ISSUE_BODY" \
-            | sed -n '/^###[[:space:]]*Name of the Script/,/^###/p' \
-            | sed '1d;/^###/d;/^[[:space:]]*$/d' | head -n1)
+          # First answered line under an issue form heading.
+          field() {
+            printf '%s\n' "$ISSUE_BODY" | tr -d '\r' \
+              | sed -n "/^###[[:space:]]*$1/,/^###/p" \
+              | sed '1d;/^###/d;/^[[:space:]]*$/d;/^_No response_$/d' | head -n1
+          }
+
+          NAME_RAW=$(field 'Name of the Script')
           if [ -z "$NAME_RAW" ]; then
             NAME_RAW="$ISSUE_TITLE"
           fi
           SLUG=$(printf '%s' "$NAME_RAW" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]\+/-/g')
 
-          if printf '%s' "$ISSUE_BODY" | grep -qi "CT (LXC Container)"; then
-            SCRIPT_TYPE="ct"
-          elif printf '%s' "$ISSUE_BODY" | grep -qi "VM (Virtual Machine)"; then
-            SCRIPT_TYPE="vm"
-          elif printf '%s' "$ISSUE_BODY" | grep -qi "Addon (tools/addon)"; then
-            SCRIPT_TYPE="addon"
-          elif printf '%s' "$ISSUE_BODY" | grep -qi "PVE Tool (tools/pve)"; then
-            SCRIPT_TYPE="pve"
-          elif [[ "$SLUG" == *"-vm"* ]]; then
-            SCRIPT_TYPE="vm"
-          else
-            SCRIPT_TYPE="ct"
+          case "$(field 'Script Type')" in
+            CT*)         SCRIPT_TYPE="ct" ;;
+            VM*)         SCRIPT_TYPE="vm" ;;
+            Addon*)      SCRIPT_TYPE="addon" ;;
+            "PVE Tool"*) SCRIPT_TYPE="pve" ;;
+            Other*)      SCRIPT_TYPE="other" ;;
+            *) if [[ "$SLUG" == *"-vm"* ]]; then SCRIPT_TYPE="vm"; else SCRIPT_TYPE="ct"; fi ;;
+          esac
+
+          SCRIPT_PATH=$(field 'Script path' | tr -d '[:space:]' | sed 's|^/||')
+          if [[ ! "$SCRIPT_PATH" =~ ^[A-Za-z0-9._/-]+\.sh$ || "$SCRIPT_PATH" == *..* ]]; then
+            SCRIPT_PATH=""
+          fi
+          if [ -z "$SCRIPT_PATH" ] && [[ "$SLUG" =~ ^[a-z0-9._-]+$ ]]; then
+            case "$SCRIPT_TYPE" in
+              ct)    SCRIPT_PATH="ct/${SLUG}.sh" ;;
+              vm)    SCRIPT_PATH="vm/${SLUG}.sh"
+                     curl -fsI "$RAW/$SCRIPT_PATH" >/dev/null 2>&1 || SCRIPT_PATH="vm/${SLUG%-vm}-vm.sh" ;;
+              addon) SCRIPT_PATH="tools/addon/${SLUG}.sh" ;;
+              pve)   SCRIPT_PATH="tools/pve/${SLUG}.sh" ;;
+            esac
           fi
 
-          echo "SLUG=$SLUG" >> "$GITHUB_ENV"
-          echo "SCRIPT_TYPE=$SCRIPT_TYPE" >> "$GITHUB_ENV"
-          echo "Detected script type: $SCRIPT_TYPE for slug: $SLUG"
+          if [ -z "$SCRIPT_PATH" ] || ! curl -fsSL --retry 3 -o script.sh "$RAW/$SCRIPT_PATH"; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body \
+              "⚠️ \`${SCRIPT_PATH:-no script path}\` is not on \`main\`, so there is no test command to post. Fill in **Script path** in the issue or fix the name, then add \`Ready For Testing\` again."
+            exit 1
+          fi
+
+          APPLIANCE=$(basename "$SCRIPT_PATH" | grep -oE '(^|-)(pbs|pmg|pdm)([0-9-]|\.sh$)' | grep -oE 'pbs|pmg|pdm' | head -n1 || true)
+          if [[ "$SCRIPT_TYPE" == ct || "$SCRIPT_TYPE" == vm ]]; then
+            RUNS_ON="pve"
+          else
+            case "$(field 'Where does it run?')" in
+              "Proxmox VE host")            RUNS_ON="pve" ;;
+              "Inside an LXC or VM")        RUNS_ON="guest" ;;
+              "Proxmox Backup Server")      RUNS_ON="pbs" ;;
+              "Proxmox Mail Gateway")       RUNS_ON="pmg" ;;
+              "Proxmox Datacenter Manager") RUNS_ON="pdm" ;;
+              *)
+                if [[ "$SCRIPT_PATH" == tools/pve/* ]]; then
+                  RUNS_ON="${APPLIANCE:-pve}"
+                elif sed -e 's/^[[:space:]]*#.*//' -e 's/command -v [^[:space:]]*//g' script.sh \
+                  | grep -qE '(^|[[:space:];&|(`$])(pct|qm|pveam|pvesm|pvesh|pveversion)[[:space:]]'; then
+                  RUNS_ON="pve"
+                elif [ -n "$APPLIANCE" ]; then
+                  RUNS_ON="$APPLIANCE"
+                elif [[ "$SCRIPT_PATH" == tools/addon/* ]]; then
+                  RUNS_ON="guest"
+                else
+                  RUNS_ON="unknown"
+                fi ;;
+            esac
+          fi
+
+          {
+            echo "SLUG=$SLUG"
+            echo "SCRIPT_TYPE=$SCRIPT_TYPE"
+            echo "SCRIPT_PATH=$SCRIPT_PATH"
+            echo "RUNS_ON=$RUNS_ON"
+          } >> "$GITHUB_ENV"
+          echo "Resolved $SCRIPT_TYPE script $SCRIPT_PATH, runs on: $RUNS_ON"
 
       - name: Build testing message
         if: env.MODE == 'ready'
         run: |
-          case "$SCRIPT_TYPE" in
-            ct)    SCRIPT_PATH="ct/${SLUG}.sh" ;;
-            vm)    SCRIPT_PATH="vm/${SLUG}.sh" ;;
-            addon) SCRIPT_PATH="tools/addon/${SLUG}.sh" ;;
-            pve)   SCRIPT_PATH="tools/pve/${SLUG}.sh" ;;
+          case "$RUNS_ON:$SCRIPT_TYPE" in
+            pve:ct)  WHERE="in the Proxmox VE shell (or on an Incus host) to create a container" ;;
+            pve:vm)  WHERE="in the Proxmox VE shell to create a VM" ;;
+            pve:*)   WHERE="in the Proxmox VE shell" ;;
+            guest:*) WHERE="inside the LXC or VM that should get it" ;;
+            pbs:*)   WHERE="in the Proxmox Backup Server shell" ;;
+            pmg:*)   WHERE="in the Proxmox Mail Gateway shell" ;;
+            pdm:*)   WHERE="in the Proxmox Datacenter Manager shell" ;;
+            *)       WHERE="as described in the issue" ;;
           esac
 
           {
-            printf 'The %s script is ready for testing:\n' "$ISSUE_TITLE"
-            printf '```\nbash -c "$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/%s)"\n```\n' "$SCRIPT_PATH"
+            printf 'The %s script is ready for testing. Run it %s:\n' "$ISSUE_TITLE" "$WHERE"
+            printf '```\nbash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/%s)"\n```\n' "$SCRIPT_PATH"
           } > testing.md
 
           if [ "$SCRIPT_TYPE" != "pve" ]; then
@@ -214,7 +267,11 @@ jobs:
             fi
           fi
 
-          printf '\nNote: This is not in the official repo yet—it'"'"'s just a dev version! After merging into ProxmoxVE, it will need to be recreated.\n' >> testing.md
+          if [[ "$SCRIPT_TYPE" == ct || "$SCRIPT_TYPE" == vm ]]; then
+            printf '\nNote: This is not in the official repo yet—it'"'"'s just a dev version! After merging into ProxmoxVE, it will need to be recreated.\n' >> testing.md
+          else
+            printf '\nNote: This is not in the official repo yet—it'"'"'s just a dev version!\n' >> testing.md
+          fi
 
           cp testing.md discord.md
           printf '\nDiscussion & issue tracking:\n%s\n' "$ISSUE_URL" >> discord.md
@@ -272,7 +329,7 @@ jobs:
           gh api --method DELETE "/repos/$REPO/issues/$ISSUE_NUMBER/lock"
 
       - name: Push script JSON to PocketBase
-        if: env.MODE == 'ready' && env.SCRIPT_TYPE != 'pve'
+        if: env.MODE == 'ready' && env.SCRIPT_TYPE != 'pve' && env.SCRIPT_TYPE != 'other'
         run: |
           gh workflow run push_json_to_pocketbase.yml --repo "$REPO" -f script_slug="$SLUG"
 
