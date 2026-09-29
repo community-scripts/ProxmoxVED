@@ -90,7 +90,7 @@ After=network.target
 [Service]
 Type=simple
 ExecStartPre=/bin/sh -c 'rm -f /tmp/.X1-lock'
-ExecStart=/usr/bin/Xvfb :1 -screen 0 1280x800x24
+ExecStart=/usr/bin/Xvfb :1 -screen 0 1920x1080x24
 ExecStartPost=/bin/sh -c 'sleep 1 && DISPLAY=:1 /usr/bin/xset s off && DISPLAY=:1 /usr/bin/xset s noblank && DISPLAY=:1 /usr/bin/xset -dpms'
 Restart=on-failure
 RestartSec=5
