@@ -5,10 +5,10 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: LuisAngelDesign
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://uisp.ui.com/
+# Source: https://uisp.com/
 
 APP="UISP"
-var_tags="${var_tags:-network;unifi}"
+var_tags="${var_tags:-network;isp}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-20}"

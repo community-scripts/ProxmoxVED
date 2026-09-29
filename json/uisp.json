@@ -10,8 +10,8 @@
   "privileged": false,
   "architectures": ["amd64"],
   "interface_port": 443,
-  "documentation": "https://help.ui.com/hc/en-us",
-  "website": "https://www.ui.com/",
+  "documentation": "https://help.uisp.com/hc/en-us/articles/22591008678039",
+  "website": "https://uisp.com/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ubiquiti-unifi.webp",
   "description": "UISP is Ubiquiti's management platform for ISP networks. It manages airMAX, airFiber and other UISP devices, and includes a CRM and billing module.",
   "install_methods": [
@@ -35,7 +35,7 @@
   "notes": [
     "On first access UISP asks you to accept the terms and create the main account (username, password and email). There are no default credentials.",
     "Exposed ports: 443 (web), 80/81, 8089 and 2055/udp (NetFlow).",
-    "Device firmware is managed from Settings > Updates. UISP itself is updated by re-running the update from the console.",
+    "Device firmware is managed from Settings > Updates. UISP itself is updated from the LXC console by running the update script (it re-runs the official Ubiquiti installer).",
     "Back up from Settings > Backup before updating.",
     "The CRM module may take a few minutes to become available after installation."
   ]
