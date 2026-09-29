@@ -42,7 +42,7 @@ jobs:
         run: echo "Using ${{ steps.auth.outputs.mode }}"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           token: ${{ steps.auth.outputs.token }}

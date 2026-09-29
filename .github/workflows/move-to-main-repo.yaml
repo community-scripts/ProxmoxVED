@@ -10,15 +10,18 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  actions: write
 
 jobs:
   move-to-main-repo:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'Migration To ProxmoxVE' && github.repository == 'community-scripts/ProxmoxVED'
+    if: >-
+      (github.event_name == 'workflow_dispatch' || github.event.label.name == 'Migration To ProxmoxVE') &&
+      github.repository == 'community-scripts/ProxmoxVED'
     steps:
       - name: Generate a token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ vars.GHAPP_SYNC_ID }}
           private-key: ${{ secrets.GHAPP_SYNC_PRIVATE_KEY }}
@@ -28,7 +31,7 @@ jobs:
             ProxmoxVED
 
       - name: Checkout ProxmoxVED (Source Repo)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: main
           repository: community-scripts/ProxmoxVED
@@ -200,7 +203,9 @@ jobs:
         env:
           script_name: ${{ steps.list_issues.outputs.script_name }}
           script_type: ${{ steps.list_issues.outputs.script_type }}
+          issue_nr: ${{ steps.list_issues.outputs.issue_nr }}
           APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git clone "https://x-access-token:${APP_TOKEN}@github.com/community-scripts/ProxmoxVE.git" ProxmoxVE
           cd ProxmoxVE
@@ -211,20 +216,24 @@ jobs:
             git push origin --delete "$branch_name" || true
           fi
 
-          # Check if files already exist in target repo
+          already_there() {
+            gh issue comment "$issue_nr" --repo community-scripts/ProxmoxVED \
+              --body "Migration stopped: \`$1\` already exists in ProxmoxVE. Remove the \`Migration To ProxmoxVE\` label and move the changes over by hand."
+            exit 1
+          }
           case "$script_type" in
             ct)
-              [[ -f "ct/${script_name}.sh" ]] && echo "ct file already exists in ProxmoxVE" && exit 1
-              [[ -f "install/${script_name}-install.sh" ]] && echo "install file already exists in ProxmoxVE" && exit 1
+              [[ -f "ct/${script_name}.sh" ]] && already_there "ct/${script_name}.sh"
+              [[ -f "install/${script_name}-install.sh" ]] && already_there "install/${script_name}-install.sh"
               ;;
             vm)
-              [[ -f "vm/${script_name}.sh" ]] && echo "vm file already exists in ProxmoxVE" && exit 1
+              [[ -f "vm/${script_name}.sh" ]] && already_there "vm/${script_name}.sh"
               ;;
             addon)
-              [[ -f "tools/addon/${script_name}.sh" ]] && echo "addon file already exists in ProxmoxVE" && exit 1
+              [[ -f "tools/addon/${script_name}.sh" ]] && already_there "tools/addon/${script_name}.sh"
               ;;
             pve)
-              [[ -f "tools/pve/${script_name}.sh" ]] && echo "pve tool file already exists in ProxmoxVE" && exit 1
+              [[ -f "tools/pve/${script_name}.sh" ]] && already_there "tools/pve/${script_name}.sh"
               ;;
           esac
 

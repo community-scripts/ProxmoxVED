@@ -19,14 +19,18 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Get changed .sh files and derive slugs
         id: slugs
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
         run: |
-          changed=$(git diff --name-only "${{ github.event.before }}" "${{ github.event.after }}" -- ct/ install/ tools/ turnkey/ vm/ | grep '\.sh$' || true)
+          [[ -z "$BEFORE" || "$BEFORE" =~ ^0+$ ]] && BEFORE="${AFTER}~1"
+          changed=$(git diff --name-only "$BEFORE" "$AFTER" -- ct/ install/ tools/ vm/ | grep '\.sh$' || true)
           if [[ -z "$changed" ]]; then
             echo "No .sh files changed in ct/, install/, tools/, turnkey/, or vm/."
             echo "count=0" >> "$GITHUB_OUTPUT"

@@ -17,12 +17,12 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # The scripts source the engine at runtime; a checkout lets the harness
       # load it from disk instead of over the network on every run.
       - name: Checkout core
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: community-scripts/core
           path: .core

@@ -5,7 +5,6 @@
             "includeGlobs": [
                 "ct/**",
                 "install/**",
-                "turnkey/**",
                 "vm/**"
             ],
             "excludeGlobs": []
@@ -17,11 +16,9 @@
             "includeGlobs": [
                 "ct/**",
                 "install/**",
-                "turnkey/**",
                 "vm/**"
             ],
-            "excludeGlobs": [
-            ]
+            "excludeGlobs": []
         }
     ],
     "delete script": [
@@ -30,7 +27,6 @@
             "includeGlobs": [
                 "ct/**",
                 "install/**",
-                "turnkey/**",
                 "vm/**"
             ],
             "excludeGlobs": []
@@ -41,34 +37,7 @@
             "fileStatus": null,
             "includeGlobs": [
                 "*.md",
-                ".github/**",
-                "api/**"
-            ],
-            "excludeGlobs": []
-        }
-    ],
-    "core": [
-        {
-            "fileStatus": null,
-            "includeGlobs": [
-            ],
-            "excludeGlobs": []
-        }
-    ],
-    "website": [
-        {
-            "fileStatus": null,
-            "includeGlobs": [
-                "frontend/**"
-            ],
-            "excludeGlobs": []
-        }
-    ],
-    "api": [
-        {
-            "fileStatus": null,
-            "includeGlobs": [
-                "api/**"
+                ".github/**"
             ],
             "excludeGlobs": []
         }
@@ -87,14 +56,6 @@
             "fileStatus": "modified",
             "includeGlobs": [
                 "json/**"
-            ],
-            "excludeGlobs": []
-        }
-    ],
-    "high risk": [
-        {
-            "fileStatus": null,
-            "includeGlobs": [
             ],
             "excludeGlobs": []
         }

@@ -28,7 +28,7 @@ jobs:
       (github.event_name == 'issues' && github.event.label.name == 'Ready For Testing')
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -37,6 +37,7 @@ jobs:
         env:
           INPUT_SLUG: ${{ github.event.inputs.script_slug }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
           : > changed_app_jsons.txt
 
@@ -87,8 +88,16 @@ jobs:
             exit 0
           fi
 
-          # Extract slug from issue title (lowercase, spaces to dashes)
-          script_slug=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g')
+          # Same slug as move-to-main-repo: the "Name of the Script" field, else the title.
+          name_raw=$(printf '%s\n' "$ISSUE_BODY" | tr -d '\r' \
+            | sed -n '/^###[[:space:]]*Name of the Script/,/^###/p' \
+            | sed '1d;/^###/d;/^[[:space:]]*$/d' | head -n1)
+          script_slug=$(printf '%s' "${name_raw:-$ISSUE_TITLE}" | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]\+/-/g')
+          if [[ ! "$script_slug" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; then
+            echo "Issue does not give a valid slug."
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           file="json/${script_slug}.json"
 
           if [[ ! -f "$file" ]]; then

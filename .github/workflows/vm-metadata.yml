@@ -23,11 +23,31 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Check APP, APP_TYPE, NSAPP and the catalog entry
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -uo pipefail
+
+          # A pull request answers for what it changes, main for the whole tree.
+          scripts=() jsons=()
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            while IFS= read -r f; do
+              [[ -f "$f" ]] || continue
+              case "$f" in
+                vm/*.sh) scripts+=("$f") ;;
+                json/*.json) jsons+=("$f") ;;
+              esac
+            done < <(git diff --name-only "$BASE_SHA" HEAD -- vm json)
+          else
+            scripts=(vm/*.sh)
+            jsons=(json/*.json)
+          fi
 
           # vm-manager, debian-vm-test-helper and docker-vm-debug are tooling
           # rather than catalog entries: no display name, no banner, no json.
@@ -40,7 +60,7 @@ jobs:
           EXCLUDE="vm-manager debian-vm-test-helper docker-vm-debug app-deployer-vm"
 
           fail=0
-          for script in vm/*.sh; do
+          for script in "${scripts[@]}"; do
             slug=$(basename "$script" .sh)
             case " $EXCLUDE " in *" $slug "*) continue ;; esac
 
@@ -88,7 +108,7 @@ jobs:
 
           # A catalog entry without a script is just as broken as the other way
           # round: the website offers something that cannot be installed.
-          for json in json/*.json; do
+          for json in "${jsons[@]}"; do
             # versions.json is an array, not a catalog entry, and .type on an
             # array is an error rather than an empty string -- so check the
             # shape before reading fields out of it.
