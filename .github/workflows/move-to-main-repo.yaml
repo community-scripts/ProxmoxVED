@@ -233,8 +233,7 @@ jobs:
               # issue number that does not exist in this repository.
               sed -i '/^[[:space:]]*var_testurl=/d' ct/${script_name}.sh
 
-              # The pin sends a script under test to ProxmoxVED for its install/
-              # script. ProxmoxVE is the engine's default, so it goes as well.
+              # ProxmoxVE is the engine's default scripts base, so the pin goes.
               sed -i '/^_CS_DEFAULT_URL=/d' ct/${script_name}.sh
 
               # Update URLs in ct script
