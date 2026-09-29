@@ -19,8 +19,8 @@
       "script": "ct/tinymediamanager.sh",
       "config_path": "/opt/tinymediamanager_data",
       "resources": {
-        "cpu": 2,
-        "ram": 2048,
+        "cpu": 4,
+        "ram": 4096,
         "hdd": 12,
         "os": "Debian",
         "version": "13"
@@ -38,6 +38,10 @@
     },
     {
       "text": "Media defaults to /media/movies and /media/tvshows inside the LXC. After install, bind host storage with: pct set <CTID> -mp0 /path/on/host,mp=/media/movies and pct set <CTID> -mp1 /path/on/host,mp=/media/tvshows (or tools/pve/storage-share-helper.sh). On unprivileged LXCs, match host ownership/ACLs to the container UID mapping — do not chmod 777.",
+      "type": "info"
+    },
+    {
+      "text": "Defaults are 4 CPU / 4096 MiB RAM. Large TV libraries (many episodes) are CPU-heavy during source updates; increase resources further if scans stay saturated.",
       "type": "info"
     },
     {
