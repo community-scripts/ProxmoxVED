@@ -8,12 +8,16 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
   "interface_port": 80,
   "documentation": "https://docs.weblate.org/en/latest/",
   "website": "https://weblate.org/",
   "repository": "https://github.com/WeblateOrg/weblate",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/weblate.webp",
-  "description": "Weblate is a web-based continuous localization system with tight version control integration. Translators work in the browser while Weblate pulls from and pushes to your Git or Mercurial repositories, with quality checks, translation memory, machine translation, glossaries and add-ons for more than 70 file formats.",
+  "description": "Weblate is a web-based continuous localization system with tight version control integration. Translators work in the browser while Weblate pulls from and pushes to your Git or Mercurial repositories, with quality checks, translation memory, machine translation, glossaries and add-ons across dozens of file formats.",
   "install_methods": [
     {
       "type": "default",
@@ -47,6 +51,10 @@
     },
     {
       "text": "Management commands need the environment loaded: `set -a; . /opt/weblate_data/weblate.env; set +a; /opt/weblate/.venv/bin/weblate <command>`.",
+      "type": "info"
+    },
+    {
+      "text": "Celery runs two worker processes (--concurrency=2 in weblate-celery.service). Raise it together with CPU and RAM if Weblate reports long task queues.",
       "type": "info"
     },
     {

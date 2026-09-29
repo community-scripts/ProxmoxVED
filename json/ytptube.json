@@ -8,6 +8,10 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
   "interface_port": 8081,
   "documentation": "https://github.com/arabcoders/ytptube/blob/master/FAQ.md",
   "website": "https://github.com/arabcoders/ytptube",

@@ -14,7 +14,7 @@ var_ram="${var_ram:-3072}"
 var_disk="${var_disk:-10}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-#var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
+var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -41,7 +41,7 @@ function update_script() {
     USE_ORIGINAL_FILENAME=true fetch_and_deploy_gh_release "weblate" "WeblateOrg/weblate" "singlefile" "latest" "/opt/weblate" "weblate-*-py3-none-any.whl"
 
     msg_info "Updating Weblate"
-    $STD uv pip install --python /opt/weblate/.venv/bin/python --compile-bytecode "$(echo /opt/weblate/weblate-*.whl)[all,wsgi]"
+    $STD uv pip install --python /opt/weblate/.venv/bin/python --compile-bytecode /opt/weblate/weblate-*.whl "weblate[all,wsgi]"
     rm -f /opt/weblate/weblate-*.whl
     set -a
     source /opt/weblate_data/weblate.env

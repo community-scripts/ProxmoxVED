@@ -37,7 +37,7 @@ USE_ORIGINAL_FILENAME=true fetch_and_deploy_gh_release "weblate" "WeblateOrg/web
 
 msg_info "Installing Weblate"
 $STD uv venv --python 3.14 /opt/weblate/.venv
-$STD uv pip install --python /opt/weblate/.venv/bin/python --compile-bytecode "$(echo /opt/weblate/weblate-*.whl)[all,wsgi]"
+$STD uv pip install --python /opt/weblate/.venv/bin/python --compile-bytecode /opt/weblate/weblate-*.whl "weblate[all,wsgi]"
 rm -f /opt/weblate/weblate-*.whl
 msg_ok "Installed Weblate"
 
@@ -129,7 +129,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/weblate_data
 EnvironmentFile=/opt/weblate_data/weblate.env
-ExecStart=/opt/weblate/.venv/bin/celery --app=weblate.utils worker --beat --loglevel=info --queues=celery,notify,memory,translate,backup --prefetch-multiplier=1
+ExecStart=/opt/weblate/.venv/bin/celery --app=weblate.utils worker --beat --loglevel=info --queues=celery,notify,memory,translate,backup --prefetch-multiplier=1 --concurrency=2
 Restart=on-failure
 RestartSec=10
 

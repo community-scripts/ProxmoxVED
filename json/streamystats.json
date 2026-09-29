@@ -25,7 +25,7 @@
       "config_path": "/opt/streamystats_data/.env",
       "resources": {
         "cpu": 2,
-        "ram": 4096,
+        "ram": 3072,
         "hdd": 10,
         "os": "Debian",
         "version": "13"
@@ -50,7 +50,7 @@
       "type": "info"
     },
     {
-      "text": "The build needs the configured RAM. Updates rebuild the app, so do not shrink the container below it.",
+      "text": "Installs and updates build the Next.js app from source, which peaks at about 2.3 GB of RAM. Keep the container at 3 GB or more, or updates can fail mid-build.",
       "type": "warning"
     }
   ]
