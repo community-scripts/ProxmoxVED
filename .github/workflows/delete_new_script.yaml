@@ -139,7 +139,6 @@ jobs:
           case "$SCRIPT_TYPE" in
             ct)
               rm -f "ct/${TITLE}.sh"
-              rm -f "ct/headers/${TITLE}"
               rm -f "install/${TITLE}-install.sh"
               rm -f "json/${TITLE}.json"
               # Also try alpine variant
