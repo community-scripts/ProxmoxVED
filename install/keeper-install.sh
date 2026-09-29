@@ -61,8 +61,11 @@ MICROSOFT_CLIENT_ID=
 MICROSOFT_CLIENT_SECRET=
 EOF
 chmod 600 /opt/keeper_data/.env
-$STD bun --env-file=/opt/keeper_data/.env packages/database/scripts/migrate.ts
 msg_ok "Configured Keeper"
+
+msg_info "Migrating Keeper Database"
+$STD bun --env-file=/opt/keeper_data/.env packages/database/scripts/migrate.ts
+msg_ok "Migrated Keeper Database"
 
 msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/keeper-api.service

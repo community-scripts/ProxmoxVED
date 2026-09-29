@@ -42,12 +42,15 @@ rm -f /opt/weblate/weblate-*.whl
 msg_ok "Installed Weblate"
 
 msg_info "Configuring Weblate"
-mkdir -p /opt/weblate_data /app
-# weblate.settings_docker reads the secret and settings-override.py from /app/data
+mkdir -p /opt/weblate_data/python/customize /app
+# weblate.settings_docker is upstream's env-driven settings; it reads the secret and
+# settings-override.py from /app/data and loads the "customize" app from DATA_DIR/python
 ln -sfn /opt/weblate_data /app/data
+touch /opt/weblate_data/python/customize/{__init__,models}.py
 /opt/weblate/.venv/bin/weblate-generate-secret-key >/opt/weblate_data/secret
 cat <<EOF >/opt/weblate_data/weblate.env
 DJANGO_SETTINGS_MODULE=weblate.settings_docker
+PYTHONPATH=/opt/weblate_data/python
 WEBLATE_SITE_DOMAIN=${LOCAL_IP}
 WEBLATE_DATA_DIR=/opt/weblate_data
 WEBLATE_CACHE_DIR=/opt/weblate/cache

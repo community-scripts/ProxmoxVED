@@ -42,6 +42,10 @@
       "type": "warning"
     },
     {
+      "text": "BETTER_AUTH_URL and TRUSTED_ORIGINS in /opt/keeper_data/.env are set to http://<container-ip>:3000 at install; auth requests from any other origin fail with \"Invalid origin\". When the IP changes or you add a domain, update them (TRUSTED_ORIGINS takes a comma-separated list) and run `systemctl restart keeper-api`.",
+      "type": "warning"
+    },
+    {
       "text": "iCal/ICS links and CalDAV accounts (iCloud, Fastmail, Nextcloud, ...) work out of the box. Google Calendar and Outlook need your own OAuth app: put the credentials into GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET and MICROSOFT_CLIENT_ID/MICROSOFT_CLIENT_SECRET in /opt/keeper_data/.env, then run `systemctl restart keeper-api keeper-cron keeper-worker`.",
       "type": "info"
     },
