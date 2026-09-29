@@ -1,0 +1,57 @@
+{
+  "name": "Streamystats",
+  "slug": "streamystats",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-09-29",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 3000,
+  "documentation": "https://github.com/fredrikburmester/streamystats/blob/main/DOCKERLESS.md",
+  "website": "https://github.com/fredrikburmester/streamystats",
+  "repository": "https://github.com/fredrikburmester/streamystats",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/streamystats.webp",
+  "description": "Streamystats is a statistics and analytics service for Jellyfin. It tracks playback sessions through the Jellyfin API and shows watch history, per-user, library and client statistics, and watch-time graphs. It supports multiple servers and can import history from Jellystat and the Playback Reporting plugin. Optional AI features add library chat and embedding-based recommendations through OpenAI-compatible, Ollama or Anthropic providers.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/streamystats.sh",
+      "config_path": "/opt/streamystats_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "On first visit the setup page asks for your Jellyfin URL and an API key. Create the key in Jellyfin under Dashboard > API Keys. The optional internal URL is used for server-to-server traffic when Jellyfin is reachable on a LAN address.",
+      "type": "info"
+    },
+    {
+      "text": "There is no separate account: after setup, sign in with your Jellyfin username and password. Jellyfin administrators get the admin views in Streamystats.",
+      "type": "info"
+    },
+    {
+      "text": "The first sync of a large library can take a while. AI chat and embedding-based recommendations stay off until you configure a provider under Settings > AI.",
+      "type": "info"
+    },
+    {
+      "text": "The build needs the configured RAM. Updates rebuild the app, so do not shrink the container below it.",
+      "type": "warning"
+    }
+  ]
+}
