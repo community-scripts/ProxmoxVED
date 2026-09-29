@@ -10,7 +10,7 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 APP="ProxCenter"
 var_tags="${var_tags:-proxmox;management}"
 var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-4096}"
+var_ram="${var_ram:-6144}"
 var_disk="${var_disk:-10}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
@@ -45,7 +45,8 @@ function update_script() {
     $STD npm ci --legacy-peer-deps --ignore-scripts
     $STD npm run build:icons
     $STD npx prisma generate
-    $STD npm run build
+    # the type check in next build runs out of heap at 2 GB
+    NODE_OPTIONS="--max-old-space-size=4608" $STD npm run build
     msg_ok "Built ProxCenter"
 
     msg_info "Migrating Database"
