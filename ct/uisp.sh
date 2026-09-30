@@ -12,8 +12,8 @@ var_tags="${var_tags:-network;isp}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-20}"
-var_os="${var_os:-debian}"
-var_version="${var_version:-13}"
+var_os="${var_os:-ubuntu}"
+var_version="${var_version:-24.04}"
 var_unprivileged="${var_unprivileged:-1}"
 var_nesting="${var_nesting:-1}"
 var_arm64="${var_arm64:-no}"
@@ -33,9 +33,7 @@ function update_script() {
     exit
   fi
 
-  msg_info "Updating ${APP}"
-  $STD bash <(curl -fsSL https://uisp.ui.com/install) --unattended --update
-  msg_ok "Updated ${APP}"
+  msg_ok "${APP} updates itself. Use the web interface: Settings > Updates"
   exit
 }
 
