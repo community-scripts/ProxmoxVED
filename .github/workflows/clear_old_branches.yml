@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Delete merged or closed branches older than 7 days
         env:
@@ -43,9 +43,10 @@ jobs:
           OLD_CLOSED_PR_BRANCHES=$(gh pr list \
             --state all \
             --base main \
-            --json state,mergedAt,closedAt,headRefName \
+            --json state,mergedAt,closedAt,headRefName,isCrossRepository \
             --limit 500 |
           jq -r --arg cutoff "$CUTOFF_DATE" '.[] |
+            select(.isCrossRepository | not) |
             select(.state == "MERGED" or .state == "CLOSED") |
             select(((.mergedAt // .closedAt) | fromdateiso8601) < ($cutoff | tonumber)) |
             .headRefName' | sort -u)

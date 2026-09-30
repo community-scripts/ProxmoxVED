@@ -1425,14 +1425,14 @@ cleanup_lxc
 
 Read both files end to end before writing your own. They are short on purpose.
 
-### CT Script: [ct/journiv.sh](ct/journiv.sh)
+### CT Script: [ct/journiv.sh](https://github.com/community-scripts/ProxmoxVE/blob/main/ct/journiv.sh)
 
 - No engine comment block above `_cs_boot`
 - `check_for_gh_release` for the version check
 - One function only: `update_script()`
 - Every message names Journiv
 
-### Install Script: [install/journiv-install.sh](install/journiv-install.sh)
+### Install Script: [install/journiv-install.sh](https://github.com/community-scripts/ProxmoxVE/blob/main/install/journiv-install.sh)
 
 - 131 lines, **zero** functions of its own, zero comment banners
 - `setup_postgresql` / `setup_postgresql_db` / `setup_uv` instead of hand-rolled setup

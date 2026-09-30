@@ -16,7 +16,7 @@ jobs:
       contents: read
     steps:
       - name: Handle stale PRs
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const now = new Date();
@@ -28,8 +28,7 @@ jobs:
             const staleNotice = author =>
               `@${author} This PR has been marked as stale. It will be closed if no new commits are added in 7 days.`;
 
-            // Labels added with this workflow's token fire no event, so this only
-            // covers a maintainer adding stale by hand.
+            // Only fires for a maintainer's label: labels set with GITHUB_TOKEN raise no event.
             if (context.eventName === "pull_request_target" && context.payload.action === "labeled") {
               const pr = context.payload.pull_request;
               const labels = (pr.labels || []).map(l => l.name);
@@ -106,8 +105,7 @@ jobs:
               const staleLabelDate = new Date(Math.max(...staleDates));
               const isRequirements = labels.includes(REQ);
 
-              // New commits end an inactivity mark. A requirements mark only ends when
-              // the description is fixed, which unmet-pr-close.yml takes care of.
+              // A push ends an inactivity mark; a requirements mark only ends via unmet-pr-close.yml.
               if (!isRequirements && lastCommitDate > staleLabelDate) {
                 await github.rest.issues.removeLabel({ owner, repo, issue_number: pr.number, name: "stale" });
                 await github.rest.issues.createComment({
