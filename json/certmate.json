@@ -1,0 +1,53 @@
+{
+  "name": "CertMate",
+  "slug": "certmate",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-09-30",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8000,
+  "documentation": "https://github.com/fabriziosalmi/certmate/blob/main/docs/installation.md",
+  "website": "https://www.certmate.org",
+  "repository": "https://github.com/fabriziosalmi/certmate",
+  "logo": "https://cdn.jsdelivr.net/gh/fabriziosalmi/certmate@main/certmate_logo.png",
+  "description": "CertMate is a self-hosted SSL/TLS certificate manager. It issues and renews certificates over ACME (Let's Encrypt, ZeroSSL or a private ACME CA) with DNS-01 across many DNS providers or HTTP-01, renews them on a schedule, and exposes a web UI and a REST API for issuing, downloading and deploying certificates, with encrypted backups and webhook notifications.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/certmate.sh",
+      "config_path": "/opt/certmate_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default login. The first page creates the administrator account and asks for the API token, which the install generated: grep API_BEARER_TOKEN /opt/certmate_data/.env",
+      "type": "warning"
+    },
+    {
+      "text": "Keep a copy of /opt/certmate_data/.env off the container. CERTMATE_BACKUP_PASSPHRASE encrypts the backups, and SECRET_KEY must match for a backup to restore the API token.",
+      "type": "warning"
+    },
+    {
+      "text": "CertMate listens on plain HTTP on port 8000 on every interface. To expose it beyond your LAN, put an HTTPS reverse proxy in front and set BEHIND_PROXY=true in /opt/certmate_data/.env, then run systemctl restart certmate.",
+      "type": "info"
+    },
+    {
+      "text": "Certificates, settings, backups and logs live in /opt/certmate_data and survive updates.",
+      "type": "info"
+    }
+  ]
+}
