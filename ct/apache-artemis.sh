@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-dev_mode=logs
+#dev_mode=logs
 #dev_mode=net,timing,trace,pause,keep,breakpoint,motd,logs
 _CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"

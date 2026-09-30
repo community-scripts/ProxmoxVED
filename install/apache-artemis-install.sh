@@ -32,8 +32,8 @@ setup_variables(){
     BROKER_NAME=test_broker
     BROKER_DIR=${ARTEMIS_USER_HOME_DIR}/${BROKER_NAME}
     BROKER_BIN=${BROKER_DIR}/bin
-	  BROKER_USER=user_used_by_broker_clients
-	  BROKER_PASSWORD=user_used_by_broker_clients
+	  BROKER_USER=artemis
+	  BROKER_PASSWORD=$(openssl rand 600 | tr -dc 'a-zA-Z0-9#^-_+=' | cut -c1-16)
 
 	  BROKER_SERVICE_UNIT_FILE=${BROKER_NAME}.service
     BROKER_SERVICE_UNIT_FILE_PATH=/etc/systemd/system
@@ -153,6 +153,11 @@ configure_embedded_web_server(){
   rm /tmp/jolokia-access.xml
 }
 
+save_broker_password(){
+  echo "${BROKER_PASSWORD}" > ${BROKER_DIR}/.secret
+  msg_ok "Broker password saved in ${BROKER_DIR}/.secret"
+}
+
 setup_variables
 install_java
 download_apache_artemis
@@ -165,6 +170,9 @@ setup_ownership_and_permissions_for_artemis
 setup_ownership_and_permissions_for_broker
 start_broker
 install_tmux
+msg_ok "Broker user: ${BROKER_USER}"
+msg_ok "Broker password: ${BROKER_PASSWORD}"
+save_broker_password
 
 motd_ssh
 cleanup_lxc
