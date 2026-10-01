@@ -82,7 +82,11 @@ jobs:
             } else {
               // Template-version-gated: only enforced if the disclosure prompt exists in the body.
               const llmDisclosureIdx = lines.findIndex(l => l.includes("describe to which degree, if any, an LLM was used"));
-              if (llmDisclosureIdx !== -1) {
+              const noAiUsedChecked = (() => {
+                const line = findLine("**No AI used**");
+                return line && checkboxChecked(line);
+              })();
+              if (llmDisclosureIdx !== -1 && !noAiUsedChecked) {
                 let disclosureText = "";
                 for (let i = llmDisclosureIdx + 1; i < lines.length; i++) {
                   const trimmed = lines[i].trim();
