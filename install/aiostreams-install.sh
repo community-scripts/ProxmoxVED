@@ -22,14 +22,13 @@ $STD apt install -y \
   libmimalloc3
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="24" setup_nodejs
-ensure_dependencies jq
-
 fetch_and_deploy_gh_release "aiostreams" "Viren070/AIOStreams" "tarball" "latest" "" "" "v"
 AIOSTREAMS_TAG="v$(cat ~/.aiostreams)"
 
+PNPM_VERSION=$(sed -n 's/.*"packageManager": "pnpm@\([^"+]*\).*/\1/p' /opt/aiostreams/package.json)
+NODE_VERSION="24" NODE_MODULE="pnpm@${PNPM_VERSION:-11.0.8}" setup_nodejs
+
 msg_info "Configuring Application"
-corepack enable
 mkdir -p /opt/aiostreams_data
 cp /opt/aiostreams/.env.sample /opt/aiostreams_data/.env
 SECRET_KEY=$(openssl rand -hex 32)
@@ -43,7 +42,6 @@ msg_ok "Configured Application"
 
 msg_info "Building AIOStreams (Patience)"
 cd /opt/aiostreams
-export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 export NODE_OPTIONS="--max-old-space-size=3072"
 $STD pnpm install --frozen-lockfile
 $STD pnpm run build
