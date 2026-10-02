@@ -41,7 +41,9 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
 
 **Databases:** `setup_postgresql` + `PG_DB_NAME PG_DB_USER PG_DB_EXTENSIONS="vector,pg_stat_statements" [PG_DB_GRANT_SUPERUSER="true"] setup_postgresql_db` (list every extension the app's schema enables — non-trusted ones like `pg_stat_statements`/`vector` need pre-creating; grant SUPERUSER only when the app truly needs it) · `setup_mariadb` + `setup_mariadb_db` · `setup_mysql` + `setup_mysql_db` · `setup_mongodb` · `setup_clickhouse` · `setup_meilisearch`.
 
-**Tools/infra:** `setup_composer` · `setup_ffmpeg` · `setup_imagemagick` · `setup_gs` · `setup_yq` · `setup_adminer` · `setup_hwaccel` · `setup_nltk`.
+**Tools/infra:** `setup_composer` · `setup_ffmpeg` · `setup_imagemagick` · `setup_gs` · `setup_yq` · `setup_adminer` · `setup_hwaccel` · `setup_nltk`. `setup_uv`, `setup_composer` and `setup_rust` already raise network timeouts/retries — don't set `UV_HTTP_TIMEOUT` and friends yourself.
+
+**Passwords:** `random_password [length]` — alphanumeric, exact length, default 24. Hex tokens stay `openssl rand -hex 32`; keep a base64 secret only where the app decodes it or upstream documents `openssl rand -base64`.
 
 **Repos, services, TLS:** `setup_deb822_repo "name" "<gpg_url>" "<repo_url>" "<suite>" ["component"] ["archs"]` for 3rd-party APT repos (never hand-roll GPG keys + sources) — when a repo isn't deb822-shaped, fall back to `download_gpg_key "<url>" "<output_path>" ["dearmor"]` + `verify_gpg_fingerprint` and `prepare_repository_setup "<pkg>..."` instead of hand-rolled `curl`/`gpg`/`apt-key` · `safe_service_restart <svc>` · `ensure_dependencies <pkg...>` (installs jq/openssl/etc. on demand) · `install_packages_with_retry <pkg...>` / `upgrade_packages_with_retry <pkg...>` · `curl_with_retry "<url>" "<outfile>"` for any download not covered by `fetch_and_deploy_*` · `create_self_signed_cert "<app>"` → `/etc/ssl/<app>/<app>.{crt,key}` (SAN = hostname + container IP + localhost; never hand-roll openssl) · `nginx_enable_site "<app>"` — write the vhost yourself via heredoc to `/etc/nginx/sites-available/<app>`, then call this to symlink into `sites-enabled`, drop the default site, run `nginx -t`, and reload; never hand-roll the `ln -sf` / `rm -f` / restart dance · `get_php_fpm_socket` for a PHP app's nginx `fastcgi_pass` instead of a hardcoded socket path.
 
@@ -56,11 +58,9 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
 `CLEAN_INSTALL=1 fetch_and_deploy_*` **wipes `/opt/<app>` before re-extracting**, so anything the user created that lives inside it is lost on update. Therefore:
 
 1. **Store all persistent state OUTSIDE the app dir** — in a dedicated `/opt/<app>_data` (NOT `/opt/<app>/data`). Point the app there via its data-dir setting/env (e.g. a `DATA_DIR` / `*_DATA_DIR` env or a config key), and put secrets/config the app cannot regenerate (signing keys, generated `.env`/`.toml`) there too. Then updates keep everything with **no backup/restore step at all** — prefer this design.
-2. **Only if data genuinely cannot be relocated** out of `/opt/<app>`, back it up in `update_script()` with the manifest helpers (never manual `cp`):
-   - `create_backup /opt/<app>/data /opt/<app>/.env` — copies each path into `/opt/<NSAPP>.backup` with a manifest; idempotent and aborts the update on failure.
-   - `CLEAN_INSTALL=1 fetch_and_deploy_gh_release ...`
-   - `restore_backup` — restores every manifest path and deletes the store.
-   - Override the store location with `BACKUP_DIR` if `/opt/<NSAPP>.backup` clashes.
+2. **Only if data genuinely cannot be relocated** out of `/opt/<app>`, preserve it in `update_script()` with the helpers (never manual `cp`):
+   - Directories (uploads, storage, databases): `CLEAN_INSTALL=1 CLEAN_INSTALL_KEEP="data uploads" fetch_and_deploy_gh_release ...` — paths relative to the target, moved aside and back instead of copied. They return **before** the release is unpacked, so only keep paths the release does not ship (check its tree), and never inside a build output directory (`dist/`, `build/`).
+   - Files, and paths the release ships a default for: `create_backup /opt/<app>/.env` before the fetch, `restore_backup` right after it — copies into `/opt/<NSAPP>.backup` with a manifest, restores after the deploy, aborts the update on failure. Override the store with `BACKUP_DIR` if `/opt/<NSAPP>.backup` clashes.
 3. Never back up to `/tmp` (the system can clear it).
 
 ### Secure-Context Web Apps (HTTPS)
@@ -82,6 +82,8 @@ Browser APIs like `crypto.subtle` (Web Crypto / PKCE), `navigator.storage.getDir
 - Do NOT hand-roll the nginx enable dance (`ln -sf sites-available→sites-enabled`, `rm -f sites-enabled/default`, manual `systemctl restart`) — write the vhost, then call `nginx_enable_site "<app>"`.
 - Do NOT hand-roll `git clone`/`git pull` for a repo with no GitHub Releases — use `fetch_and_deploy_gh_tag`/`check_for_gh_tag` (tag-only) or `fetch_and_deploy_gh_branch`/`check_for_gh_branch` (releaseless, branch-tracked).
 - Do NOT add decorative comment banners (`====`/`----`/`####`) or comments that just restate the next line — comment only the non-obvious (a workaround, a timing dependency, a surprising constraint).
+- Do NOT generate passwords with `openssl rand -base64 | tr -dc | head -c` or `| cut -c` — use `random_password`.
+- Do NOT leave a `msg_info` without its `msg_ok`: a completion is `msg_ok "Stopped Service"`, never `msg_info`; a notice is `msg_warn` or `echo -e "${INFO}${YW}...${CL}"`; prompts come before `msg_info`, and `stop_spinner` is never called directly.
 
 ### JSON Metadata
 
@@ -154,7 +156,9 @@ changes nothing.
 - [ ] `msg_info`/`msg_ok`/`msg_error` for custom logging only
 - [ ] Correct CT script structure with all `var_*` declarations
 - [ ] `update_script()` present
-- [ ] Persistent data/config lives in `/opt/<app>_data` (outside the wiped app dir); if unavoidable inside, backed up via `create_backup`/`restore_backup`
+- [ ] Persistent data/config lives in `/opt/<app>_data` (outside the wiped app dir); if unavoidable inside, directories kept via `CLEAN_INSTALL_KEEP` (only paths the release does not ship) and files via `create_backup`/`restore_backup`
+- [ ] Passwords via `random_password`
+- [ ] Every `msg_info` closed by exactly one `msg_ok`; no prompt inside an open block
 - [ ] Footer: `motd_ssh`, `customize`, `cleanup_lxc`
 - [ ] JSON metadata file matches CT script resources
 - [ ] CT `var_arm64` accurately reflects arm64 support — this is the one the engine obeys, `arch_check` aborts on it
