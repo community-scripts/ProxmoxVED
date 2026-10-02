@@ -83,7 +83,7 @@ Browser APIs like `crypto.subtle` (Web Crypto / PKCE), `navigator.storage.getDir
 - Do NOT hand-roll `git clone`/`git pull` for a repo with no GitHub Releases — use `fetch_and_deploy_gh_tag`/`check_for_gh_tag` (tag-only) or `fetch_and_deploy_gh_branch`/`check_for_gh_branch` (releaseless, branch-tracked).
 - Do NOT add decorative comment banners (`====`/`----`/`####`) or comments that just restate the next line — comment only the non-obvious (a workaround, a timing dependency, a surprising constraint).
 - Do NOT generate passwords with `openssl rand -base64 | tr -dc | head -c` or `| cut -c` — use `random_password`.
-- Do NOT leave a `msg_info` without its `msg_ok`: a completion is `msg_ok "Stopped Service"`, never `msg_info`; a notice is `msg_warn` or `echo -e "${INFO}${YW}...${CL}"`; prompts come before `msg_info`, and `stop_spinner` is never called directly.
+- Do NOT leave a `msg_info` without its `msg_ok`: a completion is `msg_ok "Stopped Service"`, never `msg_info`; a warning is `msg_warn`, a plain notice `msg_custom "ℹ️" "${YW}" "..."` (keeps the open block); prompts come before `msg_info`, and `stop_spinner` is never called directly.
 
 ### JSON Metadata
 

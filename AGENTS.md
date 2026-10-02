@@ -1274,8 +1274,9 @@ read -r -p "${TAB3}Server URL: " server_url
 msg_info "Installing Agent"
 ```
 
-Notices are `msg_warn`, or `echo -e "${INFO}${YW}...${CL}"` when nothing is
-wrong. Ask before opening a block, never inside one, and never call
+Warnings are `msg_warn`. A plain notice is `msg_custom "ℹ️" "${YW}" "..."` — it
+picks the open block's spinner back up afterwards, where `msg_warn` drops every
+open block. Ask before opening a block, never inside one, and never call
 `stop_spinner` directly.
 
 ### 35. Re-tuning Timeouts the Helpers Already Set
@@ -1484,7 +1485,7 @@ cleanup_lxc
 - [ ] Data backup implemented in update function (backups go to `/opt`, NOT `/tmp`)
 - [ ] Data directories inside the deploy target kept with `CLEAN_INSTALL_KEEP` — only paths the release does not ship
 - [ ] Passwords via `random_password`, no `openssl rand -base64 | tr | head` pipelines
-- [ ] Every `msg_info` closed by exactly one `msg_ok`; notices via `msg_warn`; no prompt inside a block, no `stop_spinner`
+- [ ] Every `msg_info` closed by exactly one `msg_ok`; notices via `msg_custom`, warnings via `msg_warn`; no prompt inside a block, no `stop_spinner`
 - [ ] No `UV_HTTP_TIMEOUT`/composer/cargo timeouts set by hand
 - [ ] `motd_ssh`, `customize`, `cleanup_lxc` at the end
 - [ ] No custom download/version-check logic
