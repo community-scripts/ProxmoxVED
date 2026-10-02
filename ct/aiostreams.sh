@@ -18,7 +18,6 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_arm64="${var_arm64:-yes}" # upstream ships official multi-arch (amd64+arm64) images; not independently verified on arm64 hardware by this script's author
 var_unprivileged="${var_unprivileged:-1}"
-var_fuse="${var_fuse:-no}" # set yes (or answer the advanced-install prompt) to add features: fuse=1, needed for the optional Shares > FUSE library mount
 
 header_info "$APP"
 variables
@@ -40,14 +39,14 @@ function update_script() {
     systemctl stop aiostreams
     msg_ok "Stopped Service"
 
-    ensure_dependencies jq
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "aiostreams" "Viren070/AIOStreams" "tarball" "latest" "" "" "v"
     AIOSTREAMS_TAG="v$(cat ~/.aiostreams)"
 
+    PNPM_VERSION=$(sed -n 's/.*"packageManager": "pnpm@\([^"+]*\).*/\1/p' /opt/aiostreams/package.json)
+    NODE_VERSION="24" NODE_MODULE="pnpm@${PNPM_VERSION:-11.0.8}" setup_nodejs
+
     msg_info "Building Application (Patience)"
     cd /opt/aiostreams
-    corepack enable
-    export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
     export NODE_OPTIONS="--max-old-space-size=3072"
     $STD pnpm install --frozen-lockfile
     $STD pnpm run build
