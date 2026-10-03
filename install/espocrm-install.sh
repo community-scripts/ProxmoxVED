@@ -114,7 +114,7 @@ server {
         }
     }
 
-    location ~ /(\.htaccess|\.git) {
+    location ~ /(\.htaccess|web\.config|\.git) {
         deny all;
     }
 }
