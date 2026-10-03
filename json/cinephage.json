@@ -1,0 +1,65 @@
+{
+  "name": "Cinephage",
+  "slug": "cinephage",
+  "categories": [
+    14
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://docs.cinephage.net/",
+  "website": "https://github.com/MoldyTaint/Cinephage",
+  "repository": "https://github.com/MoldyTaint/Cinephage",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/cinephage.webp",
+  "description": "Cinephage is a self-hosted media manager that covers in one app what usually takes Radarr, Sonarr, Prowlarr, Bazarr and Overseerr: it discovers, searches, downloads and organizes movies and TV shows, manages indexers and subtitles, and adds smart lists, .strm streaming and Live TV. Cloudflare-protected indexers are handled by a built-in headless browser (Camoufox) instead of FlareSolverr. Downloads go to external clients such as qBittorrent, SABnzbd or NZBGet.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/cinephage.sh",
+      "config_path": "/opt/cinephage_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. Open http://<IP>:3000 and complete the setup wizard: it creates the only admin account and closes sign-up. Anyone who reaches the port can claim it until then, so finish the setup right after the install.",
+      "type": "warning"
+    },
+    {
+      "text": "Cinephage needs a free TMDB API key (themoviedb.org/settings/api), entered in the settings after the first login. Download clients (qBittorrent, SABnzbd, NZBGet, Deluge, Transmission, rTorrent, aria2, Debrid) run outside this container and are added by URL.",
+      "type": "info"
+    },
+    {
+      "text": "Bind-mount the media library and the download folder into the container (e.g. /media and /downloads) and add them as root folders. The download client has to see the downloads under the same path, otherwise imports fail.",
+      "type": "info"
+    },
+    {
+      "text": "Back up BETTER_AUTH_SECRET from /opt/cinephage_data/.env together with the database in /opt/cinephage_data. Losing or changing it signs everyone out and makes the stored API keys unrecoverable.",
+      "type": "warning"
+    },
+    {
+      "text": "Behind a reverse proxy or a hostname, set BETTER_AUTH_URL in /opt/cinephage_data/.env to the public URL (or the External URL under Settings > System), then run systemctl restart cinephage.",
+      "type": "info"
+    },
+    {
+      "text": "Install and updates build Cinephage from source, which peaks at about 3.3 GB RAM on 2 cores (about 3.8 GB on 4). Cloudflare challenges are solved with the bundled Camoufox browser (about 1.3 GB in /root/.cache/camoufox), and each running solve uses another 300 MB to 1 GB.",
+      "type": "info"
+    }
+  ]
+}
