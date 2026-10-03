@@ -48,7 +48,15 @@ function update_script() {
     msg_info "Migrating EspoCRM"
     cd /opt/espocrm
     $STD php bin/command clear-cache
-    $STD php bin/command migrate
+    # The deploy already recorded the new version, so drop it on failure to make
+    # the next update redeploy and retry instead of reporting "up to date".
+    if ! $STD php bin/command migrate; then
+      rm -f ~/.espocrm
+      chown -R www-data:www-data /opt/espocrm
+      systemctl start cron nginx
+      msg_error "Migration failed; customizations may be incompatible. Check /opt/espocrm/data/logs, then run update again."
+      exit 1
+    fi
     chown -R www-data:www-data /opt/espocrm
     msg_ok "Migrated EspoCRM"
 

@@ -41,6 +41,10 @@
     {
       "text": "Database credentials are stored in `~/espocrm.creds` inside the container.",
       "type": "info"
+    },
+    {
+      "text": "Take a Proxmox snapshot before updating: updates replace the application code and run database migrations, which cannot be rolled back.",
+      "type": "warning"
     }
   ],
   "app_vars": [
