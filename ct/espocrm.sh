@@ -39,6 +39,9 @@ function update_script() {
   if check_for_gh_release "espocrm" "espocrm/espocrm"; then
     msg_info "Stopping Services"
     systemctl stop nginx cron
+    # Stopping cron leaves running jobs alive; this matches cron.php and its job
+    # pool children (php, php8.4) but not php-fpm workers.
+    pkill -u www-data -x 'php[0-9.]*' || true
     msg_ok "Stopped Services"
 
     # The release ships only placeholders under these paths; config, uploads and
@@ -53,6 +56,7 @@ function update_script() {
     if ! $STD php bin/command migrate; then
       rm -f ~/.espocrm
       chown -R www-data:www-data /opt/espocrm
+      systemctl restart 'php*-fpm.service'
       systemctl start cron nginx
       msg_error "Migration failed; customizations may be incompatible. Check /opt/espocrm/data/logs, then run update again."
       exit 1
@@ -61,6 +65,7 @@ function update_script() {
     msg_ok "Migrated EspoCRM"
 
     msg_info "Starting Services"
+    systemctl restart 'php*-fpm.service'
     systemctl start cron nginx
     msg_ok "Started Services"
     msg_ok "Updated successfully!"
