@@ -35,7 +35,11 @@
   },
   "notes": [
     {
-      "text": "The admin password is generated during install and printed at the end of the install output. Change it after first login.",
+      "text": "The admin password is generated during install and printed near the end of the install output. Change it after first login.",
+      "type": "info"
+    },
+    {
+      "text": "The site URL is set to the container's IP at install time. If the IP changes or you put EspoCRM behind a domain or reverse proxy, update it under Administration > Settings > Site URL, or run `php /opt/espocrm/bin/command config:set siteUrl https://crm.example.com`.",
       "type": "info"
     },
     {
