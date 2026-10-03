@@ -41,7 +41,7 @@ function update_script() {
     create_backup /opt/watchstate/.env
     setup_composer
     NODE_VERSION="24" NODE_MODULE="bun" setup_nodejs
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "watchstate" "arabcoders/watchstate" "tarball"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "watchstate" "arabcoders/watchstate" "tarball" "latest" "/opt/watchstate" "" "v"
     restore_backup
 
     msg_info "Building WatchState"

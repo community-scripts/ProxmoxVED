@@ -25,7 +25,7 @@ PHP_VERSION="8.5" PHP_FPM="YES" setup_php
 setup_composer
 setup_ffmpeg
 NODE_VERSION="24" NODE_MODULE="bun" setup_nodejs
-fetch_and_deploy_gh_release "watchstate" "arabcoders/watchstate" "tarball"
+fetch_and_deploy_gh_release "watchstate" "arabcoders/watchstate" "tarball" "latest" "/opt/watchstate" "" "v"
 
 msg_info "Building WatchState"
 cd /opt/watchstate
