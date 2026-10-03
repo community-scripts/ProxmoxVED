@@ -51,11 +51,7 @@ function update_script() {
     systemctl stop nisshi
     msg_ok "Stopped Nisshi"
 
-    create_backup /opt/nisshi/.env
-
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "nisshi" "nisshi-io/nisshi" "prebuild" "latest" "/opt/nisshi" "nisshi-$(arch_resolve "x86_64" "aarch64")-unknown-linux-*.tar.gz"
-
-    restore_backup
 
     msg_info "Starting Nisshi"
     systemctl start nisshi

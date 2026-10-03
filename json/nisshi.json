@@ -18,7 +18,7 @@
     {
       "type": "default",
       "script": "ct/nisshi.sh",
-      "config_path": "/opt/nisshi/.env",
+      "config_path": "/opt/nisshi_data/.env",
       "resources": {
         "cpu": 1,
         "ram": 1024,
@@ -44,7 +44,7 @@
         "memory"
       ],
       "default": "sqlite",
-      "help": "sqlite keeps everything in /var/lib/nisshi/nisshi.db. s3 and postgres use a service you already run. memory keeps nothing on disk: every topic and message is lost when the service restarts, so use it for testing only."
+      "help": "sqlite keeps everything in /opt/nisshi_data/nisshi.db. s3 and postgres use a service you already run. memory keeps nothing on disk: every topic and message is lost when the service restarts, so use it for testing only."
     },
     {
       "name": "var_nisshi_postgres_url",
@@ -121,7 +121,7 @@
       "type": "info"
     },
     {
-      "text": "The broker advertises the container IP it had during the install. If that IP changes, update ADVERTISED_LISTENER_URL in /opt/nisshi/.env and run systemctl restart nisshi, otherwise clients cannot connect.",
+      "text": "The broker advertises the container IP it had during the install. If that IP changes, update ADVERTISED_LISTENER_URL in /opt/nisshi_data/.env and run systemctl restart nisshi, otherwise clients cannot connect.",
       "type": "warning"
     },
     {
@@ -129,7 +129,7 @@
       "type": "warning"
     },
     {
-      "text": "With the default SQLite storage engine all data is in /var/lib/nisshi/nisshi.db. External S3, PostgreSQL, Iceberg and OpenTelemetry services are not installed by this script - it only stores their URLs and credentials in /opt/nisshi/.env.",
+      "text": "With the default SQLite storage engine all data is in /opt/nisshi_data/nisshi.db. External S3, PostgreSQL, Iceberg and OpenTelemetry services are not installed by this script - it only stores their URLs and credentials in /opt/nisshi_data/.env. Updates replace /opt/nisshi and leave /opt/nisshi_data untouched.",
       "type": "info"
     },
     {
@@ -137,11 +137,11 @@
       "type": "info"
     },
     {
-      "text": "To add a lakehouse after the install, set SCHEMA_REGISTRY, DATA_LAKE and ICEBERG_CATALOG in /opt/nisshi/.env and change ExecStart in /etc/systemd/system/nisshi.service to end in 'broker iceberg', then run systemctl daemon-reload and systemctl restart nisshi.",
+      "text": "To add a lakehouse after the install, set SCHEMA_REGISTRY, DATA_LAKE and ICEBERG_CATALOG in /opt/nisshi_data/.env and change ExecStart in /etc/systemd/system/nisshi.service to end in 'broker iceberg', then run systemctl daemon-reload and systemctl restart nisshi.",
       "type": "info"
     },
     {
-      "text": "With an Iceberg catalog configured, put the Avro, JSON or Protobuf schema of each topic into /var/lib/nisshi/schema. Only topics with a schema are written to the lakehouse.",
+      "text": "With an Iceberg catalog configured, put the Avro, JSON or Protobuf schema of each topic into /opt/nisshi_data/schema. Only topics with a schema are written to the lakehouse.",
       "type": "info"
     }
   ]

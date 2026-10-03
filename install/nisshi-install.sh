@@ -115,8 +115,8 @@ if [[ "$STORAGE_ENGINE" == postgres://* || "$STORAGE_ENGINE" == postgresql://* ]
 fi
 
 msg_info "Configuring Nisshi"
-mkdir -p /var/lib/nisshi/schema
-cat <<EOF >/opt/nisshi/.env
+mkdir -p /opt/nisshi_data/schema
+cat <<EOF >/opt/nisshi_data/.env
 CLUSTER_ID=nisshi
 LISTENER_URL=tcp://0.0.0.0:9092
 ADVERTISED_LISTENER_URL=tcp://${LOCAL_IP}:9092
@@ -124,52 +124,52 @@ STORAGE_ENGINE=${STORAGE_ENGINE}
 RUST_LOG=warn
 EOF
 if [[ "$STORAGE_ENGINE" == s3://* || -n "${var_nisshi_iceberg_catalog:-}" && "${var_nisshi_lake_location:-}" == s3://* ]]; then
-  cat <<EOF >>/opt/nisshi/.env
+  cat <<EOF >>/opt/nisshi_data/.env
 AWS_ACCESS_KEY_ID=${var_nisshi_s3_access_key}
 AWS_SECRET_ACCESS_KEY=${var_nisshi_s3_secret_key}
 AWS_DEFAULT_REGION=${var_nisshi_s3_region}
 EOF
   if [[ -n "${var_nisshi_s3_endpoint:-}" ]]; then
-    cat <<EOF >>/opt/nisshi/.env
+    cat <<EOF >>/opt/nisshi_data/.env
 AWS_ENDPOINT=${var_nisshi_s3_endpoint}
 EOF
   fi
   if [[ "${var_nisshi_s3_endpoint:-}" == http://* ]]; then
-    cat <<EOF >>/opt/nisshi/.env
+    cat <<EOF >>/opt/nisshi_data/.env
 AWS_ALLOW_HTTP=true
 EOF
   fi
 fi
 if [[ -n "${var_nisshi_iceberg_catalog:-}" ]]; then
-  # Paths in file:// URLs resolve against the working directory: /var/lib/nisshi/schema
-  cat <<EOF >>/opt/nisshi/.env
+  # Paths in file:// URLs resolve against the working directory: /opt/nisshi_data/schema
+  cat <<EOF >>/opt/nisshi_data/.env
 SCHEMA_REGISTRY=file://schema
 DATA_LAKE=${var_nisshi_lake_location}
 ICEBERG_CATALOG=${var_nisshi_iceberg_catalog}
 EOF
   if [[ -n "${var_nisshi_iceberg_warehouse:-}" ]]; then
-    cat <<EOF >>/opt/nisshi/.env
+    cat <<EOF >>/opt/nisshi_data/.env
 ICEBERG_WAREHOUSE=${var_nisshi_iceberg_warehouse}
 EOF
   fi
 fi
 if [[ -n "${var_nisshi_otlp_endpoint:-}" ]]; then
-  cat <<EOF >>/opt/nisshi/.env
+  cat <<EOF >>/opt/nisshi_data/.env
 OTEL_EXPORTER_OTLP_ENDPOINT=${var_nisshi_otlp_endpoint}
 EOF
   if [[ -n "${var_nisshi_otlp_headers:-}" ]]; then
-    cat <<EOF >>/opt/nisshi/.env
+    cat <<EOF >>/opt/nisshi_data/.env
 OTEL_EXPORTER_OTLP_HEADERS=${var_nisshi_otlp_headers}
 EOF
   fi
 fi
-chmod 600 /opt/nisshi/.env
+chmod 600 /opt/nisshi_data/.env
 msg_ok "Configured Nisshi"
 
 msg_info "Creating Service"
 # The SQLite path is relative to WorkingDirectory, which keeps the database
-# out of /opt/nisshi where an update would wipe it. The data lake is a
-# subcommand of the broker, not an option.
+# in /opt/nisshi_data and out of /opt/nisshi, which an update wipes. The data
+# lake is a subcommand of the broker, not an option.
 cat <<EOF >/etc/systemd/system/nisshi.service
 [Unit]
 Description=Nisshi Service
@@ -179,8 +179,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/var/lib/nisshi
-EnvironmentFile=/opt/nisshi/.env
+WorkingDirectory=/opt/nisshi_data
+EnvironmentFile=/opt/nisshi_data/.env
 ExecStart=/opt/nisshi/bin/nisshi broker${var_nisshi_iceberg_catalog:+ iceberg}
 Restart=on-failure
 RestartSec=5
