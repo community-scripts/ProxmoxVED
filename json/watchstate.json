@@ -1,0 +1,61 @@
+{
+  "name": "WatchState",
+  "slug": "watchstate",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 8080,
+  "documentation": "https://github.com/arabcoders/watchstate/blob/master/FAQ.md",
+  "website": "https://github.com/arabcoders/watchstate",
+  "repository": "https://github.com/arabcoders/watchstate",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/watchstate.webp",
+  "description": "WatchState syncs play state (watched/unwatched and resume progress) between Plex, Jellyfin and Emby without relying on third-party services. It pulls changes from the media servers through scheduled imports or webhooks and pushes them to the others one-way or two-way, maps the users of each server, keeps portable backups of the play state and audits mismatched records with Media Health. This script builds the PHP backend and the web UI from source and serves them with nginx, PHP-FPM and Redis.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/watchstate.sh",
+      "config_path": "/opt/watchstate_data/config/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 6,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. The first visit to http://<IP>:8080 asks for a system user and password, and anyone who reaches the port can set them until then, so do it right after the install. A forgotten login is cleared with: runuser -u www-data -- php /opt/watchstate/bin/console system:resetpassword, after which the next visit asks for a new one.",
+      "type": "warning"
+    },
+    {
+      "text": "Add Plex, Jellyfin or Emby under Backends with the server URL and an API token (the help button in the top-right corner walks through one-way and two-way sync), then enable the Import and Export tasks under Tasks: both are off by default. For real-time sync, paste the webhook URL shown on the Backends page into each media server.",
+      "type": "info"
+    },
+    {
+      "text": "Settings (WS_* variables from the FAQ) are edited on the Env page of the web UI or in /opt/watchstate_data/config/.env; the database, backups and logs live in /opt/watchstate_data as well and survive updates.",
+      "type": "info"
+    },
+    {
+      "text": "Web UI and worker run as www-data. Run console commands from the Console page of the web UI or as www-data (runuser -u www-data -- php /opt/watchstate/bin/console <command>); run as root, they leave root-owned files in /opt/watchstate_data that WatchState can no longer write.",
+      "type": "warning"
+    },
+    {
+      "text": "The built-in player and file checks read media files directly. They only work if the media is mounted into the container under the same paths the media servers use.",
+      "type": "info"
+    }
+  ]
+}
