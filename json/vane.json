@@ -1,0 +1,61 @@
+{
+  "name": "Vane",
+  "slug": "vane",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://github.com/ItzCrazyKns/Vane/tree/master/docs",
+  "website": "https://github.com/ItzCrazyKns/Vane",
+  "repository": "https://github.com/ItzCrazyKns/Vane",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/ItzCrazyKns/Vane@master/public/icon.png",
+  "description": "Vane (formerly Perplexica) is a self-hosted AI answering engine in the style of Perplexity. It searches the web through SearXNG, reads the results and answers with cited sources, using a local LLM through Ollama or a cloud provider such as OpenAI, Anthropic, Gemini or Groq. It also offers speed, balanced and quality modes, academic and discussion search, image and video search, file uploads and a search history. This script builds Vane from source and runs a private SearXNG instance with JSON output next to it.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/vane.sh",
+      "config_path": "/opt/vane_data/config.json",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 12,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "No AI provider is configured. The first visit to port 3000 opens the setup screen: add Ollama, OpenAI, Anthropic, Gemini, Groq or any OpenAI-compatible server there and pick a chat and an embedding model. Ollama on another host must listen on 0.0.0.0 and be entered as http://<ollama-ip>:11434.",
+      "type": "info"
+    },
+    {
+      "text": "Vane has no login. Anyone who reaches port 3000 can use it, read the chat history and see the provider API keys in the settings, so keep it on a trusted network or behind an authenticating reverse proxy.",
+      "type": "warning"
+    },
+    {
+      "text": "The bundled SearXNG only listens on 127.0.0.1:8888 and is configured in /etc/searxng/settings.yml (restart with systemctl restart searxng). To use your own instance instead, enable the json format there and change the SearXNG URL in Vane's settings.",
+      "type": "info"
+    },
+    {
+      "text": "Settings and API keys (config.json), the chat history (db.sqlite) and uploaded files live in /opt/vane_data, which updates leave untouched.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update build Vane from source, which takes about 10 minutes on 2 cores and needs the 4 GB of RAM and 12 GB of disk. Vane and SearXNG together idle at about 500 MB, so the RAM can be lowered after the install and raised again before an update.",
+      "type": "info"
+    }
+  ]
+}
