@@ -1,0 +1,57 @@
+{
+  "name": "Figranium",
+  "slug": "figranium",
+  "categories": [
+    19
+  ],
+  "date_created": "2026-10-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 11345,
+  "documentation": "https://figranium.dev/docs",
+  "website": "https://figranium.dev/",
+  "repository": "https://github.com/figranium/figranium",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/figranium.webp",
+  "description": "Figranium is a self-hosted browser automation platform. Workflows are stacked from blocks such as navigate, click, type, wait, loops, conditions, JavaScript and extraction in a visual editor, run in a headless Chromium driven by Playwright, and are triggered from the UI, on a schedule or through the REST API with runtime variables. A built-in noVNC viewer shows a visible browser for picking selectors and debugging runs.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/figranium.sh",
+      "config_path": "/opt/figranium_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 3072,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. The first visitor to http://<IP>:11345 creates the administrator, and anyone who reaches the port can claim it until then, so create the account right after the install.",
+      "type": "warning"
+    },
+    {
+      "text": "Tasks are run over the API with POST /api/tasks/<id>/api and the x-api-key header. Generate the key under Settings > API Keys.",
+      "type": "info"
+    },
+    {
+      "text": "Workflows cannot open private or local network addresses by default (SSRF protection). To automate services in your LAN, set ALLOW_PRIVATE_NETWORKS=true in /opt/figranium_data/.env and run systemctl restart figranium.",
+      "type": "info"
+    },
+    {
+      "text": "On first start Figranium downloads a local CAPTCHA model (OWL-ViT, about 150 MB; Florence-2 with 8 GB RAM or more) into /opt/figranium_data/data/captcha-model. Set SKIP_LOCAL_CAPTCHA_MODEL=true in /opt/figranium_data/.env to turn it off.",
+      "type": "info"
+    }
+  ]
+}
