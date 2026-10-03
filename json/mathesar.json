@@ -1,0 +1,53 @@
+{
+  "name": "Mathesar",
+  "slug": "mathesar",
+  "categories": [
+    8
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8000,
+  "documentation": "https://docs.mathesar.org/",
+  "website": "https://mathesar.org/",
+  "repository": "https://github.com/mathesar-foundation/mathesar",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/mathesar.webp",
+  "description": "Mathesar is a spreadsheet-like web interface for PostgreSQL. Users of any technical skill level can view, edit, query and collaborate on Postgres data directly, build relationships between tables, import CSV files and create forms, while access is governed by native PostgreSQL roles and privileges.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/mathesar.sh",
+      "config_path": "/opt/mathesar_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "On first visit Mathesar asks you to create the admin account. The two analytics checkboxes on that page (installation confirmation and anonymous usage data) are enabled by default; untick them if you do not want to share data.",
+      "type": "info"
+    },
+    {
+      "text": "The bundled PostgreSQL server holds Mathesar's internal database (mathesar_django), which cannot itself be used for your data. Use 'Create a new database' to store data in this container (the mathesar role may create databases), or 'Connect to an existing database' with the host, port and credentials of any other PostgreSQL 14+ server.",
+      "type": "info"
+    },
+    {
+      "text": "Settings live in /opt/mathesar_data/.env, including SECRET_KEY, which encrypts the saved database passwords: keep it and back it up with the PostgreSQL databases. Add variables from https://docs.mathesar.org/administration/environment-variables/ there, then run `systemctl restart mathesar`.",
+      "type": "warning"
+    },
+    {
+      "text": "ALLOWED_HOSTS is * so the container IP works out of the box. Behind a reverse proxy, restrict it to your domain(s) and forward the Host and X-Forwarded-Proto headers.",
+      "type": "info"
+    }
+  ]
+}
