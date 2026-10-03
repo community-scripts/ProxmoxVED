@@ -11,12 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Validate new script requirements
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
-            // Nothing here closes a PR. Problems are listed in one comment, the PR is
-            // marked stale, and stale_pr_close.yml closes it after 7 days unless it is
-            // fixed or a maintainer sets keep-open.
+            // Never closes a PR itself; stale_pr_close.yml does that after 7 days.
             const MARKER = "<!-- requirements-check -->";
             const LABEL = "requirements missing";
             const TEAM = "@community-scripts/contributor";
@@ -84,7 +82,11 @@ jobs:
             } else {
               // Template-version-gated: only enforced if the disclosure prompt exists in the body.
               const llmDisclosureIdx = lines.findIndex(l => l.includes("describe to which degree, if any, an LLM was used"));
-              if (llmDisclosureIdx !== -1) {
+              const noAiUsedChecked = (() => {
+                const line = findLine("**No AI used**");
+                return line && checkboxChecked(line);
+              })();
+              if (llmDisclosureIdx !== -1 && !noAiUsedChecked) {
                 let disclosureText = "";
                 for (let i = llmDisclosureIdx + 1; i < lines.length; i++) {
                   const trimmed = lines[i].trim();

@@ -3,20 +3,19 @@ _CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: MickLesk (CanbiZ)
+# Author: fabriziosalmi
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/Darkrock-Studios/hammer-editor
+# Source: https://github.com/fabriziosalmi/certmate
 
-APP="Hammer"
-var_tags="${var_tags:-writing;sync-server}"
+APP="CertMate"
+var_tags="${var_tags:-ssl;certificates;acme}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
+#var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
 var_unprivileged="${var_unprivileged:-1}"
-var_arm64="${var_arm64:-yes}"
-var_testurl="${var_testurl:-https://github.com/community-scripts/ProxmoxVED/issues/2101}"
 
 header_info "$APP"
 variables
@@ -28,22 +27,29 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /opt/hammer ]]; then
+  if [[ ! -d /opt/certmate ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  if check_for_gh_release "hammer" "Darkrock-Studios/hammer-editor"; then
-    msg_info "Stopping Service"
-    systemctl stop hammer
-    msg_ok "Stopped Service"
+  if check_for_gh_release "certmate" "fabriziosalmi/certmate"; then
+    msg_info "Stopping CertMate"
+    systemctl stop certmate
+    msg_ok "Stopped CertMate"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "hammer" "Darkrock-Studios/hammer-editor" "prebuild" "latest" "/opt/hammer" "server.zip"
-    chmod +x /opt/hammer/bin/server
+    PYTHON_VERSION="3.12" setup_uv
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "certmate" "fabriziosalmi/certmate" "tarball"
 
-    msg_info "Starting Service"
-    systemctl start hammer
-    msg_ok "Started Service"
+    msg_info "Installing CertMate Dependencies"
+    cd /opt/certmate
+    $STD uv venv --python 3.12 /opt/certmate/.venv
+    $STD uv pip sync --python /opt/certmate/.venv/bin/python requirements.lock
+    $STD /opt/certmate/.venv/bin/certbot --version
+    msg_ok "Installed CertMate Dependencies"
+
+    msg_info "Starting CertMate"
+    systemctl start certmate
+    msg_ok "Started CertMate"
     msg_ok "Updated successfully!"
   fi
   exit
@@ -56,4 +62,5 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW}Access it using the following URL:${CL}"
-echo -e "${GATEWAY}${BGN}http://${IP}:8080${CL}"
+echo -e "${GATEWAY}${BGN}http://${IP}:8000${CL}"
+echo -e "${INFO}${YW}The first page creates the admin account and asks for the API token: grep API_BEARER_TOKEN /opt/certmate_data/.env${CL}"
