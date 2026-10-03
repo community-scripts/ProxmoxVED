@@ -13,48 +13,57 @@ setting_up_container
 network_check
 update_os
 
-if [[ -z "${var_nisshi_storage:-}" ]]; then
-  var_nisshi_storage=$(prompt_select "Nisshi storage engine:" 1 60 "sqlite" "s3" "postgres")
+# Asked with read: the prompt_* helpers return their default inside a container.
+if [[ -z "${var_nisshi_storage:-}${var_nisshi_iceberg_catalog:-}${var_nisshi_otlp_endpoint:-}" ]]; then
+  echo -e "${INFO}${YW}Nisshi stores its data in SQLite unless you connect services you already run${CL}"
+  read -r -p "${TAB3}Connect Nisshi to your own S3, PostgreSQL, Iceberg or OTLP services? [y/N]: " prompt
+  if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
+    read -r -p "${TAB3}Storage engine [sqlite/s3/postgres/memory] (sqlite): " var_nisshi_storage
+    read -r -p "${TAB3}Iceberg REST catalog URL (Enter to skip): " var_nisshi_iceberg_catalog
+    read -r -p "${TAB3}OTLP metrics endpoint URL (Enter to skip): " var_nisshi_otlp_endpoint
+  fi
 fi
+var_nisshi_storage="${var_nisshi_storage:-sqlite}"
+var_nisshi_storage="${var_nisshi_storage,,}"
+
 if [[ "$var_nisshi_storage" == "postgres" && -z "${var_nisshi_postgres_url:-}" ]]; then
-  var_nisshi_postgres_url=$(prompt_password "PostgreSQL URL (postgres://user:pass@host/db):" "" 120)
+  read -r -s -p "${TAB3}PostgreSQL URL (postgres://user:pass@host/db, hidden): " var_nisshi_postgres_url
+  echo
 fi
 if [[ "$var_nisshi_storage" == "s3" && -z "${var_nisshi_s3_bucket:-}" ]]; then
-  var_nisshi_s3_bucket=$(prompt_input "S3 bucket for Nisshi storage:" "" 120)
+  read -r -p "${TAB3}S3 bucket for Nisshi storage: " var_nisshi_s3_bucket
 fi
 
-if [[ -z "${var_nisshi_iceberg_catalog:-}" ]]; then
-  var_nisshi_iceberg_catalog=$(prompt_input "Iceberg REST catalog URL (Enter to skip):" "" 60)
-fi
-if [[ -n "$var_nisshi_iceberg_catalog" ]]; then
-  if [[ -z "${var_nisshi_lake_location:-}" ]]; then
-    var_nisshi_lake_location=$(prompt_input "Data lake location:" "s3://lake/" 120)
+if [[ -n "${var_nisshi_iceberg_catalog:-}" ]]; then
+  if [[ ${prompt:-} =~ ^[yY] && -z "${var_nisshi_lake_location:-}" ]]; then
+    read -r -p "${TAB3}Data lake location (s3://lake/): " var_nisshi_lake_location
   fi
-  if [[ -z "${var_nisshi_iceberg_warehouse:-}" ]]; then
-    var_nisshi_iceberg_warehouse=$(prompt_input "Iceberg warehouse (Enter to skip):" "" 60)
+  var_nisshi_lake_location="${var_nisshi_lake_location:-s3://lake/}"
+  if [[ ${prompt:-} =~ ^[yY] && -z "${var_nisshi_iceberg_warehouse:-}" ]]; then
+    read -r -p "${TAB3}Iceberg warehouse (Enter to skip): " var_nisshi_iceberg_warehouse
   fi
 fi
 
-if [[ "$var_nisshi_storage" == "s3" ]] || [[ -n "$var_nisshi_iceberg_catalog" && "${var_nisshi_lake_location:-}" == s3://* ]]; then
-  if [[ -z "${var_nisshi_s3_endpoint:-}" ]]; then
-    var_nisshi_s3_endpoint=$(prompt_input "S3 endpoint URL (Enter for AWS):" "" 120)
+if [[ "$var_nisshi_storage" == "s3" ]] || [[ -n "${var_nisshi_iceberg_catalog:-}" && "${var_nisshi_lake_location:-}" == s3://* ]]; then
+  if [[ ${prompt:-} =~ ^[yY] && -z "${var_nisshi_s3_endpoint:-}" ]]; then
+    read -r -p "${TAB3}S3 endpoint URL (Enter for AWS): " var_nisshi_s3_endpoint
   fi
-  if [[ -z "${var_nisshi_s3_region:-}" ]]; then
-    var_nisshi_s3_region=$(prompt_input "S3 region:" "us-east-1" 60)
+  if [[ ${prompt:-} =~ ^[yY] && -z "${var_nisshi_s3_region:-}" ]]; then
+    read -r -p "${TAB3}S3 region (us-east-1): " var_nisshi_s3_region
   fi
+  var_nisshi_s3_region="${var_nisshi_s3_region:-us-east-1}"
   if [[ -z "${var_nisshi_s3_access_key:-}" ]]; then
-    var_nisshi_s3_access_key=$(prompt_input "S3 access key ID:" "" 120)
+    read -r -p "${TAB3}S3 access key ID: " var_nisshi_s3_access_key
   fi
   if [[ -z "${var_nisshi_s3_secret_key:-}" ]]; then
-    var_nisshi_s3_secret_key=$(prompt_password "S3 secret access key:" "" 120)
+    read -r -s -p "${TAB3}S3 secret access key (hidden): " var_nisshi_s3_secret_key
+    echo
   fi
 fi
 
-if [[ -z "${var_nisshi_otlp_endpoint:-}" ]]; then
-  var_nisshi_otlp_endpoint=$(prompt_input "OTLP metrics endpoint URL (Enter to skip):" "" 60)
-fi
-if [[ -n "$var_nisshi_otlp_endpoint" && -z "${var_nisshi_otlp_headers:-}" ]]; then
-  var_nisshi_otlp_headers=$(prompt_password "OTLP headers, e.g. Authorization=Bearer <token> (Enter to skip):" "" 60)
+if [[ ${prompt:-} =~ ^[yY] && -n "${var_nisshi_otlp_endpoint:-}" && -z "${var_nisshi_otlp_headers:-}" ]]; then
+  read -r -s -p "${TAB3}OTLP headers, e.g. Authorization=Bearer <token> (hidden, Enter to skip): " var_nisshi_otlp_headers
+  echo
 fi
 
 # A half-configured service would leave the broker crash-looping, so drop it.
@@ -63,7 +72,7 @@ if [[ -z "${var_nisshi_s3_access_key:-}" || -z "${var_nisshi_s3_secret_key:-}" ]
     msg_warn "S3 credentials are missing - using SQLite storage"
     var_nisshi_storage="sqlite"
   fi
-  if [[ -n "$var_nisshi_iceberg_catalog" && "${var_nisshi_lake_location:-}" == s3://* ]]; then
+  if [[ -n "${var_nisshi_iceberg_catalog:-}" && "${var_nisshi_lake_location:-}" == s3://* ]]; then
     msg_warn "S3 credentials are missing - skipping the Iceberg data lake"
     var_nisshi_iceberg_catalog=""
   fi
@@ -84,6 +93,9 @@ postgres)
     msg_warn "No PostgreSQL URL given - using SQLite storage"
     STORAGE_ENGINE="sqlite://nisshi.db"
   fi
+  ;;
+memory)
+  STORAGE_ENGINE="memory://nisshi/"
   ;;
 *)
   STORAGE_ENGINE="sqlite://nisshi.db"
@@ -111,7 +123,7 @@ ADVERTISED_LISTENER_URL=tcp://${LOCAL_IP}:9092
 STORAGE_ENGINE=${STORAGE_ENGINE}
 RUST_LOG=warn
 EOF
-if [[ "$STORAGE_ENGINE" == s3://* || -n "$var_nisshi_iceberg_catalog" && "${var_nisshi_lake_location:-}" == s3://* ]]; then
+if [[ "$STORAGE_ENGINE" == s3://* || -n "${var_nisshi_iceberg_catalog:-}" && "${var_nisshi_lake_location:-}" == s3://* ]]; then
   cat <<EOF >>/opt/nisshi/.env
 AWS_ACCESS_KEY_ID=${var_nisshi_s3_access_key}
 AWS_SECRET_ACCESS_KEY=${var_nisshi_s3_secret_key}
@@ -128,7 +140,7 @@ AWS_ALLOW_HTTP=true
 EOF
   fi
 fi
-if [[ -n "$var_nisshi_iceberg_catalog" ]]; then
+if [[ -n "${var_nisshi_iceberg_catalog:-}" ]]; then
   # Paths in file:// URLs resolve against the working directory: /var/lib/nisshi/schema
   cat <<EOF >>/opt/nisshi/.env
 SCHEMA_REGISTRY=file://schema
@@ -141,7 +153,7 @@ ICEBERG_WAREHOUSE=${var_nisshi_iceberg_warehouse}
 EOF
   fi
 fi
-if [[ -n "$var_nisshi_otlp_endpoint" ]]; then
+if [[ -n "${var_nisshi_otlp_endpoint:-}" ]]; then
   cat <<EOF >>/opt/nisshi/.env
 OTEL_EXPORTER_OTLP_ENDPOINT=${var_nisshi_otlp_endpoint}
 EOF

@@ -40,10 +40,11 @@
       "options": [
         "sqlite",
         "s3",
-        "postgres"
+        "postgres",
+        "memory"
       ],
       "default": "sqlite",
-      "help": "sqlite keeps everything in /var/lib/nisshi/nisshi.db. s3 and postgres use a service you already run - nothing besides Nisshi is installed in the container."
+      "help": "sqlite keeps everything in /var/lib/nisshi/nisshi.db. s3 and postgres use a service you already run. memory keeps nothing on disk: every topic and message is lost when the service restarts, so use it for testing only."
     },
     {
       "name": "var_nisshi_postgres_url",
