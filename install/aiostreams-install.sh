@@ -17,8 +17,6 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
   python3 \
-  make \
-  g++ \
   libmimalloc3
 msg_ok "Installed Dependencies"
 
