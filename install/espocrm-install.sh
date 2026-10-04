@@ -17,10 +17,8 @@ if [[ -z "${var_admin_user:-}" ]]; then
   var_admin_user=$(prompt_input "EspoCRM admin username:" "admin" 60)
 fi
 var_admin_user="${var_admin_user:-admin}"
-admin_pass_display="(as supplied)"
 if [[ -z "${var_admin_pass:-}" ]]; then
   var_admin_pass=$(random_password 16)
-  admin_pass_display="$var_admin_pass"
 fi
 
 msg_info "Installing Dependencies"
@@ -128,7 +126,15 @@ EOF
 systemctl enable -q --now cron
 msg_ok "Set up Cron"
 
-echo -e "${INFO}${YW}EspoCRM admin login:${CL} ${BGN}${var_admin_user}${CL} / ${BGN}${admin_pass_display}${CL}"
+msg_info "Saving Credentials"
+cat <<EOF >>~/espocrm.creds
+
+EspoCRM Admin
+Username: ${var_admin_user}
+Password: ${var_admin_pass}
+EOF
+chmod 600 ~/espocrm.creds
+msg_ok "Saved Credentials"
 
 motd_ssh
 customize
