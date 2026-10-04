@@ -13,7 +13,7 @@
   "website": "https://nisshi.io/",
   "repository": "https://github.com/nisshi-io/nisshi",
   "logo": "https://github.com/nisshi-io.png",
-  "description": "Nisshi (formerly Tansu) is a stateless, Apache Kafka compatible broker with pluggable storage. This script installs the single binary with the embedded SQLite storage engine and can optionally point it at your own S3 bucket or PostgreSQL database for storage, an Apache Iceberg REST catalog for lakehouse tables and an OpenTelemetry collector for metrics.",
+  "description": "Nisshi (formerly Tansu) is a stateless, Apache Kafka compatible broker with pluggable storage. This script installs the single binary with the embedded SQLite storage engine.",
   "install_methods": [
     {
       "type": "default",
@@ -32,89 +32,6 @@
     "username": null,
     "password": null
   },
-  "app_vars": [
-    {
-      "name": "var_nisshi_storage",
-      "label": "Storage Engine",
-      "type": "select",
-      "options": [
-        "sqlite",
-        "s3",
-        "postgres",
-        "memory"
-      ],
-      "default": "sqlite",
-      "help": "sqlite keeps everything in /opt/nisshi_data/nisshi.db. s3 and postgres use a service you already run. memory keeps nothing on disk: every topic and message is lost when the service restarts, so use it for testing only."
-    },
-    {
-      "name": "var_nisshi_postgres_url",
-      "label": "PostgreSQL URL",
-      "type": "password",
-      "secret": true,
-      "help": "Only for the postgres storage engine, as postgres://user:password@host/database. Percent-encode special characters in the password. The Nisshi schema is loaded into this database during the install, so it must be reachable from the container."
-    },
-    {
-      "name": "var_nisshi_s3_bucket",
-      "label": "S3 Storage Bucket",
-      "type": "text",
-      "help": "Only for the s3 storage engine. The bucket must already exist."
-    },
-    {
-      "name": "var_nisshi_s3_endpoint",
-      "label": "S3 Endpoint",
-      "type": "text",
-      "help": "URL of your MinIO or other S3 compatible service, e.g. http://192.168.1.10:9000. Leave empty for AWS."
-    },
-    {
-      "name": "var_nisshi_s3_region",
-      "label": "S3 Region",
-      "type": "text",
-      "default": "us-east-1"
-    },
-    {
-      "name": "var_nisshi_s3_access_key",
-      "label": "S3 Access Key ID",
-      "type": "text",
-      "help": "Used for the s3 storage engine and for a data lake on s3://."
-    },
-    {
-      "name": "var_nisshi_s3_secret_key",
-      "label": "S3 Secret Access Key",
-      "type": "password",
-      "secret": true
-    },
-    {
-      "name": "var_nisshi_iceberg_catalog",
-      "label": "Iceberg REST Catalog URL",
-      "type": "text",
-      "help": "e.g. http://192.168.1.11:8181/catalog for Lakekeeper. When set, topics that have a schema are also written as Apache Iceberg tables. Leave empty to run without a lakehouse."
-    },
-    {
-      "name": "var_nisshi_lake_location",
-      "label": "Data Lake Location",
-      "type": "text",
-      "help": "Where the Parquet files of the Iceberg tables are written, s3://lake/ when left empty. Only used with an Iceberg catalog."
-    },
-    {
-      "name": "var_nisshi_iceberg_warehouse",
-      "label": "Iceberg Warehouse",
-      "type": "text",
-      "help": "Warehouse name in the Iceberg catalog, if it needs one."
-    },
-    {
-      "name": "var_nisshi_otlp_endpoint",
-      "label": "OTLP Metrics Endpoint",
-      "type": "text",
-      "help": "OTLP/HTTP URL of your OpenTelemetry collector, e.g. http://192.168.1.12:4318. Leave empty to disable metrics export."
-    },
-    {
-      "name": "var_nisshi_otlp_headers",
-      "label": "OTLP Headers",
-      "type": "password",
-      "secret": true,
-      "help": "Collector credentials as key=value pairs, e.g. Authorization=Bearer <token>."
-    }
-  ],
   "notes": [
     {
       "text": "There is no web interface. Kafka clients connect to the container on port 9092.",
@@ -129,19 +46,11 @@
       "type": "warning"
     },
     {
-      "text": "With the default SQLite storage engine all data is in /opt/nisshi_data/nisshi.db. External S3, PostgreSQL, Iceberg and OpenTelemetry services are not installed by this script - it only stores their URLs and credentials in /opt/nisshi_data/.env. Updates replace /opt/nisshi and leave /opt/nisshi_data untouched.",
+      "text": "All data is in /opt/nisshi_data/nisshi.db. Updates replace /opt/nisshi and leave /opt/nisshi_data untouched.",
       "type": "info"
     },
     {
-      "text": "The broker does not create its tables on PostgreSQL. Only when the postgres storage engine is chosen, the script installs postgresql-client and loads /opt/nisshi/etc/initdb.d/010-schema.sql into your database once. SQLite and S3 installs get no extra packages.",
-      "type": "info"
-    },
-    {
-      "text": "To add a lakehouse after the install, set SCHEMA_REGISTRY, DATA_LAKE and ICEBERG_CATALOG in /opt/nisshi_data/.env and change ExecStart in /etc/systemd/system/nisshi.service to end in 'broker iceberg', then run systemctl daemon-reload and systemctl restart nisshi.",
-      "type": "info"
-    },
-    {
-      "text": "With an Iceberg catalog configured, put the Avro, JSON or Protobuf schema of each topic into /opt/nisshi_data/schema. Only topics with a schema are written to the lakehouse.",
+      "text": "Nisshi can also store its data in S3 or PostgreSQL, write topics to an Apache Iceberg lakehouse and export OpenTelemetry metrics. None of that is set up by this script - see the documentation and configure it in /opt/nisshi_data/.env, then run systemctl restart nisshi.",
       "type": "info"
     }
   ]

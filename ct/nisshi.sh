@@ -18,19 +18,6 @@ var_version="${var_version:-13}"
 #var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
 var_unprivileged="${var_unprivileged:-1}"
 
-export var_nisshi_storage="${var_nisshi_storage:-}"
-export var_nisshi_postgres_url="${var_nisshi_postgres_url:-}"
-export var_nisshi_s3_bucket="${var_nisshi_s3_bucket:-}"
-export var_nisshi_s3_endpoint="${var_nisshi_s3_endpoint:-}"
-export var_nisshi_s3_region="${var_nisshi_s3_region:-}"
-export var_nisshi_s3_access_key="${var_nisshi_s3_access_key:-}"
-export var_nisshi_s3_secret_key="${var_nisshi_s3_secret_key:-}"
-export var_nisshi_iceberg_catalog="${var_nisshi_iceberg_catalog:-}"
-export var_nisshi_iceberg_warehouse="${var_nisshi_iceberg_warehouse:-}"
-export var_nisshi_lake_location="${var_nisshi_lake_location:-}"
-export var_nisshi_otlp_endpoint="${var_nisshi_otlp_endpoint:-}"
-export var_nisshi_otlp_headers="${var_nisshi_otlp_headers:-}"
-
 header_info "$APP"
 variables
 color
