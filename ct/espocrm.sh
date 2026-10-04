@@ -38,8 +38,7 @@ function update_script() {
 
   if check_for_gh_release "espocrm" "espocrm/espocrm"; then
     msg_info "Stopping Services"
-    systemctl stop nginx cron
-    pkill -u www-data -x 'php[0-9.]*' || true
+    systemctl stop nginx cron 'php*-fpm.service'
     msg_ok "Stopped Services"
 
     CLEAN_INSTALL=1 CLEAN_INSTALL_KEEP="data custom client/custom" fetch_and_deploy_gh_release "espocrm" "espocrm/espocrm" "prebuild" "latest" "/opt/espocrm" "EspoCRM-*.zip"
