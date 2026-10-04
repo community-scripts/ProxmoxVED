@@ -46,7 +46,6 @@ $STD php bin/command config:set database.user "$MARIADB_DB_USER"
 $STD php bin/command config:set database.password "$MARIADB_DB_PASS"
 $STD php bin/command rebuild
 $STD php bin/command create-admin-user "$var_admin_user"
-# set-password only reads from stdin; stty fails harmlessly without a TTY.
 printf '%s\n' "$var_admin_pass" | $STD php bin/command set-password "$var_admin_user"
 $STD php bin/command config:set siteUrl "http://${LOCAL_IP}"
 $STD php bin/command populate-scheduled-jobs

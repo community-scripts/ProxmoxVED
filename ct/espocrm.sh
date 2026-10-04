@@ -39,20 +39,14 @@ function update_script() {
   if check_for_gh_release "espocrm" "espocrm/espocrm"; then
     msg_info "Stopping Services"
     systemctl stop nginx cron
-    # Stopping cron leaves running jobs alive; this matches cron.php and its job
-    # pool children (php, php8.4) but not php-fpm workers.
     pkill -u www-data -x 'php[0-9.]*' || true
     msg_ok "Stopped Services"
 
-    # The release ships only placeholders under these paths; config, uploads and
-    # customizations are never in the zip, so keeping them is safe.
     CLEAN_INSTALL=1 CLEAN_INSTALL_KEEP="data custom client/custom" fetch_and_deploy_gh_release "espocrm" "espocrm/espocrm" "prebuild" "latest" "/opt/espocrm" "EspoCRM-*.zip"
 
     msg_info "Migrating EspoCRM"
     cd /opt/espocrm
     $STD php bin/command clear-cache
-    # The deploy already recorded the new version, so drop it on failure to make
-    # the next update redeploy and retry instead of reporting "up to date".
     if ! $STD php bin/command migrate; then
       rm -f ~/.espocrm
       chown -R www-data:www-data /opt/espocrm
