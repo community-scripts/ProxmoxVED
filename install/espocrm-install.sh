@@ -24,9 +24,7 @@ if [[ -z "${var_admin_pass:-}" ]]; then
 fi
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
-  cron \
-  nginx
+$STD apt install -y nginx
 msg_ok "Installed Dependencies"
 
 setup_mariadb
