@@ -1,0 +1,51 @@
+{
+  "name": "JumpServer",
+  "slug": "jumpserver",
+  "categories": [6],
+  "date_created": "2026-08-25",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://docs.jumpserver.org/",
+  "website": "https://www.jumpserver.org/",
+  "repository": "https://github.com/jumpserver/jumpserver",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/jumpserver.webp",
+  "description": "JumpServer is an open-source PAM (Privileged Access Management) / bastion host that provides unified, audited access to SSH, RDP, VNC, Telnet, Kubernetes and database assets through a single web console, with full session recording and playback.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/jumpserver.sh",
+      "config_path": "/opt/jumpserver/config.yml",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 50,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The generated admin password is saved to ~/jumpserver.creds inside the container. This script sets it directly (bypassing upstream's own admin/ChangeMe default) because logging in with that default currently crashes with a server error on JumpServer v4.10.19 — its own weak-password check raises an exception the API can't render.",
+      "type": "info"
+    },
+    {
+      "text": "The SSH bastion (character-protocol) endpoint is on port 2222, e.g. ssh -p 2222 <user>@<container-ip> — this is separate from the web console on port 80.",
+      "type": "info"
+    },
+    {
+      "text": "First start takes several minutes: the core service runs database migrations, downloads a GeoIP database, and installs built-in RDP applets on its own before the web UI becomes reachable.",
+      "type": "info"
+    },
+    {
+      "text": "This is a large, multi-service stack (core, KoKo, Lion + guacd, PostgreSQL, Redis, Nginx) — the default 4 vCPU / 8GB RAM / 50GB disk sizing reflects that, not a typical single-service app.",
+      "type": "info"
+    }
+  ]
+}
