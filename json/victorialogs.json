@@ -6,6 +6,10 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
   "interface_port": 9428,
   "documentation": "https://docs.victoriametrics.com/victorialogs/",
   "website": "https://victoriametrics.com/products/victorialogs/",
