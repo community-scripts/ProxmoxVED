@@ -1,4 +1,4 @@
-# 🤖 AI Working Instructions for ProxmoxVED
+# 🤖 AI Working Instructions for DevScripts
 
 > **For every AI assistant (GitHub Copilot, Claude, ChatGPT, Codex, …) producing scripts for this project.**
 
@@ -253,13 +253,13 @@ check before calling one from an Alpine branch.
 
 ```bash
 #!/usr/bin/env bash
-_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main"
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/DevScripts/main"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: AuthorName (GitHubUsername)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://application-url.com
 
 APP="AppName"
@@ -328,7 +328,7 @@ echo -e "${GATEWAY}${BGN}http://${IP}:PORT${CL}"
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: AuthorName (GitHubUsername)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://application-url.com
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -1224,7 +1224,7 @@ _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-...}"
 
 # ✅ CORRECT - shebang, the scripts base, then straight into the bootstrap
 #!/usr/bin/env bash
-_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main"
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/DevScripts/main"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-...}"
 ```
 
@@ -1323,7 +1323,7 @@ var_unprivileged="${var_unprivileged:-1}"
 being tested. Create the issue, then point the script at it:
 
 ```bash
-var_testurl="${var_testurl:-https://github.com/community-scripts/ProxmoxVED/issues/2135}"
+var_testurl="${var_testurl:-https://github.com/community-scripts/DevScripts/issues/2135}"
 ```
 
 The container then asks for feedback on every login, in its Proxmox description,
@@ -1337,7 +1337,7 @@ that generic warning rather than failing the build. It is not settable from a
 preferences.
 
 Keep it set if the script is promoted to ProxmoxVE while feedback is still
-wanted — the request follows the script and stops naming ProxmoxVED.
+wanted — the request follows the script and stops naming DevScripts.
 
 `var_arm64` has three states. **Only claim `yes` when it has actually been run on
 arm64** — the mere existence of an arm64 artifact is not verification:
@@ -1500,7 +1500,7 @@ cleanup_lxc
 - [ ] Every user-facing message names the application, no `${APPLICATION}`/`$APP` placeholders
 - [ ] No `useradd`/`runuser`/`su -c` — the script runs as root
 - [ ] No engine comment block above `_cs_boot` in the CT script
-- [ ] Line 2 of the CT script pins `_CS_DEFAULT_URL` to ProxmoxVED
+- [ ] Line 2 of the CT script pins `_CS_DEFAULT_URL` to DevScripts
 - [ ] `var_arm64` decided (yes/no) with the reason in the PR, or explicitly left to the user
 - [ ] Alpine variant, if any, follows Shape A or Shape B — never a duplicated script
 - [ ] `setup_*`/`update_*` defined for every OS family the script claims to support

@@ -75,8 +75,8 @@ jobs:
 
             if (!findLine("📦 Application Requirements")) {
               problems.push(
-                "The description does not use the ProxmoxVED PR template (the **📦 Application Requirements** section is missing). " +
-                "Paste [`.github/pull_request_template.md`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/pull_request_template.md) " +
+                "The description does not use the DevScripts PR template (the **📦 Application Requirements** section is missing). " +
+                "Paste [`.github/pull_request_template.md`](https://github.com/community-scripts/DevScripts/blob/main/.github/pull_request_template.md) " +
                 "into the description and fill it in; your own write-up can go under **Description**."
               );
             } else {

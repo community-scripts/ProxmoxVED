@@ -92,7 +92,7 @@ function update() {
     cat <<'UPDATEEOF' >/usr/local/bin/update_cronmaster
 #!/usr/bin/env bash
 # CronMaster Update Script
-CRONMASTER_ACTION=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/addon/cronmaster.sh)"
+CRONMASTER_ACTION=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/DevScripts/main/tools/addon/cronmaster.sh)"
 UPDATEEOF
     chmod +x /usr/local/bin/update_cronmaster
     msg_ok "Updated update script"
@@ -158,7 +158,7 @@ EOF
   cat <<'UPDATEEOF' >/usr/local/bin/update_cronmaster
 #!/usr/bin/env bash
 # CronMaster Update Script
-CRONMASTER_ACTION=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/addon/cronmaster.sh)"
+CRONMASTER_ACTION=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/DevScripts/main/tools/addon/cronmaster.sh)"
 UPDATEEOF
   chmod +x /usr/local/bin/update_cronmaster
   msg_ok "Created update script (/usr/local/bin/update_cronmaster)"

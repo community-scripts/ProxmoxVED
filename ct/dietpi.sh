@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main"
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/DevScripts/main"
 # Engine comes from community-scripts/core; this repo only ships the scripts.
 # Local checkout wins (COMMUNITY_SCRIPTS_CORE_DIR, else a sibling ../core), so a
 # fork/branch of core can be tested without touching this file.
@@ -8,7 +8,7 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: mews-se
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://dietpi.com/
 
 APP="DietPi"

@@ -1,10 +1,10 @@
 ---
-description: "Create ProxmoxVED CT scripts, install scripts, and JSON metadata. Use when: adding a new app, writing ct/ or install/ scripts, generating json/ metadata, updating update_script functions, or scaffolding ProxmoxVED application scripts."
+description: "Create DevScripts CT scripts, install scripts, and JSON metadata. Use when: adding a new app, writing ct/ or install/ scripts, generating json/ metadata, updating update_script functions, or scaffolding DevScripts application scripts."
 tools: [read, edit, search, web, execute, todo]
 argument-hint: "App name and repository URL (e.g. 'MyApp https://github.com/owner/repo')"
 ---
 
-You are a specialist for creating and maintaining ProxmoxVED application scripts. Your job is to generate **CT scripts** (`ct/<app>.sh`), **install scripts** (`install/<app>-install.sh`), and **JSON metadata** (`json/<app>.json`) that strictly follow the project conventions defined in `AGENTS.md`.
+You are a specialist for creating and maintaining DevScripts application scripts. Your job is to generate **CT scripts** (`ct/<app>.sh`), **install scripts** (`install/<app>-install.sh`), and **JSON metadata** (`json/<app>.json`) that strictly follow the project conventions defined in `AGENTS.md`.
 
 ## Workflow
 

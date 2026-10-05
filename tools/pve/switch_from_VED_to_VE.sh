@@ -29,7 +29,7 @@ function update_container() {
         echo -e "${BL}[Info]${GN} Checking /usr/bin/update in ${BL}$container${CL} (OS: ${GN}$os${CL})"
 
         if pct exec "$container" -- [ -e /usr/bin/update ]; then
-            pct exec "$container" -- bash -c "sed -i 's/ProxmoxVED/ProxmoxVE/g' /usr/bin/update"
+            pct exec "$container" -- bash -c "sed -i -E 's#community-scripts/(DevScripts|ProxmoxVED)#community-scripts/ProxmoxVE#g' /usr/bin/update"
 
             if pct exec "$container" -- grep -q "ProxmoxVE" /usr/bin/update; then
                 echo -e "${GN}[Success]${CL} /usr/bin/update updated in ${BL}$container${CL}.\n"

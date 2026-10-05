@@ -1,4 +1,4 @@
-# 🚧 ProxmoxVED Helper-Scripts (Development Repository)
+# 🚧 DevScripts (Development Repository)
 
 **Warning: This repository is under active development and is not intended for production use. Changes may occur at any time!**
 
@@ -8,7 +8,9 @@
 
 ## 🔧 What is this?
 
-This repository contains a collection of scripts for managing and automating Proxmox Virtual Environment (Proxmox VE). Originally created by [tteck](https://github.com/tteck), the project is now community-driven and continues to evolve.
+New community-scripts are developed and tested here before they are released to [ProxmoxVE](https://github.com/community-scripts/ProxmoxVE), whatever platform they target: Proxmox VE and Incus containers, VMs and host tools. This repository was called ProxmoxVED before.
+
+The project was originally created by [tteck](https://github.com/tteck) and is now community-driven.
 
 ---
 
@@ -31,7 +33,7 @@ Follow [here](https://community-scripts.org/docs) to see our Documentations.
 Join the discussion, contribute code, or report issues:
 
 - **Discord**: [Join the Proxmox Helper Scripts Discord server](https://discord.gg/3AnUqsXnmK)
-- **GitHub Issues**: [Report bugs or request features](https://github.com/community-scripts/ProxmoxVED/issues)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/community-scripts/DevScripts/issues)
 
 ## 📜 License
 
