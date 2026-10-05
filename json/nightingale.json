@@ -1,0 +1,53 @@
+{
+  "name": "Nightingale",
+  "slug": "nightingale",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-10-05",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 17000,
+  "documentation": "https://n9e.github.io/docs/",
+  "website": "https://n9e.github.io/",
+  "repository": "https://github.com/ccfos/nightingale",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/n9e/n9e.github.io@main/static/apple-touch-icon.png",
+  "description": "Nightingale is an open-source monitoring and alerting platform. Like Grafana it connects to existing data sources such as Prometheus, VictoriaMetrics, Elasticsearch, Loki, ClickHouse or MySQL, but its focus is the alerting engine: alert rules, muting, subscriptions, event pipelines and notifications to more than 20 channels, plus dashboards, a host inventory fed by the Categraf agent and a built-in time series database. This script installs the prebuilt release with MariaDB and Redis.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/nightingale.sh",
+      "config_path": "/opt/nightingale_data/config.toml",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "root",
+    "password": "root.2020"
+  },
+  "notes": [
+    {
+      "text": "Log in at http://<IP>:17000 as root with password root.2020. These defaults are public and the account is an administrator, so change the password right after the install: the user menu in the top right, Profile, Change password.",
+      "type": "warning"
+    },
+    {
+      "text": "No external Prometheus or VictoriaMetrics is needed: metrics pushed by Categraf agents land in Nightingale's built-in time series database, registered as the datasource embedded-tsdb. Install Categraf on the hosts to monitor from Infrastructure, Hosts, which serves the bundled agent and generates the install command. Samples are kept 15 days and capped at 4 GiB, set in [EmbeddedTSDB] of /opt/nightingale_data/config.toml.",
+      "type": "info"
+    },
+    {
+      "text": "Unlike the upstream default, anonymous queries against the datasources are disabled (PromQuerier = false in [Center.AnonymousAccess] of /opt/nightingale_data/config.toml), because they would let anyone who reaches port 17000 read every datasource. Set it to true for dashboards shared without login, then run systemctl restart nightingale.",
+      "type": "info"
+    }
+  ]
+}
