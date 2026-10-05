@@ -53,18 +53,16 @@ AIOSTREAMS_VERSION=$(jq -r '.version' /opt/aiostreams/package.json)
 AIOSTREAMS_DESC=$(jq -r '.description' /opt/aiostreams/package.json)
 AIOSTREAMS_COMMIT_INFO=$(curl -fsSL "https://api.github.com/repos/Viren070/AIOStreams/commits/${AIOSTREAMS_TAG}" 2>/dev/null)
 AIOSTREAMS_COMMIT=$(jq -r '.sha // empty' <<<"${AIOSTREAMS_COMMIT_INFO}")
-AIOSTREAMS_COMMIT_TIME=$(jq -r '.commit.committer.date // empty' <<<"${AIOSTREAMS_COMMIT_INFO}")
-[[ -z "${AIOSTREAMS_COMMIT}" ]] && AIOSTREAMS_COMMIT="unknown"
-[[ -z "${AIOSTREAMS_COMMIT_TIME}" || "${AIOSTREAMS_COMMIT_TIME}" == "null" ]] && AIOSTREAMS_COMMIT_TIME=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+AIOSTREAMS_COMMIT=$(jq -r '.sha[0:8] // empty' <<<"${AIOSTREAMS_COMMIT_INFO}")
 cat <<EOF >/opt/aiostreams/resources/metadata.json
 {
   "version": "${AIOSTREAMS_VERSION}",
   "description": $(jq -Rn --arg d "${AIOSTREAMS_DESC}" '$d'),
   "tag": "${AIOSTREAMS_TAG}",
   "channel": "stable",
-  "commitHash": "${AIOSTREAMS_COMMIT:0:8}",
+  "commitHash": "${AIOSTREAMS_COMMIT:-unknown}",
   "buildTime": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)",
-  "commitTime": "${AIOSTREAMS_COMMIT_TIME}"
+  "commitTime": "${AIOSTREAMS_COMMIT_TIME:-$(date -u +%Y-%m-%dT%H:%M:%S.000Z)}"
 }
 EOF
 msg_ok "Generated Version Metadata"
