@@ -15,7 +15,7 @@ jobs:
     if: >-
       contains(github.event.issue.labels.*.name, 'Started Migration To ProxmoxVE') &&
       github.event.issue.state_reason == 'completed' &&
-      github.repository == 'community-scripts/ProxmoxVED'
+      github.repository == 'community-scripts/DevScripts'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -29,7 +29,7 @@ jobs:
           app-id: ${{ vars.GHAPP_MERGEBOT_ID }}
           private-key: ${{ secrets.GHAPP_MERGEBOT_PRIVATE_KEY }}
           owner: community-scripts
-          repositories: ProxmoxVED
+          repositories: DevScripts
 
       - name: Extract Issue Info and Script Type
         id: extract_info

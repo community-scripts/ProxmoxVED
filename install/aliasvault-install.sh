@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: ProxmoxVED Community
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Author: community-scripts ORG
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://aliasvault.net
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"

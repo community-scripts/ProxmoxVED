@@ -39,7 +39,7 @@ jobs:
   # ---------------------------------------------------------------------------
   route:
     runs-on: ubuntu-latest
-    if: github.repository == 'community-scripts/ProxmoxVED'
+    if: github.repository == 'community-scripts/DevScripts'
     outputs:
       mode: ${{ steps.route.outputs.mode }}
       issue_number: ${{ steps.route.outputs.issue_number }}
@@ -149,7 +149,7 @@ jobs:
         if: env.MODE == 'ready'
         run: |
           ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json body --jq '.body // ""')
-          RAW=https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main
+          RAW=https://raw.githubusercontent.com/community-scripts/DevScripts/main
 
           # First answered line under an issue form heading.
           field() {
@@ -243,11 +243,11 @@ jobs:
 
           {
             printf 'The %s script is ready for testing. Run it %s:\n' "$ISSUE_TITLE" "$WHERE"
-            printf '```\nbash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/%s)"\n```\n' "$SCRIPT_PATH"
+            printf '```\nbash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/DevScripts/main/%s)"\n```\n' "$SCRIPT_PATH"
           } > testing.md
 
           if [ "$SCRIPT_TYPE" != "pve" ]; then
-            JSON=$(curl -fsSL "https://github.com/community-scripts/ProxmoxVED/raw/main/json/${SLUG}.json" 2>/dev/null || echo '{}')
+            JSON=$(curl -fsSL "https://github.com/community-scripts/DevScripts/raw/main/json/${SLUG}.json" 2>/dev/null || echo '{}')
 
             username=$(printf '%s' "$JSON" | jq -r '.default_credentials.username // empty' 2>/dev/null || true)
             password=$(printf '%s' "$JSON" | jq -r '.default_credentials.password // empty' 2>/dev/null || true)
@@ -415,7 +415,7 @@ jobs:
             if [ -n "$PR" ]; then
               printf 'A pull request is open in the main repository: https://github.com/community-scripts/ProxmoxVE/pull/%s\n\n' "$PR"
             fi
-            printf 'Testing in ProxmoxVED is finished — this thread is locked and will be removed once the migration is complete. Please continue the discussion on the pull request.\n\n'
+            printf 'Testing in DevScripts is finished — this thread is locked and will be removed once the migration is complete. Please continue the discussion on the pull request.\n\n'
             printf '🔗 %s\n' "$ISSUE_URL"
           } > notice.md
           "$HELPER" post "$THREAD_ID" notice.md

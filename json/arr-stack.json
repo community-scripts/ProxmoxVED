@@ -10,7 +10,7 @@
   "privileged": false,
   "architectures": ["amd64"],
   "interface_port": 3010,
-  "documentation": "community-scripts/ProxmoxVED/blob/main/tools/arr-stack.sh",
+  "documentation": "community-scripts/DevScripts/blob/main/tools/arr-stack.sh",
   "website": "https://community-scripts.org",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ProxmoxVE.webp",
   "description": "Proxmox VE Helper Scripts for setting up a stack of applications for use with Prowlarr, Sonarr, Radarr, Lidarr, Seerr, and qBittorrent.",

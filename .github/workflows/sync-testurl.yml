@@ -34,7 +34,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     if: >-
-      github.repository == 'community-scripts/ProxmoxVED' &&
+      github.repository == 'community-scripts/DevScripts' &&
       (github.event_name == 'workflow_dispatch' ||
        github.event.label.name == 'Ready For Testing')
     steps:

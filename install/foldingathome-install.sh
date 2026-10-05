@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ) | Co-Author: 007hacky007
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://github.com/FoldingAtHome/fah-client-bastet
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"

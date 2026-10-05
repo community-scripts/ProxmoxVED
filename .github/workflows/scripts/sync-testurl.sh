@@ -20,7 +20,7 @@
 # ------------------------------------------------------------------------------
 set -euo pipefail
 
-REPO="${REPO:-community-scripts/ProxmoxVED}"
+REPO="${REPO:-community-scripts/DevScripts}"
 ISSUE_BASE="https://github.com/${REPO}/issues"
 
 norm() { printf '%s' "${1,,}" | tr -cd 'a-z0-9'; }
