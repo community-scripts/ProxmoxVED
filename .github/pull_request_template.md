@@ -24,6 +24,15 @@ Link: #
 
 ---
 
+## 🖥️ Tested on (**X** in brackets)
+
+- [ ] **Proxmox VE** – Created on a Proxmox VE host and the app works.
+- [ ] **Incus** – Created on an Incus host and the app works.
+
+> Application containers run on both; tick what you actually tested. VMs and host tools are Proxmox only.
+
+---
+
 ## 🛠️ Type of Change (**X** in brackets)  
 
 - [ ] 🐞 **Bug fix** – Resolves an issue without breaking functionality.  
