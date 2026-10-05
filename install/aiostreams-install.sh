@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MrNRod
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://github.com/Viren070/AIOStreams | Docs: https://docs.aiostreams.viren070.me/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
