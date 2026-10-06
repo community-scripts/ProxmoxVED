@@ -69,8 +69,8 @@ ${DESCRIPTION}
 <div align='center'>
   <h3>Pair a Device with T3 Code</h3>
   <p>The initial pairing URL expires after 1 hour.</p>
-  <p>To generate a fresh pairing URL or QR code, run this command on the Proxmox host:</p>
-  <p><code>pct exec ${CTID} -- t3 pair --base-dir /opt/t3code</code></p>
+  <p>Generate a new pairing URL or QR code from the Proxmox host:</p>
+  <p><code style='white-space: pre-wrap; overflow-wrap: anywhere;'>pct exec ${CTID} -- t3 pair --base-dir /opt/t3code</code></p>
 </div>
 EOF
 )
