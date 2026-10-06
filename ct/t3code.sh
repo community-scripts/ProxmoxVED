@@ -64,6 +64,15 @@ start
 build_container
 description
 
+DESCRIPTION=$(cat <<EOF
+${DESCRIPTION}
+<h3>Pair a Device with T3 Code</h3>
+<p>The initial pairing URL expires after 1 hour. To generate a fresh pairing URL or QR code, run this command on the Proxmox host:</p>
+<pre><code>pct exec ${CTID} -- t3 pair --base-dir /opt/t3code</code></pre>
+EOF
+)
+pct set "$CTID" -description "$DESCRIPTION"
+
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW}Pair a device using the QR code or URL below:${CL}"
