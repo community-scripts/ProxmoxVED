@@ -13,10 +13,6 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Base Dependencies"
-$STD dnf install -y curl ca-certificates
-msg_ok "Installed Base Dependencies"
-
 motd_ssh
 customize
 cleanup_lxc
