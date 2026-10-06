@@ -46,6 +46,8 @@ Type=simple
 User=root
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 Environment=T3CODE_TELEMETRY_ENABLED=false
+# Allow Claude Full access mode as root inside the LXC.
+Environment=IS_SANDBOX=1
 WorkingDirectory=/opt/t3code
 ExecStart=/usr/bin/t3 serve --host 0.0.0.0 --base-dir /opt/t3code
 Restart=on-failure

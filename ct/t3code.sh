@@ -43,6 +43,16 @@ function update_script() {
   $STD npm install -g t3@latest
   msg_ok "Updated T3 Code"
 
+  msg_info "Configuring T3 Code Service"
+  mkdir -p /etc/systemd/system/t3code.service.d
+  cat <<EOF >/etc/systemd/system/t3code.service.d/claude.conf
+[Service]
+# Allow Claude Full access mode as root inside the LXC.
+Environment=IS_SANDBOX=1
+EOF
+  systemctl daemon-reload
+  msg_ok "Configured T3 Code Service"
+
   msg_info "Starting Service"
   systemctl start t3code
   msg_ok "Started Service"
