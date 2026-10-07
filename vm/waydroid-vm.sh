@@ -23,7 +23,7 @@ function header_info {
 EOF
 }
 
-APP="Waydroid VM"
+APP="Waydroid"
 APP_TYPE="vm"
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
@@ -40,7 +40,7 @@ OS_CODENAME="noble"
 header_info
 echo -e "\n Loading..."
 
-set -e
+set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -58,7 +58,9 @@ vm_preflight
 # OS Selection
 # ---------------------------------------------------------------------------
 function select_os() {
-  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+  if [[ -n "${1:-}" ]]; then
+    OS_CHOICE="$1"
+  elif [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
     OS_CHOICE="${VM_OS_VERSION:-ubuntu2404}"
   elif ! OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "OS SELECTION" \
     --radiolist "Choose the base operating system:" --cancel-button Exit-Script 12 68 2 \
@@ -85,10 +87,8 @@ function select_os() {
   echo -e "${OS}${BOLD}${DGN}Base OS: ${BGN}${OS_LABEL}${CL}"
 }
 
-select_os
-vm_prompt_cloud_init "ubuntu"
-
 function default_settings() {
+  select_os "${VM_OS_VERSION:-ubuntu2404}"
   VMID=$(get_valid_nextid)
   vm_apply_machine_type "q35"
   DISK_SIZE="20G"
@@ -123,6 +123,7 @@ function default_settings() {
 
 function advanced_settings() {
   METHOD="advanced"
+  select_os
   echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
@@ -150,6 +151,16 @@ function advanced_settings() {
 
 
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 4 CPU Cores\n• 4 GB RAM\n• 20 GB Disk" 13 58
+CLOUDINIT_REQUIRED=1
+if [[ "$OS_CHOICE" == "debian13" ]]; then
+  vm_prompt_cloud_init "debian"
+else
+  vm_prompt_cloud_init "ubuntu"
+fi
+if [[ "$USE_CLOUD_INIT" != "yes" ]]; then
+  msg_error "Waydroid cloud images require Cloud-Init credentials."
+  exit 1
+fi
 post_to_api_vm
 
 vm_select_storage "$HN"
@@ -178,9 +189,7 @@ msg_info "Retrieving the URL for the ${OS_LABEL} Cloud Image"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 
-CACHE_DIR="/var/lib/vz/template/cache"
-CACHE_FILE="${CACHE_DIR}/$(basename "$URL")"
-mkdir -p "$CACHE_DIR"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
 
 MIN_IMAGE_BYTES=$((100 * 1024 * 1024))
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_IMAGE_BYTES" || exit 115
@@ -188,7 +197,7 @@ vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_IMAGE_BYTES" || ex
 # ---------------------------------------------------------------------------
 # Customize disk image with Waydroid pre-installed (offline via virt-customize)
 # ---------------------------------------------------------------------------
-WORK_FILE=$(mktemp --suffix=.qcow2)
+WORK_FILE="$TEMP_DIR/waydroid.qcow2"
 cp "$CACHE_FILE" "$WORK_FILE"
 
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
@@ -221,18 +230,18 @@ fi
 
 msg_info "Configuring binder kernel module"
 virt-customize -q -a "$WORK_FILE" \
-  --run-command "echo 'binder_linux' >> /etc/modules" >/dev/null 2>&1 || true
+  --run-command "echo 'binder_linux' >> /etc/modules" >/dev/null
 virt-customize -q -a "$WORK_FILE" \
-  --run-command "echo 'options binder_linux devices=binder,hwbinder,vndbinder' > /etc/modprobe.d/waydroid.conf" >/dev/null 2>&1 || true
+  --run-command "echo 'options binder_linux devices=binder,hwbinder,vndbinder' > /etc/modprobe.d/waydroid.conf" >/dev/null
 msg_ok "Configured binder kernel module"
 
 msg_info "Finalizing image"
 vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   virt-customize -q -a "$WORK_FILE" \
-    --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
+    --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null
   virt-customize -q -a "$WORK_FILE" \
-    --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
+    --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null
 fi
 msg_ok "Finalized image"
 
@@ -241,6 +250,7 @@ if [ "$WAYDROID_PREINSTALLED" = "no" ]; then
   msg_info "Writing first-boot Waydroid install service (fallback)"
   virt-customize -q -a "$WORK_FILE" --run-command "cat > /usr/local/bin/waydroid-firstboot.sh << 'FSCRIPT'
 #!/bin/bash
+set -euo pipefail
 exec >> /var/log/waydroid-install.log 2>&1
 echo \"[\$(date)] Starting Waydroid installation\"
 for i in \$(seq 1 30); do ping -c1 8.8.8.8 >/dev/null 2>&1 && break; sleep 2; done
@@ -255,17 +265,18 @@ apt-get install -y waydroid
 echo 'binder_linux' >> /etc/modules
 echo 'options binder_linux devices=binder,hwbinder,vndbinder' > /etc/modprobe.d/waydroid.conf
 systemctl enable --now waydroid-container
+touch /var/lib/waydroid-installed
 systemctl disable waydroid-firstboot.service
 echo \"[\$(date)] Waydroid installation complete\"
 FSCRIPT
-chmod +x /usr/local/bin/waydroid-firstboot.sh" >/dev/null 2>&1 || true
+chmod +x /usr/local/bin/waydroid-firstboot.sh" >/dev/null
 
   virt-customize -q -a "$WORK_FILE" --run-command "cat > /etc/systemd/system/waydroid-firstboot.service << 'FSVC'
 [Unit]
 Description=Waydroid First Boot Installation
-After=network-online.target
-Wants=network-online.target
-ConditionPathExists=!/var/log/waydroid-install.log
+After=network-online.target cloud-final.service
+Wants=network-online.target cloud-final.service
+ConditionPathExists=!/var/lib/waydroid-installed
 
 [Service]
 Type=oneshot
@@ -273,9 +284,9 @@ ExecStart=/usr/local/bin/waydroid-firstboot.sh
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=cloud-init.target
 FSVC
-systemctl enable waydroid-firstboot.service" >/dev/null 2>&1 || true
+systemctl enable waydroid-firstboot.service" >/dev/null
   msg_ok "Wrote first-boot fallback service"
 fi
 
@@ -284,6 +295,7 @@ FILE="$WORK_FILE"
 msg_info "Creating a ${OS_LABEL} Waydroid VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script,waydroid -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
+vm_mark_created
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID $FILE $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
@@ -297,17 +309,7 @@ vm_resize_disk
 
 rm -f "$WORK_FILE"
 
-if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f setup_cloud_init >/dev/null 2>&1; then
-  case "$OS_CHOICE" in
-  ubuntu2404) setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" "${CLOUDINIT_USER:-ubuntu}" "${CLOUDINIT_NETWORK_MODE:-dhcp}" "${CLOUDINIT_IP:-}" "${CLOUDINIT_GW:-}" "${CLOUDINIT_DNS:-${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}}" ;;
-  debian13) setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" "${CLOUDINIT_USER:-debian}" "${CLOUDINIT_NETWORK_MODE:-dhcp}" "${CLOUDINIT_IP:-}" "${CLOUDINIT_GW:-}" "${CLOUDINIT_DNS:-${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}}" ;;
-  esac
-else
-  # Attach cloud-init drive for basic DHCP networking even without interactive CI config
-  qm set $VMID --ide2 "${STORAGE}:cloudinit" >/dev/null 2>&1 ||
-    qm set $VMID --scsi1 "${STORAGE}:cloudinit" >/dev/null 2>&1 || true
-  qm set $VMID --ipconfig0 "ip=dhcp" >/dev/null 2>&1 || true
-fi
+vm_provision "$VMID"
 
 msg_ok "Created a ${OS_LABEL} Waydroid VM ${CL}${BL}(${HN})"
 if [ "$START_VM" = "yes" ]; then

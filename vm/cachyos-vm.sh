@@ -27,7 +27,7 @@ THIN="discard=on,ssd=1,"
 header_info
 echo -e "\n Loading..."
 
-set -e
+set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -107,7 +107,8 @@ msg_info "Retrieving the URL for the CachyOS Desktop ISO"
 # Get latest release version from SourceForge (format: YYMMDD in folder links)
 CACHYOS_VERSION=$(curl -fsSL "https://sourceforge.net/projects/cachyos-arch/files/gui-installer/desktop/" 2>/dev/null | grep -oP 'desktop/\K[0-9]{6}(?=/)' | sort -rn | head -1)
 if [ -z "$CACHYOS_VERSION" ]; then
-  CACHYOS_VERSION="260124"
+  msg_error "Could not determine the current CachyOS release."
+  exit 115
 fi
 
 # SourceForge download URL with mirror redirect
@@ -133,6 +134,7 @@ qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} 
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 0 -ostype l26 -scsihw virtio-scsi-pci \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
   -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' -vga qxl -serial0 socket >/dev/null
+vm_mark_created
 
 set_description
 

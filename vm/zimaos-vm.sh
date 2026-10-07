@@ -22,7 +22,7 @@ THIN="discard=on,ssd=1,"
 header_info
 echo -e "\n Loading..."
 
-set -e
+set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -117,6 +117,7 @@ $STD qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_T
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-single \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
   -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' -vga std -serial0 socket
+vm_mark_created
 set_description
 msg_ok "Created a ZimaOS VM ${CL}${BL}(${HN})"
 

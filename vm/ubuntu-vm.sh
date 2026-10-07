@@ -20,7 +20,7 @@ THIN="discard=on,ssd=1,"
 USE_CLOUD_INIT="no"
 
 
-set -e
+set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -32,11 +32,13 @@ vm_preflight
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
-if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+function select_os() {
+if [[ -n "${1:-}" ]]; then
+  var_version="$1"
+elif [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
   var_version="${VM_OS_VERSION:-$var_version}"
 elif vm_dialog radiolist "UBUNTU VERSION" "Choose the Ubuntu release to install" --cancel-button Exit-Script 13 60 4 \
   "26.04" "Ubuntu 26.04 LTS (Resolute)" ON \
-  "25.04" "Ubuntu 25.04 (Plucky)" OFF \
   "24.04" "Ubuntu 24.04 LTS (Noble)" OFF \
   "22.04" "Ubuntu 22.04 LTS (Jammy)" OFF; then
   var_version="$VM_DIALOG_RESULT"
@@ -46,7 +48,6 @@ fi
 
 case "$var_version" in
 26.04) UBUNTU_CODENAME="resolute" ;;
-25.04) UBUNTU_CODENAME="plucky" ;;
 24.04) UBUNTU_CODENAME="noble" ;;
 22.04) UBUNTU_CODENAME="jammy" ;;
 *)
@@ -54,20 +55,14 @@ case "$var_version" in
   exit 1
   ;;
 esac
-APP="Ubuntu ${var_version} VM"
+APP="Ubuntu ${var_version}"
+}
 
 header_info
 echo -e "\n Loading..."
 
-# Ubuntu cloud images configure netplan from cloud-init only. Without it the
-# guest boots with an interface that never gets an address.
-VM_CLOUD_INIT="${VM_CLOUD_INIT:-yes}"
-vm_prompt_cloud_init "ubuntu"
-if [ "$USE_CLOUD_INIT" != "yes" ]; then
-  msg_warn "Without Cloud-Init this Ubuntu image gets no network configuration - configure it in the guest yourself."
-fi
-
 function default_settings() {
+  select_os "${VM_OS_VERSION:-26.04}"
   VMID=$(get_valid_nextid)
   vm_apply_machine_type "q35"
   DISK_SIZE="7G"
@@ -102,6 +97,7 @@ function default_settings() {
 
 function advanced_settings() {
   METHOD="advanced"
+  select_os
   echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
@@ -128,6 +124,11 @@ function advanced_settings() {
 }
 
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 2 GB RAM\n• 7 GB Disk" 13 58
+VM_CLOUD_INIT="${VM_CLOUD_INIT:-yes}"
+vm_prompt_cloud_init "ubuntu"
+if [ "$USE_CLOUD_INIT" != "yes" ]; then
+  msg_warn "Without Cloud-Init this Ubuntu image gets no network configuration or credentials; configure them in the guest yourself."
+fi
 post_to_api_vm
 
 vm_select_storage "$HN"
@@ -147,10 +148,14 @@ FILE="$(basename "$CACHE_FILE")"
 cp -f "$CACHE_FILE" "$FILE"
 
 vm_prepare_cloud_image "$FILE" "$HN" || true
+if [[ "$USE_CLOUD_INIT" != "yes" ]]; then
+  vm_expand_image "$FILE" "$DISK_SIZE"
+fi
 
 msg_info "Creating a ${APP}"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
+vm_mark_created
 vm_alloc_efi_disk "$DISK0"
 qm importdisk $VMID $FILE $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
@@ -162,18 +167,8 @@ set_description
 
 vm_resize_disk
 
-if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f setup_cloud_init >/dev/null 2>&1; then
-  setup_cloud_init \
-    "$VMID" \
-    "$STORAGE" \
-    "$HN" \
-    "yes" \
-    "${CLOUDINIT_USER:-ubuntu}" \
-    "${CLOUDINIT_NETWORK_MODE:-dhcp}" \
-    "${CLOUDINIT_IP:-}" \
-    "${CLOUDINIT_GW:-}" \
-    "${CLOUDINIT_DNS:-${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}}"
-
+vm_provision "$VMID"
+if [ "$USE_CLOUD_INIT" = "yes" ]; then
   if [[ "${CLOUDINIT_NETWORK_MODE:-dhcp}" == "static" ]]; then
     setup_cloud_init_network_no_rename \
       "$VMID" \
@@ -197,5 +192,5 @@ msg_ok "Completed successfully!\n"
 if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f display_cloud_init_info >/dev/null 2>&1; then
   display_cloud_init_info "$VMID" "$HN"
 else
-  echo -e "Cloud-Init is disabled. The VM disk was resized on the Proxmox side only.\nIf the guest does not auto-expand its root filesystem after first boot, expand it manually inside the VM.\n\nMore info at https://github.com/community-scripts/DevScripts/discussions/272 \n"
+  msg_warn "Cloud-Init is disabled. Configure guest networking and credentials manually."
 fi

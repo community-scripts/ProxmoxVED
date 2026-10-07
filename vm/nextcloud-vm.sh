@@ -16,13 +16,13 @@ APP="Nextcloud"
 APP_TYPE="vm"
 NSAPP="nextcloud-vm"
 var_os="turnkey-nextcloud"
-var_version="n.d."
+var_version="19.0"
 
 THIN="discard=on,ssd=1,"
 
 header_info
 echo -e "\n Loading..."
-set -e
+set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -85,56 +85,20 @@ vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 2 GB R
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_info "Retrieving the URL for the ${APP} Disk Image"
-URL=http://mirror.turnkeylinux.org/turnkeylinux/images/iso/turnkey-nextcloud-19.0-trixie-amd64.iso
+msg_info "Retrieving the ${APP} installer ISO"
+URL=https://mirror.turnkeylinux.org/turnkeylinux/images/iso/turnkey-nextcloud-19.0-trixie-amd64.iso
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-# A mirror serving an error page returns 200, so size decides whether this
-# is an image. Anything real here is far above 5 MB.
-# Only ever read from here on, so the cache file is imported directly.
-FILE="$(vm_image_cache_path "$URL")"
-vm_fetch_image "$URL" "$FILE" --cache --min-bytes $((5 * 1024 * 1024)) || exit 115
-
-STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
-case $STORAGE_TYPE in
-nfs | dir)
-  DISK_EXT=".raw"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format raw"
-  THIN=""
-  ;;
-btrfs)
-  DISK_EXT=".raw"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format raw"
-  FORMAT=",efitype=4m"
-  THIN=""
-  ;;
-*)
-  DISK_EXT=""
-  DISK_REF=""
-  DISK_IMPORT="-format raw"
-  ;;
-esac
-for i in {0,1,2}; do
-  disk="DISK$i"
-  eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
-  eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
-done
+vm_select_iso_storage "$(basename "$URL")" "$HN"
+vm_fetch_image "$URL" "$ISO_PATH" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
 
 msg_info "Creating a ${APP}"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios seabios${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
-pvesm alloc $STORAGE $VMID $DISK1 12G 1>&/dev/null
-qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
-qm set $VMID \
-  -efidisk0 ${DISK0_REF}${FORMAT} \
-  -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN} \
-  -scsi1 ${DISK2_REF},${DISK_CACHE}${THIN} \
-  -boot order='scsi1;scsi0' >/dev/null
+  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci \
+  -scsi0 "${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,}" \
+  -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' >/dev/null
+vm_mark_created
 set_description
-vm_resize_disk
 
 msg_ok "Created a ${APP} ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
@@ -143,4 +107,5 @@ if [ "$START_VM" == "yes" ]; then
   msg_ok "Started ${APP}"
 fi
 post_update_to_api "done" "none"
-msg_ok "Completed successfully!\n"
+msg_ok "VM created; complete the TurnKey installation in the Proxmox console."
+echo "Set credentials in the installer. After installation, detach the ISO: qm set $VMID --ide2 none"

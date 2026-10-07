@@ -131,7 +131,9 @@ function get_available_bridges() {
 }
 
 function default_settings() {
+  vm_apply_machine_type "i440fx"
   VMID=$(get_valid_nextid)
+  DISK_SIZE="20G"
   FORMAT=",efitype=4m"
   MACHINE=""
   DISK_CACHE=""
@@ -177,7 +179,9 @@ function default_settings() {
   local DEFAULT_WAN_BRG
   DEFAULT_WAN_BRG=$(echo "$AVAILABLE_BRIDGES" | grep -v "^${BRG}$" | head -n1 || true)
 
-  if [ "$BRIDGE_COUNT" -ge 2 ]; then
+  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+    WAN_BRG="${VM_WAN_BRIDGE:-}"
+  elif [ "$BRIDGE_COUNT" -ge 2 ]; then
     # Multiple bridges available - offer dual or single mode
     if NETWORK_MODE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "NETWORK CONFIGURATION" --radiolist --cancel-button Exit-Script \
       "Choose network setup mode for OPNsense:\n" 14 70 2 \
@@ -210,6 +214,17 @@ function default_settings() {
 function advanced_settings() {
   local ip_regex='^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$'
   METHOD="advanced"
+  vm_prompt_disk_size "20G"
+  vm_prompt_verbose "no"
+  vm_prompt_start_vm "yes"
+  IP_ADDR=""
+  WAN_IP_ADDR=""
+  LAN_GW=""
+  WAN_GW=""
+  NETMASK=""
+  WAN_NETMASK=""
+  VLAN=""
+  MTU=""
   [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
   while true; do
     if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -244,6 +259,7 @@ function advanced_settings() {
   else
     exit_script
   fi
+  vm_apply_machine_type "$MACH"
 
   if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
     "0" "KVM64 (Default)" ON \
@@ -321,7 +337,7 @@ function advanced_settings() {
     fi
     if ! ip link show "${BRG}" &>/dev/null; then
       msg_error "Bridge '${BRG}' does not exist"
-      exit
+      exit 1
     fi
     echo -e "${DGN}Using LAN Bridge: ${BGN}$BRG${CL}"
   else
@@ -369,10 +385,9 @@ function advanced_settings() {
   local WAN_BRIDGES
   WAN_BRIDGES=$(get_available_bridges | grep -v "^${BRG}$" || true)
   if [ -z "$WAN_BRIDGES" ]; then
-    msg_error "No additional bridge available for WAN. Only '${BRG}' exists."
-    msg_error "Create a second bridge (e.g. vmbr1) in Proxmox network config first."
-    exit
-  fi
+    WAN_BRG=""
+    msg_warn "Only one bridge is available; using single-interface mode."
+  else
   local WAN_MENU=()
   local first=true
   while IFS= read -r brg; do
@@ -392,6 +407,7 @@ function advanced_settings() {
     echo -e "${DGN}Using WAN Bridge: ${BGN}$WAN_BRG${CL}"
   else
     exit_script
+  fi
   fi
 
   if WAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN IP" 8 58 "${WAN_IP_ADDR:-}" --title "WAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -465,7 +481,7 @@ function advanced_settings() {
 
 
 vm_preflight
-vm_start_script "Use Default Settings?\n\nDefaults:\n• 4 CPU Cores\n• 8 GB RAM" 12 58
+vm_start_script "Use Default Settings?\n\nDefaults:\n• 4 CPU Cores\n• 8 GB RAM\n• 20 GB Disk" 13 58
 post_to_api_vm
 
 vm_select_storage "$HN"
@@ -523,36 +539,12 @@ fi
 FILE=FreeBSD.qcow2
 vm_extract_image "$CACHE_FILE" "$TEMP_DIR/$FILE" || exit 115
 
-STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
-case $STORAGE_TYPE in
-nfs | dir)
-  DISK_EXT=".qcow2"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format qcow2"
-  THIN=""
-  ;;
-btrfs)
-  DISK_EXT=".raw"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format raw"
-  FORMAT=",efitype=4m"
-  THIN=""
-  ;;
-*)
-  DISK_EXT=""
-  DISK_REF=""
-  DISK_IMPORT="-format raw"
-  ;;
-esac
-for i in {0,1}; do
-  disk="DISK$i"
-  eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
-  eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
-done
+vm_define_disk_references 2
 
 msg_info "Creating a OPNsense VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
+vm_mark_created
 
 # Retry pvesm alloc on transient zfs_request "got timeout" errors (#14127)
 alloc_attempt=1
@@ -571,14 +563,14 @@ while :; do
   echo -e "$alloc_err" >&2
   exit 220
 done
-qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} &>/dev/null
+qm importdisk "$VMID" "$FILE" "$STORAGE" --format "$DISK_IMPORT_FORMAT" >/dev/null
 qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \
   -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=2G \
   -boot order=scsi0 \
   -serial0 socket \
   -tags community-script >/dev/null
-vm_resize_disk scsi0 20G
+vm_resize_disk
 set_description
 
 msg_info "Bridge interfaces are being added."
@@ -662,7 +654,7 @@ while [ $build_stable -lt 6 ] && [ $build_elapsed -lt 2400 ]; do
     break
   fi
 done
-msg_ok "OPNsense build finished after $((build_elapsed / 60)) minutes"
+msg_warn "Console wait ended after $((build_elapsed / 60)) minutes; a static screen does not prove installation succeeded. Verify the OPNsense console."
 send_line_to_vm "root"
 send_line_to_vm "opnsense"
 send_line_to_vm "2"
@@ -712,9 +704,17 @@ if [ -n "$WAN_BRG" ] && [ "$WAN_IP_ADDR" != "" ]; then
 fi
 sleep 10
 send_line_to_vm "0"
-msg_ok "Started OPNsense VM"
+if [[ "$START_VM" == "no" ]]; then
+  msg_info "Shutting down OPNsense as requested"
+  $STD qm shutdown "$VMID" --timeout 120
+  msg_ok "OPNsense VM shut down"
+else
+  msg_ok "OPNsense VM is running"
+fi
 
-msg_ok "Completed successfully!\n"
+post_update_to_api "done" "none"
+msg_ok "VM creation completed; verify the guest bootstrap and network configuration in the console."
+echo "OPNsense console login after successful bootstrap: root / opnsense. Change the password."
 if [ "$IP_ADDR" != "" ]; then
   echo -e "${INFO}${YW} Access it using the following URL:${CL}"
   echo -e "${TAB}${GATEWAY}${BGN}http://${IP_ADDR}${CL}"

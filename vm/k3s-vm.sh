@@ -5,9 +5,7 @@
 # License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 
 COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/DevScripts/main}"
-source /dev/stdin <<<$(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/api/api.func")
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
-source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/vm/cloud-init.func") 2>/dev/null || true
 load_functions
 
 function header_info {
@@ -36,24 +34,16 @@ THIN="discard=on,ssd=1,"
 
 header_info
 echo -e "\n Loading..."
-set -e
+set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
 trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
-function error_handler() {
-  local exit_code="$?"
-  local line_number="$1"
-  local command="$2"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
-  post_update_to_api "failed" "${command}"
-  echo -e "\n$error_message\n"
-  cleanup_vmid
-}
-
 
 function select_os() {
-  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+  if [[ -n "${1:-}" ]]; then
+    OS_CHOICE="$1"
+  elif [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
     OS_CHOICE="${VM_OS_VERSION:-debian13}"
   elif ! OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT OS" --radiolist \
     "Choose Operating System for K3s VM" 15 68 5 \
@@ -136,12 +126,8 @@ vm_preflight
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 
-# The OS picks the image and the image decides whether Cloud-Init is optional,
-# so both are settled before the Default/Advanced fork rather than inside it.
-select_os
-select_cloud_init
-
 function default_settings() {
+  select_os "${VM_OS_VERSION:-debian13}"
   vm_apply_machine_type "q35"
   VMID=$(get_valid_nextid)
   DISK_SIZE="10G"
@@ -162,6 +148,7 @@ function default_settings() {
 
 function advanced_settings() {
   METHOD="advanced"
+  select_os
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
   vm_prompt_disk_size "10G"
@@ -188,6 +175,7 @@ function advanced_settings() {
 
 
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 4 GB RAM\n• 10 GB Disk\n• Cloud-Init enabled" 14 58
+select_cloud_init
 post_to_api_vm
 
 vm_select_storage "$HN"
@@ -204,45 +192,12 @@ cp -f "$CACHE_FILE" "$FILE"
 
 # qm resize only grows the block device. Without cloud-init nothing grows the
 # guest partition, so expand it offline first.
-if [ "${CLOUD_INIT:-no}" != "yes" ]; then
+if [ "${USE_CLOUD_INIT:-no}" != "yes" ]; then
   msg_info "Expanding the root filesystem to ${DISK_SIZE}"
   vm_expand_image "$FILE" "$DISK_SIZE" || true
 fi
 
-STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
-case $STORAGE_TYPE in
-nfs | dir)
-  DISK_EXT=".qcow2"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format qcow2"
-  THIN=""
-  ;;
-btrfs)
-  DISK_EXT=".raw"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format raw"
-  FORMAT=",efitype=4m"
-  THIN=""
-  ;;
-esac
-for i in {0,1}; do
-  disk="DISK$i"
-  eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
-  eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
-done
-
-msg_info "Creating a ${OS_DISPLAY} VM"
-qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-vm_alloc_efi_disk "$DISK0"
-qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
-qm set $VMID \
-  -efidisk0 ${DISK0_REF}${FORMAT} \
-  -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-  -boot order=scsi0 \
-  -serial0 socket >/dev/null
-
-vm_resize_disk
+vm_define_disk_references 2
 
 TOOL_ARCH="$(vm_arch_resolve amd64 arm64)"
 K9S_URL="https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_${TOOL_ARCH}.tar.gz"
@@ -261,9 +216,9 @@ virt-customize -q -a "${FILE}" \
 msg_ok "Added in Image K3s & Helm"
 
 msg_info "Adding k9s (${TOOL_ARCH})"
-if curl -fsSL "$K9S_URL" -o /tmp/k9s.tar.gz; then
+if curl -fsSL "$K9S_URL" -o "$TEMP_DIR/k9s.tar.gz"; then
   if virt-customize -q -a "${FILE}" \
-    --upload /tmp/k9s.tar.gz:/tmp/k9s.tar.gz \
+    --upload "$TEMP_DIR/k9s.tar.gz:/tmp/k9s.tar.gz" \
     --run-command 'tar -xzf /tmp/k9s.tar.gz -C /usr/local/bin k9s' \
     --run-command 'chmod +x /usr/local/bin/k9s' \
     --run-command 'rm -f /tmp/k9s.tar.gz' >/dev/null; then
@@ -274,7 +229,7 @@ if curl -fsSL "$K9S_URL" -o /tmp/k9s.tar.gz; then
 else
   msg_warn "Could not download k9s archive. VM creation continues without k9s."
 fi
-rm -f /tmp/k9s.tar.gz
+rm -f "$TEMP_DIR/k9s.tar.gz"
 
 vm_prepare_cloud_image "$FILE" "$HN" || true
 
@@ -329,14 +284,22 @@ else
   msg_info "Skipping ArgoCD Bootstrap (INSTALL_ARGOCD_BOOTSTRAP=$INSTALL_ARGOCD_BOOTSTRAP)"
 fi
 
+msg_info "Creating a ${OS_DISPLAY} VM"
+qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
+  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
+vm_mark_created
+vm_alloc_efi_disk "$DISK0"
+qm importdisk "$VMID" "$FILE" "$STORAGE" --format "$DISK_IMPORT_FORMAT" >/dev/null
+qm set $VMID \
+  -efidisk0 ${DISK0_REF}${FORMAT} \
+  -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
+  -boot order=scsi0 \
+  -serial0 socket >/dev/null
+vm_resize_disk
 set_description
 msg_ok "Created a K3s VM ${CL}${BL}(${HN})"
 
-if [ "$USE_CLOUD_INIT" = "yes" ] && command -v setup_cloud_init >/dev/null 2>&1; then
-  msg_info "Configuring Cloud-Init"
-  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
-  msg_ok "Configured Cloud-Init"
-fi
+vm_provision "$VMID"
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting K3s VM"
@@ -344,4 +307,11 @@ if [ "$START_VM" == "yes" ]; then
   msg_ok "Started K3s VM"
 fi
 
-msg_ok "Completed successfully!\n"
+post_update_to_api "done" "none"
+msg_ok "VM created. K3s and optional ArgoCD bootstrap start on first boot."
+if [[ "$USE_CLOUD_INIT" == "yes" ]]; then
+  display_cloud_init_info "$VMID" "$HN"
+else
+  msg_warn "Debian nocloud console login: root, no password. Set a password before exposing the VM."
+fi
+echo "Check inside the guest: systemctl status k3s argocd-bootstrap"

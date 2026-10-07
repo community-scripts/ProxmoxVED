@@ -23,7 +23,7 @@ THIN="discard=on,ssd=1,"
 
 header_info
 echo -e "\n Loading..."
-set -e
+set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -39,6 +39,7 @@ function default_settings() {
   vm_apply_machine_type "q35"
   VMID=$(get_valid_nextid)
   DISK_SIZE="32G"
+  DISK_CACHE=""
   HN="umbrelos"
   CPU_TYPE=""
   CORE_COUNT="2"
@@ -89,7 +90,10 @@ vm_select_storage "$HN"
 msg_info "Retrieving the URL for the Umbrel OS installer ISO"
 UMBREL_RELEASE="$(curl -fsSL --max-time 20 https://api.umbrel.com/latest-release 2>/dev/null |
   sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
-[[ -z "$UMBREL_RELEASE" ]] && UMBREL_RELEASE="latest"
+if [[ -z "$UMBREL_RELEASE" ]]; then
+  msg_error "Could not determine the current Umbrel OS release."
+  exit 115
+fi
 var_version="$UMBREL_RELEASE"
 
 URL="https://download.umbrel.com/release/${UMBREL_RELEASE}/umbrelos-amd64-usb-installer.iso"
@@ -114,23 +118,17 @@ qm create "$VMID"${MACHINE} -bios ovmf -agent enabled=1 -tablet 0 -localtime 1 $
   -efidisk0 "${STORAGE}:1,efitype=4m,pre-enrolled-keys=0" \
   -scsi0 "${STORAGE}:${DISK_SIZE%G},${DISK_CACHE:-}${THIN%,}" \
   -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' >/dev/null
+vm_mark_created
 
 set_description
 msg_ok "Created a Umbrel OS VM ${CL}${BL}(${HN})"
 
-if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
-  KEEP_IMAGE="${VM_KEEP_IMAGE:-yes}"
-elif vm_dialog yesno "Image Cache" \
-  "Keep downloaded Umbrel OS installer ISO for future VMs?\n\nFile: $CACHE_FILE" 10 70; then
-  KEEP_IMAGE="yes"
-else
-  KEEP_IMAGE="no"
-fi
+KEEP_IMAGE="${VM_KEEP_IMAGE:-yes}"
 
 if [[ "$KEEP_IMAGE" == "yes" ]]; then
   msg_ok "Keeping cached ISO"
 else
-  msg_warn "The ISO is still attached to the VM, so it is removed after the install"
+  msg_warn "The ISO is still attached; delete it manually after installation and detachment."
   KEEP_IMAGE="no"
 fi
 

@@ -89,7 +89,7 @@ function send_line_to_vm() {
     "U") character="shift-u" ;;
     "V") character="shift-v" ;;
     "W") character="shift-w" ;;
-    "X") character="shift=x" ;;
+    "X") character="shift-x" ;;
     "Y") character="shift-y" ;;
     "Z") character="shift-z" ;;
     "!") character="shift-1" ;;
@@ -107,9 +107,6 @@ function send_line_to_vm() {
   done
   qm sendkey $VMID ret
 }
-
-TEMP_DIR=$(mktemp -d)
-pushd $TEMP_DIR >/dev/null
 
 function default_settings() {
   VMID=$(get_valid_nextid)
@@ -350,6 +347,11 @@ msg_info "Getting URL for OpenWrt Disk Image"
 
 response=$(curl -fsSL https://openwrt.org)
 stableversion=$(echo "$response" | sed -n 's/.*Current stable release - OpenWrt \([0-9.]\+\).*/\1/p' | head -n 1)
+if [[ ! "$stableversion" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  msg_error "Could not determine the current OpenWrt stable release."
+  exit 115
+fi
+var_version="$stableversion"
 URL="https://downloads.openwrt.org/releases/$stableversion/targets/x86/64/openwrt-$stableversion-x86-64-generic-ext4-combined.img.gz"
 
 msg_ok "${CL}${BL}${URL}${CL}"
@@ -367,14 +369,7 @@ msg_info "Creating OpenWrt VM"
 qm create $VMID -cores $CORE_COUNT -memory $RAM_SIZE -name $HN \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci --tablet 0 >/dev/null
 vm_mark_created
-if [[ "$(pvesm status | awk -v s=$STORAGE '$1==s {print $2}')" == "dir" ]]; then
-  qm set $VMID -efidisk0 ${STORAGE}:0,efitype=4m,size=4M >/dev/null
-else
-  pvesm alloc $STORAGE $VMID vm-$VMID-disk-0 4M >/dev/null
-  qm set $VMID -efidisk0 ${STORAGE}:vm-$VMID-disk-0,efitype=4m,size=4M >/dev/null
-fi
-
-IMPORT_OUT="$(qm importdisk $VMID $FILE $STORAGE --format raw 2>&1 || true)"
+IMPORT_OUT="$(qm importdisk "$VMID" "$FILE" "$STORAGE" --format "$DISK_IMPORT_FORMAT" 2>&1)"
 DISK_REF="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk '\([^']\+\)'.*/\1/p")"
 
 if [[ -z "$DISK_REF" ]]; then
@@ -466,3 +461,5 @@ if [ -z "$VLAN" ] && [ "${VLAN2:-}" != "999" ]; then
 fi
 post_update_to_api "done" "none"
 msg_ok "Completed Successfully!${VLAN_FINISH:+\n$VLAN_FINISH}"
+echo "LAN access: http://${LAN_IP_ADDR} - login root, initially no password; set one immediately."
+msg_warn "WAN and LAN must be isolated appropriately; default bridges are both vmbr0."

@@ -5,9 +5,13 @@ on:
     branches: [main]
     paths:
       - "vm/**.sh"
+      - ".github/workflows/scripts/vm-*.sh"
+      - ".github/workflows/vm-wizard.yml"
   pull_request:
     paths:
       - "vm/**.sh"
+      - ".github/workflows/scripts/vm-*.sh"
+      - ".github/workflows/vm-wizard.yml"
   workflow_dispatch:
 
 permissions:

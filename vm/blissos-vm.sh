@@ -22,7 +22,7 @@ THIN="discard=on,ssd=1,"
 header_info
 echo -e "\n Loading..."
 
-set -e
+set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -135,6 +135,7 @@ qm create $VMID -agent 1${MACHINE} -tablet 1 -localtime 1 -bios ovmf${CPU_TYPE} 
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
   -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' -vga virtio >/dev/null
 
+vm_mark_created
 set_description
 
 msg_ok "Created a BlissOS VM ${CL}${BL}(${HN})"

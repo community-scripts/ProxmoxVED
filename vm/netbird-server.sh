@@ -7,7 +7,6 @@
 
 COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/DevScripts/main}"
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
-source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/vm/cloud-init.func") 2>/dev/null || true
 load_functions
 
 function header_info {
@@ -42,7 +41,7 @@ NETBIRD_EMAIL_INPUT=""
 header_info
 echo -e "\n Loading..."
 
-set -e
+set -Eeo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -124,7 +123,9 @@ function configure_netbird_setup() {
 # OS SELECTION
 # ==============================================================================
 function select_os() {
-  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+  if [[ -n "${1:-}" ]]; then
+    OS_CHOICE="$1"
+  elif [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
     OS_CHOICE="${VM_OS_VERSION:-debian13}"
   elif ! OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT OS" --radiolist \
     "Choose Operating System for NetBird Server VM" 15 68 4 \
@@ -198,14 +199,9 @@ function get_image_url() {
 # ==============================================================================
 # SETTINGS
 # ==============================================================================
-# The OS picks the image and the image decides whether Cloud-Init is optional,
-# so both are settled before the Default/Advanced fork rather than inside it.
-select_os
-select_cloud_init
-
 function default_settings() {
+  select_os "${VM_OS_VERSION:-debian13}"
   vm_apply_machine_type "q35"
-  configure_netbird_setup
 
   VMID=$(get_valid_nextid)
   DISK_CACHE=""
@@ -227,7 +223,7 @@ function default_settings() {
 
 function advanced_settings() {
   METHOD="advanced"
-  configure_netbird_setup
+  select_os
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
   vm_prompt_disk_size "10G"
@@ -257,6 +253,8 @@ function advanced_settings() {
 # MAIN EXECUTION
 # ==============================================================================
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 2 GB RAM\n• 10 GB Disk\n• Cloud-Init enabled" 14 58
+select_cloud_init
+configure_netbird_setup
 post_to_api_vm
 
 # ==============================================================================
@@ -279,9 +277,7 @@ fi
 # ==============================================================================
 msg_info "Retrieving the URL for the ${OS_DISPLAY} Disk Image"
 URL=$(get_image_url)
-CACHE_DIR="/var/lib/vz/template/cache"
-CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
-mkdir -p "$CACHE_DIR"
+CACHE_FILE="$(vm_image_cache_path "$URL")"
 msg_ok "${CL}${BL}${URL}${CL}"
 
 MIN_IMAGE_BYTES=$((100 * 1024 * 1024))
@@ -319,7 +315,7 @@ esac
 # ==============================================================================
 msg_info "Preparing ${OS_DISPLAY} image with Docker & prerequisites"
 
-WORK_FILE=$(mktemp --suffix=.qcow2)
+WORK_FILE="$TEMP_DIR/netbird.qcow2"
 cp "$CACHE_FILE" "$WORK_FILE"
 
 # qm resize only grows the block device. Without cloud-init nothing grows the
@@ -357,10 +353,10 @@ EOF' >/dev/null 2>&1
     DOCKER_PREINSTALLED="yes"
     msg_ok "Configured Docker daemon"
   else
-    msg_ok "Docker will be installed on first boot"
+    msg_warn "Docker pre-install failed; installation is pending on first boot."
   fi
 else
-  msg_ok "Packages will be installed on first boot"
+  msg_warn "Package pre-install failed; installation is pending on first boot."
 fi
 
 # Write NetBird env file (host variables expanded into the image)
@@ -381,7 +377,7 @@ NETBIRD_SETUP_TMP=$(mktemp)
 cat >"$NETBIRD_SETUP_TMP" <<'SETUPEOF'
 #!/bin/bash
 exec > /var/log/netbird-setup.log 2>&1
-set -e
+set -euo pipefail
 
 echo "[$(date)] Starting NetBird automated setup"
 
@@ -440,6 +436,14 @@ TimeoutStartSec=600
 [Install]
 WantedBy=multi-user.target
 SVCEOF
+if [[ "$USE_CLOUD_INIT" == "yes" ]]; then
+  sed -i -e 's/After=network-online.target docker.service/After=network-online.target docker.service cloud-final.service install-docker.service/' \
+    -e 's/Wants=network-online.target/Wants=network-online.target cloud-final.service/' \
+    -e 's/WantedBy=multi-user.target/WantedBy=cloud-init.target/' "$NETBIRD_SVC_TMP"
+fi
+if [[ "$DOCKER_PREINSTALLED" == "no" ]]; then
+  sed -i '/Wants=network-online.target/a Wants=install-docker.service' "$NETBIRD_SVC_TMP"
+fi
 virt-customize -q -a "$WORK_FILE" \
   --upload "${NETBIRD_SVC_TMP}:/etc/systemd/system/netbird-setup.service" \
   --run-command "systemctl enable netbird-setup.service" >/dev/null 2>&1
@@ -450,15 +454,15 @@ msg_info "Finalizing image"
 vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
 
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
-  virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
+  virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null
+  virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null
 else
-  virt-customize -q -a "$WORK_FILE" --run-command "mkdir -p /etc/systemd/system/serial-getty@ttyS0.service.d" >/dev/null 2>&1 || true
+  virt-customize -q -a "$WORK_FILE" --run-command "mkdir -p /etc/systemd/system/serial-getty@ttyS0.service.d" >/dev/null
   virt-customize -q -a "$WORK_FILE" --run-command 'cat > /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf << EOF
 [Service]
 ExecStart=
 ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
-EOF' >/dev/null 2>&1 || true
+EOF' >/dev/null
 fi
 msg_ok "Finalized image"
 
@@ -466,6 +470,7 @@ if [ "$DOCKER_PREINSTALLED" = "no" ]; then
   DOCKER_INSTALL_TMP=$(mktemp)
   cat >"$DOCKER_INSTALL_TMP" <<'DOCKEREOF'
 #!/bin/bash
+set -euo pipefail
 exec > /var/log/install-docker.log 2>&1
 echo "[$(date)] Starting Docker installation"
 for i in {1..30}; do
@@ -496,11 +501,16 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 DOCKERSVCEOF
+  if [[ "$USE_CLOUD_INIT" == "yes" ]]; then
+    sed -i -e 's/After=network-online.target/After=network-online.target cloud-final.service/' \
+      -e 's/Wants=network-online.target/Wants=network-online.target cloud-final.service/' \
+      -e 's/WantedBy=multi-user.target/WantedBy=cloud-init.target/' "$DOCKER_SVC_TMP"
+  fi
   virt-customize -q -a "$WORK_FILE" \
     --upload "${DOCKER_INSTALL_TMP}:/root/install-docker.sh" \
     --upload "${DOCKER_SVC_TMP}:/etc/systemd/system/install-docker.service" \
     --run-command "chmod +x /root/install-docker.sh" \
-    --run-command "systemctl enable install-docker.service" >/dev/null 2>&1 || true
+    --run-command "systemctl enable install-docker.service" >/dev/null
   rm -f "$DOCKER_INSTALL_TMP" "$DOCKER_SVC_TMP"
 fi
 
@@ -514,6 +524,7 @@ msg_ok "Resized disk image"
 msg_info "Creating NetBird Server VM shell"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci >/dev/null
+vm_mark_created
 msg_ok "Created VM shell"
 
 # ==============================================================================
@@ -526,9 +537,9 @@ else
   IMPORT_CMD=(qm importdisk)
 fi
 
-IMPORT_OUT="$("${IMPORT_CMD[@]}" "$VMID" "$WORK_FILE" "$STORAGE" ${DISK_IMPORT:-} 2>&1 || true)"
+IMPORT_OUT="$("${IMPORT_CMD[@]}" "$VMID" "$WORK_FILE" "$STORAGE" --format "$DISK_IMPORT_FORMAT" 2>&1)"
 DISK_REF_IMPORTED="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk '\([^']\+\)'.*/\1/p" | tr -d "\r\"'")"
-[[ -z "$DISK_REF_IMPORTED" ]] && DISK_REF_IMPORTED="$(pvesm list "$STORAGE" | awk -v id="$VMID" '$5 ~ ("vm-"id"-disk-") {print $1":"$5}' | sort | tail -n1)"
+[[ -z "$DISK_REF_IMPORTED" ]] && DISK_REF_IMPORTED="$(qm config "$VMID" | sed -n 's/^unused[0-9]*: //p' | head -n1)"
 [[ -z "$DISK_REF_IMPORTED" ]] && {
   msg_error "Unable to determine imported disk reference."
   echo "$IMPORT_OUT"
@@ -553,11 +564,7 @@ msg_ok "Attached EFI and root disk"
 set_description
 
 msg_info "Configuring Cloud-Init"
-if vm_provision "$VMID"; then
-  msg_ok "Cloud-Init configured"
-else
-  msg_warn "VM created, but not provisioned"
-fi
+vm_provision "$VMID"
 
 # ==============================================================================
 # START VM
