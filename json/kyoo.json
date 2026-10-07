@@ -1,0 +1,40 @@
+{
+  "name": "Kyoo",
+  "slug": "kyoo",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-10-07",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 8901,
+  "documentation": "https://github.com/zoriya/Kyoo/blob/master/INSTALLING.md",
+  "website": "https://kyoo.zoriya.dev/",
+  "repository": "https://github.com/zoriya/Kyoo",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/kyoo.webp",
+  "description": "Kyoo is a self-hosted media server for movies, series and anime, an alternative to Jellyfin or Plex. It identifies files without a required folder structure, pulls metadata from TheMovieDB and TheTVDB, transcodes on the fly with automatic quality switching and hardware acceleration, detects intros and credits, and renders ASS and PGS subtitles in the browser. This script builds its auth, API, scanner, transcoder and web app from source and runs them with PostgreSQL behind nginx.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/kyoo.sh",
+      "config_path": "/opt/kyoo_data/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}

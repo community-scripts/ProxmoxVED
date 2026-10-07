@@ -1,0 +1,36 @@
+{
+  "name": "Budibase",
+  "slug": "budibase",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-10-07",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://docs.budibase.com/docs/hosting-methods",
+  "website": "https://budibase.com/",
+  "repository": "https://github.com/Budibase/budibase",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/budibase.webp",
+  "description": "Budibase is a low-code platform for building internal tools: forms, portals, admin panels and approval apps on top of its built-in database or external sources such as PostgreSQL, MySQL, REST APIs and Google Sheets, plus automations triggered by events, schedules or webhooks. This script builds the app server and worker from source and runs them with CouchDB, Clouseau, SQS, Redis, Silo object storage and nginx, without Docker.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/budibase.sh",
+      "config_path": "/opt/budibase_data/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 6144,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}

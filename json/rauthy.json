@@ -1,0 +1,69 @@
+{
+  "name": "Rauthy",
+  "slug": "rauthy",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-10-07",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8443,
+  "documentation": "https://sebadob.github.io/rauthy/",
+  "website": "https://github.com/sebadob/rauthy",
+  "repository": "https://github.com/sebadob/rauthy",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rauthy.webp",
+  "description": "Rauthy is a single sign-on identity and access management server. It is an OpenID Connect and OAuth 2 provider with an admin UI, passkey (FIDO2/WebAuthn) and OTP multi-factor login, upstream login providers, SCIM, forward auth and PAM/SSH login. This script builds Rauthy from the release source and runs it with its embedded Hiqlite (Raft-replicated SQLite) database, served over HTTPS with a self-signed certificate.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/rauthy.sh",
+      "config_path": "/opt/rauthy_data/config.toml",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin@localhost",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Open https://<IP>:8443/auth/v1/ and accept the self-signed certificate. Sign in as admin@localhost with the password_plain value under [bootstrap] in /opt/rauthy_data/config.toml (only read on the very first start) and change it on the account page right away.",
+      "type": "info"
+    },
+    {
+      "text": "Passkeys (WebAuthn) only work under a DNS name with a certificate the browser trusts; an IP address is never a valid relying party. So the script sets admin_force_mfa = false, otherwise the admin UI would be unreachable by IP. For production, serve Rauthy under a domain, set server.pub_url, webauthn.rp_id and webauthn.rp_origin to it before anyone registers a passkey (changing rp_id later breaks existing passkeys), register a passkey for the admin and then set admin_force_mfa = true.",
+      "type": "warning"
+    },
+    {
+      "text": "The OIDC issuer is https://<pub_url>/auth/v1/ (discovery at /auth/v1/.well-known/openid-configuration). server.pub_url in /opt/rauthy_data/config.toml points at the container IP; change it when the IP changes or Rauthy sits behind a domain, then run systemctl restart rauthy. Behind a reverse proxy, proxy to https://<IP>:8443 and also set proxy_mode = true and trusted_proxies = ['<proxy IP>/32'] under [server].",
+      "type": "info"
+    },
+    {
+      "text": "Back up /opt/rauthy_data/config.toml together with the Hiqlite database in /opt/rauthy_data/hiqlite. The [encryption] keys encrypt client secrets and other stored values, a database restored without them is unusable.",
+      "type": "warning"
+    },
+    {
+      "text": "No mail server is configured, so password reset, user registration and event e-mails are not sent. Set smtp_url, smtp_username, smtp_password and smtp_from under [email] in /opt/rauthy_data/config.toml and restart Rauthy.",
+      "type": "info"
+    },
+    {
+      "text": "The self-signed certificate in /etc/ssl/rauthy is valid for one year. Replace rauthy.crt and rauthy.key there with your own certificate (or renew it) and restart Rauthy.",
+      "type": "info"
+    },
+    {
+      "text": "Rauthy publishes no release binaries, so the install and every update compile it from the release source (Rust). This takes about BUILD_MIN minutes on 4 cores and needs the 4 GB of RAM; an update builds while the old version keeps running. The server itself uses about 200 MB, so RAM can be lowered after the install and raised again before an update.",
+      "type": "info"
+    }
+  ]
+}
