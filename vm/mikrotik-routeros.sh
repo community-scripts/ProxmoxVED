@@ -219,4 +219,20 @@ if [ "$START_VM" == "yes" ]; then
   msg_ok "Started Mikrotik RouterOS CHR VM"
 fi
 post_update_to_api "done" "none"
+
+echo -e "\n${INFO}${BOLD}${GN}MikroTik CHR First Login:${CL}"
+echo -e "${TAB}RouterOS ${MIK_VER} is already installed; no installer needs to be run."
+if [ "$START_VM" != "yes" ]; then
+  echo -e "${TAB}Start VM ${VMID} in Proxmox, then open its Console."
+else
+  echo -e "${TAB}Open the Console of VM ${VMID} in Proxmox."
+fi
+echo -e "${TAB}Fresh official CHR image: username ${BOLD}admin${CL}, password empty (press Enter)."
+echo -e "${TAB}Follow the first-login prompts and set a strong password immediately."
+echo -e "${TAB}If no password-change prompt appears, run ${BOLD}/password${CL} in RouterOS."
+echo -e "${TAB}Find the management address: ${BOLD}/ip address print${CL}"
+echo -e "${TAB}Check DHCP: ${BOLD}/ip dhcp-client print${CL}"
+echo -e "${TAB}Use the configured IP in WinBox or WebFig; if no IP exists, configure networking via the Console."
+echo -e "${TAB}Keep CHR on a trusted network until its password and firewall are configured."
+echo -e "${TAB}These factory credentials do not apply if you have already changed the password."
 msg_ok "Completed successfully!\n"
