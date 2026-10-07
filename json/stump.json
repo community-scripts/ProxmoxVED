@@ -1,0 +1,56 @@
+{
+  "name": "Stump",
+  "slug": "stump",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-10-07",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 10801,
+  "documentation": "https://www.stumpapp.dev/docs",
+  "website": "https://www.stumpapp.dev/",
+  "repository": "https://github.com/stumpapp/stump",
+  "architectures": [
+    "amd64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/stump.webp",
+  "description": "Stump is a free and open-source comics, manga and digital book server with OPDS support. It scans folders of CBZ, CBR, EPUB and PDF files into libraries and series, reads them in the browser with progress tracking, and serves them to OPDS readers and the Stump mobile apps. This script installs the official Linux server release together with PDFium for PDF support.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/stump.sh",
+      "config_path": "/opt/stump_data/config/Stump.toml",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. Open http://<IP>:10801 and complete the onboarding: the first account becomes the server owner and closes sign-up, further users are added from the settings. Anyone who reaches the port can claim the server until then, so do it right after the install.",
+      "type": "warning"
+    },
+    {
+      "text": "Books are not added automatically. Create a library in Stump and point it at a folder inside the container. /opt/stump_data/library exists for this; to use a folder from the Proxmox host, bind-mount it there with pct set <CTID> -mp0 /path/on/host,mp=/opt/stump_data/library. In an unprivileged container the files must be readable by host UID 100000.",
+      "type": "info"
+    },
+    {
+      "text": "OPDS readers connect to http://<IP>:10801/opds/v1.2/catalog (or /opds/v2.0/catalog) with a Stump username and password.",
+      "type": "info"
+    },
+    {
+      "text": "The database, Stump.toml, thumbnails and logs live in /opt/stump_data/config. STUMP_CONFIG_DIR, STUMP_CLIENT_DIR and PDFIUM_PATH are set in stump.service and take precedence over Stump.toml; run systemctl restart stump after changing either.",
+      "type": "info"
+    }
+  ]
+}
