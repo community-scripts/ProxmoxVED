@@ -110,10 +110,8 @@ fi
 BLISS_VERSION=$(echo "$FILENAME" | grep -oP 'Bliss-v\K[0-9.]+')
 BLISS_BUILD=$(echo "$FILENAME" | grep -oP 'foss-\K[0-9]{8}')
 URL="${ISO_DIR}/${FILENAME}/download"
-CACHE_DIR="/var/lib/vz/template/iso"
-CACHE_FILE="${CACHE_DIR}/${FILENAME}"
-
-mkdir -p "$CACHE_DIR"
+vm_select_iso_storage "$FILENAME" "$HN"
+CACHE_FILE="$ISO_PATH"
 msg_ok "BlissOS ${CL}${BL}${BLISS_VERSION}${CL} ${GN}(build ${BLISS_BUILD})"
 
 # A bad SourceForge mirror serves an HTML notice with status 200, so the size
@@ -135,7 +133,7 @@ msg_info "Creating a BlissOS VM"
 qm create $VMID -agent 1${MACHINE} -tablet 1 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 0 -ostype l26 -scsihw virtio-scsi-single \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
-  -cdrom local:iso/${FILENAME} -boot order='scsi0;ide2' -vga virtio >/dev/null
+  -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' -vga virtio >/dev/null
 
 set_description
 

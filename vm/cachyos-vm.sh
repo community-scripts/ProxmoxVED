@@ -113,10 +113,8 @@ fi
 # SourceForge download URL with mirror redirect
 URL="https://sourceforge.net/projects/cachyos-arch/files/gui-installer/desktop/${CACHYOS_VERSION}/cachyos-desktop-linux-${CACHYOS_VERSION}.iso/download"
 FILENAME="cachyos-desktop-linux-${CACHYOS_VERSION}.iso"
-CACHE_DIR="/var/lib/vz/template/iso"
-CACHE_FILE="${CACHE_DIR}/${FILENAME}"
-
-mkdir -p "$CACHE_DIR"
+vm_select_iso_storage "$FILENAME" "$HN"
+CACHE_FILE="$ISO_PATH"
 msg_ok "${CL}${BL}CachyOS Desktop ISO (Release: ${CACHYOS_VERSION})${CL}"
 
 # A bad SourceForge mirror serves an HTML notice with status 200, so the size
@@ -134,7 +132,7 @@ msg_info "Creating a CachyOS VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 0 -ostype l26 -scsihw virtio-scsi-pci \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
-  -cdrom local:iso/${FILENAME} -boot order='scsi0;ide2' -vga qxl -serial0 socket >/dev/null
+  -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' -vga qxl -serial0 socket >/dev/null
 
 set_description
 

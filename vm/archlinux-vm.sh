@@ -87,10 +87,8 @@ vm_select_storage "$HN"
 msg_info "Retrieving the URL for the Arch Linux .iso File"
 URL=https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
 FILENAME="archlinux-x86_64.iso"
-# -cdrom resolves against the iso content dir, so the download has to land
-# there rather than in the image cache.
-CACHE_FILE="/var/lib/vz/template/iso/${FILENAME}"
-mkdir -p "$(dirname "$CACHE_FILE")"
+vm_select_iso_storage "$FILENAME" "$HN"
+CACHE_FILE="$ISO_PATH"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
@@ -104,7 +102,7 @@ qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} 
 qm set $VMID \
   -efidisk0 ${STORAGE}:0,efitype=4m \
   -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
-  -cdrom local:iso/${FILENAME} \
+  -cdrom "$ISO_VOLUME" \
   -boot order='scsi0;ide2' \
   -serial0 socket >/dev/null
 set_description

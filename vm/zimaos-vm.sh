@@ -106,10 +106,8 @@ ZIMAOS_VERSION="$(echo "$RELEASE_JSON" | grep -oP '"tag_name":\s*"\K[^"]+' | hea
 if [[ -z "$ZIMAOS_VERSION" ]]; then
   ZIMAOS_VERSION="unknown"
 fi
-CACHE_DIR="/var/lib/vz/template/iso"
-CACHE_FILE="${CACHE_DIR}/${FILENAME}"
-
-mkdir -p "$CACHE_DIR"
+vm_select_iso_storage "$FILENAME" "$HN"
+CACHE_FILE="$ISO_PATH"
 msg_ok "ZimaOS ${CL}${BL}${ZIMAOS_VERSION}${CL}"
 
 # A redirect to an error page still returns 200, so the size decides whether
@@ -127,7 +125,7 @@ msg_info "Creating a ZimaOS VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-single \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
-  -cdrom local:iso/${FILENAME} -boot order='scsi0;ide2' -vga std -serial0 socket >/dev/null
+  -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' -vga std -serial0 socket >/dev/null
 
 set_description
 
