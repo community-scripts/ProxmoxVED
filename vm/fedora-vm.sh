@@ -97,10 +97,6 @@ if ! command -v virt-customize &>/dev/null; then
 fi
 
 msg_info "Retrieving the URL for the Fedora Cloud Base image"
-
-# Fedora has no "latest" symlink and the build number is part of the filename,
-# so both the release and the image have to be read off the mirror. Pinning
-# either one means the script breaks at the next respin.
 MIRROR="https://dl.fedoraproject.org/pub/fedora/linux/releases"
 FEDORA_RELEASE=$(curl -fsSL "$MIRROR/" 2>/dev/null | grep -oP 'href="\K[0-9]+(?=/")' | sort -rn | head -1)
 [[ -z "$FEDORA_RELEASE" ]] && FEDORA_RELEASE="44"
