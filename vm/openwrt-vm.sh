@@ -341,7 +341,6 @@ function advanced_settings() {
   fi
 }
 
-
 vm_preflight
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 1 CPU Core\n• 256 MB RAM\n• 1 GB Disk" 13 58
 post_to_api_vm
@@ -388,10 +387,10 @@ if [[ -z "$DISK_REF" ]]; then
   exit 226
 fi
 
-qm set $VMID \
+$STD qm set $VMID \
   -scsi0 ${DISK_REF} \
   -boot order=scsi0 \
-  -tags community-script >/dev/null
+  -tags community-script
 msg_ok "Attached disk"
 
 msg_info "Resizing disk to ${DISK_SIZE}"
@@ -399,18 +398,13 @@ qm disk resize "$VMID" scsi0 "${DISK_SIZE}" >/dev/null
 msg_ok "Resized disk to ${DISK_SIZE}"
 
 set_description
-
 msg_ok "Created OpenWrt VM ${CL}${BL}(${HN})"
 
-# Started here whatever START_VM says: the network has to be configured from
-# inside the guest before the VM is any use.
 msg_info "Booting OpenWrt to configure its network interfaces"
 $STD qm start $VMID
 sleep 15
 VM_STATE=""
 for i in {1..30}; do
-  # A missing config means the VM is gone, not slow. Waiting out the other 29
-  # tries only bought 29 more copies of the same error.
   if ! VM_STATE="$(qm status "$VMID" 2>&1)"; then
     msg_error "VM $VMID no longer exists: ${VM_STATE}"
     exit 226
@@ -427,19 +421,19 @@ sleep 5
 msg_ok "OpenWrt is running"
 
 msg_info "Configuring network interfaces in OpenWrt"
-send_line_to_vm ""
-send_line_to_vm "uci delete network.@device[0]"
-send_line_to_vm "uci set network.wan=interface"
-send_line_to_vm "uci set network.wan.device=eth1"
-send_line_to_vm "uci set network.wan.proto=dhcp"
-send_line_to_vm "uci delete network.lan"
-send_line_to_vm "uci set network.lan=interface"
-send_line_to_vm "uci set network.lan.device=eth0"
-send_line_to_vm "uci set network.lan.proto=static"
-send_line_to_vm "uci set network.lan.ipaddr=${LAN_IP_ADDR}"
-send_line_to_vm "uci set network.lan.netmask=${LAN_NETMASK}"
-send_line_to_vm "uci commit"
-send_line_to_vm "poweroff"
+$STD send_line_to_vm ""
+$STD send_line_to_vm "uci delete network.@device[0]"
+$STD send_line_to_vm "uci set network.wan=interface"
+$STD send_line_to_vm "uci set network.wan.device=eth1"
+$STD send_line_to_vm "uci set network.wan.proto=dhcp"
+$STD send_line_to_vm "uci delete network.lan"
+$STD send_line_to_vm "uci set network.lan=interface"
+$STD send_line_to_vm "uci set network.lan.device=eth0"
+$STD send_line_to_vm "uci set network.lan.proto=static"
+$STD send_line_to_vm "uci set network.lan.ipaddr=${LAN_IP_ADDR}"
+$STD send_line_to_vm "uci set network.lan.netmask=${LAN_NETMASK}"
+$STD send_line_to_vm "uci commit"
+$STD send_line_to_vm "poweroff"
 msg_ok "Network interfaces configured in OpenWrt"
 
 msg_info "Waiting for OpenWrt to shut down"
