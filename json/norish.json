@@ -1,0 +1,65 @@
+{
+  "name": "Norish",
+  "slug": "norish",
+  "categories": [
+    24
+  ],
+  "date_created": "2026-10-07",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://docs.norish.dev/",
+  "website": "https://norish.dev/",
+  "repository": "https://github.com/norish-recipes/norish",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/norish.webp",
+  "description": "Norish is a realtime, self-hosted recipe app for families and friends. Recipes are imported from a link, pasted text or photos, organised in cookbooks, planned on a calendar and turned into a shared grocery list that updates live for everyone in the household. This script builds the web app from source and runs it with PostgreSQL, Redis, the bundled recipe parser and the Obscura headless browser that renders pages for URL imports.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/norish.sh",
+      "config_path": "/opt/norish_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 6144,
+        "hdd": 12,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. Open http://<IP>:3000 and sign up: the first account becomes the server owner and admin, and sign-up closes after it. Anyone who reaches the port can claim it until then, so create the account right after the install.",
+      "type": "warning"
+    },
+    {
+      "text": "Sign-in and the realtime connection are bound to AUTH_URL in /opt/norish_data/.env, which points at the container IP. Change it when the IP changes or Norish sits behind a reverse proxy or domain (list further origins in TRUSTED_ORIGINS), then run systemctl restart norish.",
+      "type": "info"
+    },
+    {
+      "text": "Back up MASTER_KEY from /opt/norish_data/.env together with the database. Norish derives its sign-in secret from it and encrypts account details and stored secrets with it, so a database restored without the key locks every user out.",
+      "type": "warning"
+    },
+    {
+      "text": "Imports from recipe sites work without AI: the local Obscura browser renders the page and the bundled parser reads it. Importing from photos, free text and videos, and the enrichment features, need an AI provider configured under Settings => Admin.",
+      "type": "info"
+    },
+    {
+      "text": "Offline mode relies on a service worker, which browsers only allow over HTTPS. Put Norish behind a reverse proxy with TLS to use it.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update build Norish from source, which peaks at about 4 GB of RAM; the 6 GB default leaves headroom for it. The running app idles at under 1 GB and uses up to about 2 GB while an import transcodes recipe videos.",
+      "type": "info"
+    }
+  ]
+}
