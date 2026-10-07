@@ -8,6 +8,7 @@ on:
       - "vm/**/*.sh"
       - "tools/**/*.sh"
       - ".github/workflows/bash-syntax.yml"
+      - ".github/workflows/scripts/fedora-image-test.sh"
   push:
     branches: [main]
     paths:
@@ -16,6 +17,7 @@ on:
       - "vm/**/*.sh"
       - "tools/**/*.sh"
       - ".github/workflows/bash-syntax.yml"
+      - ".github/workflows/scripts/fedora-image-test.sh"
 
 # The engine moved to community-scripts/core, which syntax-checks its own
 # .func files. This repo ships scripts, so that is what gets checked here —
@@ -44,3 +46,6 @@ jobs:
           done < <(find ct install vm tools -type f -name '*.sh' -print0 2>/dev/null | sort -z)
           echo "checked $checked scripts"
           exit "$fail"
+
+      - name: Fedora image customization feedback
+        run: bash .github/workflows/scripts/fedora-image-test.sh

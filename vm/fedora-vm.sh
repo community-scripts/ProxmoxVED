@@ -122,9 +122,14 @@ rm -rf "$TEMP_DIR"
 vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
 
 msg_info "Customizing ${FILE}"
-virt-customize -q -a "$WORK_FILE" --run-command "systemctl enable serial-getty@ttyS0.service" >/dev/null 2>&1 || true
-virt-customize -q -a "$WORK_FILE" --selinux-relabel >/dev/null 2>&1 || true
-msg_ok "Customized image"
+CUSTOMIZE_FAILURES_BEFORE=${#_VM_PREPARE_FAILED[@]}
+_vm_customize "Fedora serial console" "$WORK_FILE" --run-command "systemctl enable serial-getty@ttyS0.service"
+_vm_customize "Fedora SELinux relabel" "$WORK_FILE" --selinux-relabel
+if ((${#_VM_PREPARE_FAILED[@]} == CUSTOMIZE_FAILURES_BEFORE)); then
+  msg_ok "Customized image"
+else
+  msg_warn "Fedora image customization incomplete; see warnings above"
+fi
 
 STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')
 vm_apply_storage_layout "$STORAGE_TYPE"
