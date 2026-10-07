@@ -9,6 +9,8 @@ on:
       - "tools/**/*.sh"
       - ".github/workflows/bash-syntax.yml"
       - ".github/workflows/scripts/fedora-image-test.sh"
+      - ".github/workflows/scripts/unifi-vm-test.sh"
+      - "json/unifi-os-server-vm.json"
   push:
     branches: [main]
     paths:
@@ -18,6 +20,8 @@ on:
       - "tools/**/*.sh"
       - ".github/workflows/bash-syntax.yml"
       - ".github/workflows/scripts/fedora-image-test.sh"
+      - ".github/workflows/scripts/unifi-vm-test.sh"
+      - "json/unifi-os-server-vm.json"
 
 # The engine moved to community-scripts/core, which syntax-checks its own
 # .func files. This repo ships scripts, so that is what gets checked here —
@@ -48,4 +52,8 @@ jobs:
           exit "$fail"
 
       - name: Fedora image customization feedback
+        if: ${{ hashFiles('vm/fedora-vm.sh') != '' }}
         run: bash .github/workflows/scripts/fedora-image-test.sh
+
+      - name: UniFi VM provisioning
+        run: bash .github/workflows/scripts/unifi-vm-test.sh

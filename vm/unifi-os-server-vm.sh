@@ -7,18 +7,16 @@
 COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/DevScripts/main}"
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
 load_functions
-# Load Cloud-Init library for VM configuration
-source /dev/stdin <<<$(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/vm/cloud-init.func") 2>/dev/null || true
 
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
-APP="Unifi OS Server VM"
+APP="UniFi OS Server"
 APP_TYPE="vm"
 NSAPP="unifi-os-server-vm"
 var_os="-"
 var_version="-"
-USE_CLOUD_INIT="yes" # Always use Cloud-Init for UniFi OS (required for automated setup)
+CLOUDINIT_REQUIRED=1
 OS_TYPE=""
 OS_VERSION=""
 OS_CODENAME=""
@@ -43,7 +41,9 @@ TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 
 function select_os() {
-  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+  if [[ -n "${1:-}" ]]; then
+    OS_CHOICE="$1"
+  elif [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
     OS_CHOICE="${VM_OS_VERSION:-debian13}"
   elif ! OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT OS" --radiolist \
     "Choose Operating System for UniFi OS VM" 12 68 2 \
@@ -73,91 +73,6 @@ function select_os() {
   esac
 }
 
-function select_cloud_init() {
-  # UniFi OS Server ALWAYS requires Cloud-Init for automated installation
-  USE_CLOUD_INIT="yes"
-  #echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes (required for UniFi OS)${CL}"
-}
-
-function set_root_password() {
-  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
-    USER_PASSWORD="${VM_ROOT_PASSWORD:-$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | cut -c1-8)}"
-    if [[ -z "${VM_ROOT_PASSWORD:-}" ]]; then
-      echo -e "${INFO}${BOLD}${DGN}Root Password: ${BGN}${USER_PASSWORD}${CL}"
-    else
-      echo -e "${INFO}${BOLD}${DGN}Root Password: ${BGN}(set)${CL}"
-    fi
-    return
-  fi
-
-  while true; do
-    if PW1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --passwordbox "Set root password for the VM" 8 58 --title "ROOT PASSWORD" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z "$PW1" ]; then
-        msg_error "Password cannot be empty"
-        continue
-      fi
-      if PW2=$(whiptail --backtitle "Proxmox VE Helper Scripts" --passwordbox "Confirm root password" 8 58 --title "CONFIRM PASSWORD" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-        if [ "$PW1" = "$PW2" ]; then
-          USER_PASSWORD="$PW1"
-          echo -e "${INFO}${BOLD}${DGN}Root Password: ${BGN}(set)${CL}"
-          break
-        else
-          msg_error "Passwords do not match"
-        fi
-      else
-        exit_script
-      fi
-    else
-      exit_script
-    fi
-  done
-}
-
-function set_ssh_keys() {
-  SSH_KEYS_FILE=""
-  SSH_KEY_COUNT=0
-
-  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
-    if [[ -n "${VM_SSH_KEYS:-}" ]]; then
-      SSH_KEYS_FILE=$(mktemp)
-      if [[ -f "$VM_SSH_KEYS" ]]; then
-        cat "$VM_SSH_KEYS" >"$SSH_KEYS_FILE"
-      else
-        echo "$VM_SSH_KEYS" >"$SSH_KEYS_FILE"
-      fi
-      SSH_KEY_COUNT=$(grep -c . "$SSH_KEYS_FILE" || true)
-      echo -e "${INFO}${BOLD}${DGN}SSH Keys: ${BGN}${SSH_KEY_COUNT} key(s) added${CL}"
-    else
-      echo -e "${INFO}${BOLD}${DGN}SSH Keys: ${BGN}none (password auth only)${CL}"
-    fi
-    return
-  fi
-
-  while true; do
-    if PASTED_KEY=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox \
-      "Paste an SSH public key (${SSH_KEY_COUNT} added so far)" 8 74 \
-      --title "SSH PUBLIC KEYS" --ok-button Add --cancel-button Done 3>&1 1>&2 2>&3); then
-      if [ -n "$PASTED_KEY" ]; then
-        if [[ "$PASTED_KEY" == ssh-* || "$PASTED_KEY" == ecdsa-* ]]; then
-          [ -z "$SSH_KEYS_FILE" ] && SSH_KEYS_FILE=$(mktemp)
-          echo "$PASTED_KEY" >>"$SSH_KEYS_FILE"
-          SSH_KEY_COUNT=$((SSH_KEY_COUNT + 1))
-        else
-          whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID KEY" --msgbox "Key must start with ssh-rsa, ssh-ed25519, ecdsa-, etc." 8 58
-        fi
-      fi
-    else
-      break
-    fi
-  done
-
-  if [ $SSH_KEY_COUNT -gt 0 ]; then
-    echo -e "${INFO}${BOLD}${DGN}SSH Keys: ${BGN}${SSH_KEY_COUNT} key(s) added${CL}"
-  else
-    echo -e "${INFO}${BOLD}${DGN}SSH Keys: ${BGN}none (password auth only)${CL}"
-  fi
-}
-
 function get_image_url() {
   local arch
   arch=$(dpkg --print-architecture)
@@ -175,15 +90,7 @@ function get_image_url() {
 
 function default_settings() {
   vm_apply_machine_type "q35"
-  # OS Selection - ALWAYS ask
-  select_os
-
-  # Cloud-Init Selection - ALWAYS ask
-  select_cloud_init
-
-  # Root password and SSH keys
-  set_root_password
-  set_ssh_keys
+  select_os "${VM_OS_VERSION:-debian13}"
 
   # Set defaults for other settings
   VMID=$(get_valid_nextid)
@@ -205,7 +112,6 @@ function default_settings() {
 function advanced_settings() {
   METHOD="advanced"
   select_os
-  select_cloud_init
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
   vm_prompt_disk_size "32G"
@@ -218,13 +124,11 @@ function advanced_settings() {
   vm_prompt_mac "$GEN_MAC"
   vm_prompt_vlan
   vm_prompt_mtu
-  set_root_password
-  set_ssh_keys
   vm_prompt_verbose "no"
   vm_prompt_start_vm "yes"
 
-  if vm_confirm_advanced_settings "Ready to create a Unifi OS Server VM VM?"; then
-    echo -e "${CREATING}${BOLD}${DGN}Creating a Unifi OS Server VM VM using the above advanced settings${CL}"
+  if vm_confirm_advanced_settings "Ready to create a UniFi OS Server VM?"; then
+    echo -e "${CREATING}${BOLD}${DGN}Creating a UniFi OS Server VM using the above advanced settings${CL}"
   else
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
@@ -233,6 +137,32 @@ function advanced_settings() {
 }
 
 vm_preflight
+
+if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+  CLOUDINIT_PASSWORD="${CLOUDINIT_PASSWORD:-${VM_ROOT_PASSWORD:-}}"
+fi
+vm_prompt_cloud_init "root"
+if [[ "${USE_CLOUD_INIT:-no}" != "yes" ]]; then
+  msg_error "UniFi OS Server requires Cloud-Init"
+  exit 1
+fi
+if ! declare -f setup_cloud_init >/dev/null; then
+  msg_error "Required Cloud-Init helpers are unavailable"
+  exit 1
+fi
+if [[ "${VM_UNATTENDED:-0}" == "1" && -n "${VM_SSH_KEYS:-}" && -z "${CLOUDINIT_SSH_KEYS:-}" ]]; then
+  if [[ -f "$VM_SSH_KEYS" ]]; then
+    cp "$VM_SSH_KEYS" "$TEMP_DIR/ssh-keys-input"
+  else
+    printf '%s\n' "$VM_SSH_KEYS" >"$TEMP_DIR/ssh-keys-input"
+  fi
+  CLOUDINIT_SSH_KEYS="$TEMP_DIR/ssh-keys.pub"
+  _ci_ssh_extract_keys_from_file "$TEMP_DIR/ssh-keys-input" >"$CLOUDINIT_SSH_KEYS"
+  if [[ ! -s "$CLOUDINIT_SSH_KEYS" ]] || ! ssh-keygen -lf "$CLOUDINIT_SSH_KEYS" >/dev/null; then
+    msg_error "VM_SSH_KEYS must contain valid SSH public keys or name a public-key file"
+    exit 1
+  fi
+fi
 
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 6 GB RAM\n• 32 GB Disk\n• Cloud-Init enabled" 14 58
 post_to_api_vm
@@ -299,7 +229,7 @@ UOS_URL=$(echo "$LATEST" | jq -r '._links.data.href')
 # Cleanup temp file
 rm -f "$TEMP_JSON"
 
-if [ -z "$UOS_URL" ] || [ -z "$UOS_VERSION" ]; then
+if [[ -z "$UOS_URL" || "$UOS_URL" == "null" || -z "$UOS_VERSION" || "$UOS_VERSION" == "null" ]]; then
   msg_error "Failed to parse UniFi OS Server version or download URL"
   exit 1
 fi
@@ -315,30 +245,12 @@ msg_ok "${CL}${BL}${URL}${CL}"
 CACHE_FILE="$(vm_image_cache_path "$URL")"
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
 FILE="$(basename "$CACHE_FILE")"
-# Work on a copy: virt-resize and virt-customize below rewrite the image,
+# Work on a copy: virt-customize below rewrites the image,
 # which would poison the cache for every later VM.
 cp -f "$CACHE_FILE" "$FILE"
 
-# Expand root partition to use full disk space
-msg_info "Expanding disk image to ${DISK_SIZE}"
-
-# Install virt-resize if not available
-if ! command -v virt-resize &>/dev/null; then
-  $STD apt-get update
-  $STD apt-get install -y libguestfs-tools
-fi
-
-qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
-
-# Detect partition device (sda1 for Ubuntu, vda1 for Debian)
-PARTITION_DEV=$(virt-filesystems --long -h --all -a "${FILE}" | grep -oP '/dev/\K(s|v)da1' | head -1)
-if [ -z "$PARTITION_DEV" ]; then
-  PARTITION_DEV="sda1" # fallback
-fi
-
-virt-resize --quiet --expand /dev/${PARTITION_DEV} ${FILE} expanded.qcow2 >/dev/null 2>&1
-mv expanded.qcow2 ${FILE}
-msg_ok "Expanded disk image to ${DISK_SIZE}"
+# Resize the imported disk with vm_resize_disk; Cloud-Init grows the actual root
+# filesystem before the first-boot installer runs, without another offline copy.
 
 # --- Download UniFi OS installer on the host ---
 msg_info "Downloading UniFi OS Server ${UOS_VERSION} installer"
@@ -353,14 +265,20 @@ msg_info "Customizing disk image (installing packages, staging installer)"
 FIRSTBOOT_SCRIPT=$(mktemp)
 cat >"$FIRSTBOOT_SCRIPT" <<'FBEOF'
 #!/bin/bash
-set -e
+set -euo pipefail
 LOG="/var/log/unifi-os-install.log"
 exec > >(tee -a "$LOG") 2>&1
 echo "[$(date)] Starting UniFi OS Server first-boot setup..."
+trap 'echo "[$(date)] ERROR: First-boot setup failed at line $LINENO"' ERR
+if ! systemctl start qemu-guest-agent; then
+  echo "[$(date)] WARNING: Preinstalled guest agent could not start; retrying after package installation"
+fi
 
 # Sync clock before apt (fresh VMs have clock skew that breaks GPG signature validation)
 echo "[$(date)] Syncing system clock..."
-timedatectl set-ntp true 2>/dev/null || true
+if ! timedatectl set-ntp true; then
+  echo "[$(date)] WARNING: Could not enable NTP; checking existing clock synchronization"
+fi
 # Try NTP first
 for attempt in {1..6}; do
   if timedatectl show -p NTPSynchronized --value 2>/dev/null | grep -q "yes"; then
@@ -371,10 +289,11 @@ for attempt in {1..6}; do
 done
 # Fallback: sync from HTTP header if NTP didn't work
 if ! timedatectl show -p NTPSynchronized --value 2>/dev/null | grep -q "yes"; then
-  HTTP_DATE=$(curl -sI https://deb.debian.org 2>/dev/null | grep -i "^date:" | sed 's/^[Dd]ate: //')
-  if [ -n "$HTTP_DATE" ]; then
-    date -s "$HTTP_DATE" >/dev/null 2>&1 || true
+  if HTTP_DATE=$(curl -fsSI --max-time 10 https://deb.debian.org | sed -n 's/^[Dd]ate: //p' | tr -d '\r') &&
+    [ -n "$HTTP_DATE" ] && date -s "$HTTP_DATE" >/dev/null; then
     echo "[$(date)] Clock synchronized via HTTP"
+  else
+    echo "[$(date)] WARNING: Clock synchronization unavailable"
   fi
 fi
 
@@ -384,6 +303,10 @@ echo "[$(date)] Installing packages..."
 for attempt in {1..3}; do
   if apt-get update -qq 2>&1; then
     break
+  fi
+  if [ "$attempt" -eq 3 ]; then
+    echo "[$(date)] apt-get update failed after 3 attempts"
+    exit 1
   fi
   echo "[$(date)] apt-get update failed (attempt $attempt/3), retrying in 10s..."
   sleep 10
@@ -415,7 +338,7 @@ fi
 # Run UniFi OS installer
 if [ -f /opt/unifi-os-server.bin ]; then
   cd /opt
-  echo y | ./unifi-os-server.bin
+  ./unifi-os-server.bin <<<'y'
   rm -f /opt/unifi-os-server.bin
   echo "[$(date)] UniFi OS Server installed successfully"
 else
@@ -433,8 +356,8 @@ FIRSTBOOT_SVC=$(mktemp)
 cat >"$FIRSTBOOT_SVC" <<'SVCEOF'
 [Unit]
 Description=UniFi OS Server First Boot Installer
-After=network-online.target
-Wants=network-online.target
+After=network-online.target cloud-final.service qemu-guest-agent.service
+Wants=network-online.target cloud-final.service qemu-guest-agent.service
 ConditionPathExists=/opt/unifi-os-server.bin
 
 [Service]
@@ -444,10 +367,11 @@ RemainAfterExit=yes
 StandardOutput=journal+console
 
 [Install]
-WantedBy=multi-user.target
+# cloud-final runs after multi-user.target; using that target here would cycle.
+WantedBy=cloud-init.target
 SVCEOF
 
-vm_prepare_cloud_image "$FILE" "$HN" || true
+vm_prepare_cloud_image "$FILE" "$HN"
 
 virt-customize -a "${FILE}" \
   --upload "unifi-os-server.bin:/opt/unifi-os-server.bin" \
@@ -456,8 +380,6 @@ virt-customize -a "${FILE}" \
   --chmod 0755:/opt/unifi-os-firstboot.sh \
   --upload "$FIRSTBOOT_SVC:/etc/systemd/system/unifi-os-firstboot.service" \
   --run-command "systemctl enable unifi-os-firstboot.service" \
-  --run-command "sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" \
-  --run-command "sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" \
   --run-command "systemctl enable ssh" \
   2>&1 | while read -r line; do echo -ne "${BFR}${TAB}${YW}${HOLD}${line}${HOLD}"; done
 
@@ -471,35 +393,30 @@ qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf \
   -net0 virtio,bridge="$BRG",macaddr="$MAC""$VLAN""$MTU" \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 
-pvesm alloc "$STORAGE" "$VMID" "vm-$VMID-disk-0" 4M >/dev/null
-IMPORT_OUT="$(qm importdisk "$VMID" "$FILE" "$STORAGE" --format qcow2 2>&1 || true)"
+IMPORT_OUT="$(qm importdisk "$VMID" "$FILE" "$STORAGE" --format "$DISK_IMPORT_FORMAT" 2>&1)"
 DISK_REF="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk '\([^']\+\)'.*/\1/p")"
 
 if [[ -z "$DISK_REF" ]]; then
   DISK_REF="$(pvesm list "$STORAGE" | awk -v id="$VMID" '$1 ~ ("vm-"id"-disk-") {print $1}' | sort | tail -n1)"
 fi
+if [[ -z "$DISK_REF" ]]; then
+  msg_error "Unable to determine imported UniFi OS VM disk reference"
+  printf '%s\n' "$IMPORT_OUT" >&2
+  exit 1
+fi
 
 qm set "$VMID" \
-  -efidisk0 "${STORAGE}:0${FORMAT},size=4M" \
+  -efidisk0 "${STORAGE}:0,efitype=4m" \
   -scsi0 "${DISK_REF},${DISK_CACHE}size=${DISK_SIZE}" \
   -boot order=scsi0 -serial0 socket >/dev/null
 vm_resize_disk
 qm set "$VMID" --agent enabled=1 >/dev/null
 
-# Whole block guarded: --cipassword and --sshkeys need the drive too.
-if load_cloud_init_functions; then
-  msg_info "Configuring Cloud-Init"
-  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" >/dev/null 2>&1
-  # Override with user-set password
-  qm set "$VMID" --cipassword "$USER_PASSWORD" >/dev/null
-  # Add SSH keys if provided
-  if [ -n "${SSH_KEYS_FILE:-}" ] && [ -f "${SSH_KEYS_FILE:-}" ]; then
-    qm set "$VMID" --sshkeys "$SSH_KEYS_FILE" >/dev/null
-    rm -f "$SSH_KEYS_FILE"
-  fi
-  msg_ok "Cloud-Init configured"
-else
-  msg_warn "Cloud-Init helpers unavailable -- VM created, but no Cloud-Init drive, password or SSH keys were set"
+vm_mark_created
+vm_provision "$VMID"
+# Core currently suppresses SSH-key write errors; keep them fatal for this VM.
+if [[ -n "${CLOUDINIT_SSH_KEYS:-}" ]]; then
+  qm set "$VMID" --sshkeys "$CLOUDINIT_SSH_KEYS" >/dev/null
 fi
 
 set_description
@@ -508,36 +425,44 @@ msg_ok "Created a UniFi OS VM ${CL}${BL}(${HN})"
 msg_info "Operating System: ${OS_DISPLAY}"
 msg_info "Cloud-Init: ${USE_CLOUD_INIT}"
 
+VM_IP=""
+UNIFI_READY=""
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting UniFi OS VM"
   $STD qm start $VMID
   msg_ok "Started UniFi OS VM"
 
-  # Wait for guest agent (installed by first-boot service)
-  msg_info "Waiting for guest agent (first-boot installs packages, ~5-6 min)"
-  VM_IP=""
-  for i in {1..180}; do
-    VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[] | select(.name != "lo") | .["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | grep -v "^127\." | head -1 || echo "")
-    if [ -n "$VM_IP" ]; then
-      break
+  msg_info "Waiting for VM IP via the preinstalled guest agent"
+  if VM_IP=$(get_vm_ip "$VMID" 360); then
+    if GUEST_INTERFACES=$(qm guest cmd "$VMID" network-get-interfaces 2>"$TEMP_DIR/guest-agent.log") &&
+      VM_IP=$(jq -er --arg mac "$MAC" '
+        [.[] | select((.["hardware-address"] // "" | ascii_downcase) == ($mac | ascii_downcase))
+         | .["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4")
+         | .["ip-address"] | select(startswith("127.") or startswith("169.254.") | not)]
+        | first // empty
+      ' <<<"$GUEST_INTERFACES" 2>"$TEMP_DIR/guest-agent.log"); then
+      msg_ok "Guest agent responding — VM IP: ${VM_IP}"
+    else
+      VM_IP=""
+      msg_warn "Guest agent did not report a usable IPv4 address for the VM network interface (${MAC})"
+      if [[ -s "$TEMP_DIR/guest-agent.log" ]]; then
+        msg_warn "Guest agent query: $(tail -n 1 "$TEMP_DIR/guest-agent.log")"
+      fi
+      msg_warn "Check DHCP/static IP settings and ip -4 addr in the VM console"
     fi
-    # Show elapsed time so it doesn't look stuck
-    printf "\r${TAB}${YW}${HOLD}Waiting for guest agent (first-boot installs packages, ~5-6 min) [%ds]${HOLD}" "$((i * 2))"
-    sleep 2
-  done
-
-  if [ -n "$VM_IP" ]; then
-    msg_ok "Guest agent responding — VM IP: ${VM_IP}"
   else
-    msg_ok "VM started (could not detect IP — check VM console)"
+    msg_warn "VM started, but no IP was reported by the guest agent"
+    if ! qm guest cmd "$VMID" network-get-interfaces >/dev/null 2>"$TEMP_DIR/guest-agent.log"; then
+      msg_warn "Guest agent query failed: $(tail -n 1 "$TEMP_DIR/guest-agent.log")"
+    fi
+    msg_warn "Check the VM console: ip -4 addr; systemctl status qemu-guest-agent"
   fi
 
   # Wait for UniFi OS to be ready on port 11443
   if [ -n "$VM_IP" ]; then
     msg_info "Waiting for UniFi OS to start on https://${VM_IP}:11443 (may take several minutes)"
-    UNIFI_READY=""
     for i in {1..60}; do
-      if curl -skI --max-time 3 "https://${VM_IP}:11443" &>/dev/null; then
+      if curl -fsSk --max-time 3 "https://${VM_IP}:11443" -o /dev/null &>/dev/null; then
         UNIFI_READY="yes"
         break
       fi
@@ -548,20 +473,23 @@ if [ "$START_VM" == "yes" ]; then
     if [ -n "$UNIFI_READY" ]; then
       msg_ok "UniFi OS is up at https://${VM_IP}:11443"
     else
-      msg_ok "UniFi OS not yet responding (first-boot may still be running)"
+      msg_warn "UniFi OS is not ready; first-boot installation may still be running or may have failed"
     fi
   fi
 
-  echo ""
-  echo -e "${TAB}${GATEWAY}${BOLD}${GN}UniFi OS Server VM created successfully!${CL}"
-  if [ -n "$VM_IP" ]; then
-    echo -e "${TAB}${GATEWAY}${BOLD}${GN}Access at: ${BGN}https://${VM_IP}:11443${CL}"
-  else
-    echo -e "${TAB}${INFO}${YW}Access via: ${BGN}https://<VM-IP>:11443${CL}"
-  fi
-  echo -e "${TAB}${INFO}${DGN}Console login: ${BGN}root${CL} ${DGN}(password set during setup)${CL}"
-  echo ""
+else
+  msg_info "Start VM ${VMID} to run the UniFi OS first-boot installation"
 fi
 
+echo ""
+echo -e "${TAB}${GATEWAY}${BOLD}${GN}UniFi OS Server VM created!${CL}"
+echo -e "${TAB}${INFO}Web interface (after installation): https://${VM_IP:-<VM-IP>}:11443"
+echo -e "${TAB}${INFO}Console login: ${CLOUDINIT_USER:-root}"
+echo -e "${TAB}${INFO}Cloud-Init credentials: ${CLOUDINIT_CRED_FILE}"
+if [[ "$UNIFI_READY" != "yes" ]]; then
+  echo -e "${TAB}${INFO}In the VM: journalctl -u cloud-final -u unifi-os-firstboot.service"
+  echo -e "${TAB}${INFO}Install log: /var/log/unifi-os-install.log"
+fi
+echo ""
 post_update_to_api "done" "none"
-msg_ok "Completed successfully!\n"
+msg_ok "VM provisioning completed.\n"

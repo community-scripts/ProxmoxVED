@@ -9,8 +9,8 @@
   "updateable": true,
   "privileged": false,
   "architectures": ["amd64"],
-  "interface_port": null,
-  "documentation": "https://help.ui.com/hc/en-us",
+  "interface_port": 11443,
+  "documentation": "https://help.ui.com/hc/en-us/articles/34210126298775-Self-Hosting-UniFi",
   "website": "https://www.ui.com/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ubiquiti-unifi.webp",
   "description": "Unifi OS Server is the operating system that powers Ubiquiti's UniFi line of network devices. It provides a centralized platform for managing and monitoring UniFi access points, switches, and security gateways, offering features such as network configuration, device provisioning, and performance analytics.",
@@ -21,7 +21,7 @@
       "config_path": "",
       "resources": {
         "cpu": 2,
-        "ram": 4096,
+        "ram": 6144,
         "hdd": 32,
         "os": null,
         "version": null
@@ -32,5 +32,18 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Defaults use Debian 13; Ubuntu 24.04 LTS is available in Advanced Settings. Cloud-Init is required. Leaving the password empty generates one; the script reports the host-side credentials file.",
+      "type": "info"
+    },
+    {
+      "text": "UniFi OS installs on first boot after Cloud-Init has finished and grown the root filesystem. The VM IP and the UniFi web interface becoming ready are separate steps. Access HTTPS on port 11443 after installation.",
+      "type": "info"
+    },
+    {
+      "text": "If installation is not ready, check journalctl -u cloud-final -u unifi-os-firstboot.service and /var/log/unifi-os-install.log inside the VM. Existing unattended VM_OS_VERSION, VM_ROOT_PASSWORD and VM_SSH_KEYS settings remain supported.",
+      "type": "info"
+    }
+  ]
 }
