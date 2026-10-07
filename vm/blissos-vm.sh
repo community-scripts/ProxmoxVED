@@ -99,17 +99,14 @@ ISO_DIR="https://sourceforge.net/projects/blissos-x86/files/Official/BlissOS16/F
 
 # The build date orders these, not the version -- 16.9.7 exists more than once
 # with different dates.
-FILENAME=$(curl -fsSL "${ISO_DIR}/" 2>/dev/null |
-  grep -oP 'Bliss-v[0-9.]+-x86_64-OFFICIAL-foss-[0-9]{8}\.iso' |
-  sort -t- -k6 | tail -1)
-
-if [[ -z "$FILENAME" ]]; then
-  msg_error "Could not determine the current BlissOS image"
+if ! vm_latest_from_index "${ISO_DIR}/" 'Bliss-v[0-9.]+-x86_64-OFFICIAL-foss-[0-9]{8}\.iso' --sort-by 'foss-\K[0-9]{8}'; then
   exit 1
 fi
 
+FILENAME="$VM_INDEX_LATEST"
 BLISS_VERSION=$(echo "$FILENAME" | grep -oP 'Bliss-v\K[0-9.]+')
 BLISS_BUILD=$(echo "$FILENAME" | grep -oP 'foss-\K[0-9]{8}')
+var_version="${BLISS_VERSION}-${BLISS_BUILD}"
 URL="${ISO_DIR}/${FILENAME}/download"
 vm_select_iso_storage "$FILENAME" "$HN"
 CACHE_FILE="$ISO_PATH"
@@ -141,33 +138,13 @@ set_description
 
 msg_ok "Created a BlissOS VM ${CL}${BL}(${HN})"
 
-if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting BlissOS VM"
-  $STD qm start $VMID
-  msg_ok "Started BlissOS VM"
-fi
-
-post_update_to_api "done" "none"
-
-echo -e "\n${INFO}${BOLD}${GN}BlissOS VM Configuration Summary:${CL}"
-echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
-echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
-echo -e "${TAB}${DGN}Version: ${BGN}${BLISS_VERSION} (build ${BLISS_BUILD})${CL}"
-echo -e "${TAB}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-
-echo -e "\n${INFO}${BOLD}${YW}Next Steps:${CL}"
-echo -e "${TAB}1. Open the VM Console in Proxmox"
-echo -e "${TAB}2. Pick ${BL}Installation${CL} from the boot menu"
-echo -e "${TAB}3. Create and format a partition on ${BL}sda${CL}, then install there"
-echo -e "${TAB}4. Say yes to GRUB and to a writable /system"
-echo -e "${TAB}5. Reboot -- the boot order prefers the disk, so the installed"
-echo -e "${TAB}   system takes over. Detach the ISO afterwards to tidy up."
-
-echo -e "\n${INFO}${BOLD}${YW}Worth knowing:${CL}"
-echo -e "${TAB}• The last official x86 release is from October 2024 (Android 13)."
-echo -e "${TAB}  BlissOS17 has directories on SourceForge but no builds in them."
-echo -e "${TAB}• Without a passed-through GPU, rendering happens in software."
-echo -e "${TAB}• This is the FOSS build. Google apps live in the Gapps tree at"
-echo -e "${TAB}  ${BL}sourceforge.net/projects/blissos-x86/files/Official/BlissOS16/Gapps/${CL}"
-
-msg_ok "Completed successfully!\n"
+vm_start_vm "BlissOS VM"
+vm_print_summary "Version=${BLISS_VERSION} (build ${BLISS_BUILD})" "ISO=${FILENAME}"
+vm_next_steps \
+  "Open the VM Console in Proxmox." \
+  "Pick Installation from the boot menu." \
+  "Create and format a partition on sda, then install there." \
+  "Say yes to GRUB and to a writable /system." \
+  "Reboot; the boot order prefers the disk. Detach the ISO afterwards to tidy up." \
+  "This is the FOSS build. Google apps are in the SourceForge BlissOS16/Gapps tree."
+vm_finish "VM created; complete the BlissOS installation in the Proxmox console."

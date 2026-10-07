@@ -106,11 +106,12 @@ vm_select_storage "$HN"
 msg_info "Retrieving the URL for the CachyOS Desktop ISO"
 
 # Get latest release version from SourceForge (format: YYMMDD in folder links)
-CACHYOS_VERSION=$(curl -fsSL "https://sourceforge.net/projects/cachyos-arch/files/gui-installer/desktop/" 2>/dev/null | grep -oP 'desktop/\K[0-9]{6}(?=/)' | sort -rn | head -1)
-if [ -z "$CACHYOS_VERSION" ]; then
-  msg_error "Could not determine the current CachyOS release."
+if ! vm_latest_from_index "https://sourceforge.net/projects/cachyos-arch/files/gui-installer/desktop/" 'desktop/\K[0-9]{6}(?=/)'; then
   exit 115
 fi
+
+CACHYOS_VERSION="$VM_INDEX_LATEST"
+var_version="$CACHYOS_VERSION"
 
 # SourceForge download URL with mirror redirect
 URL="https://sourceforge.net/projects/cachyos-arch/files/gui-installer/desktop/${CACHYOS_VERSION}/cachyos-desktop-linux-${CACHYOS_VERSION}.iso/download"
@@ -144,37 +145,16 @@ msg_ok "Created a CachyOS VM ${CL}${BL}(${HN})"
 # ==============================================================================
 # START VM
 # ==============================================================================
-if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting CachyOS VM"
-  $STD qm start $VMID
-  msg_ok "Started CachyOS VM"
-fi
-
-post_update_to_api "done" "none"
+vm_start_vm "CachyOS VM"
 
 # ==============================================================================
 # FINAL OUTPUT
 # ==============================================================================
-echo -e "\n${INFO}${BOLD}${GN}CachyOS VM Configuration Summary:${CL}"
-echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
-echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
-echo -e "${TAB}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-echo -e "${TAB}${DGN}RAM: ${BGN}${RAM_SIZE} MiB${CL}"
-echo -e "${TAB}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-
-echo -e "\n${INFO}${BOLD}${YW}Next Steps:${CL}"
-echo -e "${TAB}1. Open the VM Console in Proxmox (noVNC or SPICE)"
-echo -e "${TAB}2. Boot from the CachyOS ISO"
-echo -e "${TAB}3. Use the Calamares installer to complete installation"
-echo -e "${TAB}4. Choose your preferred desktop environment during setup:"
-echo -e "${TAB}   ${BL}KDE Plasma, GNOME, XFCE, Hyprland, i3, and more${CL}"
-echo -e "${TAB}5. After installation, detach the ISO -- the boot order already
-${TAB}   prefers the disk, so the installed system takes over"
-
-echo -e "\n${INFO}${BOLD}${GN}CachyOS Features:${CL}"
-echo -e "${TAB}• Custom linux-cachyos kernel with BORE scheduler"
-echo -e "${TAB}• x86-64-v3/v4 optimized packages (auto-detected)"
-echo -e "${TAB}• LTO/PGO optimized applications"
-echo -e "${TAB}• Multiple filesystem options: btrfs, ext4, xfs, f2fs, zfs"
-
-msg_ok "Completed successfully!\n"
+vm_print_summary "Version=${CACHYOS_VERSION}" "ISO=${FILENAME}"
+vm_next_steps \
+  "Open the VM Console in Proxmox (noVNC or SPICE)." \
+  "Boot from the CachyOS ISO." \
+  "Use the Calamares installer to complete installation." \
+  "Choose your preferred desktop environment during setup." \
+  "After installation, detach the ISO; the boot order already prefers the disk."
+vm_finish "VM created; complete the CachyOS installation in the Proxmox console."

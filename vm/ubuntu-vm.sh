@@ -27,10 +27,11 @@ trap 'post_update_to_api "failed" "130"' SIGINT
 trap 'post_update_to_api "failed" "143"' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
-vm_preflight
-
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
+
+vm_preflight
+vm_require_tools virt-customize
 
 function select_os() {
   if [[ -n "${1:-}" ]]; then
@@ -130,10 +131,9 @@ if [ "$USE_CLOUD_INIT" != "yes" ]; then
   msg_warn "Without Cloud-Init this Ubuntu image gets no network configuration or credentials; configure them in the guest yourself."
 fi
 post_to_api_vm
-
 vm_select_storage "$HN"
 vm_define_disk_references 2
-DISK_IMPORT="-format ${DISK_IMPORT_FORMAT}"
+vm_define_disk_references 2
 
 msg_info "Retrieving the URL for the ${APP} Disk Image"
 UBUNTU_ARCH="$(vm_arch_resolve amd64 arm64)"
@@ -157,10 +157,10 @@ qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} 
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 vm_mark_created
 vm_alloc_efi_disk "$DISK0"
-qm importdisk $VMID $FILE $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
+vm_import_disk "$VMID" "$FILE" "$STORAGE" "$DISK_IMPORT_FORMAT"
 qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \
-  -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
+  -scsi0 ${VM_IMPORTED_DISK},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
   -boot order=scsi0 \
   -serial0 socket >/dev/null
 set_description
@@ -184,16 +184,29 @@ if [ "$USE_CLOUD_INIT" = "yes" ]; then
 fi
 
 msg_ok "Created a ${APP} ${CL}${BL}(${HN})"
-if [ "$START_VM" = "yes" ]; then
-  msg_info "Starting ${APP}"
-  $STD qm start $VMID
-  msg_ok "Started ${APP}"
-fi
+vm_start_vm "$APP"
+vm_wait_for_ip 120 || true
 
-post_update_to_api "done" "none"
-msg_ok "Completed successfully!\n"
 if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f display_cloud_init_info >/dev/null 2>&1; then
   display_cloud_init_info "$VMID" "$HN"
 else
   msg_warn "Cloud-Init is disabled. Configure guest networking and credentials manually."
 fi
+
+vm_print_summary \
+  "Ubuntu Release=${var_version} (${UBUNTU_CODENAME})" \
+  "Cloud-Init=${USE_CLOUD_INIT}" \
+  "Cloud-Init Credentials=${CLOUDINIT_CRED_FILE:-}"
+
+if [ "$USE_CLOUD_INIT" = "yes" ]; then
+  vm_next_steps \
+    "Use the xterm.js console if noVNC is blank while the cloud image boots." \
+    "Cloud-Init may need a minute before login works." \
+    "Delete the credentials file after noting the password: ${CLOUDINIT_CRED_FILE:-<credentials-file>}"
+else
+  vm_next_steps \
+    "Configure guest networking and credentials manually from the VM console." \
+    "The root filesystem was expanded offline where host tools allowed it."
+fi
+
+vm_finish

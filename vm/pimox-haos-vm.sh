@@ -11,12 +11,16 @@ load_functions
 APP="Home Assistant OS (ARM64)"
 APP_TYPE="vm"
 NSAPP="pimox-haos-vm"
-var_os="pimox-haos"
+var_os="homeassistantos"
+var_version=" "
 var_arm64="yes"
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 METHOD=""
 THIN="discard=on,ssd=1,"
+
+header_info
+echo -e "\n Loading..."
 
 set -Eeo pipefail
 shopt -s inherit_errexit
@@ -27,11 +31,12 @@ trap 'post_update_to_api "failed" "143"; exit 143' SIGTERM
 trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 
 vm_require_arch arm64
-vm_preflight
-header_info
 
 TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
+
+vm_preflight
+vm_require_tools jq xz
 
 for channel in stable beta dev; do
   channel_version="$(curl -fsSL "https://raw.githubusercontent.com/home-assistant/version/master/${channel}.json" | jq -er '.ova')"
@@ -92,33 +97,39 @@ post_to_api_vm
 vm_select_storage "$HN"
 vm_define_disk_references 2
 
+msg_info "Retrieving the Home Assistant OS ${BRANCH} image"
+# Dev builds exist only on os-artifacts; stable and beta are GitHub releases,
+# whose asset digest verifies the download.
+VM_RELEASE_SHA256=""
 if [[ "$BRANCH" == "$DEV" ]]; then
   URL="https://os-artifacts.home-assistant.io/${BRANCH}/haos_generic-aarch64-${BRANCH}.qcow2.xz"
 else
-  URL="https://github.com/home-assistant/operating-system/releases/download/${BRANCH}/haos_generic-aarch64-${BRANCH}.qcow2.xz"
+  if ! vm_release_asset github home-assistant/operating-system 'haos_generic-aarch64-.*\.qcow2\.xz$' "$BRANCH"; then
+    exit 1
+  fi
+  URL="$VM_RELEASE_URL"
+  var_version="$VM_RELEASE_VERSION"
 fi
 CACHE_FILE="$(vm_image_cache_path "$URL")"
-vm_fetch_image "$URL" "$CACHE_FILE" --cache --verify-xz --min-bytes $((5 * 1024 * 1024)) || exit 115
-FILE="$TEMP_DIR/haos.qcow2"
-vm_extract_image "$CACHE_FILE" "$FILE"
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --verify-xz --min-bytes $((5 * 1024 * 1024)) --sha256 "$VM_RELEASE_SHA256" || exit 115
+vm_extract_image "$CACHE_FILE" "$TEMP_DIR/haos.qcow2"
 
 msg_info "Creating HAOS VM"
 qm create "$VMID"${MACHINE} -agent 1 -bios ovmf -cores "$CORE_COUNT" -memory "$RAM_SIZE" -name "$HN" \
   -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 vm_mark_created
-# PiMox's ARM firmware store is 64 MiB, unlike the amd64 EFI store.
-pvesm alloc "$STORAGE" "$VMID" "$DISK0" 64M >/dev/null
-qm importdisk "$VMID" "$FILE" "$STORAGE" --format "$DISK_IMPORT_FORMAT" >/dev/null
+vm_alloc_efi_disk "$DISK0"
+vm_import_disk "$VMID" "$VM_IMAGE_FILE" "$STORAGE"
 qm set "$VMID" -efidisk0 "${DISK0_REF},efitype=4m,size=64M" \
-  -scsi0 "${DISK1_REF},${DISK_CACHE}${THIN%,}" -boot order=scsi0 >/dev/null
+  -scsi0 "${VM_IMPORTED_DISK},${DISK_CACHE}${THIN%,}" -boot order=scsi0 >/dev/null
 vm_resize_disk
 set_description
 
-if [[ "$START_VM" == "yes" ]]; then
-  msg_info "Starting Home Assistant OS VM"
-  $STD qm start "$VMID"
-  msg_ok "Started Home Assistant OS VM"
-fi
-post_update_to_api "done" "none"
-msg_ok "HAOS VM created. Complete onboarding at http://<VM-IP>:8123 after first boot."
-echo "Console: native HAOS CLI (ha); Cloud-Init credentials do not apply."
+vm_start_vm "Home Assistant OS VM"
+vm_print_summary "Version=${var_version}" "Web UI=http://<VM-IP>:8123" "Console=Native HAOS CLI (ha)"
+vm_next_steps \
+  "Wait several minutes for Home Assistant OS to finish first boot." \
+  "Open http://<VM-IP>:8123 and complete onboarding." \
+  "Use the Proxmox console for the native HAOS CLI (ha)." \
+  "Cloud-Init credentials do not apply to this appliance."
+vm_finish "HAOS VM created. Complete onboarding at http://<VM-IP>:8123 after first boot."

@@ -95,9 +95,29 @@ and OpenWrt/OPNsense temporarily boot for configuration even when the final
 configuration/start failures. VM creation does not imply an ISO installation
 or a first-boot application setup has finished.
 
+Every `vm/*.sh` follows one layout and uses Core for the steps that used to be
+hand-written per script (contract in
+[Core `docs/vm.md`](https://github.com/community-scripts/core/blob/main/docs/vm.md)):
+
+| Step | Core helper |
+| --- | --- |
+| Banner | `header_info` (generated `headers/vm/<slug>`; no embedded ASCII art) |
+| Host tools | `vm_require_tools` (no `apt-get` on the host) |
+| Dialogs | `vm_dialog` and the `vm_prompt_*` chain (no raw `whiptail`) |
+| Releases | `vm_release_asset` (GitHub/GitLab/Codeberg, with digest) or `vm_latest_from_index` (HTML indexes); no hardcoded fallbacks |
+| Download / unpack | `vm_fetch_image` (vendor checksums where published) and `vm_extract_image` |
+| Image changes | `vm_prepare_cloud_image`, `vm_customize`, `vm_firstboot_unit` (run-once units, Cloud-Init aware) |
+| Disk import | `vm_import_disk` and the reported `VM_IMPORTED_DISK` |
+| Start / address | `vm_start_vm`, `vm_wait_for_ip` (matched by MAC), `vm_wait_http` |
+| Closing | `vm_print_summary`, `vm_next_steps`, `vm_finish` |
+
+`vm-wizard-test.sh` enforces this layout before it runs the wizard paths.
+
 With Core checked out in `.core`, run
 `bash .github/workflows/scripts/vm-wizard-test.sh` and
-`bash .github/workflows/scripts/vm-lifecycle-test.sh`.
+`bash .github/workflows/scripts/vm-lifecycle-test.sh`
+(`ONLY="<slug> ..."` limits a run to some scripts). CI tests a branch against
+the Core branch of the same name when one exists, otherwise Core's `main`.
 These execute all VM settings paths and mocked creation/start/failure paths;
 they do not replace real Proxmox boot tests.
 
