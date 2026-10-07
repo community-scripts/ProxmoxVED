@@ -1,0 +1,104 @@
+{
+  "name": "Woodpecker CI",
+  "slug": "woodpecker-ci",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-10-07",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 8000,
+  "documentation": "https://woodpecker-ci.org/docs/intro",
+  "website": "https://woodpecker-ci.org/",
+  "repository": "https://github.com/woodpecker-ci/woodpecker",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/woodpecker-ci.webp",
+  "description": "Woodpecker CI is a simple, community-driven CI/CD engine. Pipelines are YAML files in the repository that run on push, pull request, tag, release, cron or manual events, with matrix builds, secrets, approvals for forks and a web UI with live logs. This script installs the official server and one agent with the local backend and SQLite, and connects it to Forgejo, Gitea, GitHub, GitLab or Bitbucket.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/woodpecker-ci.sh",
+      "config_path": "/opt/woodpecker_data/server.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "app_vars": [
+    {
+      "name": "var_forge",
+      "label": "Forge",
+      "type": "select",
+      "options": [
+        "forgejo",
+        "gitea",
+        "github",
+        "gitlab",
+        "bitbucket"
+      ],
+      "help": "The forge Woodpecker CI signs in with. Leave empty to configure it after the install; the services start once it is set."
+    },
+    {
+      "name": "var_forge_url",
+      "label": "Forge URL",
+      "type": "text",
+      "help": "Required for Forgejo and Gitea, e.g. https://forgejo.example.com, and for self-hosted GitLab or GitHub Enterprise. Empty means github.com, gitlab.com or Bitbucket Cloud."
+    },
+    {
+      "name": "var_forge_client",
+      "label": "OAuth Client ID",
+      "type": "text",
+      "help": "From the OAuth app on the forge, whose callback URL must be http://<container IP>:8000/authorize"
+    },
+    {
+      "name": "var_forge_secret",
+      "label": "OAuth Client Secret",
+      "type": "password",
+      "secret": true
+    },
+    {
+      "name": "var_forge_admin",
+      "label": "Admin Users",
+      "type": "text",
+      "help": "Comma-separated forge login names that become admins. Registration is closed, so only they can sign in at first."
+    }
+  ],
+  "notes": [
+    {
+      "text": "Woodpecker CI has no local accounts, users sign in through the forge. Without the forge settings at install time, create an OAuth app on the forge with the callback URL http://<IP>:8000/authorize, fill in the forge block and WOODPECKER_ADMIN in /opt/woodpecker_data/server.env and run systemctl enable --now woodpecker-server woodpecker-agent.",
+      "type": "warning"
+    },
+    {
+      "text": "Registration is closed (WOODPECKER_OPEN=false): only the logins in WOODPECKER_ADMIN can sign in until an admin adds more users under Settings > Users.",
+      "type": "info"
+    },
+    {
+      "text": "WOODPECKER_HOST is set to http://<IP>:8000 and the forge must be able to reach it for webhooks. Forgejo and Gitea refuse webhooks to private addresses unless ALLOWED_HOST_LIST under [webhook] in their app.ini allows them; github.com, gitlab.com and Bitbucket Cloud need Woodpecker CI reachable from the internet. Change WOODPECKER_HOST and the OAuth callback URL together when the IP or domain changes.",
+      "type": "info"
+    },
+    {
+      "text": "The agent uses the local backend: pipeline steps run directly in this container as root, without isolation, so any pipeline can read the database with the users' forge tokens and the secrets in /opt/woodpecker_data. Only build repositories you trust.",
+      "type": "warning"
+    },
+    {
+      "text": "With the local backend, image: names the shell (bash, sh) or a plugin executable, not a container image, so steps like image: golang do not work, and services: are not supported. Install the toolchains your pipelines need in the container. For container-isolated pipelines, add an agent with the Docker or Podman backend on another host, pointed at <IP>:9000 with WOODPECKER_AGENT_SECRET from server.env.",
+      "type": "info"
+    },
+    {
+      "text": "Everything that is not a binary lives in /opt/woodpecker_data: server.env and agent.env, the SQLite database woodpecker.sqlite and the agent ID in agent.conf. Back up /opt/woodpecker_data.",
+      "type": "info"
+    }
+  ]
+}
