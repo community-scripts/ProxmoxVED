@@ -87,25 +87,29 @@ vm_select_storage "$HN"
 
 msg_info "Retrieving the URL for the ZimaOS installer"
 RELEASE_API="https://api.github.com/repos/IceWhaleTech/ZimaOS/releases/latest"
-RELEASE_JSON="$(curl -fsSL "$RELEASE_API" 2>/dev/null)"
-URL=$(echo "$RELEASE_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]+_installer\.iso' | head -1)
+if ! RELEASE_JSON="$(curl -fsSL "$RELEASE_API")"; then
+  msg_error "Could not query the latest ZimaOS release from GitHub"
+  exit 1
+fi
+URL=$(echo "$RELEASE_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]*/zimaos-x86_64-[^"]+_installer\.iso' | head -1)
 if [[ -z "$URL" ]]; then
-  msg_error "Could not determine the current ZimaOS installer"
-  msg_error "GitHub rate-limits unauthenticated requests to 60 per hour; try again shortly."
+  msg_error "No x86_64 ZimaOS installer ISO found in the latest GitHub release"
   exit 1
 fi
 
 FILENAME="$(basename "$URL")"
 ZIMAOS_VERSION="$(echo "$RELEASE_JSON" | grep -oP '"tag_name":\s*"\K[^"]+' | head -1 || true)"
 if [[ -z "$ZIMAOS_VERSION" ]]; then
-  ZIMAOS_VERSION="unknown"
+  msg_error "The latest ZimaOS release has no version tag"
+  exit 1
 fi
 vm_select_iso_storage "$FILENAME" "$HN"
 CACHE_FILE="$ISO_PATH"
 msg_ok "ZimaOS ${CL}${BL}${ZIMAOS_VERSION}${CL}"
 
 msg_warn "Downloading ZimaOS installer (approximately 2 GB, this may take a while)"
-MIN_ISO_BYTES=$((2 * 1024 * 1024 * 1024))
+# Official installers such as 1.8.0-beta2 are smaller than 2 GiB.
+MIN_ISO_BYTES=$((1024 * 1024 * 1024))
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" || exit 115
 
 msg_info "Creating a ZimaOS VM"
