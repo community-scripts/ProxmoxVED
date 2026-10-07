@@ -31,12 +31,12 @@
     }
   ],
   "default_credentials": {
-    "username": null,
-    "password": null
+    "username": "root",
+    "password": ""
   },
   "notes": [
     {
-      "text": "This VM boots an installer image. Open the console after creation and complete the installation there.",
+      "text": "Imports a preinstalled OpenWrt image and temporarily boots it to configure WAN/LAN, even when Start VM is disabled. LAN defaults to http://192.168.1.1; login root with no initial password and set one immediately. WAN and LAN default to vmbr0: isolate them for your network.",
       "type": "info"
     }
   ]

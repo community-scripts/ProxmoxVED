@@ -19,8 +19,8 @@ var_version="26.04"
 THIN="discard=on,ssd=1,"
 USE_CLOUD_INIT="no"
 
-
 set -Eeo pipefail
+shopt -s inherit_errexit
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -33,29 +33,29 @@ TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
 function select_os() {
-if [[ -n "${1:-}" ]]; then
-  var_version="$1"
-elif [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
-  var_version="${VM_OS_VERSION:-$var_version}"
-elif vm_dialog radiolist "UBUNTU VERSION" "Choose the Ubuntu release to install" --cancel-button Exit-Script 13 60 4 \
-  "26.04" "Ubuntu 26.04 LTS (Resolute)" ON \
-  "24.04" "Ubuntu 24.04 LTS (Noble)" OFF \
-  "22.04" "Ubuntu 22.04 LTS (Jammy)" OFF; then
-  var_version="$VM_DIALOG_RESULT"
-else
-  exit_script
-fi
+  if [[ -n "${1:-}" ]]; then
+    var_version="$1"
+  elif [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+    var_version="${VM_OS_VERSION:-$var_version}"
+  elif vm_dialog radiolist "UBUNTU VERSION" "Choose the Ubuntu release to install" --cancel-button Exit-Script 13 60 4 \
+    "26.04" "Ubuntu 26.04 LTS (Resolute)" ON \
+    "24.04" "Ubuntu 24.04 LTS (Noble)" OFF \
+    "22.04" "Ubuntu 22.04 LTS (Jammy)" OFF; then
+    var_version="$VM_DIALOG_RESULT"
+  else
+    exit_script
+  fi
 
-case "$var_version" in
-26.04) UBUNTU_CODENAME="resolute" ;;
-24.04) UBUNTU_CODENAME="noble" ;;
-22.04) UBUNTU_CODENAME="jammy" ;;
-*)
-  msg_error "Unsupported Ubuntu version '${var_version}'"
-  exit 1
-  ;;
-esac
-APP="Ubuntu ${var_version}"
+  case "$var_version" in
+  26.04) UBUNTU_CODENAME="resolute" ;;
+  24.04) UBUNTU_CODENAME="noble" ;;
+  22.04) UBUNTU_CODENAME="jammy" ;;
+  *)
+    msg_error "Unsupported Ubuntu version '${var_version}'"
+    exit 1
+    ;;
+  esac
+  APP="Ubuntu ${var_version}"
 }
 
 header_info
@@ -168,6 +168,9 @@ set_description
 vm_resize_disk
 
 vm_provision "$VMID"
+if [[ "$USE_CLOUD_INIT" == "yes" && -n "${CLOUDINIT_SSH_KEYS:-}" ]]; then
+  $STD qm set "$VMID" --sshkeys "$CLOUDINIT_SSH_KEYS"
+fi
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   if [[ "${CLOUDINIT_NETWORK_MODE:-dhcp}" == "static" ]]; then
     setup_cloud_init_network_no_rename \

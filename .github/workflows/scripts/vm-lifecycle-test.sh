@@ -1,0 +1,289 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
+CORE="${CORE:-$ROOT/.core/pve/vm-core.func}"
+[[ -r "$CORE" ]] || {
+  echo "Missing Core checkout: $CORE" >&2
+  exit 1
+}
+TEST_DIR="$(mktemp -d)"
+trap 'rm -rf -- "$TEST_DIR"' EXIT
+MOCK="$TEST_DIR/host-mocks.sh"
+
+cat >"$MOCK" <<'MOCKEOF'
+_cs_source_func() { source "$CORE_DIR/$1"; }
+pveversion() { :; }
+load_functions() { color; formatting; icons; default_vars; STD=""; }
+vm_preflight() { :; }
+header_info() { :; }
+post_to_api_vm() { echo "api created" >>"$EVENTS"; }
+post_update_to_api() { echo "api $*" >>"$EVENTS"; }
+get_valid_nextid() { echo 100; }
+msg_info() { echo "INFO $*"; }
+msg_ok() { echo "OK $*"; }
+msg_warn() { echo "WARN $*"; }
+msg_error() { echo "ERROR $*" >&2; }
+sleep() { :; }
+clear() { :; }
+hostname() { echo proxmox; }
+timeout() { shift; "$@"; }
+cat() {
+  if [[ "$*" == /proc/sys/kernel/random/uuid ]]; then
+    echo "00000000-0000-4000-8000-000000000001"
+  else
+    command cat "$@"
+  fi
+}
+grep() {
+  case "$*" in
+  "MemTotal /proc/meminfo") echo "MemTotal: 16777216 kB" ;;
+  "SwapTotal /proc/meminfo") echo "SwapTotal: 0 kB" ;;
+  *) command grep "$@" ;;
+  esac
+}
+ufw() { echo "Status: inactive"; }
+mktemp() {
+  if [[ "$*" == *-d* ]]; then
+    command mktemp -d "$CASE_DIR/work.XXXXXX"
+  else
+    command mktemp "$CASE_DIR/file.XXXXXX"
+  fi
+}
+df() {
+  echo "Filesystem 1K-blocks Used Available Use% Mounted"
+  if [[ "$*" == *-BG* ]]; then
+    echo "/dev/mock 100G 10G 90G 10% /"
+  else
+    echo "/dev/mock 104857600 10485760 94371840 10% /"
+  fi
+}
+ip() { printf '1: vmbr0: <UP>\n2: vmbr1: <UP>\n'; }
+whiptail() { echo "Unexpected interactive dialog: $*" >&2; return 2; }
+vm_prompt_cloud_init() {
+  USE_CLOUD_INIT=yes CLOUDINIT_USER="$1" CLOUDINIT_PASSWORD=test-password
+  CLOUDINIT_NETWORK_MODE=dhcp
+  if [[ "$FAILURE" == ssh ]]; then
+    CLOUDINIT_SSH_KEYS="$CASE_DIR/keys.pub"
+    echo "test-only" >"$CLOUDINIT_SSH_KEYS"
+  fi
+}
+load_cloud_init_functions() { :; }
+setup_cloud_init() {
+  echo "provision $*" >>"$EVENTS"
+  CLOUDINIT_CRED_FILE="$CASE_DIR/credentials"
+  echo "test-only generated password" >"$CLOUDINIT_CRED_FILE"
+}
+display_cloud_init_info() { echo "credentials $*" >>"$EVENTS"; }
+get_vm_ip() {
+  if [[ "$SCRIPT_SLUG" == netbird-server ]]; then
+    echo "10.88.0.1"
+  else
+    return 1
+  fi
+}
+vm_select_storage() {
+  STORAGE=disk-store
+  vm_apply_storage_layout "$STORAGE_KIND"
+}
+vm_select_iso_storage() {
+  ISO_STORAGE=iso-store ISO_VOLUME="iso-store:iso/$1" ISO_PATH="$CASE_DIR/$1"
+  if [[ "$FAILURE" == cache ]]; then ISO_PATH="$(vm_image_cache_path "$1")"; fi
+  echo "iso $ISO_VOLUME" >>"$EVENTS"
+}
+vm_image_cache_path() {
+  if [[ "$FAILURE" == cache ]]; then (exit 7); fi
+  echo "$CASE_DIR/cache-$(basename "$1")"
+}
+vm_fetch_image() { printf 'mock-image' >"$2"; echo "fetch $1" >>"$EVENTS"; }
+vm_extract_image() { printf 'mock-image' >"$2"; }
+vm_prepare_cloud_image() { echo "prepare $*" >>"$EVENTS"; }
+vm_expand_image() { echo "expand $*" >>"$EVENTS"; }
+vm_resize_disk() { echo "resize ${DISK_SIZE}" >>"$EVENTS"; }
+vm_alloc_efi_disk() { echo "efi $*" >>"$EVENTS"; }
+set_description() {
+  echo "description" >>"$EVENTS"
+  [[ "$FAILURE" != description ]] || return 7
+}
+virt-customize() {
+  echo "customize $*" >>"$EVENTS"
+  [[ "$FAILURE" != customize ]] || return 7
+}
+qemu-img() { echo "image $*" >>"$EVENTS"; }
+gunzip() { printf 'mock-image'; }
+pvesh() { return 1; }
+pvesm() {
+  case "$1" in
+  status) printf 'Name Type Status Total Used Available %%\ndisk-store %s active 100 10 90 10\n' "$STORAGE_KIND" ;;
+  alloc | free) echo "storage $*" >>"$EVENTS" ;;
+  list) echo "disk-store:vm-100-disk-0 raw images 1 100" ;;
+  *) echo "Unexpected pvesm: $*" >&2; return 2 ;;
+  esac
+}
+qm() {
+  echo "qm $*" >>"$EVENTS"
+  case "$1" in
+  create) echo stopped >"$CASE_DIR/state" ;;
+  start)
+    [[ "$FAILURE" != start ]] || return 7
+    echo running >"$CASE_DIR/state"
+    ;;
+  shutdown) echo stopped >"$CASE_DIR/state" ;;
+  status)
+    [[ -f "$CASE_DIR/state" ]] || return 1
+    echo "status: $(cat "$CASE_DIR/state")"
+    ;;
+  sendkey) if [[ "$SCRIPT_SLUG:$3" == openwrt-vm:ret ]]; then echo stopped >"$CASE_DIR/state"; fi ;;
+  importdisk | disk)
+    [[ "$*" != *--help* ]] || return 0
+    [[ "$FAILURE" != import ]] || return 7
+    local index=0 prefix="" extension="" ref
+    if grep -Eq '^efi |^storage alloc ' "$EVENTS"; then index=1; fi
+    case "$STORAGE_KIND" in
+    dir) prefix="100/" extension=".qcow2" ;;
+    btrfs) prefix="100/" extension=".raw" ;;
+    esac
+    ref="disk-store:${prefix}vm-100-disk-${index}${extension}"
+    echo "imported $ref" >>"$EVENTS"
+    echo "successfully imported disk '$ref'"
+    ;;
+  set) [[ "$FAILURE:$*" != ssh:*--sshkeys* ]] || return 7 ;;
+  guest)
+    if [[ "$SCRIPT_SLUG" == netbird-server ]]; then
+      printf '[{"name":"docker0","hardware-address":"02:00:00:00:00:99","ip-addresses":[{"ip-address-type":"ipv4","ip-address":"10.88.0.1"}]},{"name":"ens18","hardware-address":"%s","ip-addresses":[{"ip-address-type":"ipv4","ip-address":"192.0.2.42"}]}]\n' "$MAC"
+    else
+      return 1
+    fi
+    ;;
+  config) echo "unused0: disk-store:vm-100-disk-0" ;;
+  destroy | stop) : ;;
+  *) echo "Unexpected qm: $*" >&2; return 2 ;;
+  esac
+}
+curl() {
+  local url="" output="" arg previous="" payload=""
+  for arg in "$@"; do
+    [[ "$previous" != -o ]] || output="$arg"
+    [[ "$arg" != https:* && "$arg" != http:* ]] || url="$arg"
+    previous="$arg"
+  done
+  case "$url" in
+  */pve/vm-core.func)
+    cat "$CORE"
+    printf '\nsource %q\n' "$MOCK"
+    return
+    ;;
+  */home-assistant/version/*) payload='{"ova":"16.0"}' ;;
+  *blissos-x86*) payload='Bliss-v16.9.7-x86_64-OFFICIAL-foss-20261001.iso' ;;
+  *cachyos-arch*) payload='desktop/261001/' ;;
+  *api.umbrel.com*) payload='{"version":"1.7.4"}' ;;
+  *IceWhaleTech/ZimaOS*) payload='{"tag_name": "1.8.0-beta2", "assets":[{"browser_download_url": "https://example.invalid/zimaos-x86_64-1.8.0-beta2_installer.iso"}]}' ;;
+  https://openwrt.org) payload='Current stable release - OpenWrt 25.12.0' ;;
+  https://download.freebsd.org/releases/VM-IMAGES/) payload='15.0-RELEASE' ;;
+  *FreeBSD-*.qcow2.xz) return 0 ;;
+  *fw-update.ui.com*) payload='{"_embedded":{"firmware":[{"product":"unifi-os-server","platform":"linux-x64","version":"5.1.42","version_major":5,"version_minor":1,"version_patch":42,"_links":{"data":{"href":"https://example.invalid/unifi.bin"}}}]}}' ;;
+  https://example.invalid/* | *k9s_Linux_*) payload='mock-download' ;;
+  *) echo "Unexpected URL: $url" >&2; return 2 ;;
+  esac
+  if [[ -n "$output" ]]; then
+    printf '%s\n' "$payload" >"$output"
+  else
+    printf '%s\n' "$payload"
+  fi
+}
+MOCKEOF
+
+export CORE MOCK
+CORE_DIR="$(cd -- "$(dirname -- "$CORE")/.." && pwd)"
+export CORE_DIR
+fail() {
+  echo "FAIL: $*" >&2
+  cat "$CASE_DIR/output" >&2
+  exit 1
+}
+checked=0
+failures_checked=0
+for script in "$ROOT"/vm/*.sh; do
+  slug="$(basename "$script" .sh)"
+  SCRIPT_SLUG="$slug"
+  export SCRIPT_SLUG
+  arch=amd64
+  [[ "$slug" != pimox-haos-vm ]] || arch=arm64
+  for start in yes no; do
+    for kind in dir lvmthin btrfs; do
+      CASE_DIR="$TEST_DIR/$slug-$start-$kind"
+      mkdir "$CASE_DIR"
+      EVENTS="$CASE_DIR/events"
+      export CASE_DIR EVENTS
+      rc=0
+      BASH_ENV="$MOCK" VM_UNATTENDED=1 VM_START="$start" VM_NETBIRD_DOMAIN=netbird.example.invalid \
+        VM_ARCH="$arch" STORAGE_KIND="$kind" FAILURE=none \
+        bash "$script" >"$CASE_DIR/output" 2>&1 || rc=$?
+      [[ "$rc" == 0 ]] || fail "$slug $start $kind exited $rc"
+      ! grep -Eq '^\[ERROR\]|^ERROR ' "$CASE_DIR/output" || fail "$slug reported errors despite success"
+      grep -q '^api done none$' "$EVENTS" || fail "$slug never reported completion"
+      case "$slug" in
+      blissos-vm | cachyos-vm | nextcloud-vm | owncloud-vm | umbrel-os-vm | zimaos-vm)
+        grep -q -- '-cdrom iso-store:iso/' "$EVENTS" || fail "$slug ISO storage not attached"
+        ! grep -q 'qm importdisk' "$EVENTS" || fail "$slug imported an ISO as disk"
+        ;;
+      *)
+        grep -Eq '^qm (importdisk |disk import [0-9])' "$EVENTS" || fail "$slug did not import its image"
+        imported_ref="$(sed -n 's/^imported //p' "$EVENTS")"
+        grep -E '^qm set .*--?scsi0 ' "$EVENTS" | grep -Fq "$imported_ref" || fail "$slug attached the wrong imported disk"
+        ;;
+      esac
+      case "$slug:$start" in
+      openwrt-vm:no | opnsense-vm:no)
+        [[ "$(cat "$CASE_DIR/state")" == stopped ]] || fail "$slug ignored START_VM=no"
+        ;;
+      *:no)
+        ! grep -q '^qm start ' "$EVENTS" || fail "$slug started despite START_VM=no"
+        ;;
+      *:yes)
+        grep -q '^qm start ' "$EVENTS" || fail "$slug did not start"
+        [[ "$(cat "$CASE_DIR/state")" == running ]] || fail "$slug did not finish running"
+        ;;
+      esac
+      if [[ "$slug" == k3s-vm ]]; then
+        last_custom="$(grep -n '^customize ' "$EVENTS" | tail -1 | cut -d: -f1)"
+        imported="$(grep -n '^qm importdisk ' "$EVENTS" | cut -d: -f1)"
+        ((last_custom < imported)) || fail "K3s customized after import"
+      fi
+      if [[ "$slug:$start" == netbird-server:yes ]]; then
+        grep -q 'VM IP: 192.0.2.42' "$CASE_DIR/output" || fail "NetBird selected a container bridge instead of the VM NIC"
+      fi
+      echo "PASS $slug start=$start storage=$kind"
+    done
+  done
+  failures=(description start cache)
+  case "$slug" in
+  k3s-vm | netbird-server | ubuntu-vm | unifi-os-server-vm | waydroid-vm) failures+=(ssh) ;;
+  esac
+  case "$slug" in
+  blissos-vm | cachyos-vm | nextcloud-vm | owncloud-vm | umbrel-os-vm | zimaos-vm) ;;
+  *) failures+=(import) ;;
+  esac
+  for failure in "${failures[@]}"; do
+    CASE_DIR="$TEST_DIR/$slug-failure-$failure"
+    mkdir "$CASE_DIR"
+    EVENTS="$CASE_DIR/events"
+    export CASE_DIR EVENTS
+    rc=0
+    BASH_ENV="$MOCK" VM_UNATTENDED=1 VM_START=yes VM_NETBIRD_DOMAIN=netbird.example.invalid \
+      VM_ARCH="$arch" STORAGE_KIND=dir FAILURE="$failure" \
+      bash "$script" >"$CASE_DIR/output" 2>&1 || rc=$?
+    [[ "$rc" == 7 ]] || fail "$slug $failure returned $rc, expected 7"
+    if [[ "$failure" == cache ]]; then
+      ! grep -q '^qm create ' "$EVENTS" || fail "$slug continued after a failed command substitution"
+    elif [[ "$slug:$failure" != unifi-os-server-vm:import ]]; then
+      ! grep -q '^qm destroy ' "$EVENTS" || fail "$slug destroyed a created VM"
+      grep -q 'left in place' "$CASE_DIR/output" || fail "$slug missed preservation warning"
+    fi
+    ! grep -q '^api done ' "$EVENTS" || fail "$slug reported success after failure"
+    echo "PASS $slug $failure failure does not report success"
+    failures_checked=$((failures_checked + 1))
+  done
+  checked=$((checked + 1))
+done
+echo "All $checked VM scripts: $((checked * 6)) complete mocked runs and $failures_checked failure cases passed."

@@ -6,7 +6,10 @@ CORE="${CORE:-$ROOT/.core/pve/vm-core.func}"
 VM_DIR="${VM_DIR:-$ROOT/vm}"
 export CORE VM_DIR
 
-fail() { echo "FAIL: $*" >&2; exit 1; }
+fail() {
+  echo "FAIL: $*" >&2
+  exit 1
+}
 
 if [[ "${1:-}" == "--case" ]]; then
   script="$2" mode="$3"
@@ -23,20 +26,28 @@ if [[ "${1:-}" == "--case" ]]; then
   qm() { return 1; }
   ip() {
     if [[ "$*" == *"-o link"* ]]; then
-      printf '1: vmbr0: <UP>\n2: vmbr1: <UP>\n'
+      printf '1: vmbr0: <UP>\n'
+      [[ "$mode" == single-bridge ]] || printf '2: vmbr1: <UP>\n'
     fi
   }
   msg_warn() { echo "WARN: $*" >&2; }
   msg_error() { echo "ERROR: $*" >&2; }
   header_info() { :; }
-  exit_script() { echo "Wizard cancelled" >&2; exit 130; }
+  exit_script() {
+    echo "Wizard cancelled" >&2
+    exit 130
+  }
   whiptail() {
     [[ "$mode" != cancel ]] || return 1
     local args=("$@") i
     for ((i = 0; i < ${#args[@]}; i++)); do
       case "${args[i]}" in
       --inputbox)
-        printf '%s' "${args[i + 4]:-}" >&2
+        local value="${args[i + 4]:-}"
+        [[ "$value" != --* ]] || value=""
+        if [[ "$mode" == invalid-ip && "${args[*]}" == *"--title LAN IP ADDRESS"* ]]; then value="999.1.1.1"; fi
+        if [[ "$mode" == invalid-mac && "${args[*]}" == *"MAC ADDRESS"* ]]; then value="not-a-mac"; fi
+        printf '%s' "$value" >&2
         return 0
         ;;
       --yesno) return 0 ;;
@@ -78,7 +89,7 @@ if [[ "${1:-}" == "--case" ]]; then
   fi
   case "$mode" in
   default) default_settings ;;
-  advanced | cancel) advanced_settings ;;
+  advanced | cancel | single-bridge | invalid-ip | invalid-mac) advanced_settings ;;
   unattended)
     VM_UNATTENDED=1 VM_START=no VM_DISK_SIZE=96G
     vm_start_script "test"
@@ -92,6 +103,12 @@ if [[ "${1:-}" == "--case" ]]; then
   [[ "$VMID" == 100 ]] || fail "VMID changed"
   [[ "$DISK_SIZE" =~ ^[1-9][0-9]*G$ ]] || fail "Invalid disk size"
   [[ "$START_VM" == yes || "$START_VM" == no ]] || fail "Invalid start setting"
+  if [[ "$mode" == single-bridge ]]; then
+    [[ -z "$WAN_BRG" ]] || fail "Single-bridge mode configured a nonexistent WAN bridge"
+  fi
+  for v in VMID DISK_SIZE DISK_CACHE HN CORE_COUNT RAM_SIZE BRG MAC VLAN MTU START_VM CPU_TYPE MACHINE_TYPE; do
+    printf 'SETTING %s=%s\n' "$v" "${!v-}"
+  done
   exit 0
 fi
 
@@ -104,10 +121,20 @@ for script in "$VM_DIR"/*.sh; do
   for mode in default advanced unattended; do
     if bash "$0" --case "$script" "$mode" >"$TEST_DIR/output" 2>&1; then
       echo "PASS $(basename "$script") $mode"
+      grep '^SETTING ' "$TEST_DIR/output" >"$TEST_DIR/$mode"
     else
       cat "$TEST_DIR/output" >&2
       fail "$(basename "$script") $mode"
     fi
+  done
+  diff -u "$TEST_DIR/default" "$TEST_DIR/advanced" || fail "$(basename "$script") default/advanced defaults differ"
+  catalog="$ROOT/json/$(basename "$script" .sh).json"
+  [[ -f "$catalog" ]] || fail "Missing catalog: $catalog"
+  for pair in CORE_COUNT:cpu RAM_SIZE:ram DISK_SIZE:hdd; do
+    variable="${pair%:*}" resource="${pair#*:}"
+    actual="$(sed -n "s/^SETTING ${variable}=//p" "$TEST_DIR/default")"
+    expected="$(jq -r ".install_methods[0].resources.${resource}" "$catalog")"
+    [[ "${actual%G}" == "$expected" ]] || fail "$(basename "$script") $resource differs from its catalog"
   done
   rc=0
   bash "$0" --case "$script" cancel >"$TEST_DIR/output" 2>&1 || rc=$?
@@ -118,6 +145,26 @@ for script in "$VM_DIR"/*.sh; do
   grep -q 'vm_mark_created' "$script" || fail "$script lacks post-create protection"
   grep -Eq '^set -[A-Za-z]*E[A-Za-z]*' "$script" || fail "$script lacks ERR inheritance"
   echo "PASS $(basename "$script") cancellation and lifecycle guards"
+  case "$(basename "$script")" in
+  opnsense-vm.sh)
+    bash "$0" --case "$script" single-bridge >"$TEST_DIR/output" 2>&1 || {
+      cat "$TEST_DIR/output" >&2
+      fail "Single-bridge wizard"
+    }
+    rc=0
+    bash "$0" --case "$script" invalid-ip >"$TEST_DIR/output" 2>&1 || rc=$?
+    [[ "$rc" == 1 ]] || fail "Invalid OPNsense IP returned $rc"
+    echo "PASS OPNsense single bridge and invalid IP"
+    ;;
+  esac
+  case "$(basename "$script")" in
+  openwrt-vm.sh | opnsense-vm.sh)
+    rc=0
+    bash "$0" --case "$script" invalid-mac >"$TEST_DIR/output" 2>&1 || rc=$?
+    [[ "$rc" == 1 ]] || fail "Invalid router MAC returned $rc"
+    echo "PASS $(basename "$script") invalid MAC"
+    ;;
+  esac
   checked=$((checked + 1))
 done
 echo "All $checked VM scripts: default, advanced, unattended and cancellation checked."

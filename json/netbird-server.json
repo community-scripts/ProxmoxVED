@@ -36,7 +36,7 @@
   },
   "notes": [
     {
-      "text": "Cloud-Init is enabled by default. Configure your SSH key and credentials in the Proxmox Cloud-Init tab before starting the VM.",
+      "text": "Default settings use Debian 13; Advanced settings offer other base OS versions. Shared Cloud-Init configures credentials/networking. NetBird domain/proxy settings are required application configuration after VM settings; unattended deployment requires VM_NETBIRD_DOMAIN. Setup is staged for first boot: monitor journalctl -u netbird-setup -f.",
       "type": "info"
     },
     {

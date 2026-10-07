@@ -35,6 +35,7 @@ THIN="discard=on,ssd=1,"
 header_info
 echo -e "\n Loading..."
 set -Eeo pipefail
+shopt -s inherit_errexit
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
@@ -96,6 +97,7 @@ function select_os() {
 }
 
 function select_cloud_init() {
+  VM_CLOUD_INIT="${VM_CLOUD_INIT:-yes}"
   # Ubuntu cloud images configure netplan from cloud-init only, so there the
   # question is which credentials rather than whether.
   if [ "$OS_TYPE" = "ubuntu" ]; then
@@ -300,6 +302,9 @@ set_description
 msg_ok "Created a K3s VM ${CL}${BL}(${HN})"
 
 vm_provision "$VMID"
+if [[ "$USE_CLOUD_INIT" == "yes" && -n "${CLOUDINIT_SSH_KEYS:-}" ]]; then
+  $STD qm set "$VMID" --sshkeys "$CLOUDINIT_SSH_KEYS"
+fi
 
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting K3s VM"

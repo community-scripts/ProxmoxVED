@@ -41,6 +41,7 @@ header_info
 echo -e "\n Loading..."
 
 set -Eeo pipefail
+shopt -s inherit_errexit
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -202,6 +203,7 @@ cp "$CACHE_FILE" "$WORK_FILE"
 
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 WAYDROID_PREINSTALLED="no"
+BASE_PREINSTALLED="no"
 
 # Ubuntu ships binder_linux only in linux-modules-extra-generic
 BASE_PKGS="curl,ca-certificates,qemu-guest-agent,weston"
@@ -210,13 +212,14 @@ BASE_PKGS="curl,ca-certificates,qemu-guest-agent,weston"
 msg_info "Installing prerequisites in image"
 if virt-customize -q -a "$WORK_FILE" \
   --install "$BASE_PKGS" >/dev/null 2>&1; then
+  BASE_PREINSTALLED="yes"
   msg_ok "Installed prerequisites"
 else
   msg_warn "Package pre-install failed — will retry on first boot"
 fi
 
 msg_info "Installing Waydroid in image (Patience)"
-if virt-customize -q -a "$WORK_FILE" \
+if [[ "$BASE_PREINSTALLED" == "yes" ]] && virt-customize -q -a "$WORK_FILE" \
   --run-command "curl -fsSL https://repo.waydro.id | bash -s ${OS_CODENAME}" >/dev/null 2>&1 &&
   virt-customize -q -a "$WORK_FILE" \
     --run-command "apt-get install -y waydroid" >/dev/null 2>&1 &&
@@ -310,6 +313,9 @@ vm_resize_disk
 rm -f "$WORK_FILE"
 
 vm_provision "$VMID"
+if [[ -n "${CLOUDINIT_SSH_KEYS:-}" ]]; then
+  $STD qm set "$VMID" --sshkeys "$CLOUDINIT_SSH_KEYS"
+fi
 
 msg_ok "Created a ${OS_LABEL} Waydroid VM ${CL}${BL}(${HN})"
 if [ "$START_VM" = "yes" ]; then

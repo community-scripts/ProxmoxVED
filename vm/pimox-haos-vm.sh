@@ -19,6 +19,7 @@ METHOD=""
 THIN="discard=on,ssd=1,"
 
 set -Eeo pipefail
+shopt -s inherit_errexit
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"; exit 130' SIGINT
@@ -102,7 +103,7 @@ FILE="$TEMP_DIR/haos.qcow2"
 vm_extract_image "$CACHE_FILE" "$FILE"
 
 msg_info "Creating HAOS VM"
-qm create "$VMID" -agent 1 -bios ovmf -cores "$CORE_COUNT" -memory "$RAM_SIZE" -name "$HN" \
+qm create "$VMID"${MACHINE} -agent 1 -bios ovmf -cores "$CORE_COUNT" -memory "$RAM_SIZE" -name "$HN" \
   -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 vm_mark_created
 # PiMox's ARM firmware store is 64 MiB, unlike the amd64 EFI store.

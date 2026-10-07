@@ -42,6 +42,7 @@ header_info
 echo -e "\n Loading..."
 
 set -Eeo pipefail
+shopt -s inherit_errexit
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -171,6 +172,7 @@ function select_os() {
 }
 
 function select_cloud_init() {
+  VM_CLOUD_INIT="${VM_CLOUD_INIT:-yes}"
   # Ubuntu cloud images configure netplan from cloud-init only, so there the
   # question is which credentials rather than whether.
   if [ "$OS_TYPE" = "ubuntu" ]; then
@@ -181,7 +183,7 @@ function select_cloud_init() {
 
 function get_image_url() {
   local arch
-  arch=$(dpkg --print-architecture)
+  arch=$(vm_arch_resolve amd64 arm64)
   case $OS_TYPE in
   debian)
     if [ "$USE_CLOUD_INIT" = "yes" ]; then
@@ -421,7 +423,7 @@ NETBIRD_SVC_TMP=$(mktemp)
 cat >"$NETBIRD_SVC_TMP" <<'SVCEOF'
 [Unit]
 Description=NetBird Initial Setup
-After=network-online.target docker.service
+After=network-online.target docker.service install-docker.service
 Wants=network-online.target
 ConditionPathExists=!/root/.netbird-setup-done
 
@@ -437,7 +439,7 @@ TimeoutStartSec=600
 WantedBy=multi-user.target
 SVCEOF
 if [[ "$USE_CLOUD_INIT" == "yes" ]]; then
-  sed -i -e 's/After=network-online.target docker.service/After=network-online.target docker.service cloud-final.service install-docker.service/' \
+  sed -i -e 's/After=network-online.target docker.service install-docker.service/After=network-online.target docker.service cloud-final.service install-docker.service/' \
     -e 's/Wants=network-online.target/Wants=network-online.target cloud-final.service/' \
     -e 's/WantedBy=multi-user.target/WantedBy=cloud-init.target/' "$NETBIRD_SVC_TMP"
 fi
@@ -565,6 +567,9 @@ set_description
 
 msg_info "Configuring Cloud-Init"
 vm_provision "$VMID"
+if [[ "$USE_CLOUD_INIT" == "yes" && -n "${CLOUDINIT_SSH_KEYS:-}" ]]; then
+  $STD qm set "$VMID" --sshkeys "$CLOUDINIT_SSH_KEYS"
+fi
 
 # ==============================================================================
 # START VM
@@ -580,15 +585,19 @@ fi
 # ==============================================================================
 VM_IP=""
 if [ "$START_VM" == "yes" ]; then
-  set +e
-  for i in {1..10}; do
-    VM_IP=$(qm guest cmd "$VMID" network-get-interfaces 2>/dev/null |
-      jq -r '.[] | select(.name != "lo") | ."ip-addresses"[]? | select(."ip-address-type" == "ipv4") | ."ip-address"' 2>/dev/null |
-      grep -v "^127\." | head -1) || true
-    [ -n "$VM_IP" ] && break
-    sleep 3
-  done
-  set -e
+  if load_cloud_init_functions && VM_IP="$(get_vm_ip "$VMID" 180)" &&
+    GUEST_INTERFACES="$(qm guest cmd "$VMID" network-get-interfaces)" &&
+    VM_IP="$(jq -er --arg mac "$MAC" '
+      [.[] | select((.["hardware-address"] // "" | ascii_downcase) == ($mac | ascii_downcase))
+       | .["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4")
+       | .["ip-address"] | select(startswith("127.") or startswith("169.254.") | not)]
+      | first // empty
+    ' <<<"$GUEST_INTERFACES")"; then
+    msg_ok "VM IP: $VM_IP"
+  else
+    VM_IP=""
+    msg_warn "No VM-interface IPv4 detected. Check ip -4 addr and systemctl status qemu-guest-agent in the console."
+  fi
 fi
 
 echo -e "\n${INFO}${BOLD}${GN}NetBird Server VM Summary:${CL}"
@@ -604,13 +613,15 @@ else
 fi
 
 echo -e ""
-echo -e "${INFO}${BOLD}${GN}NetBird is being configured automatically on first boot!${CL}"
+echo -e "${INFO}${BOLD}${YW}NetBird setup is staged for first boot; application readiness is not yet verified.${CL}"
 echo -e "${TAB}${DGN}Domain: ${BGN}https://${NETBIRD_DOMAIN_INPUT}${CL}"
 echo -e "${TAB}${DGN}Setup log: ${BGN}journalctl -u netbird-setup -f${CL}"
 echo -e "${TAB}${DGN}Required open ports: ${BGN}80/tcp, 443/tcp, 3478/udp${CL}"
 
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  display_cloud_init_info "$VMID" "$HN" 2>/dev/null || true
+  display_cloud_init_info "$VMID" "$HN"
+else
+  msg_warn "Debian nocloud console login: root, no password. Set one before exposing the VM."
 fi
 
 post_update_to_api "done" "none"

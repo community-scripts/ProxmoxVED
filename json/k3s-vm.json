@@ -36,7 +36,7 @@
   },
   "notes": [
     {
-      "text": "Cloud-Init is enabled by default. Configure your SSH key and credentials in the Proxmox Cloud-Init tab before starting the VM.",
+      "text": "Default settings use Debian 13; choose another base OS in Advanced settings. Cloud-Init uses the shared credentials/network wizard and is enabled by default for unattended runs. Explicitly disabling it on Debian uses a nocloud image with root console login and no password; set a password immediately.",
       "type": "info"
     },
     {

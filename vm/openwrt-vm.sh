@@ -28,6 +28,7 @@ header_info
 echo -e "\n Loading..."
 
 set -Eeo pipefail
+shopt -s inherit_errexit
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -196,16 +197,8 @@ function advanced_settings() {
     fi
   done
 
-  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-    --inputbox "Set Disk Size in GiB (e.g., 1, 2, 4)" 8 58 "1" \
-    --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    if [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
-      DISK_SIZE="${DISK_SIZE}G"
-    fi
-    echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-  else
-    exit_script
-  fi
+  vm_prompt_disk_size "1G"
+  vm_prompt_verbose "no"
 
   if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN Bridge" 8 58 vmbr0 --title "WAN BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $BRG ]; then
@@ -249,6 +242,10 @@ function advanced_settings() {
     else
       MAC="$MAC1"
     fi
+    if ! validate_mac_address "$MAC"; then
+      msg_error "Invalid WAN MAC address: $MAC"
+      exit 1
+    fi
     echo -e "${DGN}Using WAN MAC Address: ${BGN}$MAC${CL}"
   else
     exit_script
@@ -259,6 +256,10 @@ function advanced_settings() {
       LAN_MAC="$GEN_MAC_LAN"
     else
       LAN_MAC="$MAC2"
+    fi
+    if ! validate_mac_address "$LAN_MAC"; then
+      msg_error "Invalid LAN MAC address: $LAN_MAC"
+      exit 1
     fi
     echo -e "${DGN}Using LAN MAC Address: ${BGN}$LAN_MAC${CL}"
   else

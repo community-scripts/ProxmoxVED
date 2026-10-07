@@ -83,6 +83,24 @@ Topics include:
 
 ➡️ [Open VM Scripts Documentation](https://community-scripts.org/docs/vm/readme)
 
+Dev VM scripts use the published Core wizard, storage and lifecycle helpers.
+Default settings select the standard OS; alternatives belong in Advanced
+settings or `VM_OS_VERSION`. Shared Cloud-Init credentials are collected after
+VM settings for cloud images. Installer ISOs use an independent ISO-capable
+storage pool, not the VM disk pool.
+
+Native appliances retain their own onboarding: HAOS does not use Cloud-Init,
+and OpenWrt/OPNsense temporarily boot for configuration even when the final
+`VM_START=no` state is requested. A created VM is preserved on subsequent
+configuration/start failures. VM creation does not imply an ISO installation
+or a first-boot application setup has finished.
+
+With Core checked out in `.core`, run
+`bash .github/workflows/scripts/vm-wizard-test.sh` and
+`bash .github/workflows/scripts/vm-lifecycle-test.sh`.
+These execute all VM settings paths and mocked creation/start/failure paths;
+they do not replace real Proxmox boot tests.
+
 ---
 
 ### Configuration Guides

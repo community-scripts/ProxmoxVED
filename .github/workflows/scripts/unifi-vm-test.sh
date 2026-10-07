@@ -43,7 +43,7 @@ fi
 expect "$(cat "$TEST_DIR/output")" "Unsupported OS"
 echo "PASS default settings and OS compatibility (3 cases)"
 
-prompt="$(awk '/^vm_preflight$/ {keep=1; next} /^vm_start_script / {exit} keep {print}' "$SCRIPT")"
+prompt="$(awk '/^vm_start_script / {keep=1; next} /^post_to_api_vm$/ {exit} keep {print}' "$SCRIPT")"
 [[ -n "$prompt" ]] || fail "Shared Cloud-Init prompt block not found"
 vm_prompt_cloud_init() {
   [[ "$1" == root ]] || fail "Default Cloud-Init user"

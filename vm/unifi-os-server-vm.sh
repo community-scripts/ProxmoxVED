@@ -30,6 +30,7 @@ header_info
 echo -e "\n Loading..."
 
 set -Eeuo pipefail
+shopt -s inherit_errexit
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
@@ -75,7 +76,7 @@ function select_os() {
 
 function get_image_url() {
   local arch
-  arch=$(dpkg --print-architecture)
+  arch=$(vm_arch_resolve amd64 arm64)
   case $OS_TYPE in
   debian)
     # Always use Cloud-Init variant for UniFi OS
@@ -137,6 +138,7 @@ function advanced_settings() {
 }
 
 vm_preflight
+vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 6 GB RAM\n• 32 GB Disk\n• Cloud-Init enabled" 14 58
 
 if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
   CLOUDINIT_PASSWORD="${CLOUDINIT_PASSWORD:-${VM_ROOT_PASSWORD:-}}"
@@ -164,7 +166,6 @@ if [[ "${VM_UNATTENDED:-0}" == "1" && -n "${VM_SSH_KEYS:-}" && -z "${CLOUDINIT_S
   fi
 fi
 
-vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 6 GB RAM\n• 32 GB Disk\n• Cloud-Init enabled" 14 58
 post_to_api_vm
 
 msg_info "Checking system resources"

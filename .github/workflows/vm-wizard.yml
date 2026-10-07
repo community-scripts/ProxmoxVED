@@ -33,3 +33,5 @@ jobs:
 
       - name: Run the wizard checks
         run: bash .github/workflows/scripts/vm-wizard-test.sh
+      - name: Run VM lifecycle regressions
+        run: bash .github/workflows/scripts/vm-lifecycle-test.sh
