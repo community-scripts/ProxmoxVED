@@ -17,7 +17,8 @@ reject() { [[ "$1" != *"$2"* ]] || fail "Unexpected: $2"; }
 extract_function() {
   awk -v name="$1" '$0 == "function " name "() {" {keep=1} keep {print} keep && /^}$/ {exit}' "$SCRIPT"
 }
-for fn in select_os default_settings; do
+
+for fn in select_os get_image_url default_settings; do
   definition="$(extract_function "$fn")"
   [[ -n "$definition" ]] || fail "Function $fn not found"
   eval "$definition"
@@ -28,20 +29,35 @@ msg_ok() { echo "OK $*"; }
 msg_warn() { echo "WARN $*"; }
 msg_error() { echo "ERROR $*"; }
 vm_apply_machine_type() { :; }
+vm_arch_resolve() { echo "$1"; }
 get_valid_nextid() { echo 104; }
 vm_echo_default_settings() { :; }
-whiptail() { fail "Defaults must not show custom OS/password/key dialogs"; }
+vm_dialog() {
+  [[ "$1:$2" == "radiolist:SELECT OS" ]] || fail "Unexpected dialog: $*"
+  VM_DIALOG_RESULT=debian13
+}
 exit_script() { fail "Defaults entered a custom dialog"; }
 GEN_MAC="02:11:22:33:44:55"
 default_settings
-[[ "$OS_TYPE:$DISK_SIZE:$CORE_COUNT:$RAM_SIZE" == debian:32G:2:6144 ]] || fail "Changed VM defaults"
+[[ "$OS_TYPE:$var_os:$var_version:$DISK_SIZE:$CORE_COUNT:$RAM_SIZE" == debian:debian:13:32G:2:6144 ]] || fail "Changed VM defaults"
 VM_OS_VERSION=ubuntu2404 default_settings
-[[ "$OS_TYPE:$OS_VERSION" == ubuntu:24.04 ]] || fail "Ubuntu selection"
+[[ "$OS_TYPE:$OS_VERSION:$var_os:$var_version" == ubuntu:24.04:ubuntu:24.04 ]] || fail "Ubuntu selection"
+unset VM_OS_VERSION
+select_os
+[[ "$OS_TYPE:$OS_VERSION" == debian:13 ]] || fail "Interactive OS selection failed"
 if (select_os unsupported) >"$TEST_DIR/output" 2>&1; then
   fail "Unsupported OS accepted"
 fi
 expect "$(cat "$TEST_DIR/output")" "Unsupported OS"
-echo "PASS default settings and OS compatibility (3 cases)"
+echo "PASS default settings and OS compatibility (4 cases)"
+
+script_text="$(cat "$SCRIPT")"
+expect "$script_text" "vm_require_tools curl jq virt-customize"
+reject "$script_text" "apt-get install -y jq"
+reject "$script_text" "qm importdisk"
+reject "$script_text" "network-get-interfaces"
+reject "$script_text" "post_update_to_api \"done\""
+echo "PASS host-side helper contract checks"
 
 prompt="$(awk '/^vm_start_script / {keep=1; next} /^post_to_api_vm$/ {exit} keep {print}' "$SCRIPT")"
 [[ -n "$prompt" ]] || fail "Shared Cloud-Init prompt block not found"
@@ -74,6 +90,7 @@ if (
   fail "Missing required helper accepted"
 fi
 expect "$(cat "$TEST_DIR/output")" "helpers are unavailable"
+setup_cloud_init() { :; }
 ssh-keygen -q -t ed25519 -N "" -f "$TEST_DIR/test-key"
 for key in "$TEST_DIR/test-key.pub" "$(cat "$TEST_DIR/test-key.pub")"; do
   unset CLOUDINIT_SSH_KEYS
@@ -93,13 +110,18 @@ unset VM_SSH_KEYS CLOUDINIT_SSH_KEYS
 echo "PASS shared Cloud-Init and unattended compatibility (8 cases)"
 
 firstboot="$(awk "/^cat >.*<<'FBEOF'$/ {keep=1; next} /^FBEOF$/ {exit} keep {print}" "$SCRIPT")"
-unit="$(awk "/^cat >.*<<'SVCEOF'$/ {keep=1; next} /^SVCEOF$/ {exit} keep {print}" "$SCRIPT")"
-expect "$unit" "After=network-online.target cloud-final.service qemu-guest-agent.service"
-expect "$unit" "Wants=network-online.target cloud-final.service qemu-guest-agent.service"
-expect "$unit" "WantedBy=cloud-init.target"
-reject "$unit" "WantedBy=multi-user.target"
+firstboot_unit="$(awk '/^vm_firstboot_unit / {keep=1} keep {print} keep && /--cloud-init yes/ {exit}' "$SCRIPT")"
+[[ -n "$firstboot" ]] || fail "First-boot installer script not found"
+[[ -n "$firstboot_unit" ]] || fail "vm_firstboot_unit call not found"
+expect "$firstboot" "#!/usr/bin/env bash"
+expect "$firstboot" "set -Eeuo pipefail"
+reject "$firstboot" "systemctl disable unifi-os-firstboot.service"
 reject "$firstboot" "echo y |"
-expect "$firstboot" "set -euo pipefail"
+expect "$firstboot_unit" 'vm_firstboot_unit "$FILE" "unifi-os-firstboot" "$FIRSTBOOT_SCRIPT"'
+expect "$firstboot_unit" "--after qemu-guest-agent.service"
+expect "$firstboot_unit" "--requires-path /opt/unifi-os-server.bin"
+expect "$firstboot_unit" "--cloud-init yes"
+
 pre_packages="$(awk '/^# Setup swap / {exit} {print}' <<<"$firstboot" |
   sed '/^LOG=/d; /^exec > /d')"
 [[ -n "$pre_packages" ]] || fail "First-boot package block not found"
@@ -125,7 +147,7 @@ for APT_MODE in ok agent-recovery update-fails install-fails; do
     set -e
     eval "$pre_packages"
   ) >"$TEST_DIR/output" 2>&1 || rc=$?
-  [[ "$(head -n 1 "$EVENTS")" == "start qemu-guest-agent" ]] || fail "Agent starts after package work"
+  [[ "$(head -n 1 "$EVENTS")" == "start qemu-guest-agent" ]] || fail "Agent starts before package work"
   if [[ "$APT_MODE" == ok || "$APT_MODE" == agent-recovery ]]; then
     [[ "$rc" == 0 ]] || fail "Successful package setup failed"
     if [[ "$APT_MODE" == agent-recovery ]]; then
@@ -141,29 +163,32 @@ for APT_MODE in ok agent-recovery update-fails install-fails; do
     fi
   fi
 done
-echo "PASS first-boot ordering, agent recovery and package failure reporting (4 cases)"
+echo "PASS first-boot staging, agent recovery and package failure reporting (4 cases)"
 
-script_text="$(cat "$SCRIPT")"
+expect "$script_text" 'vm_prepare_cloud_image "$FILE" "$HN"'
+expect "$script_text" 'vm_customize "UniFi OS installer" "$FILE"'
+expect "$script_text" 'vm_firstboot_unit "$FILE" "unifi-os-firstboot" "$FIRSTBOOT_SCRIPT"'
 reject "$script_text" "virt-resize"
 reject "$script_text" "virt-filesystems"
 reject "$script_text" "expanded.qcow2"
+reject "$script_text" "virt-customize -a"
 expect "$script_text" 'vm_resize_disk'
-expect "$script_text" 'vm_prepare_cloud_image "$FILE" "$HN"'
-[[ "$(grep -c '^virt-customize ' "$SCRIPT")" == 1 ]] || fail "Additional application staging appliance"
-provision="$(awk '/^vm_mark_created$/ {keep=1} /^set_description$/ {exit} keep {print}' "$SCRIPT")"
-expect "$provision" $'vm_mark_created\nvm_provision "$VMID"'
+creation="$(awk '/^qm create / {keep=1} /^vm_provision / {exit} keep {print}' "$SCRIPT")"
+expect "$creation" $'vm_mark_created\nvm_import_disk "$VMID" "$FILE" "$STORAGE" "$DISK_IMPORT_FORMAT"'
+expect "$creation" '${VM_IMPORTED_DISK}'
+provision="$(awk '/^vm_provision / {keep=1} /^set_description$/ {print; exit} keep {print}' "$SCRIPT")"
+expect "$provision" 'vm_provision "$VMID"'
 expect "$provision" 'qm set "$VMID" --sshkeys "$CLOUDINIT_SSH_KEYS"'
 reject "$provision" "--cipassword"
-echo "PASS no offline expansion, one staging appliance, shared provisioning"
+echo "PASS shared image customization, import, and provisioning"
 
-vm_mark_created() { echo "VM marked created"; }
-vm_provision() { :; }
 qm() { return 13; }
-export -f vm_mark_created vm_provision qm
+vm_provision() { :; }
+set_description() { :; }
+export -f qm vm_provision set_description
 rc=0
-output="$(VMID="$VMID" CLOUDINIT_SSH_KEYS="$TEST_DIR/test-key.pub" bash -c 'set -Eeuo pipefail; eval "$1"; echo UNEXPECTED_SUCCESS' -- "$provision" 2>&1)" || rc=$?
+output="$(VMID=104 CLOUDINIT_SSH_KEYS="$TEST_DIR/test-key.pub" bash -c 'set -Eeuo pipefail; eval "$1"; echo UNEXPECTED_SUCCESS' -- "$provision" 2>&1)" || rc=$?
 [[ "$rc" == 13 ]] || fail "SSH-key write error was suppressed"
-expect "$output" "VM marked created"
 reject "$output" "UNEXPECTED_SUCCESS"
 echo "PASS SSH-key write failure stops provisioning"
 
@@ -171,70 +196,70 @@ completion="$(awk '/^VM_IP=""$/ {keep=1} keep {print}' "$SCRIPT")"
 [[ -n "$completion" ]] || fail "Completion block not found"
 STD="" TAB="" INFO="" GATEWAY="" BOLD="" GN="" CL="" YW="" HOLD=""
 VMID=104 MAC="$GEN_MAC" CLOUDINIT_USER=admin CLOUDINIT_CRED_FILE="/tmp/test-credentials"
-get_vm_ip() {
+UOS_VERSION=5.1.42 OS_DISPLAY="Debian 13 (Trixie)" DISK_SIZE=32G CORE_COUNT=2 RAM_SIZE=6144 HN=unifi-server-os
+VM_FIRSTBOOT_MARKER="/var/lib/community-scripts/unifi-os-firstboot.done"
+vm_start_vm() { echo "start $*" >>"$EVENTS"; }
+vm_wait_for_ip() {
   echo "ip $*" >>"$EVENTS"
-  [[ "$IP_MODE" != timeout ]] || return 1
-  echo "172.17.0.1"
+  [[ "$IP_MODE" != noip ]] || return 1
+  VM_IP=192.168.1.104
 }
-qm() {
-  echo "qm $*" >>"$EVENTS"
-  if [[ "$1" == guest ]]; then
-    if [[ "$IP_MODE" == timeout ]]; then
-      echo "QEMU guest agent is not running" >&2
-      return 1
-    fi
-    local address=192.168.1.104
-    [[ "$IP_MODE" != linklocal ]] || address=169.254.1.2
-    [[ "$IP_MODE" != malformed ]] || {
-      echo '{'
-      return
-    }
-    printf '[{"hardware-address":"aa:bb:cc:dd:ee:ff","ip-addresses":[{"ip-address-type":"ipv4","ip-address":"172.17.0.1"}]},{"hardware-address":"%s","ip-addresses":[{"ip-address-type":"ipv6","ip-address":"::1"},{"ip-address-type":"ipv4","ip-address":"%s"}]}]\n' "$MAC" "$address"
-  fi
+vm_guest_exec() {
+  echo "guest $*" >>"$EVENTS"
+  [[ "$MARKER_MODE" == done ]]
 }
-curl() {
-  echo "curl $*" >>"$EVENTS"
-  [[ "$*" == *"-fsSk"* ]] || fail "Readiness must reject HTTP errors"
+vm_wait_http() {
+  echo "http $*" >>"$EVENTS"
+  [[ "$*" == *"https://192.168.1.104:11443 300 --insecure"* ]] || fail "Readiness URL/options changed"
   [[ "$READY_MODE" == ready ]]
 }
-post_update_to_api() { echo "telemetry $*" >>"$EVENTS"; }
-for scenario in ready pending timeout linklocal malformed stopped; do
-  START_VM=yes IP_MODE=address READY_MODE=ready
+vm_print_summary() {
+  echo "summary"
+  for item in "$@"; do echo "summary $item"; done
+}
+vm_next_steps() {
+  echo "next"
+  for step in "$@"; do echo "step $step"; done
+}
+vm_finish() { echo "finish ${1:-}"; }
+for scenario in ready pending marker-only noip stopped; do
+  START_VM=yes IP_MODE=address MARKER_MODE=done READY_MODE=ready
   case "$scenario" in
-  pending) READY_MODE=pending ;;
-  timeout | linklocal | malformed) IP_MODE="$scenario" ;;
-  stopped) START_VM=no ;;
+  pending) MARKER_MODE=pending READY_MODE=pending ;;
+  marker-only) READY_MODE=pending ;;
+  noip) IP_MODE=noip MARKER_MODE=pending READY_MODE=pending ;;
+  stopped) START_VM=no MARKER_MODE=pending READY_MODE=pending ;;
   esac
   : >"$EVENTS"
   output="$(
     set -e
     eval "$completion"
   )"
-  expect "$output" "Console login: admin"
-  expect "$output" "Cloud-Init credentials: /tmp/test-credentials"
-  [[ "$(grep -c '^telemetry done none$' "$EVENTS")" == 1 ]] || fail "Completion telemetry count"
-  if [[ "$scenario" == ready || "$scenario" == pending ]]; then
-    expect "$output" "VM IP: 192.168.1.104"
-    reject "$output" "VM IP: 172.17.0.1"
-    if [[ "$scenario" == ready ]]; then
-      expect "$output" "OK UniFi OS is up"
-    else
-      expect "$output" "WARN UniFi OS is not ready"
-      reject "$output" "OK UniFi OS is up"
-      [[ "$(grep -c '^curl ' "$EVENTS")" == 60 ]] || fail "Readiness poll count"
-    fi
+  expect "$output" "summary Console Login=admin"
+  expect "$output" "summary Cloud-Init Credentials=/tmp/test-credentials"
+  expect "$output" "summary Web Interface=https://"
+  if [[ "$scenario" == ready ]]; then
+    expect "$output" "OK UniFi OS is up"
+    expect "$output" "finish UniFi OS Server VM is ready."
+  elif [[ "$scenario" == marker-only ]]; then
+    expect "$output" "web readiness was not confirmed yet"
+    expect "$output" "journalctl -u unifi-os-firstboot.service"
   elif [[ "$scenario" == stopped ]]; then
     expect "$output" "Start VM 104"
-    ! grep -q '^qm\|^ip\|^curl' "$EVENTS" || fail "Stopped VM was queried"
+    expect "$output" "installation continues in the VM on first boot"
+    ! grep -q '^start \|^ip \|^guest \|^http ' "$EVENTS" || fail "Stopped VM was queried"
   else
-    expect "$output" "WARN"
-    reject "$output" "OK Guest agent responding"
-    ! grep -q '^curl ' "$EVENTS" || fail "Readiness queried without usable IP"
-    expect "$output" "journalctl -u cloud-final -u unifi-os-firstboot.service"
+    expect "$output" "WARN UniFi OS"
+    expect "$output" "installation continues in the VM on first boot"
+    if [[ "$scenario" == noip ]]; then
+      ! grep -q '^http ' "$EVENTS" || fail "Readiness queried without usable IP"
+    fi
   fi
 done
-echo "PASS management IP selection, readiness warnings and stopped VM (6 cases)"
+echo "PASS management IP, marker, HTTP readiness and completion messaging (5 cases)"
 
 jq -e '.interface_port == 11443 and .install_methods[0].resources.ram == 6144 and (.notes | length) > 0' \
   "$ROOT/json/unifi-os-server-vm.json" >/dev/null
-echo "PASS UniFi catalog matches provisioning defaults"
+jq -e '.install_methods[0].resources.cpu == 2 and .install_methods[0].resources.ram == 2048 and .install_methods[0].resources.hdd == 7' \
+  "$ROOT/json/ubuntu-vm.json" >/dev/null
+echo "PASS VM catalogs match provisioning defaults"

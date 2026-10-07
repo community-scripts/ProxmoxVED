@@ -47,16 +47,16 @@ function check_disk_space() {
   return 0
 }
 
-# Use disk-backed temp directory to avoid tmpfs/RAM size limits in /tmp
-if [ -d "/var/tmp" ] && check_disk_space "/var/tmp" 20; then
-  TEMP_DIR=$(mktemp -d /var/tmp/opnsense-vm.XXXXXX)
-elif [ -d "/tmp" ] && check_disk_space "/tmp" 20; then
-  TEMP_DIR=$(mktemp -d)
-else
-  # Fallback: try /var/tmp anyway, disk space check will catch it later
+TEMP_DIR=$(mktemp -d)
+if ! check_disk_space "$TEMP_DIR" 20 && [ -d "/var/tmp" ] && check_disk_space "/var/tmp" 20; then
+  rm -rf "$TEMP_DIR"
   TEMP_DIR=$(mktemp -d /var/tmp/opnsense-vm.XXXXXX)
 fi
-pushd $TEMP_DIR >/dev/null
+pushd "$TEMP_DIR" >/dev/null
+
+vm_preflight
+vm_require_tools xz
+
 function send_line_to_vm() {
   echo -e "${DGN}Sending line: ${YW}$1${CL}"
   for ((i = 0; i < ${#1}; i++)); do
@@ -131,6 +131,131 @@ function get_available_bridges() {
   ip -o link show type bridge 2>/dev/null | awk -F': ' '{print $2}' | sort
 }
 
+function validate_ip_octets() {
+  local octet='(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])'
+  [[ "$1" =~ ^${octet}\.${octet}\.${octet}\.${octet}$ ]]
+}
+
+function prompt_router_input() {
+  local var_name="$1" title="$2" prompt="$3" default_value="$4" value
+  if vm_dialog inputbox "$title" "$prompt" 8 58 "$default_value" --cancel-button Exit-Script; then
+    value="$VM_DIALOG_RESULT"
+    printf -v "$var_name" '%s' "$value"
+  else
+    exit_script
+  fi
+}
+
+function prompt_optional_static_ip() {
+  local ip_var="$1" gw_var="$2" mask_var="$3" prefix="$4" ip_value gw_value mask_value
+  prompt_router_input "$ip_var" "${prefix} IP ADDRESS" "Set a ${prefix} IP" "${!ip_var:-}"
+  ip_value="${!ip_var}"
+  if [ -z "$ip_value" ]; then
+    echo -e "${DGN}Using DHCP AS ${prefix} IP ADDRESS${CL}"
+    return 0
+  fi
+  if ! validate_ip_octets "$ip_value"; then
+    msg_error "Invalid IP Address format for ${prefix} IP. Needs to be 0.0.0.0, was $ip_value"
+    exit 1
+  fi
+  echo -e "${DGN}Using ${prefix} IP ADDRESS: ${BGN}$ip_value${CL}"
+
+  prompt_router_input "$gw_var" "${prefix} GATEWAY IP ADDRESS" "Set a ${prefix} GATEWAY IP" "${!gw_var:-}"
+  gw_value="${!gw_var}"
+  if [ -z "$gw_value" ]; then
+    msg_error "${prefix} gateway is required for a static IP."
+    exit 1
+  fi
+  if ! validate_ip_octets "$gw_value"; then
+    msg_error "Invalid IP Address format for ${prefix} Gateway. Needs to be 0.0.0.0, was $gw_value"
+    exit 1
+  fi
+  echo -e "${DGN}Using ${prefix} GATEWAY ADDRESS: ${BGN}$gw_value${CL}"
+
+  prompt_router_input "$mask_var" "${prefix} NETMASK" "Set a ${prefix} netmask (24 for example)" "${!mask_var:-}"
+  mask_value="${!mask_var}"
+  if [ -z "$mask_value" ]; then
+    msg_error "${prefix} netmask is required for a static IP."
+    exit 1
+  fi
+  if [[ ! "$mask_value" =~ ^[0-9]+$ || "$mask_value" -lt 1 || "$mask_value" -gt 32 ]]; then
+    msg_error "Invalid ${prefix} NETMASK format. Needs to be 1-32, was $mask_value"
+    exit 1
+  fi
+  echo -e "${DGN}Using ${prefix} NETMASK: ${BGN}$mask_value${CL}"
+}
+
+function prompt_router_mac() {
+  local var_name="$1" title="$2" prompt="$3" default_value="$4" label="$5" value
+  prompt_router_input "$var_name" "$title" "$prompt" "$default_value"
+  value="${!var_name}"
+  [[ -n "$value" ]] || value="$default_value"
+  printf -v "$var_name" '%s' "$value"
+  if ! validate_mac_address "$value"; then
+    msg_error "Invalid ${label}: $value"
+    exit 1
+  fi
+  echo -e "${DGN}Using ${label}: ${BGN}$value${CL}"
+}
+
+function select_network_mode() {
+  local available_bridges bridge_count default_wan_brg
+  available_bridges=$(get_available_bridges)
+  bridge_count=$(echo "$available_bridges" | wc -l)
+  default_wan_brg=$(echo "$available_bridges" | grep -v "^${BRG}$" | head -n1 || true)
+
+  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
+    WAN_BRG="${VM_WAN_BRIDGE:-}"
+  elif [ "$bridge_count" -ge 2 ]; then
+    if vm_dialog radiolist "NETWORK CONFIGURATION" --cancel-button Exit-Script \
+      "Choose network setup mode for OPNsense:\n" 14 70 2 \
+      "dual" "Dual Interface (Firewall/Router) - uses ${default_wan_brg}" ON \
+      "single" "Single Interface (Proxy/VPN/IDS Server)" OFF; then
+      if [ "$VM_DIALOG_RESULT" = "dual" ]; then
+        WAN_BRG="$default_wan_brg"
+        echo -e "${DGN}Network Mode: ${BGN}Dual Interface (Firewall)${CL}"
+        echo -e "${DGN}Using WAN Bridge: ${BGN}${WAN_BRG}${CL}"
+        echo -e "${DGN}Using WAN MAC Address: ${BGN}${WAN_MAC}${CL}"
+      else
+        echo -e "${DGN}Network Mode: ${BGN}Single Interface (Proxy/VPN/IDS)${CL}"
+        WAN_BRG=""
+      fi
+    else
+      exit_script
+    fi
+  else
+    echo -e "${DGN}Network Mode: ${BGN}Single Interface (Proxy/VPN/IDS)${CL}"
+    echo -e "${YW}  (Only one bridge detected, dual interface requires a second bridge)${CL}"
+    WAN_BRG=""
+  fi
+}
+
+function prompt_wan_bridge() {
+  local wan_bridges wan_menu=() first=true brg
+  wan_bridges=$(get_available_bridges | grep -v "^${BRG}$" || true)
+  if [ -z "$wan_bridges" ]; then
+    WAN_BRG=""
+    msg_warn "Only one bridge is available; using single-interface mode."
+    return 0
+  fi
+  while IFS= read -r brg; do
+    if $first; then
+      wan_menu+=("$brg" "" "ON")
+      first=false
+    else
+      wan_menu+=("$brg" "" "OFF")
+    fi
+  done <<<"$wan_bridges"
+
+  if vm_dialog radiolist "WAN BRIDGE" "Select WAN Bridge" 14 58 6 "${wan_menu[@]}"; then
+    WAN_BRG="$VM_DIALOG_RESULT"
+    [[ -n "$WAN_BRG" ]] || WAN_BRG=$(echo "$wan_bridges" | head -n1)
+    echo -e "${DGN}Using WAN Bridge: ${BGN}$WAN_BRG${CL}"
+  else
+    exit_script
+  fi
+}
+
 function default_settings() {
   vm_apply_machine_type "i440fx"
   VMID=$(get_valid_nextid)
@@ -157,12 +282,6 @@ function default_settings() {
   START_VM="yes"
   METHOD="default"
 
-  # Detect available bridges
-  local AVAILABLE_BRIDGES
-  AVAILABLE_BRIDGES=$(get_available_bridges)
-  local BRIDGE_COUNT
-  BRIDGE_COUNT=$(echo "$AVAILABLE_BRIDGES" | wc -l)
-
   echo -e "${DGN}Using Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${DGN}Using Hostname: ${BGN}${HN}${CL}"
   echo -e "${DGN}Allocated Cores: ${BGN}${CORE_COUNT}${CL}"
@@ -175,50 +294,14 @@ function default_settings() {
   fi
   echo -e "${DGN}Using LAN VLAN: ${BGN}Default${CL}"
   echo -e "${DGN}Using LAN MAC Address: ${BGN}${MAC}${CL}"
-
-  # Determine available network modes based on bridge count
-  local DEFAULT_WAN_BRG
-  DEFAULT_WAN_BRG=$(echo "$AVAILABLE_BRIDGES" | grep -v "^${BRG}$" | head -n1 || true)
-
-  if [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
-    WAN_BRG="${VM_WAN_BRIDGE:-}"
-  elif [ "$BRIDGE_COUNT" -ge 2 ]; then
-    # Multiple bridges available - offer dual or single mode
-    if NETWORK_MODE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "NETWORK CONFIGURATION" --radiolist --cancel-button Exit-Script \
-      "Choose network setup mode for OPNsense:\n" 14 70 2 \
-      "dual" "Dual Interface (Firewall/Router) - uses ${DEFAULT_WAN_BRG}" ON \
-      "single" "Single Interface (Proxy/VPN/IDS Server)" OFF \
-      3>&1 1>&2 2>&3); then
-      if [ "$NETWORK_MODE" = "dual" ]; then
-        WAN_BRG="$DEFAULT_WAN_BRG"
-        echo -e "${DGN}Network Mode: ${BGN}Dual Interface (Firewall)${CL}"
-        echo -e "${DGN}Using WAN Bridge: ${BGN}${WAN_BRG}${CL}"
-        echo -e "${DGN}Using WAN MAC Address: ${BGN}${WAN_MAC}${CL}"
-      else
-        echo -e "${DGN}Network Mode: ${BGN}Single Interface (Proxy/VPN/IDS)${CL}"
-        WAN_BRG=""
-      fi
-    else
-      exit_script
-    fi
-  else
-    # Only one bridge available - single interface mode only
-    echo -e "${DGN}Network Mode: ${BGN}Single Interface (Proxy/VPN/IDS)${CL}"
-    echo -e "${YW}  (Only one bridge detected, dual interface requires a second bridge)${CL}"
-    WAN_BRG=""
-  fi
+  select_network_mode
   echo -e "${DGN}Using Interface MTU Size: ${BGN}Default${CL}"
   echo -e "${DGN}Start VM when completed: ${BGN}yes${CL}"
   echo -e "${BL}Creating a OPNsense VM using the above default settings${CL}"
 }
 
 function advanced_settings() {
-  local octet='(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])'
-  local ip_regex="^${octet}\.${octet}\.${octet}\.${octet}$"
   METHOD="advanced"
-  vm_prompt_disk_size "20G"
-  vm_prompt_verbose "no"
-  vm_prompt_start_vm "yes"
   IP_ADDR=""
   WAN_IP_ADDR=""
   LAN_GW=""
@@ -227,266 +310,38 @@ function advanced_settings() {
   WAN_NETMASK=""
   VLAN=""
   MTU=""
-  [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
-  while true; do
-    if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z "$VMID" ]; then
-        VMID=$(get_valid_nextid)
-      fi
-      if pct status "$VMID" &>/dev/null || qm status "$VMID" &>/dev/null; then
-        echo -e "${CROSS}${RD} ID $VMID is already in use${CL}"
-        sleep 2
-        continue
-      fi
-      echo -e "${DGN}Virtual Machine ID: ${BGN}$VMID${CL}"
-      break
-    else
-      exit_script
-    fi
-  done
+  vm_prompt_disk_size "20G"
+  vm_prompt_verbose "no"
+  vm_prompt_start_vm "yes"
+  vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
+  vm_prompt_machine_type "i440fx"
+  vm_prompt_cpu_model "kvm64"
+  vm_prompt_disk_cache "none"
+  vm_prompt_hostname "opnsense"
+  vm_prompt_cpu_cores "4"
+  vm_prompt_ram "8192"
 
-  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Type" 10 58 2 \
-    "i440fx" "Machine i440fx" ON \
-    "q35" "Machine q35" OFF \
-    3>&1 1>&2 2>&3); then
-    if [ $MACH = q35 ]; then
-      echo -e "${DGN}Using Machine Type: ${BGN}$MACH${CL}"
-      FORMAT=""
-      MACHINE=" -machine q35"
-    else
-      echo -e "${DGN}Using Machine Type: ${BGN}$MACH${CL}"
-      FORMAT=",efitype=4m"
-      MACHINE=""
-    fi
-  else
-    exit_script
+  prompt_router_input "BRG" "LAN BRIDGE" "Set a LAN Bridge" "vmbr0"
+  [[ -n "$BRG" ]] || BRG="vmbr0"
+  if ! ip link show "${BRG}" &>/dev/null; then
+    msg_error "Bridge '${BRG}' does not exist"
+    exit 1
   fi
-  vm_apply_machine_type "$MACH"
+  echo -e "${DGN}Using LAN Bridge: ${BGN}$BRG${CL}"
 
-  if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "KVM64 (Default)" ON \
-    "1" "Host" OFF \
-    3>&1 1>&2 2>&3); then
-    if [ $CPU_TYPE1 = "1" ]; then
-      echo -e "${DGN}Using CPU Model: ${BGN}Host${CL}"
-      CPU_TYPE=" -cpu host"
-    else
-      echo -e "${DGN}Using CPU Model: ${BGN}KVM64${CL}"
-      CPU_TYPE=""
-    fi
-  else
-    exit_script
-  fi
-
-  if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "None (Default)" ON \
-    "1" "Write Through" OFF \
-    3>&1 1>&2 2>&3); then
-    if [ $DISK_CACHE = "1" ]; then
-      echo -e "${DGN}Using Disk Cache: ${BGN}Write Through${CL}"
-      DISK_CACHE="cache=writethrough,"
-    else
-      echo -e "${DGN}Using Disk Cache: ${BGN}None${CL}"
-      DISK_CACHE=""
-    fi
-  else
-    exit_script
-  fi
-
-  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 opnsense --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    if [ -z "$VM_NAME" ]; then
-      HN="opnsense"
-    else
-      HN=$(echo "${VM_NAME,,}" | tr -cs 'a-z0-9-' '-' | sed 's/^-//;s/-$//')
-      if [ "$HN" != "${VM_NAME,,}" ]; then
-        whiptail --backtitle "Proxmox VE Helper Scripts" --title "HOSTNAME ADJUSTED" --msgbox "Invalid characters detected. Hostname has been adjusted to:\n\n  $HN" 10 58
-      fi
-    fi
-    echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
-  else
-    exit_script
-  fi
-
-  while true; do
-    if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 4 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z "$CORE_COUNT" ]; then CORE_COUNT="4"; fi
-      if [[ "$CORE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
-        echo -e "${DGN}Allocated Cores: ${BGN}$CORE_COUNT${CL}"
-        break
-      fi
-      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "CPU Cores must be a positive integer (e.g., 4)." 8 58
-    else
-      exit_script
-    fi
-  done
-
-  while true; do
-    if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 8192 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z "$RAM_SIZE" ]; then RAM_SIZE="8192"; fi
-      if [[ "$RAM_SIZE" =~ ^[1-9][0-9]*$ ]]; then
-        echo -e "${DGN}Allocated RAM: ${BGN}$RAM_SIZE${CL}"
-        break
-      fi
-      whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID INPUT" --msgbox "RAM Size must be a positive integer in MiB (e.g., 8192)." 8 58
-    else
-      exit_script
-    fi
-  done
-
-  if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN Bridge" 8 58 vmbr0 --title "LAN BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    if [ -z $BRG ]; then
-      BRG="vmbr0"
-    fi
-    if ! ip link show "${BRG}" &>/dev/null; then
-      msg_error "Bridge '${BRG}' does not exist"
-      exit 1
-    fi
-    echo -e "${DGN}Using LAN Bridge: ${BGN}$BRG${CL}"
-  else
-    exit_script
-  fi
-
-  if IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN IP" 8 58 "${IP_ADDR:-}" --title "LAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    if [ -z $IP_ADDR ]; then
-      echo -e "${DGN}Using DHCP AS LAN IP ADDRESS${CL}"
-    else
-      if [[ -n "$IP_ADDR" && ! "$IP_ADDR" =~ $ip_regex ]]; then
-        msg_error "Invalid IP Address format for LAN IP. Needs to be 0.0.0.0, was $IP_ADDR"
-        exit 1
-      fi
-      echo -e "${DGN}Using LAN IP ADDRESS: ${BGN}$IP_ADDR${CL}"
-      if LAN_GW=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN GATEWAY IP" 8 58 "${LAN_GW:-}" --title "LAN GATEWAY IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-        if [ -z $LAN_GW ]; then
-          echo -e "${DGN}Gateway needs to be set if ip is not dhcp${CL}"
-          exit_script
-        fi
-        if [[ -n "$LAN_GW" && ! "$LAN_GW" =~ $ip_regex ]]; then
-          msg_error "Invalid IP Address format for Gateway. Needs to be 0.0.0.0, was $LAN_GW"
-          exit 1
-        fi
-        echo -e "${DGN}Using LAN GATEWAY ADDRESS: ${BGN}$LAN_GW${CL}"
-      else
-        exit_script
-      fi
-      if NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN netmask (24 for example)" 8 58 "${NETMASK:-}" --title "LAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-        if [ -z $NETMASK ]; then
-          msg_error "LAN netmask is required for a static IP."
-          exit 1
-        fi
-        if [[ -n "$NETMASK" && ! ("$NETMASK" =~ ^[0-9]+$ && "$NETMASK" -ge 1 && "$NETMASK" -le 32) ]]; then
-          msg_error "Invalid LAN NETMASK format. Needs to be 1-32, was $NETMASK"
-          exit 1
-        fi
-        echo -e "${DGN}Using LAN NETMASK: ${BGN}$NETMASK${CL}"
-      else
-        exit_script
-      fi
-    fi
-  else
-    exit_script
-  fi
-
-  # Build WAN bridge selection from available bridges (excluding LAN bridge)
-  local WAN_BRIDGES
-  WAN_BRIDGES=$(get_available_bridges | grep -v "^${BRG}$" || true)
-  if [ -z "$WAN_BRIDGES" ]; then
-    WAN_BRG=""
-    msg_warn "Only one bridge is available; using single-interface mode."
-  else
-    local WAN_MENU=()
-    local first=true
-    while IFS= read -r brg; do
-      if $first; then
-        WAN_MENU+=("$brg" "" "ON")
-        first=false
-      else
-        WAN_MENU+=("$brg" "" "OFF")
-      fi
-    done <<<"$WAN_BRIDGES"
-
-    if WAN_BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "WAN BRIDGE" --radiolist "Select WAN Bridge" 14 58 6 \
-      "${WAN_MENU[@]}" 3>&1 1>&2 2>&3); then
-      if [ -z "$WAN_BRG" ]; then
-        WAN_BRG=$(echo "$WAN_BRIDGES" | head -n1)
-      fi
-      echo -e "${DGN}Using WAN Bridge: ${BGN}$WAN_BRG${CL}"
-    else
-      exit_script
-    fi
-  fi
-
+  prompt_optional_static_ip "IP_ADDR" "LAN_GW" "NETMASK" "LAN"
+  prompt_wan_bridge
   if [[ -n "$WAN_BRG" ]]; then
-    if WAN_IP_ADDR=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN IP" 8 58 "${WAN_IP_ADDR:-}" --title "WAN IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-      if [ -z $WAN_IP_ADDR ]; then
-        echo -e "${DGN}Using DHCP AS WAN IP ADDRESS${CL}"
-      else
-        if [[ -n "$WAN_IP_ADDR" && ! "$WAN_IP_ADDR" =~ $ip_regex ]]; then
-          msg_error "Invalid IP Address format for WAN IP. Needs to be 0.0.0.0, was $WAN_IP_ADDR"
-          exit 1
-        fi
-        echo -e "${DGN}Using WAN IP ADDRESS: ${BGN}$WAN_IP_ADDR${CL}"
-        if WAN_GW=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN GATEWAY IP" 8 58 "${WAN_GW:-}" --title "WAN GATEWAY IP ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-          if [ -z $WAN_GW ]; then
-            echo -e "${DGN}Gateway needs to be set if ip is not dhcp${CL}"
-            exit_script
-          fi
-          if [[ -n "$WAN_GW" && ! "$WAN_GW" =~ $ip_regex ]]; then
-            msg_error "Invalid IP Address format for WAN Gateway. Needs to be 0.0.0.0, was $WAN_GW"
-            exit 1
-          fi
-          echo -e "${DGN}Using WAN GATEWAY ADDRESS: ${BGN}$WAN_GW${CL}"
-        else
-          exit_script
-        fi
-        if WAN_NETMASK=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN netmask (24 for example)" 8 58 "${WAN_NETMASK:-}" --title "WAN NETMASK" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-          if [ -z $WAN_NETMASK ]; then
-            msg_error "WAN netmask is required for a static IP."
-            exit 1
-          fi
-          if [[ -n "$WAN_NETMASK" && ! ("$WAN_NETMASK" =~ ^[0-9]+$ && "$WAN_NETMASK" -ge 1 && "$WAN_NETMASK" -le 32) ]]; then
-            msg_error "Invalid WAN NETMASK format. Needs to be 1-32, was $WAN_NETMASK"
-            exit 1
-          fi
-          echo -e "${DGN}Using WAN NETMASK: ${BGN}$WAN_NETMASK${CL}"
-        else
-          exit_script
-        fi
-      fi
-    else
-      exit_script
-    fi
+    prompt_optional_static_ip "WAN_IP_ADDR" "WAN_GW" "WAN_NETMASK" "WAN"
   fi
-  if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a LAN MAC Address" 8 58 $GEN_MAC --title "LAN MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    if [ -z $MAC1 ]; then
-      MAC="$GEN_MAC"
-    else
-      MAC="$MAC1"
-    fi
-    if ! validate_mac_address "$MAC"; then
-      msg_error "Invalid LAN MAC address: $MAC"
-      exit 1
-    fi
-    echo -e "${DGN}Using LAN MAC Address: ${BGN}$MAC${CL}"
+  prompt_router_mac "MAC" "LAN MAC ADDRESS" "Set a LAN MAC Address" "$GEN_MAC" "LAN MAC address"
+  if [[ -n "$WAN_BRG" ]]; then
+    prompt_router_mac "WAN_MAC" "WAN MAC ADDRESS" "Set a WAN MAC Address" "$GEN_MAC_LAN" "WAN MAC address"
   else
-    exit_script
+    WAN_MAC="$GEN_MAC_LAN"
   fi
 
-  if MAC2=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a WAN MAC Address" 8 58 $GEN_MAC_LAN --title "WAN MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-    if [ -z $MAC2 ]; then
-      WAN_MAC="$GEN_MAC_LAN"
-    else
-      WAN_MAC="$MAC2"
-    fi
-    if ! validate_mac_address "$WAN_MAC"; then
-      msg_error "Invalid WAN MAC address: $WAN_MAC"
-      exit 1
-    fi
-    echo -e "${DGN}Using WAN MAC Address: ${BGN}$WAN_MAC${CL}"
-  else
-    exit_script
-  fi
-
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create OPNsense VM?" --no-button Do-Over 10 58); then
+  if vm_confirm_advanced_settings "Ready to create OPNsense VM?"; then
     echo -e "${RD}Creating a OPNsense VM using the above advanced settings${CL}"
   else
     header_info
@@ -495,35 +350,18 @@ function advanced_settings() {
   fi
 }
 
-vm_preflight
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 4 CPU Cores\n• 8 GB RAM\n• 20 GB Disk" 13 58
 post_to_api_vm
 
 vm_select_storage "$HN"
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the OPNsense Qcow2 Disk Image"
-# Use latest stable FreeBSD amd64 qcow2 VM image matching FREEBSD_MAJOR
-RELEASE_LIST="$(curl -s https://download.freebsd.org/releases/VM-IMAGES/ |
-  grep -Eo "${FREEBSD_MAJOR}\.[0-9]+-RELEASE" |
-  sort -Vr |
-  uniq)"
-URL=""
-FREEBSD_VER=""
-for ver in $RELEASE_LIST; do
-  # FreeBSD 15+ publishes separate -ufs/-zfs images instead of a generic one
-  for variant in "" "-ufs" "-zfs"; do
-    candidate="https://download.freebsd.org/releases/VM-IMAGES/${ver}/amd64/Latest/FreeBSD-${ver}-amd64${variant}.qcow2.xz"
-    if curl -fsI "$candidate" >/dev/null 2>&1; then
-      FREEBSD_VER="$ver"
-      URL="$candidate"
-      break 2
-    fi
-  done
-done
-if [ -z "$URL" ]; then
-  msg_error "Could not find a FreeBSD ${FREEBSD_MAJOR}.x amd64 qcow2 image."
-  exit 115
-fi
+vm_latest_from_index "https://download.freebsd.org/releases/VM-IMAGES/" "${FREEBSD_MAJOR}\.[0-9]+-RELEASE" \
+  --probe "https://download.freebsd.org/releases/VM-IMAGES/{}/amd64/Latest/FreeBSD-{}-amd64.qcow2.xz" \
+  --probe "https://download.freebsd.org/releases/VM-IMAGES/{}/amd64/Latest/FreeBSD-{}-amd64-ufs.qcow2.xz" \
+  --probe "https://download.freebsd.org/releases/VM-IMAGES/{}/amd64/Latest/FreeBSD-{}-amd64-zfs.qcow2.xz" || exit 115
+FREEBSD_VER="$VM_INDEX_LATEST"
+URL="$VM_INDEX_URL"
 msg_ok "Download URL: ${CL}${BL}${URL}${CL}"
 
 # Check available disk space (require at least 20GB for safety)
@@ -551,10 +389,11 @@ if ! check_disk_space "$TEMP_DIR" 15; then
   exit 214
 fi
 
-FILE=FreeBSD.qcow2
-vm_extract_image "$CACHE_FILE" "$TEMP_DIR/$FILE" || exit 115
+FILE="$TEMP_DIR/FreeBSD.qcow2"
+vm_extract_image "$CACHE_FILE" "$FILE" || exit 115
+FILE="$VM_IMAGE_FILE"
 
-vm_define_disk_references 2
+vm_define_disk_references 1
 
 msg_info "Creating a OPNsense VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
@@ -578,10 +417,10 @@ while :; do
   echo -e "$alloc_err" >&2
   exit 220
 done
-qm importdisk "$VMID" "$FILE" "$STORAGE" --format "$DISK_IMPORT_FORMAT" >/dev/null
+vm_import_disk "$VMID" "$FILE" "$STORAGE"
 qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \
-  -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=2G \
+  -scsi0 "${VM_IMPORTED_DISK}",${DISK_CACHE}${THIN}size=2G \
   -boot order=scsi0 \
   -serial0 socket \
   -tags community-script >/dev/null
@@ -727,13 +566,20 @@ else
   msg_ok "OPNsense VM is running"
 fi
 
-post_update_to_api "done" "none"
-msg_ok "VM creation completed; verify the guest bootstrap and network configuration in the console."
-echo "OPNsense console login after successful bootstrap: root / opnsense. Change the password."
 if [ "$IP_ADDR" != "" ]; then
-  echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-  echo -e "${TAB}${GATEWAY}${BGN}http://${IP_ADDR}${CL}"
+  LAN_URL="http://${IP_ADDR}"
 else
-  echo -e "${INFO}${YW} LAN IP was DHCP.${CL}"
-  echo -e "${INFO}${BGN}To find the IP login to the VM shell${CL}"
+  LAN_URL="DHCP - check the OPNsense console or your leases"
 fi
+
+vm_print_summary \
+  "LAN URL=${LAN_URL}" \
+  "LAN Bridge=${BRG}" \
+  "WAN Bridge=${WAN_BRG:-single-interface mode}" \
+  "OPNsense Version=${var_version}" \
+  "FreeBSD Base=${FREEBSD_VER}"
+vm_next_steps \
+  "Verify the guest bootstrap and network configuration in the OPNsense console." \
+  "Login as root with password opnsense after successful bootstrap, then change the password immediately." \
+  "Keep WAN and LAN isolated appropriately; single-interface mode is intended for proxy, VPN, or IDS use cases."
+vm_finish "VM creation completed; verify the guest bootstrap and network configuration in the console."

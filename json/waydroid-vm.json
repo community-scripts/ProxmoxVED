@@ -38,7 +38,7 @@
             "type": "info"
         },
         {
-            "text": "Waydroid + Weston are pre-installed when offline customization succeeds; otherwise first-boot installation runs after Cloud-Init. Check journalctl -u waydroid-firstboot -f. After installation run sudo waydroid init, start waydroid-container, then start weston --backend=headless in the background and use WAYLAND_DISPLAY=wayland-0 waydroid show-full-ui.",
+            "text": "Waydroid + Weston are pre-installed when offline customization succeeds; otherwise the waydroid-firstboot.service first-boot unit runs after Cloud-Init. Follow it with tail -f /var/log/waydroid-install.log. After installation run sudo waydroid init, start waydroid-container, then start weston --backend=headless in the background and use WAYLAND_DISPLAY=wayland-0 waydroid show-full-ui.",
             "type": "info"
         },
         {

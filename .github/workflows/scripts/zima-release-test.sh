@@ -11,39 +11,100 @@ selection="$(awk '/^msg_info "Retrieving the URL for the ZimaOS installer"$/ {ke
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf -- "$TEST_DIR"' EXIT
 EVENTS="$TEST_DIR/events"
-HN=zimaos CL="" BL="" MINIMUM_SIZE=$((1024 * 1024 * 1024))
-ISO_SIZE=1739614208
+HN=zimaos CL="" BL=""
+MINIMUM_SIZE=$((1024 * 1024 * 1024))
+SHA256="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 msg_info() { echo "INFO $*"; }
 msg_ok() { echo "OK $*"; }
 msg_warn() { echo "WARN $*"; }
 msg_error() { echo "ERROR $*"; }
+vm_release_asset() {
+  [[ "$1" == github && "$2" == IceWhaleTech/ZimaOS && "$3" == 'zimaos-x86_64-.*_installer\.iso$' ]] || {
+    echo "Wrong release lookup arguments: $*" >&2
+    exit 1
+  }
+  [[ $# -eq 3 ]] || {
+    echo "ZimaOS should use the latest release lookup without an explicit tag" >&2
+    exit 1
+  }
+  case "$MODE" in
+  beta | stable)
+    local asset="zimaos-x86_64-${VERSION}_installer.iso"
+    [[ "$asset" =~ $3 ]] || {
+      echo "Release regex does not match $asset" >&2
+      exit 1
+    }
+    VM_RELEASE_TAG="$VERSION"
+    VM_RELEASE_VERSION="$VERSION"
+    VM_RELEASE_ASSET="$asset"
+    VM_RELEASE_URL="https://github.com/IceWhaleTech/ZimaOS/releases/download/${VERSION}/${asset}"
+    VM_RELEASE_SHA256="$SHA256"
+    ;;
+  release-error)
+    msg_error "Could not read the latest release of IceWhaleTech/ZimaOS"
+    return 1
+    ;;
+  no-asset)
+    msg_error "IceWhaleTech/ZimaOS ${VERSION} has no asset matching $3"
+    return 1
+    ;;
+  *)
+    echo "Unknown scenario: $MODE" >&2
+    exit 1
+    ;;
+  esac
+}
 vm_select_iso_storage() {
   printf 'selected %s\n' "$1" >>"$EVENTS"
   ISO_PATH="$TEST_DIR/$1"
 }
 vm_fetch_image() {
-  [[ "$1" == *"/zimaos-x86_64-${VERSION}_installer.iso" && "$2" == "$ISO_PATH" ]] ||
-    {
-      echo "Wrong ISO URL/path" >&2
-      exit 1
-    }
-  [[ "$3:$4" == "--cache:--min-bytes" ]] || exit 1
-  ((MINIMUM_SIZE <= $5 && $5 <= ISO_SIZE)) || {
-    echo "Valid official ISO rejected by size threshold" >&2
+  local url="$1"
+  [[ "$url" == "https://github.com/IceWhaleTech/ZimaOS/releases/download/${VERSION}/zimaos-x86_64-${VERSION}_installer.iso" && "$2" == "$ISO_PATH" ]] || {
+    echo "Wrong ISO URL/path" >&2
     exit 1
   }
-  printf 'downloaded %s\n' "$1" >>"$EVENTS"
+  shift 2
+  local cache=0 min_bytes="" sha256=""
+  while (($#)); do
+    case "$1" in
+    --cache)
+      cache=1
+      shift
+      ;;
+    --min-bytes)
+      min_bytes="$2"
+      shift 2
+      ;;
+    --sha256)
+      sha256="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unexpected vm_fetch_image argument: $1" >&2
+      exit 1
+      ;;
+    esac
+  done
+  ((cache == 1)) || {
+    echo "Missing --cache" >&2
+    exit 1
+  }
+  [[ "$min_bytes" == "$MINIMUM_SIZE" ]] || {
+    echo "Wrong min-bytes threshold: $min_bytes" >&2
+    exit 1
+  }
+  [[ "$sha256" == "$SHA256" ]] || {
+    echo "Wrong sha256 argument: $sha256" >&2
+    exit 1
+  }
+  printf 'downloaded %s\n' "$url" >>"$EVENTS"
 }
 curl() {
-  [[ "$*" == *"https://api.github.com/repos/IceWhaleTech/ZimaOS/releases/latest"* ]] || exit 1
-  [[ "$MODE" != api-error ]] || return 22
-  local tag="$VERSION" iso="zimaos-x86_64-${VERSION}_installer.iso"
-  [[ "$MODE" != no-tag ]] || tag=""
-  [[ "$MODE" != no-iso ]] || iso="not-an-installer.txt"
-  printf '{"tag_name":"%s","prerelease":false,"assets":[{"browser_download_url":"https://github.com/IceWhaleTech/ZimaOS/releases/download/%s/zimaos-x86_64-%s.raucb"},{"browser_download_url":"https://github.com/IceWhaleTech/ZimaOS/releases/download/%s/zimaos-x86_64-%s_installer.img"},{"browser_download_url":"https://github.com/IceWhaleTech/ZimaOS/releases/download/%s/%s"}]}\n' \
-    "$tag" "$VERSION" "$VERSION" "$VERSION" "$VERSION" "$VERSION" "$iso"
+  echo "The harmonized ZimaOS release block should not call curl directly: $*" >&2
+  exit 1
 }
-for scenario in beta stable api-error no-tag no-iso; do
+for scenario in beta stable release-error no-asset; do
   VERSION=1.8.0-beta2 MODE="$scenario"
   [[ "$scenario" != stable ]] || VERSION=1.7.1
   : >"$EVENTS"

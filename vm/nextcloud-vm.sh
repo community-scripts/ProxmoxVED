@@ -33,7 +33,7 @@ trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 vm_require_arch amd64
 
 TEMP_DIR=$(mktemp -d)
-pushd $TEMP_DIR >/dev/null
+pushd "$TEMP_DIR" >/dev/null
 
 function default_settings() {
   vm_apply_machine_type "i440fx"
@@ -79,7 +79,6 @@ function advanced_settings() {
   fi
 }
 
-
 vm_preflight
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 2 GB RAM\n• 10 GB Disk" 13 58
 
@@ -102,11 +101,12 @@ vm_mark_created
 set_description
 
 msg_ok "Created a ${APP} ${CL}${BL}(${HN})"
-if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting ${APP}"
-  $STD qm start $VMID
-  msg_ok "Started ${APP}"
-fi
-post_update_to_api "done" "none"
-msg_ok "VM created; complete the TurnKey installation in the Proxmox console."
-echo "Set credentials in the installer. After installation, detach the ISO: qm set $VMID --ide2 none"
+vm_start_vm "$APP"
+vm_print_summary "Version=TurnKey Nextcloud ${var_version}" "Installer=$(basename "$URL")" "Web UI=https://<VM-IP>/" "Webmin=https://<VM-IP>:12321/"
+vm_next_steps \
+  "Open the VM Console in Proxmox and complete the TurnKey installer." \
+  "Set the root, Nextcloud admin, and database credentials when prompted." \
+  "After installation, detach the ISO: qm set ${VMID} --ide2 none." \
+  "Start or reboot the VM, then open https://<VM-IP>/ for Nextcloud." \
+  "Manage the appliance through Webmin at https://<VM-IP>:12321/."
+vm_finish "VM created; complete the TurnKey Nextcloud installation in the Proxmox console."

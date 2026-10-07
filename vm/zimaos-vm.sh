@@ -87,23 +87,13 @@ post_to_api_vm
 vm_select_storage "$HN"
 
 msg_info "Retrieving the URL for the ZimaOS installer"
-RELEASE_API="https://api.github.com/repos/IceWhaleTech/ZimaOS/releases/latest"
-if ! RELEASE_JSON="$(curl -fsSL "$RELEASE_API")"; then
-  msg_error "Could not query the latest ZimaOS release from GitHub"
+if ! vm_release_asset github IceWhaleTech/ZimaOS 'zimaos-x86_64-.*_installer\.iso$'; then
   exit 1
 fi
-URL=$(echo "$RELEASE_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]*/zimaos-x86_64-[^"]+_installer\.iso' | head -1)
-if [[ -z "$URL" ]]; then
-  msg_error "No x86_64 ZimaOS installer ISO found in the latest GitHub release"
-  exit 1
-fi
-
-FILENAME="$(basename "$URL")"
-ZIMAOS_VERSION="$(echo "$RELEASE_JSON" | grep -oP '"tag_name":\s*"\K[^"]+' | head -1 || true)"
-if [[ -z "$ZIMAOS_VERSION" ]]; then
-  msg_error "The latest ZimaOS release has no version tag"
-  exit 1
-fi
+URL="$VM_RELEASE_URL"
+FILENAME="$VM_RELEASE_ASSET"
+ZIMAOS_VERSION="$VM_RELEASE_VERSION"
+var_version="$ZIMAOS_VERSION"
 vm_select_iso_storage "$FILENAME" "$HN"
 CACHE_FILE="$ISO_PATH"
 msg_ok "ZimaOS ${CL}${BL}${ZIMAOS_VERSION}${CL}"
@@ -111,7 +101,7 @@ msg_ok "ZimaOS ${CL}${BL}${ZIMAOS_VERSION}${CL}"
 msg_warn "Downloading ZimaOS installer (approximately 2 GB, this may take a while)"
 # Official installers such as 1.8.0-beta2 are smaller than 2 GiB.
 MIN_ISO_BYTES=$((1024 * 1024 * 1024))
-vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" || exit 115
+vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" --sha256 "$VM_RELEASE_SHA256" || exit 115
 
 msg_info "Creating a ZimaOS VM"
 $STD qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
@@ -122,33 +112,13 @@ vm_mark_created
 set_description
 msg_ok "Created a ZimaOS VM ${CL}${BL}(${HN})"
 
-if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting ZimaOS VM"
-  $STD qm start $VMID
-  msg_ok "Started ZimaOS VM"
-fi
-
-post_update_to_api "done" "none"
-
-echo -e "\n${INFO}${BOLD}${GN}ZimaOS VM Configuration Summary:${CL}"
-echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
-echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
-echo -e "${TAB}${DGN}Version: ${BGN}${ZIMAOS_VERSION}${CL}"
-echo -e "${TAB}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-
-echo -e "\n${INFO}${BOLD}${YW}Next Steps:${CL}"
-echo -e "${TAB}1. Open the VM Console in Proxmox"
-echo -e "${TAB}2. Follow the installer and select ${BL}scsi0${CL} as the target disk"
-echo -e "${TAB}3. When it says ${BL}Remove Disk and Reboot${CL}, just reboot -- the boot"
-echo -e "${TAB}   order prefers the disk, so the installed system wins from here on"
-echo -e "${TAB}4. Detach the ISO afterwards to tidy up (Hardware -> CD/DVD -> Remove)"
-
-echo -e "\n${INFO}${BOLD}${YW}Finding the VM:${CL}"
-echo -e "${TAB}ZimaOS does not print its IP on the console. Read it from the"
-echo -e "${TAB}Proxmox summary once the guest agent is up, or use ${BL}https://find.zimaspace.com${CL}."
-
-echo -e "\n${INFO}${BOLD}${GN}Storage:${CL}"
-echo -e "${TAB}For a real NAS, add a second disk in Proxmox and let ZimaOS"
-echo -e "${TAB}manage it. Keeping data off the system disk survives reinstalls."
-
-msg_ok "Completed successfully!\n"
+vm_start_vm "ZimaOS VM"
+vm_print_summary "Version=${ZIMAOS_VERSION}" "ISO=${FILENAME}" "Discovery=https://find.zimaspace.com"
+vm_next_steps \
+  "Open the VM Console in Proxmox." \
+  "Follow the installer and select scsi0 as the target disk." \
+  "When prompted to remove the disk and reboot, reboot; the boot order prefers the disk." \
+  "Detach the ISO afterwards (Hardware -> CD/DVD -> Remove)." \
+  "Read the IP from the Proxmox summary once the guest agent is up, or use https://find.zimaspace.com." \
+  "For NAS use, add a second disk in Proxmox and let ZimaOS manage it."
+vm_finish "VM created; complete the ZimaOS installation in the Proxmox console."

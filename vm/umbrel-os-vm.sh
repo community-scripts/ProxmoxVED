@@ -34,7 +34,7 @@ trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 vm_require_arch amd64
 
 TEMP_DIR=$(mktemp -d)
-pushd $TEMP_DIR >/dev/null
+pushd "$TEMP_DIR" >/dev/null
 
 function default_settings() {
   vm_apply_machine_type "q35"
@@ -80,13 +80,11 @@ function advanced_settings() {
   fi
 }
 
-
 vm_preflight
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 4 GB RAM\n• 32 GB Disk" 13 58
 post_to_api_vm
 
 vm_select_storage "$HN"
-
 
 msg_info "Retrieving the URL for the Umbrel OS installer ISO"
 UMBREL_RELEASE="$(curl -fsSL --max-time 20 https://api.umbrel.com/latest-release 2>/dev/null |
@@ -133,22 +131,17 @@ else
   KEEP_IMAGE="no"
 fi
 
-if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting Umbrel OS VM"
-  $STD qm start $VMID
-  msg_ok "Started Umbrel OS VM"
-fi
-post_update_to_api "done" "none"
-
-echo -e "\n${INFO}${BOLD}${YW}Next Steps:${CL}"
-echo -e "${TAB}1. Open the VM console in Proxmox (noVNC)"
-echo -e "${TAB}2. The installer asks which storage device to install umbrelOS on."
-echo -e "${TAB}   Pick the ${BL}sda${CL} entry -- ${BL}sr0${CL} is the installer ISO itself"
-echo -e "${TAB}3. Confirm, wait for it to finish, then press a key to power off"
-echo -e "${TAB}4. Detach the ISO (${BL}qm set ${VMID} --ide2 none${CL}) and start the VM"
-echo -e "${TAB}5. umbrelOS is then reachable at ${BL}http://umbrel.local${CL}"
+vm_start_vm "Umbrel OS VM"
+vm_print_summary "Version=${UMBREL_RELEASE}" "ISO=${ISO_NAME}" "Onboarding=http://umbrel.local"
+next_steps=(
+  "Open the VM console in Proxmox (noVNC)."
+  "When the installer asks for storage, pick sda; sr0 is the installer ISO."
+  "Confirm, wait for installation to finish, then press a key to power off."
+  "Detach the ISO (qm set ${VMID} --ide2 none) and start the VM."
+  "Finish onboarding at http://umbrel.local."
+)
 if [[ "$KEEP_IMAGE" == "no" ]]; then
-  echo -e "${TAB}   Delete ${BL}${CACHE_FILE}${CL} once the ISO is detached"
+  next_steps+=("After detaching the ISO, delete ${CACHE_FILE}.")
 fi
-
-msg_ok "Completed successfully!\n"
+vm_next_steps "${next_steps[@]}"
+vm_finish "VM created; complete the umbrelOS installation in the Proxmox console."

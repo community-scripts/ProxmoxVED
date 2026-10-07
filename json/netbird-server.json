@@ -36,7 +36,7 @@
   },
   "notes": [
     {
-      "text": "Default settings use Debian 13; Advanced settings offer other base OS versions. Shared Cloud-Init configures credentials/networking. NetBird domain/proxy settings are required application configuration after VM settings; unattended deployment requires VM_NETBIRD_DOMAIN. Setup is staged for first boot: monitor journalctl -u netbird-setup -f.",
+      "text": "Default settings use Debian 13; Advanced settings offer other Debian/Ubuntu cloud images. Shared Cloud-Init configures credentials/networking when enabled. NetBird domain/proxy settings are required after VM settings; unattended deployment requires VM_NETBIRD_DOMAIN. Setup is staged with the netbird-setup.service first-boot unit; follow it with tail -f /var/log/netbird-setup.log. If Docker cannot be pre-installed, install-docker.service runs first and logs to /var/log/install-docker.log.",
       "type": "info"
     },
     {

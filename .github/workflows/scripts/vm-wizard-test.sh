@@ -115,9 +115,41 @@ fi
 [[ -r "$CORE" ]] || fail "Core checkout missing: $CORE"
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf -- "$TEST_DIR"' EXIT
+
+# The layout every VM script shares. Each rule names the Core helper that
+# replaces the hand-rolled variant it forbids. Comments are ignored.
+check_structure() {
+  local script="$1" name code
+  name="$(basename "$script")"
+  code="$(grep -v '^[[:space:]]*#' "$script")"
+  forbid() { ! grep -Eq -- "$1" <<<"$code" || fail "$name: $2"; }
+  require() { grep -Eq -- "$1" <<<"$code" || fail "$name: $2"; }
+
+  require '^source <\(curl -fsSL "\$\{COMMUNITY_SCRIPTS_CORE_URL:-https://raw\.githubusercontent\.com/community-scripts/core/main\}/pve/vm-core\.func"\)$' \
+    "load Core through COMMUNITY_SCRIPTS_CORE_URL/pve/vm-core.func"
+  forbid '^(function +)?header_info *(\(\))? *\{' "drop the embedded banner; Core's header_info draws headers/vm/<slug>"
+  require '^APP_TYPE="vm"$' "set APP_TYPE=\"vm\""
+  require '^var_os=' "set var_os for telemetry"
+  require '^var_version=' "set var_version for telemetry"
+  require '^TEMP_DIR=\$\(mktemp -d\)$' "work in TEMP_DIR=\$(mktemp -d)"
+  forbid '(^|[^_[:alnum:]-])whiptail[[:space:]]' "use vm_dialog instead of whiptail"
+  forbid 'qm +(importdisk|disk +import)' "use vm_import_disk"
+  forbid 'virt-customize +-' "use vm_customize, vm_prepare_cloud_image or vm_firstboot_unit"
+  forbid 'network-get-interfaces' "use vm_wait_for_ip (matches the NIC by MAC)"
+  forbid 'api\.github\.com' "use vm_release_asset"
+  forbid '(^|[^_[:alnum:]-])(gunzip|unxz)([[:space:]]|$)|xz +-d' "use vm_extract_image"
+  forbid 'post_update_to_api +"done"' "end with vm_finish, which reports done"
+  require '^vm_finish' "end with vm_finish"
+  require 'vm_print_summary' "print the closing block with vm_print_summary"
+}
+
 checked=0
 for script in "$VM_DIR"/*.sh; do
   [[ -f "$script" ]] || fail "No VM scripts found"
+  # ONLY="netbird-server waydroid-vm" limits a local run to those scripts.
+  if [[ -n "${ONLY:-}" && " ${ONLY} " != *" $(basename "$script" .sh) "* ]]; then continue; fi
+  check_structure "$script"
+  echo "PASS $(basename "$script") shared structure"
   for mode in default advanced unattended; do
     if bash "$0" --case "$script" "$mode" >"$TEST_DIR/output" 2>&1; then
       echo "PASS $(basename "$script") $mode"

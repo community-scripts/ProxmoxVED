@@ -69,15 +69,37 @@ vm_prompt_cloud_init() {
   fi
 }
 load_cloud_init_functions() { :; }
+vm_require_tools() { echo "tools $*" >>"$EVENTS"; }
+vm_wait_http() { echo "http $*" >>"$EVENTS"; }
+# Fixture releases. The asset regex a script passes must match the fixture's
+# file name, so a pattern that would match nothing upstream fails here too.
+vm_release_asset() {
+  local tag asset
+  echo "release $*" >>"$EVENTS"
+  case "$2" in
+  IceWhaleTech/ZimaOS) tag="1.8.0-beta2" asset="zimaos-x86_64-1.8.0-beta2_installer.iso" ;;
+  home-assistant/operating-system) tag="${4:-16.0}" asset="haos_generic-aarch64-${4:-16.0}.qcow2.xz" ;;
+  derailed/k9s) tag="v0.50.0" asset="k9s_Linux_amd64.tar.gz" ;;
+  *) echo "Unexpected release repository: $2" >&2; return 2 ;;
+  esac
+  [[ "$asset" =~ $3 ]] || { echo "Release pattern $3 does not match $asset" >&2; return 2; }
+  VM_RELEASE_TAG="$tag" VM_RELEASE_VERSION="${tag#v}" VM_RELEASE_ASSET="$asset"
+  VM_RELEASE_URL="https://example.invalid/$asset" VM_RELEASE_SHA256=""
+}
 setup_cloud_init() {
   echo "provision $*" >>"$EVENTS"
   CLOUDINIT_CRED_FILE="$CASE_DIR/credentials"
   echo "test-only generated password" >"$CLOUDINIT_CRED_FILE"
 }
 display_cloud_init_info() { echo "credentials $*" >>"$EVENTS"; }
+# Without the VM's MAC the lookup answers with a container bridge address, the
+# way the real guest agent lists docker0 first; scripts must pass $MAC.
 get_vm_ip() {
-  if [[ "$SCRIPT_SLUG" == netbird-server ]]; then
+  echo "ip-lookup $*" >>"$EVENTS"
+  if [[ -z "${3:-}" ]]; then
     echo "10.88.0.1"
+  elif [[ "${3,,}" == "${MAC,,}" ]]; then
+    echo "192.0.2.42"
   else
     return 1
   fi
@@ -96,7 +118,11 @@ vm_image_cache_path() {
   echo "$CASE_DIR/cache-$(basename "$1")"
 }
 vm_fetch_image() { printf 'mock-image' >"$2"; echo "fetch $1" >>"$EVENTS"; }
-vm_extract_image() { printf 'mock-image' >"$2"; }
+vm_extract_image() {
+  local target="${2:-$CASE_DIR/extracted-$(basename "${1%.*}")}"
+  printf 'mock-image' >"$target"
+  VM_IMAGE_FILE="$target"
+}
 vm_prepare_cloud_image() { echo "prepare $*" >>"$EVENTS"; }
 vm_expand_image() { echo "expand $*" >>"$EVENTS"; }
 vm_resize_disk() { echo "resize ${DISK_SIZE}" >>"$EVENTS"; }
@@ -180,7 +206,7 @@ curl() {
   *IceWhaleTech/ZimaOS*) payload='{"tag_name": "1.8.0-beta2", "assets":[{"browser_download_url": "https://example.invalid/zimaos-x86_64-1.8.0-beta2_installer.iso"}]}' ;;
   https://openwrt.org) payload='Current stable release - OpenWrt 25.12.0' ;;
   https://download.freebsd.org/releases/VM-IMAGES/) payload='15.0-RELEASE' ;;
-  *FreeBSD-*.qcow2.xz) return 0 ;;
+  *FreeBSD-*.qcow2.xz | *downloads.openwrt.org/releases/*) payload='mock-download' ;;
   *fw-update.ui.com*) payload='{"_embedded":{"firmware":[{"product":"unifi-os-server","platform":"linux-x64","version":"5.1.42","version_major":5,"version_minor":1,"version_patch":42,"_links":{"data":{"href":"https://example.invalid/unifi.bin"}}}]}}' ;;
   https://example.invalid/* | *k9s_Linux_*) payload='mock-download' ;;
   *) echo "Unexpected URL: $url" >&2; return 2 ;;
@@ -203,8 +229,11 @@ fail() {
 }
 checked=0
 failures_checked=0
+runs_checked=0
 for script in "$ROOT"/vm/*.sh; do
   slug="$(basename "$script" .sh)"
+  # ONLY="netbird-server waydroid-vm" limits a local run to those scripts.
+  if [[ -n "${ONLY:-}" && " ${ONLY} " != *" ${slug} "* ]]; then continue; fi
   SCRIPT_SLUG="$slug"
   export SCRIPT_SLUG
   arch=amd64
@@ -247,12 +276,17 @@ for script in "$ROOT"/vm/*.sh; do
       esac
       if [[ "$slug" == k3s-vm ]]; then
         last_custom="$(grep -n '^customize ' "$EVENTS" | tail -1 | cut -d: -f1)"
-        imported="$(grep -n '^qm importdisk ' "$EVENTS" | cut -d: -f1)"
+        imported="$(grep -nE '^qm (importdisk|disk import) [0-9]' "$EVENTS" | cut -d: -f1)"
         ((last_custom < imported)) || fail "K3s customized after import"
       fi
-      if [[ "$slug:$start" == netbird-server:yes ]]; then
-        grep -q 'VM IP: 192.0.2.42' "$CASE_DIR/output" || fail "NetBird selected a container bridge instead of the VM NIC"
+      ! grep -q '10\.88\.0\.1' "$CASE_DIR/output" || fail "$slug reported a container bridge address as the VM IP"
+      if awk '$1 == "ip-lookup" && NF < 4' "$EVENTS" | grep -q .; then
+        fail "$slug looked up the IP without the VM's MAC"
       fi
+      if [[ "$slug:$start" == netbird-server:yes ]]; then
+        grep -q '192\.0\.2\.42' "$CASE_DIR/output" || fail "NetBird did not report the VM NIC address"
+      fi
+      runs_checked=$((runs_checked + 1))
       echo "PASS $slug start=$start storage=$kind"
     done
   done
@@ -273,7 +307,11 @@ for script in "$ROOT"/vm/*.sh; do
     BASH_ENV="$MOCK" VM_UNATTENDED=1 VM_START=yes VM_NETBIRD_DOMAIN=netbird.example.invalid \
       VM_ARCH="$arch" STORAGE_KIND=dir FAILURE="$failure" \
       bash "$script" >"$CASE_DIR/output" 2>&1 || rc=$?
-    [[ "$rc" == 7 ]] || fail "$slug $failure returned $rc, expected 7"
+    # vm_import_disk turns qm's status into its own 1; every other step keeps
+    # the failing command's status.
+    expected_rc=7
+    [[ "$failure" != import ]] || expected_rc=1
+    [[ "$rc" == "$expected_rc" ]] || fail "$slug $failure returned $rc, expected $expected_rc"
     if [[ "$failure" == cache ]]; then
       ! grep -q '^qm create ' "$EVENTS" || fail "$slug continued after a failed command substitution"
     elif [[ "$slug:$failure" != unifi-os-server-vm:import ]]; then
@@ -286,4 +324,4 @@ for script in "$ROOT"/vm/*.sh; do
   done
   checked=$((checked + 1))
 done
-echo "All $checked VM scripts: $((checked * 6)) complete mocked runs and $failures_checked failure cases passed."
+echo "All $checked VM scripts: $runs_checked complete mocked runs and $failures_checked failure cases passed."

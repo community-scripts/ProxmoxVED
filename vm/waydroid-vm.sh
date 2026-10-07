@@ -9,33 +9,21 @@ COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.co
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
 load_functions
 
-function header_info {
-  clear
-  cat <<"EOF"
- __          __             _         _     _
- \ \        / /            | |       (_)   | |
-  \ \  /\  / /__ _ _  _  __| |_ __ ___  __| |
-   \ \/  \/ / _` | | | |/ _` | '__/ _ \/ _` |
-    \  /\  / (_| | |_| | (_| | | | (_) | (_| |
-     \/  \/ \__,_|\__, |\__,_|_|  \___/ \__,_|
-                   __/ |
-                  |___/   Android Container on Linux
-EOF
-}
-
 APP="Waydroid"
 APP_TYPE="vm"
+NSAPP="waydroid-vm"
+var_os="ubuntu"
+var_version="24.04"
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
-NSAPP="waydroid-vm"
 THIN="discard=on,ssd=1,"
 USE_CLOUD_INIT="no"
-
-# OS selection defaults
 OS_CHOICE="ubuntu2404"
 OS_LABEL="Ubuntu 24.04 LTS (Noble Numbat)"
 OS_CODENAME="noble"
+WAYDROID_PREINSTALLED="no"
+WAYDROID_FIRSTBOOT_MARKER=""
 
 header_info
 echo -e "\n Loading..."
@@ -54,20 +42,19 @@ TEMP_DIR=$(mktemp -d)
 pushd "$TEMP_DIR" >/dev/null
 
 vm_preflight
+vm_require_tools virt-customize jq
 
-# ---------------------------------------------------------------------------
-# OS Selection
-# ---------------------------------------------------------------------------
 function select_os() {
   if [[ -n "${1:-}" ]]; then
     OS_CHOICE="$1"
   elif [[ "${VM_UNATTENDED:-0}" == "1" ]]; then
     OS_CHOICE="${VM_OS_VERSION:-ubuntu2404}"
-  elif ! OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "OS SELECTION" \
-    --radiolist "Choose the base operating system:" --cancel-button Exit-Script 12 68 2 \
+  elif vm_dialog radiolist "OS SELECTION" \
+    "Choose the base operating system:" --cancel-button Exit-Script 12 68 2 \
     "ubuntu2404" "Ubuntu 24.04 LTS (Noble Numbat)" ON \
-    "debian13" "Debian 13 (Trixie)" OFF \
-    3>&1 1>&2 2>&3); then
+    "debian13" "Debian 13 (Trixie)" OFF; then
+    OS_CHOICE="$VM_DIALOG_RESULT"
+  else
     exit_script
   fi
 
@@ -75,10 +62,14 @@ function select_os() {
   ubuntu2404)
     OS_LABEL="Ubuntu 24.04 LTS (Noble Numbat)"
     OS_CODENAME="noble"
+    var_os="ubuntu"
+    var_version="24.04"
     ;;
   debian13)
     OS_LABEL="Debian 13 (Trixie)"
     OS_CODENAME="trixie"
+    var_os="debian"
+    var_version="13"
     ;;
   *)
     msg_error "Unsupported OS '${OS_CHOICE}' (expected ubuntu2404 or debian13)"
@@ -104,31 +95,15 @@ function default_settings() {
   MTU=""
   START_VM="yes"
   METHOD="default"
-
-  echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$(vm_machine_type_label "$MACHINE_TYPE")${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
-  echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
-  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
-  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
-  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
-  echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
-  echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
-  echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
-  echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
-  echo -e "${CREATING}${BOLD}${DGN}Creating a ${OS_LABEL} Waydroid VM using the above default settings${CL}"
+  vm_echo_default_settings
 }
 
 function advanced_settings() {
   METHOD="advanced"
   select_os
-  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "q35"
-  vm_prompt_disk_size "${DISK_SIZE:-20G}" "Set Disk Size in GiB (min. 20 recommended)"
+  vm_prompt_disk_size "20G" "Set Disk Size in GiB (min. 20 recommended)"
   vm_prompt_disk_cache "none"
   vm_prompt_hostname "waydroid"
   vm_prompt_cpu_model "host"
@@ -150,7 +125,6 @@ function advanced_settings() {
   fi
 }
 
-
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 4 CPU Cores\n• 4 GB RAM\n• 20 GB Disk" 13 58
 CLOUDINIT_REQUIRED=1
 if [[ "$OS_CHOICE" == "debian13" ]]; then
@@ -166,151 +140,105 @@ post_to_api_vm
 
 vm_select_storage "$HN"
 vm_define_disk_references 2
-DISK_IMPORT="-format ${DISK_IMPORT_FORMAT}"
 
-# ---------------------------------------------------------------------------
-# Prerequisites: libguestfs-tools for virt-customize
-# ---------------------------------------------------------------------------
-if ! command -v virt-customize &>/dev/null; then
-  msg_info "Installing libguestfs-tools"
-  $STD apt update
-  $STD apt install -y libguestfs-tools lsb-release
-  msg_ok "Installed libguestfs-tools"
-fi
-
-# ---------------------------------------------------------------------------
-# Download cloud image (cached)
-# ---------------------------------------------------------------------------
 case "$OS_CHOICE" in
 ubuntu2404) URL="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img" ;;
 debian13) URL="https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-generic-amd64.qcow2" ;;
 esac
 
 msg_info "Retrieving the URL for the ${OS_LABEL} Cloud Image"
-sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 
 CACHE_FILE="$(vm_image_cache_path "$URL")"
-
 MIN_IMAGE_BYTES=$((100 * 1024 * 1024))
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_IMAGE_BYTES" || exit 115
 
-# ---------------------------------------------------------------------------
-# Customize disk image with Waydroid pre-installed (offline via virt-customize)
-# ---------------------------------------------------------------------------
 WORK_FILE="$TEMP_DIR/waydroid.qcow2"
 cp "$CACHE_FILE" "$WORK_FILE"
 
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
-WAYDROID_PREINSTALLED="no"
 BASE_PREINSTALLED="no"
-
-# Ubuntu ships binder_linux only in linux-modules-extra-generic
 BASE_PKGS="curl,ca-certificates,qemu-guest-agent,weston"
 [[ "$OS_CHOICE" == "ubuntu2404" ]] && BASE_PKGS="${BASE_PKGS},linux-modules-extra-generic"
 
 msg_info "Installing prerequisites in image"
-if virt-customize -q -a "$WORK_FILE" \
-  --install "$BASE_PKGS" >/dev/null 2>&1; then
+if vm_customize "Waydroid prerequisites" "$WORK_FILE" --install "$BASE_PKGS"; then
   BASE_PREINSTALLED="yes"
   msg_ok "Installed prerequisites"
 else
-  msg_warn "Package pre-install failed — will retry on first boot"
+  msg_warn "Package pre-install failed; Waydroid installation is pending on first boot."
 fi
 
-msg_info "Installing Waydroid in image (Patience)"
-if [[ "$BASE_PREINSTALLED" == "yes" ]] && virt-customize -q -a "$WORK_FILE" \
-  --run-command "curl -fsSL https://repo.waydro.id | bash -s ${OS_CODENAME}" >/dev/null 2>&1 &&
-  virt-customize -q -a "$WORK_FILE" \
-    --run-command "apt-get install -y waydroid" >/dev/null 2>&1 &&
-  virt-customize -q -a "$WORK_FILE" \
-    --run-command "systemctl enable waydroid-container" >/dev/null 2>&1; then
+msg_info "Installing Waydroid in image"
+if [[ "$BASE_PREINSTALLED" == "yes" ]] &&
+  vm_customize "Waydroid" "$WORK_FILE" \
+    --run-command "bash -o pipefail -c 'curl -fsSL https://repo.waydro.id | bash -s ${OS_CODENAME}'" \
+    --run-command "apt-get install -y waydroid" \
+    --run-command "systemctl enable waydroid-container"; then
   WAYDROID_PREINSTALLED="yes"
   msg_ok "Installed Waydroid"
 else
-  msg_warn "Waydroid pre-install failed — will install on first boot via systemd service"
+  msg_warn "Waydroid pre-install failed; installation is pending on first boot."
 fi
 
-msg_info "Configuring binder kernel module"
-virt-customize -q -a "$WORK_FILE" \
-  --run-command "echo 'binder_linux' >> /etc/modules" >/dev/null
-virt-customize -q -a "$WORK_FILE" \
-  --run-command "echo 'options binder_linux devices=binder,hwbinder,vndbinder' > /etc/modprobe.d/waydroid.conf" >/dev/null
-msg_ok "Configured binder kernel module"
+vm_customize "Waydroid binder module" "$WORK_FILE" \
+  --run-command "grep -qxF binder_linux /etc/modules || echo 'binder_linux' >> /etc/modules" \
+  --run-command "echo 'options binder_linux devices=binder,hwbinder,vndbinder' > /etc/modprobe.d/waydroid.conf" || exit 1
 
-msg_info "Finalizing image"
 vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
-if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  virt-customize -q -a "$WORK_FILE" \
-    --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null
-  virt-customize -q -a "$WORK_FILE" \
-    --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null
-fi
-msg_ok "Finalized image"
 
-# Fallback: write a first-boot systemd service in case virt-customize failed
-if [ "$WAYDROID_PREINSTALLED" = "no" ]; then
-  msg_info "Writing first-boot Waydroid install service (fallback)"
-  virt-customize -q -a "$WORK_FILE" --run-command "cat > /usr/local/bin/waydroid-firstboot.sh << 'FSCRIPT'
-#!/bin/bash
-set -euo pipefail
+if [[ "$WAYDROID_PREINSTALLED" == "no" ]]; then
+  WAYDROID_FIRSTBOOT_TMP="$TEMP_DIR/waydroid-firstboot.sh"
+  cat >"$WAYDROID_FIRSTBOOT_TMP" <<FIRSTBOOT
+#!/usr/bin/env bash
+set -Eeuo pipefail
 exec >> /var/log/waydroid-install.log 2>&1
-echo \"[\$(date)] Starting Waydroid installation\"
-for i in \$(seq 1 30); do ping -c1 8.8.8.8 >/dev/null 2>&1 && break; sleep 2; done
+
+echo "[\$(date)] Starting Waydroid installation"
+for _ in {1..30}; do
+  ping -c1 8.8.8.8 >/dev/null 2>&1 && break
+  sleep 2
+done
+
 apt-get update
 apt-get install -y curl ca-certificates qemu-guest-agent weston
-# Install binder_linux kernel module for Ubuntu
 if grep -qi ubuntu /etc/os-release; then
-  apt-get install -y linux-modules-extra-\$(uname -r) || apt-get install -y linux-modules-extra-generic
+  apt-get install -y "linux-modules-extra-\$(uname -r)" || apt-get install -y linux-modules-extra-generic
 fi
-curl -fsSL https://repo.waydro.id | bash -s ${OS_CODENAME}
+bash -o pipefail -c "curl -fsSL https://repo.waydro.id | bash -s ${OS_CODENAME}"
 apt-get install -y waydroid
-echo 'binder_linux' >> /etc/modules
+grep -qxF binder_linux /etc/modules || echo 'binder_linux' >> /etc/modules
 echo 'options binder_linux devices=binder,hwbinder,vndbinder' > /etc/modprobe.d/waydroid.conf
 systemctl enable --now waydroid-container
-touch /var/lib/waydroid-installed
-systemctl disable waydroid-firstboot.service
-echo \"[\$(date)] Waydroid installation complete\"
-FSCRIPT
-chmod +x /usr/local/bin/waydroid-firstboot.sh" >/dev/null
+echo "[\$(date)] Waydroid installation complete"
+FIRSTBOOT
 
-  virt-customize -q -a "$WORK_FILE" --run-command "cat > /etc/systemd/system/waydroid-firstboot.service << 'FSVC'
-[Unit]
-Description=Waydroid First Boot Installation
-After=network-online.target cloud-final.service
-Wants=network-online.target cloud-final.service
-ConditionPathExists=!/var/lib/waydroid-installed
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/waydroid-firstboot.sh
-RemainAfterExit=yes
-
-[Install]
-WantedBy=cloud-init.target
-FSVC
-systemctl enable waydroid-firstboot.service" >/dev/null
-  msg_ok "Wrote first-boot fallback service"
+  vm_firstboot_unit "$WORK_FILE" waydroid-firstboot "$WAYDROID_FIRSTBOOT_TMP" \
+    --description "Waydroid first boot installation" \
+    --cloud-init yes || exit 1
+  WAYDROID_FIRSTBOOT_MARKER="$VM_FIRSTBOOT_MARKER"
 fi
 
-FILE="$WORK_FILE"
-
 msg_info "Creating a ${OS_LABEL} Waydroid VM"
-qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script,waydroid -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
+qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
+  -name "$HN" -tags community-script,waydroid -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 vm_mark_created
-pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
-qm importdisk $VMID $FILE $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
-qm set $VMID \
-  -efidisk0 ${DISK0_REF}${FORMAT} \
-  -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-  -boot order=scsi0 \
-  -serial0 socket >/dev/null
+
+vm_alloc_efi_disk "$DISK0"
+vm_import_disk "$VMID" "$WORK_FILE" "$STORAGE"
+
+DISK_OPTIONS="${DISK_CACHE}${THIN}"
+DISK_OPTIONS="${DISK_OPTIONS%,}"
+ROOT_DISK="$VM_IMPORTED_DISK"
+[[ -n "$DISK_OPTIONS" ]] && ROOT_DISK="${ROOT_DISK},${DISK_OPTIONS}"
+
+qm set "$VMID" \
+  --efidisk0 "${DISK0_REF}${FORMAT}" \
+  --scsi0 "$ROOT_DISK" \
+  --boot order=scsi0 \
+  --serial0 socket >/dev/null
+vm_resize_disk "scsi0" "$DISK_SIZE"
 set_description
-
-vm_resize_disk
-
-rm -f "$WORK_FILE"
 
 vm_provision "$VMID"
 if [[ -n "${CLOUDINIT_SSH_KEYS:-}" ]]; then
@@ -318,64 +246,30 @@ if [[ -n "${CLOUDINIT_SSH_KEYS:-}" ]]; then
 fi
 
 msg_ok "Created a ${OS_LABEL} Waydroid VM ${CL}${BL}(${HN})"
-if [ "$START_VM" = "yes" ]; then
-  msg_info "Starting Waydroid VM"
-  $STD qm start $VMID
-  msg_ok "Started Waydroid VM"
-fi
+vm_start_vm "Waydroid VM"
+vm_wait_for_ip 120 || true
 
-post_update_to_api "done" "none"
-msg_ok "Completed successfully!\n"
+display_cloud_init_info "$VMID" "$HN"
 
-if [ "$WAYDROID_PREINSTALLED" = "yes" ]; then
-  cat <<INSTRUCTIONS
-
-  ┌─────────────────────────────────────────────────────────────────────────┐
-  │                    WAYDROID IS PRE-INSTALLED                            │
-  ├─────────────────────────────────────────────────────────────────────────┤
-  │  Waydroid + Weston are already installed in the VM image.               │
-  │  After first boot, connect to the VM and run:                           │
-  │                                                                         │
-  │    1. Initialize (once):                                                │
-  │         sudo waydroid init                                              │
-  │         sudo systemctl start waydroid-container                         │
-  │                                                                         │
-  │    2. Start Wayland compositor + Android UI (each session):             │
-  │         weston --backend=headless &                                     │
-  │         WAYLAND_DISPLAY=wayland-0 waydroid show-full-ui                 │
-  │                                                                         │
-  │  NOTE: GPU acceleration requires VirtIO GPU or passthrough setup.       │
-  │  More info: https://docs.waydro.id/                                     │
-  └─────────────────────────────────────────────────────────────────────────┘
-
-INSTRUCTIONS
+if [[ "$WAYDROID_PREINSTALLED" == "yes" ]]; then
+  INSTALL_STATUS="Pre-installed"
+  FIRSTBOOT_STEP="Waydroid is pre-installed. Initialize it with: sudo waydroid init"
 else
-  cat <<INSTRUCTIONS
-
-  ┌─────────────────────────────────────────────────────────────────────────┐
-  │               WAYDROID FIRST-BOOT INSTALL ACTIVE                        │
-  ├─────────────────────────────────────────────────────────────────────────┤
-  │  Waydroid + Weston will be installed automatically on first boot.       │
-  │  Monitor progress inside the VM with:                                   │
-  │       sudo journalctl -u waydroid-firstboot -f                         │
-  │       sudo tail -f /var/log/waydroid-install.log                       │
-  │                                                                         │
-  │  After the service completes:                                           │
-  │    1. Initialize (once):                                                │
-  │         sudo waydroid init                                              │
-  │         sudo systemctl start waydroid-container                         │
-  │                                                                         │
-  │    2. Start Wayland compositor + Android UI (each session):             │
-  │         weston --backend=headless &                                     │
-  │         WAYLAND_DISPLAY=wayland-0 waydroid show-full-ui                 │
-  │                                                                         │
-  │  NOTE: GPU acceleration requires VirtIO GPU or passthrough setup.       │
-  │  More info: https://docs.waydro.id/                                     │
-  └─────────────────────────────────────────────────────────────────────────┘
-
-INSTRUCTIONS
+  INSTALL_STATUS="First-boot unit waydroid-firstboot.service${WAYDROID_FIRSTBOOT_MARKER:+ (${WAYDROID_FIRSTBOOT_MARKER})}"
+  FIRSTBOOT_STEP="Waydroid installation continues in the VM; follow it with tail -f /var/log/waydroid-install.log (unit status: systemctl status waydroid-firstboot)"
 fi
 
-if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f display_cloud_init_info >/dev/null 2>&1; then
-  display_cloud_init_info "$VMID" "$HN"
+vm_print_summary \
+  "OS=${OS_LABEL}" \
+  "Waydroid=${INSTALL_STATUS}" \
+  "Documentation=https://docs.waydro.id/"
+vm_next_steps \
+  "$FIRSTBOOT_STEP" \
+  "Start the container with: sudo systemctl start waydroid-container" \
+  "Run a headless session with: weston --backend=headless & WAYLAND_DISPLAY=wayland-0 waydroid show-full-ui"
+
+FINISH_MESSAGE="VM created. Waydroid installation continues in the VM on first boot."
+if [[ "$WAYDROID_PREINSTALLED" == "yes" ]]; then
+  FINISH_MESSAGE="VM created. Waydroid is pre-installed; initialize it after first boot."
 fi
+vm_finish "$FINISH_MESSAGE"
