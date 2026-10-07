@@ -86,9 +86,6 @@ post_to_api_vm
 vm_select_storage "$HN"
 
 msg_info "Retrieving the URL for the ZimaOS installer"
-
-# Older guides import a ready-made .img as the system disk. Since 1.x IceWhale
-# only ships an installer, so this boots the ISO and lets it write the disk.
 RELEASE_API="https://api.github.com/repos/IceWhaleTech/ZimaOS/releases/latest"
 RELEASE_JSON="$(curl -fsSL "$RELEASE_API" 2>/dev/null)"
 URL=$(echo "$RELEASE_JSON" | grep -oP '"browser_download_url":\s*"\K[^"]+_installer\.iso' | head -1)
@@ -99,9 +96,6 @@ if [[ -z "$URL" ]]; then
 fi
 
 FILENAME="$(basename "$URL")"
-# The tag is authoritative, and it is not always digits and dots: IceWhale
-# tags pre-releases such as 1.8.0-beta1 without setting the prerelease flag,
-# so releases/latest serves them and a numeric-only match finds nothing.
 ZIMAOS_VERSION="$(echo "$RELEASE_JSON" | grep -oP '"tag_name":\s*"\K[^"]+' | head -1 || true)"
 if [[ -z "$ZIMAOS_VERSION" ]]; then
   ZIMAOS_VERSION="unknown"
@@ -110,21 +104,15 @@ vm_select_iso_storage "$FILENAME" "$HN"
 CACHE_FILE="$ISO_PATH"
 msg_ok "ZimaOS ${CL}${BL}${ZIMAOS_VERSION}${CL}"
 
-# A redirect to an error page still returns 200, so the size decides whether
-# this is really an ISO, not curl's exit code.
-MIN_ISO_BYTES=$((1024 * 1024 * 1024))
-
 msg_warn "Downloading ZimaOS installer (approximately 2 GB, this may take a while)"
+MIN_ISO_BYTES=$((2 * 1024 * 1024 * 1024))
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" || exit 115
 
 msg_info "Creating a ZimaOS VM"
-# ZimaOS needs UEFI with Secure Boot off. pre-enrolled-keys=0 does that here,
-# which saves the manual trip through the OVMF device manager that the upstream
-# Proxmox guide describes. VirtIO SCSI single is what IceWhale documents.
-qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
+$STD qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-single \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
-  -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' -vga std -serial0 socket >/dev/null
+  -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' -vga std -serial0 socket
 set_description
 msg_ok "Created a ZimaOS VM ${CL}${BL}(${HN})"
 
