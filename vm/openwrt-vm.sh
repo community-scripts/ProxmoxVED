@@ -275,6 +275,7 @@ FILE="$TEMP_DIR/$(basename "${CACHE_FILE%.gz}")"
 vm_extract_image "$CACHE_FILE" "$FILE" || exit 115
 FILE="$VM_IMAGE_FILE"
 
+vm_claim_vmid
 msg_info "Creating OpenWrt VM"
 qm create $VMID -cores $CORE_COUNT -memory $RAM_SIZE -name $HN \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci --tablet 0 >/dev/null

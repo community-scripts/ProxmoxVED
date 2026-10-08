@@ -114,6 +114,7 @@ CACHE_FILE="$(vm_image_cache_path "$URL")"
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --verify-xz --min-bytes $((5 * 1024 * 1024)) --sha256 "$VM_RELEASE_SHA256" || exit 115
 vm_extract_image "$CACHE_FILE" "$TEMP_DIR/haos.qcow2"
 
+vm_claim_vmid
 msg_info "Creating HAOS VM"
 qm create "$VMID"${MACHINE} -agent 1 -bios ovmf -cores "$CORE_COUNT" -memory "$RAM_SIZE" -name "$HN" \
   -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci

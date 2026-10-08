@@ -103,6 +103,7 @@ msg_warn "Downloading ZimaOS installer (approximately 2 GB, this may take a whil
 MIN_ISO_BYTES=$((1024 * 1024 * 1024))
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" --sha256 "$VM_RELEASE_SHA256" || exit 115
 
+vm_claim_vmid
 msg_info "Creating a ZimaOS VM"
 $STD qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-single \

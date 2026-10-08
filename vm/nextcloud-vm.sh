@@ -92,6 +92,7 @@ msg_ok "${CL}${BL}${URL}${CL}"
 vm_select_iso_storage "$(basename "$URL")" "$HN"
 vm_fetch_image "$URL" "$ISO_PATH" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
 
+vm_claim_vmid
 msg_info "Creating a ${APP}"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios seabios${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci \

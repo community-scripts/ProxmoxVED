@@ -219,6 +219,7 @@ FIRSTBOOT
   WAYDROID_FIRSTBOOT_MARKER="$VM_FIRSTBOOT_MARKER"
 fi
 
+vm_claim_vmid
 msg_info "Creating a ${OS_LABEL} Waydroid VM"
 qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
   -name "$HN" -tags community-script,waydroid -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci

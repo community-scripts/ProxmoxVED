@@ -63,7 +63,7 @@ header_info
 echo -e "\n Loading..."
 
 function default_settings() {
-  select_os "${VM_OS_VERSION:-26.04}"
+  select_os "${VM_OS_VERSION:-}"
   VMID=$(get_valid_nextid)
   vm_apply_machine_type "q35"
   DISK_SIZE="7G"
@@ -151,6 +151,7 @@ if [[ "$USE_CLOUD_INIT" != "yes" ]]; then
   vm_expand_image "$FILE" "$DISK_SIZE"
 fi
 
+vm_claim_vmid
 msg_info "Creating a ${APP}"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
@@ -188,21 +189,13 @@ vm_wait_for_ip 120 || true
 
 if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f display_cloud_init_info >/dev/null 2>&1; then
   display_cloud_init_info "$VMID" "$HN"
-else
-  msg_warn "Cloud-Init is disabled. Configure guest networking and credentials manually."
 fi
 
 vm_print_summary \
   "Ubuntu Release=${var_version} (${UBUNTU_CODENAME})" \
-  "Cloud-Init=${USE_CLOUD_INIT}" \
-  "Cloud-Init Credentials=${CLOUDINIT_CRED_FILE:-}"
+  "Cloud-Init=${USE_CLOUD_INIT}"
 
-if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  vm_next_steps \
-    "Use the xterm.js console if noVNC is blank while the cloud image boots." \
-    "Cloud-Init may need a minute before login works." \
-    "Delete the credentials file after noting the password: ${CLOUDINIT_CRED_FILE:-<credentials-file>}"
-else
+if [ "$USE_CLOUD_INIT" != "yes" ]; then
   vm_next_steps \
     "Configure guest networking and credentials manually from the VM console." \
     "The root filesystem was expanded offline where host tools allowed it."

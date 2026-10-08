@@ -362,6 +362,7 @@ vm_firstboot_unit "$FILE" "unifi-os-firstboot" "$FIRSTBOOT_SCRIPT" \
 rm -f "$FIRSTBOOT_SCRIPT" "unifi-os-server.bin"
 msg_ok "Disk image customized (UniFi OS ${UOS_VERSION} staged for first-boot install)"
 
+vm_claim_vmid
 msg_info "Creating UniFi OS VM"
 qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf \
   ${CPU_TYPE} -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
@@ -415,20 +416,17 @@ vm_print_summary \
   "Operating System=${OS_DISPLAY}" \
   "UniFi OS Version=${UOS_VERSION}" \
   "Web Interface=https://${VM_IP:-<VM-IP>}:11443" \
-  "Console Login=${CLOUDINIT_USER:-root}" \
-  "Cloud-Init Credentials=${CLOUDINIT_CRED_FILE:-}"
+  "Console Login=${CLOUDINIT_USER:-root}"
 
 if [[ "$UNIFI_READY" == "yes" ]]; then
   vm_next_steps \
-    "Open https://${VM_IP}:11443 and complete UniFi OS setup." \
-    "Delete the Cloud-Init credentials file after noting the password: ${CLOUDINIT_CRED_FILE:-<credentials-file>}"
+    "Open https://${VM_IP}:11443 and complete UniFi OS setup."
   FINISH_MESSAGE="UniFi OS Server VM is ready."
 else
   vm_next_steps \
     "Wait for first-boot installation to complete in the VM: journalctl -u unifi-os-firstboot.service" \
     "Follow progress in /var/log/unifi-os-install.log inside the VM." \
-    "Open https://${VM_IP:-<VM-IP>}:11443 after the installer finishes." \
-    "Delete the Cloud-Init credentials file after noting the password: ${CLOUDINIT_CRED_FILE:-<credentials-file>}"
+    "Open https://${VM_IP:-<VM-IP>}:11443 after the installer finishes."
   if [[ "$FIRSTBOOT_DONE" == "yes" ]]; then
     FINISH_MESSAGE="VM provisioning completed; UniFi OS is installed, but web readiness was not confirmed yet."
   else
