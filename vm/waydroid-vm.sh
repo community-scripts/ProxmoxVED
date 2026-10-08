@@ -186,6 +186,31 @@ vm_customize "Waydroid binder module" "$WORK_FILE" \
   --run-command "grep -qxF binder_linux /etc/modules || echo 'binder_linux' >> /etc/modules" \
   --run-command "echo 'options binder_linux devices=binder,hwbinder,vndbinder' > /etc/modprobe.d/waydroid.conf" || exit 1
 
+# `weston` on the VM console opens Android full-screen and returns to the
+# console when it is closed; without an initialized Waydroid it opens a terminal.
+WESTON_INI_TMP="$TEMP_DIR/weston.ini"
+cat >"$WESTON_INI_TMP" <<'INI'
+[core]
+idle-time=0
+
+[autolaunch]
+path=/usr/local/bin/waydroid-ui
+watch=true
+INI
+WAYDROID_UI_TMP="$TEMP_DIR/waydroid-ui"
+cat >"$WAYDROID_UI_TMP" <<'UI'
+#!/bin/sh
+if waydroid status >/dev/null 2>&1; then
+  exec waydroid show-full-ui
+fi
+exec weston-terminal
+UI
+vm_customize "Waydroid UI launcher" "$WORK_FILE" \
+  --mkdir /etc/xdg/weston \
+  --upload "${WESTON_INI_TMP}:/etc/xdg/weston/weston.ini" \
+  --upload "${WAYDROID_UI_TMP}:/usr/local/bin/waydroid-ui" \
+  --chmod "0755:/usr/local/bin/waydroid-ui" || exit 1
+
 vm_prepare_cloud_image "$WORK_FILE" "$HN" || true
 
 if [[ "$WAYDROID_PREINSTALLED" == "no" ]]; then
@@ -193,6 +218,7 @@ if [[ "$WAYDROID_PREINSTALLED" == "no" ]]; then
   cat >"$WAYDROID_FIRSTBOOT_TMP" <<FIRSTBOOT
 #!/usr/bin/env bash
 set -Eeuo pipefail
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
 exec >> /var/log/waydroid-install.log 2>&1
 
 echo "[\$(date)] Starting Waydroid installation"
@@ -255,7 +281,7 @@ display_cloud_init_info "$VMID" "$HN"
 
 if [[ "$WAYDROID_PREINSTALLED" == "yes" ]]; then
   INSTALL_STATUS="Pre-installed"
-  FIRSTBOOT_STEP="Waydroid is pre-installed. Initialize it with: sudo waydroid init"
+  FIRSTBOOT_STEP="Waydroid is pre-installed."
 else
   INSTALL_STATUS="First-boot unit waydroid-firstboot.service${WAYDROID_FIRSTBOOT_MARKER:+ (${WAYDROID_FIRSTBOOT_MARKER})}"
   FIRSTBOOT_STEP="Waydroid installation continues in the VM; follow it with tail -f /var/log/waydroid-install.log (unit status: systemctl status waydroid-firstboot)"
@@ -267,8 +293,9 @@ vm_print_summary \
   "Documentation=https://docs.waydro.id/"
 vm_next_steps \
   "$FIRSTBOOT_STEP" \
-  "Start the container with: sudo systemctl start waydroid-container" \
-  "Run a headless session with: weston --backend=headless & WAYLAND_DISPLAY=wayland-0 waydroid show-full-ui"
+  "Download Android once: sudo waydroid init && sudo systemctl restart waydroid-container" \
+  "On the VM console (noVNC, not the serial console) log in and run: weston -- Android opens full-screen; closing it returns to the console." \
+  "Plain 'waydroid' opens a GTK settings window and needs that Weston session; use 'waydroid show-full-ui' inside it."
 
 FINISH_MESSAGE="VM created. Waydroid installation continues in the VM on first boot."
 if [[ "$WAYDROID_PREINSTALLED" == "yes" ]]; then

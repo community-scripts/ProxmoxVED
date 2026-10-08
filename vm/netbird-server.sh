@@ -345,6 +345,7 @@ if [[ "$DOCKER_PREINSTALLED" == "no" ]]; then
   cat >"$DOCKER_INSTALL_TMP" <<'DOCKEREOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
 exec > /var/log/install-docker.log 2>&1
 
 echo "[$(date)] Starting Docker installation"
