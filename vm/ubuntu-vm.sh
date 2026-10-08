@@ -133,7 +133,6 @@ fi
 post_to_api_vm
 vm_select_storage "$HN"
 vm_define_disk_references 2
-vm_define_disk_references 2
 
 msg_info "Retrieving the URL for the ${APP} Disk Image"
 UBUNTU_ARCH="$(vm_arch_resolve amd64 arm64)"
