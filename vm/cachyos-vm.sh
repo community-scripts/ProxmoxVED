@@ -125,7 +125,7 @@ msg_ok "${CL}${BL}CachyOS Desktop ISO (Release: ${CACHYOS_VERSION})${CL}"
 # decides whether this is an ISO, not curl's exit code.
 MIN_ISO_BYTES=$((500 * 1024 * 1024))
 
-msg_info "Downloading CachyOS ISO (approximately 3.1 GB, this may take a while)"
+[[ -s "$CACHE_FILE" ]] || msg_info "Downloading the CachyOS ISO (approximately 3.1 GB, this may take a while)"
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" || exit 115
 
 # ==============================================================================

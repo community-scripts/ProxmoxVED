@@ -99,7 +99,7 @@ vm_select_iso_storage "$FILENAME" "$HN"
 CACHE_FILE="$ISO_PATH"
 msg_ok "ZimaOS ${CL}${BL}${ZIMAOS_VERSION}${CL}"
 
-msg_warn "Downloading ZimaOS installer (approximately 2 GB, this may take a while)"
+[[ -s "$CACHE_FILE" ]] || msg_warn "Downloading the ZimaOS installer (approximately 2 GB, this may take a while)"
 # Official installers such as 1.8.0-beta2 are smaller than 2 GiB.
 MIN_ISO_BYTES=$((1024 * 1024 * 1024))
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" --sha256 "$VM_RELEASE_SHA256" || exit 115

@@ -117,7 +117,7 @@ msg_ok "BlissOS ${CL}${BL}${BLISS_VERSION}${CL} ${GN}(build ${BLISS_BUILD})"
 # decides whether this is an ISO, not curl's exit code. Learned from cachyos.
 MIN_ISO_BYTES=$((1024 * 1024 * 1024))
 
-msg_info "Downloading BlissOS (approximately 2 GB, this may take a while)"
+[[ -s "$CACHE_FILE" ]] || msg_info "Downloading BlissOS (approximately 2 GB, this may take a while)"
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" || exit 115
 
 msg_info "Creating a BlissOS VM"

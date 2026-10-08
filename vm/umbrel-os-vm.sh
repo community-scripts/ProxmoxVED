@@ -106,7 +106,7 @@ msg_ok "${CL}${BL}${URL}${CL}"
 
 # download.umbrel.com answers 307 for any name at all, so a redirect proves
 # nothing about the file existing. Size is what separates an ISO from a 404 page.
-msg_info "Downloading the Umbrel OS installer ISO (approximately 1.8 GB)"
+[[ -s "$CACHE_FILE" ]] || msg_info "Downloading the Umbrel OS installer ISO (approximately 1.8 GB)"
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes $((1024 * 1024 * 1024)) || exit 115
 
 msg_info "Creating a Umbrel OS VM"
