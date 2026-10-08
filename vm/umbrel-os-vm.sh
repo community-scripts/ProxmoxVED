@@ -112,7 +112,7 @@ msg_info "Creating a Umbrel OS VM"
 # Umbrel requires EFI: the installer ISO has no legacy boot path. Its own
 # console runs on tty1, so this VM is driven through noVNC, not the serial line.
 vm_claim_vmid
-qm create "$VMID"${MACHINE} -bios ovmf -agent enabled=1 -tablet 0 -localtime 1 ${CPU_TYPE} \
+qm create "$VMID"${MACHINE} -bios ovmf -agent enabled=1 -tablet 0 ${CPU_TYPE} \
   -cores "$CORE_COUNT" -memory "$RAM_SIZE" -name "$HN" -tags community-script \
   -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci \
   -efidisk0 "${STORAGE}:1,efitype=4m,pre-enrolled-keys=0" \

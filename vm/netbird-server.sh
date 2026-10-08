@@ -187,7 +187,7 @@ function get_image_url() {
 }
 
 function default_settings() {
-  select_os "${VM_OS_VERSION:-debian13}"
+  select_os "${VM_OS_VERSION:-}"
   vm_apply_machine_type "q35"
   VMID=$(get_valid_nextid)
   DISK_SIZE="10G"
@@ -389,7 +389,7 @@ NETBIRD_SETUP_MARKER="$VM_FIRSTBOOT_MARKER"
 
 vm_claim_vmid
 msg_info "Creating NetBird Server VM shell"
-qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
+qm create "$VMID" -agent 1${MACHINE} -tablet 0 -bios ovmf${CPU_TYPE} -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
   -name "$HN" -tags community-script -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci >/dev/null
 vm_mark_created
 msg_ok "Created VM shell"

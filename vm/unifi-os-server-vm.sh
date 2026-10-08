@@ -96,7 +96,7 @@ function get_image_url() {
 
 function default_settings() {
   vm_apply_machine_type "q35"
-  select_os "${VM_OS_VERSION:-debian13}"
+  select_os "${VM_OS_VERSION:-}"
 
   # Set defaults for other settings
   VMID=$(get_valid_nextid)
@@ -364,7 +364,7 @@ msg_ok "Disk image customized (UniFi OS ${UOS_VERSION} staged for first-boot ins
 
 vm_claim_vmid
 msg_info "Creating UniFi OS VM"
-qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf \
+qm create "$VMID" -agent 1${MACHINE} -tablet 0 -bios ovmf \
   ${CPU_TYPE} -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
   -name "$HN" -tags community-script \
   -net0 virtio,bridge="$BRG",macaddr="$MAC""$VLAN""$MTU" \
