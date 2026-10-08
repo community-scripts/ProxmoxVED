@@ -441,7 +441,7 @@ fi
 msg_ok "Bridge interfaces have been successfully added."
 
 msg_ok "Created a OPNsense VM ${CL}${BL}(${HN})"
-msg_ok "Starting OPNsense VM (Patience this takes 20-30 minutes)"
+msg_ok "Starting OPNsense VM (the bootstrap takes 10-30 minutes)"
 $STD qm start $VMID
 sleep 90
 send_line_to_vm "root"
@@ -512,7 +512,16 @@ while [ $build_stable -lt 6 ] && [ $build_elapsed -lt 2400 ]; do
     break
   fi
 done
-msg_warn "Console wait ended after $((build_elapsed / 60)) minutes; a static screen does not prove installation succeeded. Verify the OPNsense console."
+if [ $build_stable -ge 6 ]; then
+  msg_ok "OPNsense console settled after $((build_elapsed / 60)) minutes"
+else
+  msg_warn "The console did not settle within $((build_elapsed / 60)) minutes; continuing, verify the OPNsense console afterwards"
+fi
+# The answers below are matched to OPNsense's console dialog (setaddr.php).
+# One prompt ("via WAN tracking?") only appears when WAN has DHCP6, so a spare
+# "n" is sent for it; where it is absent, OPNsense re-asks the IPv6 address and
+# the following ENTER lands there. Invalid answers are re-asked, empty ones take
+# the default, which keeps the sequence safe in both dialog variants.
 send_line_to_vm "root"
 send_line_to_vm "opnsense"
 send_line_to_vm "2"
