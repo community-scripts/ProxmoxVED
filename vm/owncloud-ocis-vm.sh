@@ -259,7 +259,12 @@ if docker inspect ocis >/dev/null 2>&1; then
 fi
 
 # Every link oCIS hands out carries this address, so it has to be the VM's own.
-OCIS_IP="\$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \\([0-9.]*\\).*/\\1/p' | head -n1)"
+OCIS_IP=""
+for _ in {1..30}; do
+  OCIS_IP="\$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \\([0-9.]*\\).*/\\1/p' | head -n1)"
+  [ -n "\$OCIS_IP" ] && break
+  sleep 2
+done
 [ -n "\$OCIS_IP" ] || OCIS_IP="\$(hostname -I | awk '{print \$1}')"
 
 set -a
