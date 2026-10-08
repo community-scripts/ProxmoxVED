@@ -232,6 +232,7 @@ function advanced_settings() {
   vm_prompt_cpu_cores "1"
   vm_prompt_ram "256"
   vm_prompt_disk_size "1G"
+  vm_prompt_keyboard
   vm_prompt_verbose "no"
   prompt_router_input "BRG" "WAN BRIDGE" "Set a WAN Bridge" "vmbr0"
   echo -e "${DGN}Using WAN Bridge: ${BGN}$BRG${CL}"

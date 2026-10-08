@@ -311,6 +311,7 @@ function advanced_settings() {
   VLAN=""
   MTU=""
   vm_prompt_disk_size "20G"
+  vm_prompt_keyboard
   vm_prompt_verbose "no"
   vm_prompt_start_vm "yes"
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"

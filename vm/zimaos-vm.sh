@@ -69,6 +69,7 @@ function advanced_settings() {
   vm_prompt_mac "$GEN_MAC"
   vm_prompt_vlan
   vm_prompt_mtu
+  vm_prompt_keyboard
   vm_prompt_verbose "no"
   vm_prompt_start_vm "yes"
 
