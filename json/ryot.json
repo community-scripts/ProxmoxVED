@@ -50,7 +50,7 @@
       "type": "info"
     },
     {
-      "text": "Install and every update compile the Rust backend and the React frontend from source, which takes 30 to 60 minutes on 4 cores and up to 3 GB of RAM. The running app needs about 300 MB, so the RAM can be lowered after the install and raised again before an update.",
+      "text": "Install and every update compile the Rust backend and the React frontend from source, which takes about 30 minutes on 4 cores (longer on a busy host) and peaks at about 3 GB of RAM. The running app with PostgreSQL needs about 300 MB, so the RAM can be lowered after the install and raised again before an update.",
       "type": "info"
     }
   ]
