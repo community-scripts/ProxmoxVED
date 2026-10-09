@@ -25,7 +25,7 @@
       "config_path": "/opt/formbricks_data/.env",
       "resources": {
         "cpu": 4,
-        "ram": 10240,
+        "ram": 12288,
         "hdd": 20,
         "os": "Debian",
         "version": "13"
@@ -46,7 +46,7 @@
       "type": "info"
     },
     {
-      "text": "Install and every update build Formbricks from source with Turbopack, which takes about 20 minutes on 4 cores and needs the 10 GB of RAM. The running stack uses about 1.5 GB, so the RAM can be lowered to 3 GB after the install and raised again before an update.",
+      "text": "Install and every update compile Formbricks from source with Turbopack, which takes 15 to 30 minutes on 4 cores and peaks at about 9.5 GB of RAM, hence the 12 GB. The running stack needs about 1.5 GB, so the RAM can be lowered to 3 GB after the install and has to be raised again before an update.",
       "type": "info"
     },
     {
