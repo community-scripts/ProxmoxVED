@@ -45,7 +45,7 @@ function update_script() {
 
     msg_info "Building useSend"
     cd /opt/usesend
-    $STD pnpm install --frozen-lockfile --filter "web..." --filter smtp-server
+    PUPPETEER_SKIP_DOWNLOAD=true $STD pnpm install --frozen-lockfile --filter "web..." --filter smtp-server
     $STD pnpm --filter web db:generate
     SKIP_ENV_VALIDATION=true DOCKER_OUTPUT=1 NEXT_TELEMETRY_DISABLED=1 NEXT_PUBLIC_APP_VERSION="v$(cat ~/.usesend)" $STD pnpm --filter "web..." --filter smtp-server build
     cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/

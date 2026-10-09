@@ -36,5 +36,30 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "There is no default account. The first account registered at http://<IP>:8901 becomes the administrator, so create it right after the install. Later sign-ups have to be verified by the administrator before they can play anything.",
+      "type": "warning"
+    },
+    {
+      "text": "Visitors who are not logged in can browse the library but not play it (GUEST_CLAIMS in /opt/kyoo_data/.env). Set GUEST_CLAIMS= to require a login for everything, then run systemctl restart kyoo-auth.",
+      "type": "info"
+    },
+    {
+      "text": "The library is read from /opt/kyoo_data/media. Bind-mount your media there from the host, e.g. pct set <CTID> -mp0 /path/to/media,mp=/opt/kyoo_data/media, and make it readable for the container's root user. New files are picked up automatically; files on a network share that sends no change events show up after systemctl restart kyoo-scanner.",
+      "type": "info"
+    },
+    {
+      "text": "PUBLIC_URL and JWT_ISSUER in /opt/kyoo_data/.env must stay identical. Change both when Kyoo is reached under another address (needed for OIDC logins), then run systemctl restart kyoo-auth kyoo-api kyoo-scanner.",
+      "type": "info"
+    },
+    {
+      "text": "Hardware transcoding is configured from the GPU passed through at install time (GOCODER_HWACCEL=vaapi for Intel/AMD, nvidia for NVIDIA, disabled otherwise). Change it in /opt/kyoo_data/.env (qsv is also valid) and run systemctl restart kyoo-transcoder.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update compile Kyoo from source (Go, Bun, Python and the Expo web app), which takes 15-25 minutes on 4 cores and peaks at about 2.5 GB of RAM.",
+      "type": "info"
+    }
+  ]
 }

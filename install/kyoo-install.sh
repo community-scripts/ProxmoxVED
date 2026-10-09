@@ -115,8 +115,7 @@ chmod 600 /opt/kyoo_data/.env /opt/kyoo_data/keibi.pem
 msg_ok "Configured Kyoo"
 
 msg_info "Configuring Nginx"
-# Replaces upstream's Traefik: same routes, and auth_request plays its forwardAuth
-# "phantom token" middleware that swaps session tokens and API keys for a JWT.
+# Upstream's Traefik routes; auth_request replaces its forwardAuth that swaps tokens/API keys for a JWT.
 cat <<'EOF' >/etc/nginx/sites-available/kyoo
 map $http_upgrade $kyoo_connection_upgrade {
     default upgrade;

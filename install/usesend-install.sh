@@ -25,8 +25,8 @@ NODE_VERSION="22" NODE_MODULE="pnpm@$(jq -r '.packageManager | split("@")[1]' /o
 
 msg_info "Building useSend"
 cd /opt/usesend
-# Filtered, so the root devDependencies (Mintlify docs tooling with Puppeteer) are not installed
-$STD pnpm install --frozen-lockfile --filter "web..." --filter smtp-server
+# Puppeteer only comes with the docs tooling (Mintlify) in the root devDependencies; useSend never runs a browser
+PUPPETEER_SKIP_DOWNLOAD=true $STD pnpm install --frozen-lockfile --filter "web..." --filter smtp-server
 $STD pnpm --filter web db:generate
 SKIP_ENV_VALIDATION=true DOCKER_OUTPUT=1 NEXT_TELEMETRY_DISABLED=1 NEXT_PUBLIC_APP_VERSION="v$(cat ~/.usesend)" $STD pnpm --filter "web..." --filter smtp-server build
 cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/
