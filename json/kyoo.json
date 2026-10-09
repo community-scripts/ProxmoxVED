@@ -12,7 +12,7 @@
     "amd64",
     "arm64"
   ],
-  "interface_port": 8901,
+  "interface_port": 443,
   "documentation": "https://github.com/zoriya/Kyoo/blob/master/INSTALLING.md",
   "website": "https://kyoo.zoriya.dev/",
   "repository": "https://github.com/zoriya/Kyoo",
@@ -38,8 +38,20 @@
   },
   "notes": [
     {
-      "text": "There is no default account. The first account registered at http://<IP>:8901 becomes the administrator, so create it right after the install. Later sign-ups have to be verified by the administrator before they can play anything.",
+      "text": "Kyoo is served over HTTPS with a self-signed certificate (http:// redirects to it): open https://<IP> and accept the certificate warning. HTTPS is needed because the player's subtitle renderer uses SharedArrayBuffer, which browsers only allow on a secure page.",
+      "type": "info"
+    },
+    {
+      "text": "There is no default account. The first account registered at https://<IP> becomes the administrator, so create it right after the install. Later sign-ups have to be verified by the administrator before they can play anything.",
       "type": "warning"
+    },
+    {
+      "text": "Until the first video has been scanned and matched, the home page shows only \"Resource not found.\". That, and a 403 on /auth/users/me in the browser console when the settings page is opened while logged out, is how upstream Kyoo behaves with an empty library and guest access.",
+      "type": "info"
+    },
+    {
+      "text": "A login that answers \"Field validation for 'Login' failed on the 'required' tag\" reached Kyoo with empty fields, which happens when the browser autofills the form without the page noticing. Type or edit the username and password, then log in again.",
+      "type": "info"
     },
     {
       "text": "Visitors who are not logged in can browse the library but not play it (GUEST_CLAIMS in /opt/kyoo_data/.env). Set GUEST_CLAIMS= to require a login for everything, then run systemctl restart kyoo-auth.",
@@ -50,7 +62,7 @@
       "type": "info"
     },
     {
-      "text": "PUBLIC_URL and JWT_ISSUER in /opt/kyoo_data/.env must stay identical. Change both when Kyoo is reached under another address (needed for OIDC logins), then run systemctl restart kyoo-auth kyoo-api kyoo-scanner.",
+      "text": "PUBLIC_URL and JWT_ISSUER in /opt/kyoo_data/.env (https://<IP>) must stay identical. Change both when Kyoo is reached under another address, e.g. a domain behind a reverse proxy (needed for OIDC logins), then run systemctl restart kyoo-auth kyoo-api kyoo-scanner.",
       "type": "info"
     },
     {

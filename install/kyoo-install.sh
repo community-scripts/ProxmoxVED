@@ -72,8 +72,8 @@ intel | amd) KYOO_HWACCEL="vaapi" ;;
 *) KYOO_HWACCEL="disabled" ;;
 esac
 cat <<EOF >/opt/kyoo_data/.env
-PUBLIC_URL=http://${LOCAL_IP}:8901
-JWT_ISSUER=http://${LOCAL_IP}:8901
+PUBLIC_URL=https://${LOCAL_IP}
+JWT_ISSUER=https://${LOCAL_IP}
 EXTRA_OIDC_REDIRECT_URLS=kyoo
 
 PGHOST=127.0.0.1
@@ -115,7 +115,9 @@ chmod 600 /opt/kyoo_data/.env /opt/kyoo_data/keibi.pem
 msg_ok "Configured Kyoo"
 
 msg_info "Configuring Nginx"
+create_self_signed_cert "kyoo"
 # Upstream's Traefik routes; auth_request replaces its forwardAuth that swaps tokens/API keys for a JWT.
+# HTTPS so browsers honour COOP/COEP (SharedArrayBuffer for subtitles); 127.0.0.1:8901 is plain HTTP for the scanner.
 cat <<'EOF' >/etc/nginx/sites-available/kyoo
 map $http_upgrade $kyoo_connection_upgrade {
     default upgrade;
@@ -133,10 +135,20 @@ map $http_x_forwarded_host $kyoo_forwarded_host {
 }
 
 server {
-    listen 8901;
+    listen 80 default_server;
+    server_name _;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl default_server;
+    listen 127.0.0.1:8901;
     server_name _;
     charset utf-8;
     client_max_body_size 0;
+
+    ssl_certificate /etc/ssl/kyoo/kyoo.crt;
+    ssl_certificate_key /etc/ssl/kyoo/kyoo.key;
 
     root /opt/kyoo/front/dist;
     index index.html;
