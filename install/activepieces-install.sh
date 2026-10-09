@@ -28,7 +28,7 @@ fetch_and_deploy_gh_release "activepieces" "activepieces/activepieces" "tarball"
 NODE_VERSION="24" NODE_MODULE="$(jq -r '.packageManager' /opt/activepieces/package.json)" setup_nodejs
 fetch_and_deploy_gh_release "deno" "denoland/deno" "prebuild" "v$(jq -r '.devDependencies.deno' /opt/activepieces/packages/server/engine/package.json)" "/usr/local/bin" "deno-$(arch_resolve "x86_64" "aarch64")-unknown-linux-gnu.zip"
 
-msg_info "Building Activepieces (Patience)"
+msg_info "Building Activepieces"
 cd /opt/activepieces
 REDISMS_DISABLE_POSTINSTALL=1 $STD bun install --frozen-lockfile
 $STD npx turbo run build --filter=web --filter=@activepieces/engine --filter=api --filter=worker

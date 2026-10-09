@@ -11,7 +11,7 @@ APP="Activepieces"
 var_tags="${var_tags:-automation;workflow;ai}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-6144}"
-var_disk="${var_disk:-20}"
+var_disk="${var_disk:-12}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_arm64="${var_arm64:-yes}"
@@ -41,7 +41,7 @@ function update_script() {
     NODE_VERSION="24" NODE_MODULE="$(jq -r '.packageManager' /opt/activepieces/package.json)" setup_nodejs
     fetch_and_deploy_gh_release "deno" "denoland/deno" "prebuild" "v$(jq -r '.devDependencies.deno' /opt/activepieces/packages/server/engine/package.json)" "/usr/local/bin" "deno-$(arch_resolve "x86_64" "aarch64")-unknown-linux-gnu.zip"
 
-    msg_info "Building Activepieces (Patience)"
+    msg_info "Building Activepieces"
     cd /opt/activepieces
     REDISMS_DISABLE_POSTINSTALL=1 $STD bun install --frozen-lockfile
     $STD npx turbo run build --filter=web --filter=@activepieces/engine --filter=api --filter=worker
