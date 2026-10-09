@@ -43,7 +43,8 @@ setup_deb822_repo \
 DEBIAN_FRONTEND=noninteractive $STD apt install -y couchdb
 mkdir -p /opt/budibase_data/{couch/dbs,couch/views,search,sqs,minio}
 chown -R couchdb:couchdb /opt/budibase_data/couch
-cat <<EOF >/opt/couchdb/etc/local.d/budibase.ini
+# CouchDB writes the hashed admin password to the last ini file, so this one sorts before 10-admins.ini to have it replace the plaintext there
+cat <<EOF >/opt/couchdb/etc/local.d/00-budibase.ini
 [couchdb]
 database_dir = /opt/budibase_data/couch/dbs
 view_index_dir = /opt/budibase_data/couch/views
@@ -51,7 +52,7 @@ view_index_dir = /opt/budibase_data/couch/views
 [chttpd_auth]
 timeout = 7200
 EOF
-chown couchdb:couchdb /opt/couchdb/etc/local.d/budibase.ini
+chown couchdb:couchdb /opt/couchdb/etc/local.d/00-budibase.ini
 systemctl restart couchdb
 for _ in {1..30}; do
   curl -fs http://127.0.0.1:5984/_up >/dev/null && break
@@ -108,6 +109,7 @@ MINIO_BROWSER=off
 JWT_SECRET=$(openssl rand -hex 32)
 INTERNAL_API_KEY=$(openssl rand -hex 32)
 API_ENCRYPTION_KEY=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
 EOF
 chmod 600 /opt/budibase_data/.env
 msg_ok "Configured Budibase"

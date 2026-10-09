@@ -11,7 +11,7 @@ APP="Budibase"
 var_tags="${var_tags:-low-code;apps;automation}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-6144}"
-var_disk="${var_disk:-20}"
+var_disk="${var_disk:-16}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 #var_arm64="${var_arm64:-no}" # unset = ask the user; set yes/no only when verified
