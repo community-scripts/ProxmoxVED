@@ -16,6 +16,7 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   pkg-config \
+  libdav1d-dev \
   libssl-dev \
   build-essential \
   git \
