@@ -70,7 +70,7 @@
       "type": "info"
     },
     {
-      "text": "Install and every update compile Kyoo from source (Go, Bun, Python and the Expo web app). The first build takes about 12 minutes on 4 cores and peaks at about 2.5 GB of RAM; updates take a few minutes because the build caches are kept.",
+      "text": "Install and every update compile Kyoo from source (Go, Bun, Python and the Expo web app). The first install takes about 6 minutes on 4 idle cores (much longer on a busy host) and the build peaks at about 2.5 GB of RAM; updates take a few minutes because the build caches are kept.",
       "type": "info"
     }
   ]
