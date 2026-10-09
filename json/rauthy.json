@@ -62,7 +62,7 @@
       "type": "info"
     },
     {
-      "text": "Rauthy publishes no release binaries, so the install and every update compile it from the release source (Rust). This takes about BUILD_MIN minutes on 4 cores and needs the 4 GB of RAM; an update builds while the old version keeps running. The server itself uses about 200 MB, so RAM can be lowered after the install and raised again before an update.",
+      "text": "Rauthy publishes no release binaries, so the install and every update compile it from the release source (Rust). This takes about 50 minutes on 4 cores, up to 2.5 GB of RAM and 9 GB of disk; an update builds while the old version keeps running. The server itself uses about 200 MB, so RAM can be lowered after the install and raised again before an update.",
       "type": "info"
     }
   ]
