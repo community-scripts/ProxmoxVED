@@ -34,6 +34,19 @@ cp -r apps/web/public apps/web/.next/standalone/apps/web/
 rm -rf apps/web/.next/cache
 msg_ok "Built useSend"
 
+if [[ -t 0 && ( -z "${var_github_id:-}" || -z "${var_github_secret:-}" ) ]]; then
+  echo -e "${INFO}${YW} useSend has no local accounts; logging in needs a GitHub OAuth app.${CL}"
+  echo -e "${TAB}Create one at https://github.com/settings/developers with this callback URL:"
+  echo -e "${TAB}${BGN}http://${LOCAL_IP}:3000/api/auth/callback/github${CL}"
+  if [[ -z "${var_github_id:-}" ]]; then
+    read -t 300 -rp "${TAB3}GitHub Client ID (Enter to set it up later): " var_github_id || true
+  fi
+  if [[ -n "${var_github_id:-}" && -z "${var_github_secret:-}" ]]; then
+    read -t 300 -rsp "${TAB3}GitHub Client Secret: " var_github_secret || true
+    echo
+  fi
+fi
+
 msg_info "Configuring useSend"
 mkdir -p /opt/usesend_data
 cat <<EOF >/opt/usesend_data/.env
