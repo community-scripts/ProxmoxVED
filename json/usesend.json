@@ -50,5 +50,30 @@
       "secret": true
     }
   ],
-  "notes": []
+  "notes": [
+    {
+      "text": "useSend has no local accounts. Sign-in is GitHub OAuth (Google OAuth works too, but only behind an HTTPS domain); the email code login cannot work on a fresh instance, because useSend sends that code through its own verified SES domain. Create a GitHub OAuth app with the callback URL http://<IP>:3000/api/auth/callback/github and pass var_github_id and var_github_secret, or fill in GITHUB_ID and GITHUB_SECRET in /opt/usesend_data/.env afterwards and run systemctl enable --now usesend usesend-smtp. The services do not start until then.",
+      "type": "warning"
+    },
+    {
+      "text": "The first sign-in creates the account, after that only email addresses with a team invitation can sign up. Until then anyone with a GitHub account who reaches the port can claim the instance, so sign in right after setting up OAuth.",
+      "type": "warning"
+    },
+    {
+      "text": "Sending needs Amazon SES. useSend installs and runs without it, but no email leaves until AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY of an IAM user with AmazonSESFullAccess and AmazonSNSFullAccess are set in /opt/usesend_data/.env and SES is added under Admin with a region and a callback URL. That URL must be reachable from the internet, because SNS posts delivery, bounce and complaint events to it. New SES accounts start in sandbox mode and only send to verified addresses.",
+      "type": "warning"
+    },
+    {
+      "text": "NEXTAUTH_URL in /opt/usesend_data/.env is http://<IP>:3000. Change it together with the OAuth callback URL when the IP changes or useSend runs behind a domain, then run systemctl restart usesend.",
+      "type": "info"
+    },
+    {
+      "text": "The SMTP proxy (usesend-smtp) accepts mail on 465 and 2465 (TLS) and 587 and 2587 (STARTTLS), user usesend and a useSend API key as password, and hands it to the API. Its certificate in /etc/ssl/usesend is self-signed and valid for one year. Port 25 is offered too unless another mail server already listens there.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update build useSend from source (Next.js), which takes about 15 minutes on 2 cores and needs the 4 GB of RAM. The running services use about 400 MB, so the RAM can be lowered after the install and raised again before an update.",
+      "type": "info"
+    }
+  ]
 }
