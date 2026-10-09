@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Base Dependencies"
-$STD apt install -y curl wget ca-certificates
+$STD apt install -y curl wget ca-certificates procps
 msg_ok "Installed Base Dependencies"
 
 motd_ssh

@@ -11,7 +11,7 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 # License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://www.kali.org/
 
-APP="Kali"
+APP="Kali Linux"
 var_tags="${var_tags:-os}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
