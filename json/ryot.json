@@ -13,7 +13,7 @@
   "website": "https://ryot.io/",
   "repository": "https://github.com/IgnisDa/ryot",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ryot.webp",
-  "description": "Ryot (Roll Your Own Tracker) is a self-hosted tracker for the media you consume and the workouts you do. It logs progress, ratings and reviews for movies, shows, books, audiobooks, anime, manga, video games, podcasts, music and visual novels, pulls their metadata from providers such as TMDB, IGDB, OpenLibrary and AniList, imports history from Trakt, Goodreads, Jellyfin and others, and records workouts, exercises and body measurements. This script builds the Rust backend and the React frontend from source and runs them with PostgreSQL behind nginx.",
+  "description": "Ryot (Roll Your Own Tracker) is a self-hosted tracker for the media you consume and the workouts you do. It logs progress, ratings and reviews for movies, shows, books, audiobooks, anime, manga, comics, video games, podcasts, music and visual novels, pulls their metadata from providers such as TMDB, IGDB, OpenLibrary and AniList, imports history from Trakt, Goodreads, Jellyfin and others, and records workouts, exercises and body measurements. This script builds the Rust backend and the React frontend from source and runs them with PostgreSQL behind nginx.",
   "install_methods": [
     {
       "type": "default",
@@ -21,8 +21,8 @@
       "config_path": "/opt/ryot_data/.env",
       "resources": {
         "cpu": 4,
-        "ram": 6144,
-        "hdd": 16,
+        "ram": 4096,
+        "hdd": 10,
         "os": "Debian",
         "version": "13"
       }
@@ -32,5 +32,26 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "There is no default account. Open http://<IP>:8000 and register: the first account becomes the administrator. Registration stays open to anyone who reaches the port, so once the accounts exist, set USERS_ALLOW_REGISTRATION=false in /opt/ryot_data/.env and run systemctl restart ryot-backend.",
+      "type": "warning"
+    },
+    {
+      "text": "Books (OpenLibrary), anime and manga (AniList), podcasts (iTunes), audiobooks, music and visual novels work out of the box. Movies and shows need MOVIES_AND_SHOWS_TMDB_ACCESS_TOKEN, video games need VIDEO_GAMES_TWITCH_CLIENT_ID and VIDEO_GAMES_TWITCH_CLIENT_SECRET in /opt/ryot_data/.env, then systemctl restart ryot-backend. All options: https://docs.ryot.io/configuration.html",
+      "type": "info"
+    },
+    {
+      "text": "FRONTEND_URL in /opt/ryot_data/.env points at the container IP and is used for links in notifications and integrations. Change it when the IP changes or Ryot sits behind a reverse proxy or domain, then restart ryot-backend.",
+      "type": "info"
+    },
+    {
+      "text": "Ryot Pro keys (SERVER_PRO_KEY) are only verified by the official Docker images, which carry the vendor's verification key. A source build cannot validate them and always runs the community edition.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update compile the Rust backend and the React frontend from source, which takes 30 to 60 minutes on 4 cores and up to 3 GB of RAM. The running app needs about 300 MB, so the RAM can be lowered after the install and raised again before an update.",
+      "type": "info"
+    }
+  ]
 }

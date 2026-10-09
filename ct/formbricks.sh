@@ -59,9 +59,10 @@ function update_script() {
 
     msg_info "Building Formbricks (Patience)"
     cd /opt/formbricks
-    $STD pnpm install --ignore-scripts --frozen-lockfile
-    touch apps/web/.env
+    sed -i "s/\"version\": \"0.0.0\"/\"version\": \"$(cat ~/.formbricks)\"/" apps/web/package.json
     sed -i 's/^const nextConfig = {$/&\n  typescript: { ignoreBuildErrors: true },/' apps/web/next.config.mjs
+    touch apps/web/.env
+    $STD pnpm install --ignore-scripts --frozen-lockfile
     $STD sh apps/web/scripts/docker/read-secrets.sh pnpm build --filter=@formbricks/web...
     cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/
     cp -r apps/web/public apps/web/.next/standalone/apps/web/
