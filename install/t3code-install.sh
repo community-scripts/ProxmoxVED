@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: lukdz
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://github.com/pingdotgg/t3code
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -46,6 +46,8 @@ Type=simple
 User=root
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 Environment=T3CODE_TELEMETRY_ENABLED=false
+# Allow Claude Full access mode as root inside the LXC.
+Environment=IS_SANDBOX=1
 WorkingDirectory=/opt/t3code
 ExecStart=/usr/bin/t3 serve --host 0.0.0.0 --base-dir /opt/t3code
 Restart=on-failure

@@ -1,0 +1,57 @@
+{
+  "name": "PigeonPod",
+  "slug": "pigeonpod",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-09-29",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 8080,
+  "documentation": "https://github.com/aizhimou/pigeon-pod/wiki",
+  "website": "https://pigeonpod.cloud/",
+  "repository": "https://github.com/aizhimou/pigeon-pod",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/pigeonpod.webp",
+  "description": "PigeonPod turns YouTube and Bilibili channels and playlists into podcast RSS feeds you can subscribe to in any podcast app. It downloads new episodes as audio or video with yt-dlp, and supports per-feed keyword and duration filters, cookies for restricted content, proxies, and local or S3 storage.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/pigeonpod.sh",
+      "config_path": "/opt/pigeonpod_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "root",
+    "password": "Root@123"
+  },
+  "notes": [
+    {
+      "text": "Change the default password after the first login.",
+      "type": "warning"
+    },
+    {
+      "text": "RSS links are built from the Base URL, set to http://<container-ip>:8080 at install time. If podcast apps reach PigeonPod through a domain or reverse proxy, or the container IP changes, update it in the web UI settings. PIGEON_BASE_URL in /opt/pigeonpod_data/.env is only read while that setting is empty.",
+      "type": "info"
+    },
+    {
+      "text": "YouTube channels and playlists need a YouTube Data API key, set in the web UI settings. Bilibili works without one.",
+      "type": "info"
+    },
+    {
+      "text": "The database and downloaded media live in /opt/pigeonpod_data. yt-dlp is a standalone binary kept current by the update script. The in-app yt-dlp updater installs through pip, which this container does not ship.",
+      "type": "info"
+    }
+  ]
+}

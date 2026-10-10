@@ -1,0 +1,53 @@
+{
+  "name": "Youtarr",
+  "slug": "youtarr",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-09-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 3011,
+  "documentation": "https://dialmasterorg.github.io/Youtarr/docs/installation/",
+  "website": "https://youtarr.com/",
+  "repository": "https://github.com/DialmasterOrg/Youtarr",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/youtarr.webp",
+  "description": "Youtarr is a self-hosted YouTube downloader that subscribes to channels and playlists and downloads new videos on a schedule with yt-dlp. Videos are organized per channel with NFO files, posters and embedded MP4 metadata, so they show up cleanly in Plex, Jellyfin, Emby or Kodi. It also mirrors playlists into those servers, syncs watch status back, supports SponsorBlock and age, space or watched-based cleanup, and plays videos in its own web UI.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/youtarr.sh",
+      "config_path": "/opt/youtarr_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default login. On first start Youtarr writes a one-time setup token to /opt/youtarr_data/config/setup-token (also shown in journalctl -u youtarr). Open the web UI, paste the token and create the admin account.",
+      "type": "warning"
+    },
+    {
+      "text": "Videos are downloaded to /opt/youtarr_data/videos (DATA_PATH in /opt/youtarr_data/.env). To store them on a NAS or share them with Plex, Jellyfin or Emby, bind-mount the media folder there, e.g. pct set <CTID> -mp0 /mnt/media/youtube,mp=/opt/youtarr_data/videos, then restart the container. In an unprivileged container the host folder must be writable by UID 100000.",
+      "type": "info"
+    },
+    {
+      "text": "Settings live in /opt/youtarr_data/config/config.json (edited through the web UI), database credentials in /opt/youtarr_data/.env. Both survive updates. Running update also refreshes yt-dlp; Youtarr can additionally auto-update it from its settings.",
+      "type": "info"
+    }
+  ]
+}

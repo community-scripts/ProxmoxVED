@@ -1,0 +1,60 @@
+{
+  "name": "Windmill",
+  "slug": "windmill",
+  "categories": [
+    19
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8000,
+  "documentation": "https://www.windmill.dev/docs/intro",
+  "website": "https://www.windmill.dev/",
+  "repository": "https://github.com/windmill-labs/windmill",
+  "architectures": [
+    "amd64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/windmill.webp",
+  "description": "Windmill is an open-source developer platform that turns scripts into webhooks, workflows and UIs. Scripts in Python, TypeScript, Bash, SQL and other languages get an auto-generated form and API, can be chained into flows with branches, loops, retries and approval steps, run on schedules or from webhooks and other triggers, and back low-code apps. This script runs the Community Edition binary in standalone mode (server and worker in one process) with PostgreSQL.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/windmill.sh",
+      "config_path": "/opt/windmill_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin@windmill.dev",
+    "password": "changeme"
+  },
+  "notes": [
+    {
+      "text": "Log in with admin@windmill.dev / changeme right after the install. Windmill then asks for a new superadmin account, which replaces the default one. Until you do that, anyone who reaches port 8000 can log in with the default credentials.",
+      "type": "warning"
+    },
+    {
+      "text": "Webhook URLs, OAuth redirects and links in emails are built from BASE_URL in /opt/windmill_data/.env, which points at the container IP. Change it when the IP changes or Windmill sits behind a reverse proxy or domain, then run systemctl restart windmill. A Base URL set in the instance settings takes precedence.",
+      "type": "info"
+    },
+    {
+      "text": "Python (through uv, which downloads the Python version on first use), TypeScript on Bun, Bash, DuckDB and SQL scripts run out of the box. The other languages the editor offers (TypeScript on Deno, Go, PHP, PowerShell, Rust, C#, Java, Ansible and more) need their runtime installed in the container first.",
+      "type": "info"
+    },
+    {
+      "text": "Server and worker share one process with a single worker, so jobs run one at a time. For parallel jobs, run more Windmill processes with MODE=worker against the same database.",
+      "type": "info"
+    },
+    {
+      "text": "The windmill database role has no CREATEDB or CREATEROLE privilege, so the Custom instance database option for Data Tables and DuckLake fails with permission denied. Point Data Tables at a PostgreSQL resource instead.",
+      "type": "info"
+    }
+  ]
+}

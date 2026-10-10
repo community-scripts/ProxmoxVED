@@ -15,6 +15,7 @@ other without editing a URL in 104 files.
 Each `ct/*.sh` keeps a single bootstrap block:
 
 ```bash
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/DevScripts/main"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 ```
@@ -28,6 +29,10 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
    derives `COMMUNITY_SCRIPTS_URL` from that checkout's git remote and branch —
    so in-container fetches and `/usr/bin/update` follow your fork once the
    branch is pushed.
+4. With no checkout to derive it from (a script run through `curl`),
+   `COMMUNITY_SCRIPTS_URL` falls back to `_CS_DEFAULT_URL`. The engine's own
+   default is ProxmoxVE, which does not have a script under test yet, so every
+   script here pins it to DevScripts. The pin is removed on promotion.
 
 Explicit environment variables always win over both.
 
@@ -58,7 +63,7 @@ Push your branch, then point the scripts root at it. This is the closest thing
 to what a user will actually run.
 
 ```bash
-export COMMUNITY_SCRIPTS_URL=https://raw.githubusercontent.com/YOU/ProxmoxVED/your-branch
+export COMMUNITY_SCRIPTS_URL=https://raw.githubusercontent.com/YOU/DevScripts/your-branch
 bash -c "$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/ct/myapp.sh")"
 ```
 
@@ -66,7 +71,7 @@ bash -c "$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/ct/myapp.sh")"
 your fork does not tell the engine where that fork is: with `bash -c "$(curl …)"`
 there is no file on disk, so the walk-up that normally finds the scripts root
 has nothing to walk, and `COMMUNITY_SCRIPTS_URL` falls back to upstream
-`ProxmoxVED@main`. Your ct script would run and then look for your install
+`DevScripts@main`. Your ct script would run and then look for your install
 script in upstream main, where it does not exist. Setting it explicitly is what
 keeps both halves on your fork.
 
@@ -74,14 +79,14 @@ keeps both halves on your fork.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/community-scripts/core/main/tools/run.sh |
-  bash -s -- https://raw.githubusercontent.com/YOU/ProxmoxVED/your-branch ct/myapp.sh
+  bash -s -- https://raw.githubusercontent.com/YOU/DevScripts/your-branch ct/myapp.sh
 ```
 
 Add a third argument to move the engine too:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/community-scripts/core/main/tools/run.sh |
-  bash -s -- https://raw.githubusercontent.com/YOU/ProxmoxVED/your-branch ct/myapp.sh \
+  bash -s -- https://raw.githubusercontent.com/YOU/DevScripts/your-branch ct/myapp.sh \
              https://raw.githubusercontent.com/YOU/core/your-branch
 ```
 
@@ -96,14 +101,14 @@ No push, no network on the scripts side, and the only variant that works with a
 ```
 somewhere/
 ├── core/
-└── ProxmoxVED/
+└── DevScripts/
 ```
 
 ```bash
 cd /opt
-git clone https://github.com/YOU/ProxmoxVED
+git clone https://github.com/YOU/DevScripts
 git clone https://github.com/community-scripts/core
-cd ProxmoxVED && bash ct/myapp.sh
+cd DevScripts && bash ct/myapp.sh
 ```
 
 No environment variables needed. Edit, re-run, repeat — uncommitted changes in
@@ -129,7 +134,7 @@ token support on this path — `var_github_token` covers the GitHub API in
 `COMMUNITY_SCRIPTS_URL` was set to at install time. On a private fork the
 install itself succeeds, but running `update` in the container later hits a 404.
 
-**No banner.** The header generator in core walks ProxmoxVE, ProxmoxVED and
+**No banner.** The header generator in core walks ProxmoxVE, DevScripts and
 Incus — not your fork. `header_info()` prints nothing when a header is missing
 rather than failing, so this is cosmetic.
 
@@ -151,14 +156,14 @@ works. Only GitHub remotes are detected automatically from a checkout; for
 anything else, set it yourself:
 
 ```bash
-export COMMUNITY_SCRIPTS_URL=https://files.example.com/YOU/ProxmoxVED/raw/your-branch
+export COMMUNITY_SCRIPTS_URL=https://files.example.com/YOU/DevScripts/raw/your-branch
 ```
 
 ## Normal end users
 
 No change: without a checkout or environment, scripts take the engine from
 `community-scripts/core@main` and everything else from
-`community-scripts/ProxmoxVED@main`.
+`community-scripts/DevScripts@main`.
 
 ## Related
 

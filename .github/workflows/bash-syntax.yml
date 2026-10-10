@@ -8,6 +8,10 @@ on:
       - "vm/**/*.sh"
       - "tools/**/*.sh"
       - ".github/workflows/bash-syntax.yml"
+      - ".github/workflows/scripts/fedora-image-test.sh"
+      - ".github/workflows/scripts/unifi-vm-test.sh"
+      - ".github/workflows/scripts/zima-release-test.sh"
+      - "json/unifi-os-server-vm.json"
   push:
     branches: [main]
     paths:
@@ -16,16 +20,23 @@ on:
       - "vm/**/*.sh"
       - "tools/**/*.sh"
       - ".github/workflows/bash-syntax.yml"
+      - ".github/workflows/scripts/fedora-image-test.sh"
+      - ".github/workflows/scripts/unifi-vm-test.sh"
+      - ".github/workflows/scripts/zima-release-test.sh"
+      - "json/unifi-os-server-vm.json"
 
 # The engine moved to community-scripts/core, which syntax-checks its own
 # .func files. This repo ships scripts, so that is what gets checked here —
 # all of them, not the three-file sample the old job used.
 
+permissions:
+  contents: read
+
 jobs:
   bash-n:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Syntax-check every script
         run: |
@@ -41,3 +52,13 @@ jobs:
           done < <(find ct install vm tools -type f -name '*.sh' -print0 2>/dev/null | sort -z)
           echo "checked $checked scripts"
           exit "$fail"
+
+      - name: Fedora image customization feedback
+        if: ${{ hashFiles('vm/fedora-vm.sh') != '' }}
+        run: bash .github/workflows/scripts/fedora-image-test.sh
+
+      - name: UniFi VM provisioning
+        run: bash .github/workflows/scripts/unifi-vm-test.sh
+
+      - name: ZimaOS release and ISO selection
+        run: bash .github/workflows/scripts/zima-release-test.sh

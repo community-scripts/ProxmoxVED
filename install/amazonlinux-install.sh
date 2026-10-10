@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://aws.amazon.com/linux/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Base Dependencies"
-$STD dnf install -y curl ca-certificates
+$STD dnf install -y hostname procps-ng
 msg_ok "Installed Base Dependencies"
 
 motd_ssh

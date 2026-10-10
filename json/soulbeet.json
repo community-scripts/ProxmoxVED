@@ -1,0 +1,69 @@
+{
+  "name": "Soulbeet",
+  "slug": "soulbeet",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-10-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 9765,
+  "documentation": "https://github.com/terry90/soulbeet#readme",
+  "website": "https://github.com/terry90/soulbeet",
+  "repository": "https://github.com/terry90/soulbeet",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/soulbeet.webp",
+  "description": "Soulbeet is a self-hosted music downloader and library manager. You search for an album or track, it picks the best source on Soulseek, downloads it through slskd, tags and files it into your library with beets, and can push discovery playlists built from your Last.fm or ListenBrainz history to Navidrome. This script builds Soulbeet from source and installs beets; slskd and Navidrome run separately.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/soulbeet.sh",
+      "config_path": "/opt/soulbeet_data/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 3072,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "admin"
+  },
+  "notes": [
+    {
+      "text": "Soulbeet ships a local admin / admin account. Change its password in Settings > Users right after the first login. Once NAVIDROME_URL is set, users log in with their Navidrome credentials instead.",
+      "type": "warning"
+    },
+    {
+      "text": "Soulbeet's sign-up API accepts requests without a login, and any logged-in user can change any other user's password. Anyone who reaches port 9765 can therefore take over the instance, including the slskd API key stored in it. Keep it on a trusted network and do not expose it to the internet.",
+      "type": "warning"
+    },
+    {
+      "text": "Soulbeet needs an slskd 0.26 or newer instance, which is not part of this container (use the slskd script for one). Enter its URL and API key in Settings > Config.",
+      "type": "info"
+    },
+    {
+      "text": "Soulbeet imports what slskd downloads straight from disk, so slskd's downloads directory has to be mounted into this container at /opt/soulbeet_data/downloads, e.g. pct set <CTID> -mp0 /path/to/slskd/downloads,mp=/opt/soulbeet_data/downloads.",
+      "type": "warning"
+    },
+    {
+      "text": "Add library folders in Settings > Library. /opt/soulbeet_data/music is prepared for that; mount the music share Navidrome reads at that path so imported tracks show up there.",
+      "type": "info"
+    },
+    {
+      "text": "Discovery playlists, rating sync and Navidrome logins need NAVIDROME_URL in /opt/soulbeet_data/.env. Uncomment it, then run systemctl restart soulbeet.",
+      "type": "info"
+    },
+    {
+      "text": "beets is installed with the plugin set of upstream's default (light) image: MusicBrainz tagging. Its configuration is /opt/soulbeet_data/beets_config.yaml, and pure-Python plugins can be dropped into /opt/soulbeet_data/beets-plugins.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update compile Soulbeet from source (Rust server plus WebAssembly client), which takes about 6 to 9 minutes on 4 cores. The running app needs well under 512 MB, so the RAM can be lowered after the install and raised again before an update.",
+      "type": "info"
+    }
+  ]
+}

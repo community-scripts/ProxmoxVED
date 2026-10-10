@@ -1,0 +1,65 @@
+{
+  "name": "Gopeed",
+  "slug": "gopeed",
+  "categories": [
+    11
+  ],
+  "date_created": "2026-10-05",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 9999,
+  "documentation": "https://gopeed.com/docs",
+  "website": "https://gopeed.com/",
+  "repository": "https://github.com/GopeedLab/gopeed",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/gopeed.webp",
+  "description": "Gopeed is a fast, modern download manager for HTTP(S), BitTorrent, Magnet links and ed2k, written in Go and Flutter. It adds JavaScript extensions, a REST API, webhooks, post-download scripts and browser integration. This script installs the headless web edition, a single binary that serves the web UI and the API on port 9999 with login enabled.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/gopeed.sh",
+      "config_path": "/opt/gopeed_data/config.json",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "gopeed",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Sign in with the username gopeed and the password generated during the install. Both are in /opt/gopeed_data/config.json (username, password); after changing them run systemctl restart gopeed.",
+      "type": "info"
+    },
+    {
+      "text": "The REST API and the browser extension's remote mode authenticate with apiToken from /opt/gopeed_data/config.json, sent as the X-Api-Token header.",
+      "type": "info"
+    },
+    {
+      "text": "Keep /opt/gopeed_data/config.json valid JSON. Gopeed silently ignores a file it cannot parse and then starts without any authentication, on an empty database inside /opt/gopeed.",
+      "type": "warning"
+    },
+    {
+      "text": "Downloads land in /opt/gopeed_data/downloads. To keep them on host storage, bind-mount a host directory there, e.g. pct set <CTID> -mp0 /path/on/host,mp=/opt/gopeed_data/downloads; in an unprivileged container the host directory must be writable by UID 100000. config.json only sets this directory on the first start, later changes are made in the Gopeed settings.",
+      "type": "info"
+    },
+    {
+      "text": "Settings, the task database, extensions and logs live in /opt/gopeed_data/storage, outside /opt/gopeed, which an update replaces.",
+      "type": "info"
+    },
+    {
+      "text": "The web UI sends an anonymous usage statistic (Google Analytics) from the browser when it opens. Turn it off per browser under Settings > About > Upload Statistics.",
+      "type": "info"
+    }
+  ]
+}

@@ -5,24 +5,49 @@ on:
     branches: [main]
     paths:
       - "vm/**.sh"
+      - ".github/workflows/scripts/vm-*.sh"
+      - ".github/workflows/vm-wizard.yml"
   pull_request:
     paths:
       - "vm/**.sh"
+      - ".github/workflows/scripts/vm-*.sh"
+      - ".github/workflows/vm-wizard.yml"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      # A branch that needs unreleased engine changes is tested against the core
+      # branch of the same name; everything else, and main, uses core's main.
+      - name: Pick the core ref
+        id: core
+        env:
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
+        run: |
+          ref=main
+          if [[ "$HEAD_REF" != main ]] &&
+            git ls-remote --exit-code --heads https://github.com/community-scripts/core.git "refs/heads/$HEAD_REF" >/dev/null 2>&1; then
+            ref="$HEAD_REF"
+          fi
+          echo "Testing against core@$ref"
+          echo "ref=$ref" >>"$GITHUB_OUTPUT"
 
       # The scripts source the engine at runtime; a checkout lets the harness
       # load it from disk instead of over the network on every run.
       - name: Checkout core
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: community-scripts/core
+          ref: ${{ steps.core.outputs.ref }}
           path: .core
 
       - name: Run the wizard checks
         run: bash .github/workflows/scripts/vm-wizard-test.sh
+      - name: Run VM lifecycle regressions
+        run: bash .github/workflows/scripts/vm-lifecycle-test.sh

@@ -1,0 +1,57 @@
+{
+  "name": "Blinko",
+  "slug": "blinko",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-10-05",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 1111,
+  "documentation": "https://docs.blinko.space/",
+  "website": "https://blinko.space/",
+  "repository": "https://github.com/blinkospace/blinko",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/blinko.webp",
+  "description": "Blinko is a self-hosted, open-source AI note-taking tool. Short \"blinkos\" capture fleeting ideas, longer notes hold everything else, both written in Markdown with tags, todos, attachments and references between notes. With an AI provider of your choice (OpenAI, Anthropic, Ollama and others) it adds RAG search and a chat over your own notes. This script builds the server and web app from source and runs them with PostgreSQL.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/blinko.sh",
+      "config_path": "/opt/blinko_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 6144,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. Open http://<IP>:1111 and sign up: the first account becomes the administrator and sign-up closes after it (more users are added from the Settings user list, or by switching on Allow Registration). Anyone who reaches the port can claim it until then, so create the account right after the install.",
+      "type": "warning"
+    },
+    {
+      "text": "AI features (RAG search, chat, AI tagging) stay off until you add a model provider under Settings > AI. Blinko works as a plain note app without one.",
+      "type": "info"
+    },
+    {
+      "text": "Uploads, the vector index and Blinko's own backups live in /opt/blinko_data/storage (Blinko sees it as /opt/blinko/.blinko). Back it up together with the PostgreSQL database.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update build Blinko from source, which peaks at about 3.6 GB of RAM. The running server needs around 500 MB, so the RAM can be lowered after the install and raised again before an update.",
+      "type": "info"
+    }
+  ]
+}

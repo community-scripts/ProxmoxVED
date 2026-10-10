@@ -1,0 +1,61 @@
+{
+  "name": "TaskView",
+  "slug": "taskview",
+  "categories": [
+    25
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://taskview.tech/docs",
+  "website": "https://taskview.tech/",
+  "repository": "https://github.com/Gimanh/taskview-community",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/taskview.webp",
+  "description": "TaskView is a self-hosted project and task management platform for teams. Projects hold task lists, Kanban boards, a dependency graph and sprints, with priorities, tags, deadlines, assignees, recurring tasks and time tracking, plus organizations with role-based permissions, SSO and SCIM, webhooks, GitHub/GitLab/Gitea issue sync, API tokens and an MCP server for AI assistants. This script builds the API and web client from source and runs them with PostgreSQL behind Nginx.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/taskview.sh",
+      "config_path": "/opt/taskview_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 6144,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "user",
+    "password": "user1!#Q"
+  },
+  "notes": [
+    {
+      "text": "The default login user / user1!#Q is publicly documented. Sign in right after the install and claim the account under Account settings > Login and email (set your own login, email and password).",
+      "type": "warning"
+    },
+    {
+      "text": "Without SMTP only the default account can sign in: sign-up, invitations and magic-link login all confirm the email address by mail. For more users add the SMTP_* settings from https://taskview.tech/docs/configuration/environment-variables to /opt/taskview_data/.env, consider ALLOW_PUBLIC_REGISTRATION=false (invited emails only), then run systemctl restart taskview.",
+      "type": "info"
+    },
+    {
+      "text": "The API only accepts browser requests from the origins in CORS_ALLOWED_ORIGINS, and builds email and OAuth links from APP_URL, both set to the container IP in /opt/taskview_data/.env. Change them when the IP changes or TaskView is reached through a hostname or reverse proxy (CORS_ALLOWED_ORIGINS takes a comma-separated list), then run systemctl restart taskview.",
+      "type": "info"
+    },
+    {
+      "text": "TaskView is source-available, not open source: the TaskView Source-Available License allows personal, family and internal company use, but forbids offering it to third parties as a hosted service or building a competing product on it.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update build TaskView from source, which needs about 4 GB of RAM (the API bundle is minified with Terser). The running services use far less, so the RAM can be lowered after the install and raised again before an update.",
+      "type": "info"
+    }
+  ]
+}

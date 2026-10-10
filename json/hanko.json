@@ -1,0 +1,65 @@
+{
+  "name": "Hanko",
+  "slug": "hanko",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-10-05",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 8000,
+  "documentation": "https://docs.hanko.io/",
+  "website": "https://www.hanko.io/",
+  "repository": "https://github.com/teamhanko/hanko",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/hanko.webp",
+  "description": "Hanko is an open-source authentication and user management backend, an alternative to Auth0 or Clerk. It provides passkeys, passwords, email passcodes, TOTP and security-key MFA, OAuth/OIDC and SAML single sign-on, sessions and JWTs, and web apps add the login through the Hanko Elements web components or SDKs. This script runs the Hanko backend (public and admin API) with PostgreSQL.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/hanko.sh",
+      "config_path": "/opt/hanko_data/config.yaml",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Hanko is a headless authentication API, not a web app. Port 8000 is the public API that your own application's login talks to through Hanko Elements or the SDKs; opened in a browser it only shows an API status page. The self-hosted backend has no admin UI, the Hanko Console is part of the closed-source Hanko Cloud.",
+      "type": "info"
+    },
+    {
+      "text": "Before an app can use Hanko, replace the example.com placeholders in /opt/hanko_data/config.yaml: webauthn.relying_party.id is your domain, webauthn.relying_party.origins and cors.allow_origins the https:// URL of the app that embeds the login. Then run systemctl restart hanko. Hanko 3 reads the top-level cors key and ignores the server.public.cors of older upstream examples.",
+      "type": "warning"
+    },
+    {
+      "text": "Passkeys only work over HTTPS on a domain name: browsers refuse WebAuthn on an IP address, and the session cookie is marked Secure. Publish port 8000 through a TLS reverse proxy (e.g. https://auth.example.com) instead of using http://<IP>:8000 directly.",
+      "type": "warning"
+    },
+    {
+      "text": "Sign-up, email verification and passcode login send emails. Set email_delivery (from_address and the smtp host, port, user and password) in /opt/hanko_data/config.yaml to your mail server; until then these flows fail. Users created through the admin API with a password can still sign in.",
+      "type": "warning"
+    },
+    {
+      "text": "The admin API (users, sessions, webhooks) has no authentication of its own, so it only listens on 127.0.0.1:8001, e.g. curl http://127.0.0.1:8001/users inside the container. Change server.admin.address only behind a firewall or an authenticating proxy: anyone who reaches it can create sessions for any user.",
+      "type": "warning"
+    },
+    {
+      "text": "Back up secret_keys from /opt/hanko_data/config.yaml together with the database. It encrypts the JWT signing key stored in PostgreSQL, and without it Hanko can no longer issue session tokens.",
+      "type": "warning"
+    }
+  ]
+}

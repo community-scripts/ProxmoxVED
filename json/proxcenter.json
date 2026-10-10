@@ -1,0 +1,57 @@
+{
+  "name": "ProxCenter",
+  "slug": "proxcenter",
+  "categories": [
+    1
+  ],
+  "date_created": "2026-09-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 3000,
+  "documentation": "https://docs.proxcenter.io/",
+  "website": "https://proxcenter.io/",
+  "repository": "https://github.com/adminsyspro/proxcenter-ui",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/proxcenter.webp",
+  "description": "ProxCenter is a web console for running several Proxmox VE clusters and Proxmox Backup Server instances from one place: inventory and topology, in-browser noVNC/SPICE consoles, backup visibility, migrations from VMware, Hyper-V, Nutanix and XCP-ng, RBAC and SSO. This script installs the open-source Community Edition with its PostgreSQL database.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/proxcenter.sh",
+      "config_path": "/opt/proxcenter_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 6144,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. The first visit to port 3000 opens a setup page that creates the administrator, and anyone who reaches that port can use it until then, so create the account right after the install.",
+      "type": "warning"
+    },
+    {
+      "text": "Connect your clusters with a dedicated Proxmox user and API token rather than root@pam. Keep Privilege Separation on and grant only what the features you use need: https://docs.proxcenter.io/getting-started/connect-proxmox#proxmox-permissions. On PBS, grant the ACL to the token itself as well, since PBS tokens inherit nothing from their user.",
+      "type": "warning"
+    },
+    {
+      "text": "This is the Community Edition. DRS load balancing, alerts, reports and notifications, MSP mode and high availability are Enterprise features that need ProxCenter's closed-source orchestrator, which this script does not install. A license key alone does not unlock them here.",
+      "type": "info"
+    },
+    {
+      "text": "NEXTAUTH_URL and APP_URL in /opt/proxcenter_data/.env point at the container IP. If the IP changes, or you put ProxCenter behind a reverse proxy or a domain, update both and run systemctl restart proxcenter.",
+      "type": "info"
+    }
+  ]
+}

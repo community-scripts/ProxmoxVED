@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: GitHub Copilot
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 
 set -eEuo pipefail
 
@@ -64,9 +64,9 @@ select_repo() {
   if [[ -n "$var_repo" ]]; then
     case "${var_repo,,}" in
     ve | proxmoxve) REPO_NAME="ProxmoxVE" ;;
-    ved | proxmoxved) REPO_NAME="ProxmoxVED" ;;
+    dev | devscripts | ved | proxmoxved) REPO_NAME="DevScripts" ;;
     *)
-      msg_error "Invalid var_repo='$var_repo'. Use: ve|ved"
+      msg_error "Invalid var_repo='$var_repo'. Use: ve|dev"
       exit 1
       ;;
     esac
@@ -78,7 +78,7 @@ select_repo() {
     --title "Repository" \
     --menu "Choose script source:" 14 60 2 \
     "ProxmoxVE" "community-scripts/ProxmoxVE" \
-    "ProxmoxVED" "community-scripts/ProxmoxVED" \
+    "DevScripts" "community-scripts/DevScripts" \
     3>&1 1>&2 2>&3) || exit 0
 
   REPO_NAME="$choice"

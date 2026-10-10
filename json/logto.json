@@ -1,0 +1,49 @@
+{
+  "name": "Logto",
+  "slug": "logto",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3002,
+  "documentation": "https://docs.logto.io/",
+  "website": "https://logto.io/",
+  "repository": "https://github.com/logto-io/logto",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/logto.webp",
+  "description": "Logto is an open-source identity and access management platform. It acts as an OpenID Connect, OAuth 2.1 and SAML provider with a hosted sign-in experience, social and enterprise SSO, MFA, role-based access control, organizations for multi-tenant apps and a Management API, all administered through a web Admin Console. This script installs it with a local PostgreSQL database.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/logto.sh",
+      "config_path": "/opt/logto_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. Open the Admin Console at https://<IP>:3002 and choose Create account. The open-source edition allows exactly one admin account, and anyone who reaches port 3002 can create it until you do, so do it right after the install.",
+      "type": "warning"
+    },
+    {
+      "text": "Both ports use a self-signed certificate, because the Admin Console only works in a secure context. Accept it on https://<IP>:3001 as well as on https://<IP>:3002, since the console calls the API on port 3001. The certificate is valid for 365 days.",
+      "type": "warning"
+    },
+    {
+      "text": "ENDPOINT (port 3001, sign-in and OIDC issuer at /oidc) and ADMIN_ENDPOINT (port 3002, Admin Console) in /opt/logto_data/.env must match the URLs that browsers and apps use. For real OIDC use, put Logto behind a reverse proxy with a trusted certificate: set both to your HTTPS domains, add TRUST_PROXY_HEADER=1, remove HTTPS_CERT_PATH and HTTPS_KEY_PATH, then run systemctl restart logto.",
+      "type": "info"
+    }
+  ]
+}

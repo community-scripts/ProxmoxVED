@@ -16,7 +16,7 @@
   "documentation": "https://help.ubuntu.com/",
   "website": "https://ubuntu.com/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ubuntu.webp",
-  "description": "Ubuntu Server as a cloud image, with a choice of release at start: 26.04 LTS, 25.04, 24.04 LTS or 22.04 LTS.",
+  "description": "Ubuntu Server as a cloud image. Default settings use 26.04 LTS; Advanced settings offer 26.04, 24.04 or 22.04 LTS.",
   "install_methods": [
     {
       "type": "default",
@@ -37,11 +37,11 @@
   },
   "notes": [
     {
-      "text": "The script asks which Ubuntu release to install. It replaces the former separate ubuntu2204/2404/2410/2504/2604-vm scripts; 24.10 was dropped because it is end of life and its cloud image has been removed from the mirror.",
+      "text": "Choose the release in Advanced settings, or set VM_OS_VERSION for unattended deployment. End-of-life interim releases 24.10 and 25.04 are no longer offered.",
       "type": "info"
     },
     {
-      "text": "Cloud-Init is optional and off by default. Without it the disk is only resized on the Proxmox side, so the guest may need its root filesystem expanded manually after first boot.",
+      "text": "Cloud-Init is offered for credentials, SSH keys and networking. Unattended deployment enables it by default. If explicitly disabled, the script attempts offline root expansion, but guest networking and credentials must be configured manually.",
       "type": "info"
     },
     {

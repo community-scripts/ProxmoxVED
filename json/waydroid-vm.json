@@ -38,7 +38,7 @@
             "type": "info"
         },
         {
-            "text": "Waydroid + Weston (Wayland compositor) are pre-installed. After first boot run: sudo waydroid init && sudo systemctl start waydroid-container. Then start the UI with: weston --backend=headless & && WAYLAND_DISPLAY=wayland-0 waydroid show-full-ui",
+            "text": "Waydroid + Weston are pre-installed when offline customization succeeds; otherwise the waydroid-firstboot.service first-boot unit runs after Cloud-Init. Follow it with tail -f /var/log/waydroid-install.log. After installation run sudo waydroid init, start waydroid-container, then start weston --backend=headless in the background and use WAYLAND_DISPLAY=wayland-0 waydroid show-full-ui.",
             "type": "info"
         },
         {
@@ -46,7 +46,7 @@
             "type": "info"
         },
         {
-            "text": "Enable Cloud-Init during setup to configure SSH keys and network automatically.",
+            "text": "Cloud-Init is required to provision credentials and networking for these cloud images. Default settings use Ubuntu 24.04; Advanced settings also offer Debian 13.",
             "type": "info"
         }
     ]

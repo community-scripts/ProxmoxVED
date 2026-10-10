@@ -42,7 +42,11 @@
       "type": "info"
     },
     {
-      "text": "Access T3 Code at http://<IP>:3773 and pair a device with the token/QR shown after install. Regenerate it with: `pct exec <CTID> -- t3 pair --base-dir /opt/t3code.`",
+      "text": "T3 Code and its agents run as root inside the LXC. The service sets IS_SANDBOX=1 so Claude can use Full access mode without a manual environment override. This does not enable additional sandboxing: agents can modify all container data and any writable host bind mounts. Use an unprivileged container and avoid exposing sensitive host paths.",
+      "type": "warning"
+    },
+    {
+      "text": "Access T3 Code at http://<IP>:3773 and pair a device with the token/QR shown after install. Regenerate it with: `pct exec <CTID> -- t3 pair --base-dir /opt/t3code`.",
       "type": "info"
     }
   ]

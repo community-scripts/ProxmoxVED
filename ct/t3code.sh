@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/DevScripts/main"
 # Engine comes from community-scripts/core; this repo only ships the scripts.
 # A local core checkout wins (COMMUNITY_SCRIPTS_CORE_DIR, else a sibling ../core),
 # so a fork or branch of core can be tested without editing this file.
@@ -6,7 +7,7 @@ _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../cor
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: lukdz
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://github.com/pingdotgg/t3code
 
 APP="T3Code"
@@ -41,6 +42,16 @@ function update_script() {
   msg_info "Updating T3 Code"
   $STD npm install -g t3@latest
   msg_ok "Updated T3 Code"
+
+  msg_info "Configuring T3 Code Service"
+  mkdir -p /etc/systemd/system/t3code.service.d
+  cat <<EOF >/etc/systemd/system/t3code.service.d/claude.conf
+[Service]
+# Allow Claude Full access mode as root inside the LXC.
+Environment=IS_SANDBOX=1
+EOF
+  systemctl daemon-reload
+  msg_ok "Configured T3 Code Service"
 
   msg_info "Starting Service"
   systemctl start t3code

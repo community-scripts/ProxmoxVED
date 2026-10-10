@@ -11,7 +11,7 @@
   "architectures": [
     "arm64"
   ],
-  "interface_port": null,
+  "interface_port": 8123,
   "documentation": "https://www.home-assistant.io/docs/",
   "website": "https://www.home-assistant.io/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/home-assistant.webp",
@@ -36,7 +36,7 @@
   },
   "notes": [
     {
-      "text": "This VM boots an installer image. Open the console after creation and complete the installation there.",
+      "text": "Imports the preinstalled ARM64 HAOS appliance; no installer or Cloud-Init credentials are needed. After first boot, complete onboarding at http://<VM-IP>:8123. The console uses the native HAOS CLI.",
       "type": "info"
     }
   ]

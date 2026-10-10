@@ -1,0 +1,65 @@
+{
+  "name": "Activepieces",
+  "slug": "activepieces",
+  "categories": [
+    19
+  ],
+  "date_created": "2026-10-07",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://www.activepieces.com/docs/install/overview",
+  "website": "https://www.activepieces.com/",
+  "repository": "https://github.com/activepieces/activepieces",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/activepieces.webp",
+  "description": "Activepieces is an open-source workflow automation platform and Zapier alternative. Flows are built in a visual editor from several hundred integrations (pieces), branches, loops, human approvals and TypeScript code steps, run on schedules, webhooks or app events, and can call AI agents; every piece is also available as an MCP tool for LLM clients. This script builds the server, worker and web UI from source and runs them with PostgreSQL and Redis.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/activepieces.sh",
+      "config_path": "/opt/activepieces_data/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 6144,
+        "hdd": 12,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. Open http://<IP> and sign up: the first account becomes the platform admin and closes sign-up, further users have to be invited. Anyone who reaches the port can claim it until then, so create the account right after the install.",
+      "type": "warning"
+    },
+    {
+      "text": "Webhook URLs and OAuth2 redirects are built from AP_FRONTEND_URL in /opt/activepieces_data/.env, which points at the container IP. Change it when the IP changes or Activepieces sits behind a reverse proxy or domain, then run systemctl restart activepieces (the worker restarts with it).",
+      "type": "info"
+    },
+    {
+      "text": "Back up AP_ENCRYPTION_KEY from /opt/activepieces_data/.env together with the database. It encrypts the stored connection credentials, so a database restored without it is useless for them.",
+      "type": "warning"
+    },
+    {
+      "text": "Code steps run with AP_EXECUTION_MODE=UNSANDBOXED, the upstream default: they get network access and npm packages, but are not isolated from the container, so anyone who can edit flows can run code in it. Only give flow access to people you trust with that.",
+      "type": "info"
+    },
+    {
+      "text": "Activepieces is open-core: the code is MIT except packages/ee and packages/server/api/src/app/ee, which fall under the Activepieces Enterprise License. Like the official image, this build runs the Community Edition (the default AP_EDITION); enterprise features stay off without a license key.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update compile Activepieces from source (bun install of the whole monorepo, then turbo builds the API, worker, engine and React UI). That takes about 15 to 20 minutes on 4 cores and peaks at about 3.5 GB RAM and 6 GB disk. The running instance needs about 1 GB, so the RAM can be lowered after the install and raised to at least 4 GB again before an update.",
+      "type": "info"
+    }
+  ]
+}

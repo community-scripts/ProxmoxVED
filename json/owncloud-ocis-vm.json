@@ -1,0 +1,56 @@
+{
+  "name": "ownCloud Infinite Scale",
+  "slug": "owncloud-ocis-vm",
+  "categories": [
+    2
+  ],
+  "date_created": "2026-10-08",
+  "type": "vm",
+  "updateable": false,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 9200,
+  "documentation": "https://doc.owncloud.com/ocis/next/",
+  "website": "https://owncloud.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/owncloud.webp",
+  "description": "ownCloud Infinite Scale (oCIS) is the current ownCloud server, a single Go binary with a built-in web UI. This VM runs the official owncloud/ocis container on a Debian or Ubuntu cloud image with Docker and works on a plain IP address straight away.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "vm/owncloud-ocis-vm.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 32,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Default settings use Debian 13; Advanced settings offer other Debian/Ubuntu cloud images. The container is started by the owncloud-ocis.service first-boot unit (log: /var/log/owncloud-ocis.log); if Docker cannot be pre-installed, install-docker.service runs first. The admin password is generated (or taken from VM_OCIS_ADMIN_PASSWORD), shown at the end and saved to /tmp/<hostname>-<VMID>-ocis-credentials.txt on the Proxmox host.",
+      "type": "info"
+    },
+    {
+      "text": "oCIS is published on https://<VM-IP>:9200 with a self-signed certificate and all links use the IP the VM has on first boot. Reserve the DHCP lease, or put a reverse proxy with a domain in front and set OCIS_URL in the container accordingly.",
+      "type": "warning"
+    },
+    {
+      "text": "For classic ownCloud 10 use the TurnKey-based owncloud-vm instead.",
+      "type": "info"
+    },
+    {
+      "text": "If you use Cloud-init, checkout cloud-init discussion: `https://github.com/community-scripts/ProxmoxVE/discussions/272`",
+      "type": "info"
+    }
+  ]
+}

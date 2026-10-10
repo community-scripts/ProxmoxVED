@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://github.com/opencontainers/image-spec
 #
 # Converts any OCI/Docker image into a native Proxmox VE LXC container.
@@ -10,7 +10,7 @@
 # regular LXC template, so the container ends up on real PVE storage and
 # snapshots/backups/migration keep working. Runs on PVE 8 and 9.
 #
-# Usage: bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/pve/docker2lxc.sh)"
+# Usage: bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/DevScripts/main/tools/pve/docker2lxc.sh)"
 #
 # Unattended via environment:
 #   OCI_IMAGE CT_NAME VMID CORES MEMORY DISK STORAGE TMPL_STORAGE NET_BRIDGE VLAN

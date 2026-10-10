@@ -36,7 +36,11 @@
   },
   "notes": [
     {
-      "text": "Cloud-Init is enabled by default. Configure your SSH key and credentials in the Proxmox Cloud-Init tab before starting the VM.",
+      "text": "Default settings use Debian 13; choose another Debian/Ubuntu cloud image in Advanced settings. Cloud-Init uses the shared credentials/network wizard and is enabled by default for unattended runs. Explicitly disabling it on Debian uses a nocloud image with root console login and no password; set a password immediately.",
+      "type": "info"
+    },
+    {
+      "text": "K3s and Helm are installed into the image before import. k9s is added from the derailed/k9s release when available. Optional ArgoCD bootstrap runs on first boot through argocd-bootstrap.service; monitor journalctl -u argocd-bootstrap -f.",
       "type": "info"
     },
     {

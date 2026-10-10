@@ -1,0 +1,65 @@
+{
+  "name": "4ga Boards",
+  "slug": "4gaboards",
+  "categories": [
+    25
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 1337,
+  "documentation": "https://docs.4gaboards.com/",
+  "website": "https://4gaboards.com/",
+  "repository": "https://github.com/RARgames/4gaBoards",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/RARgames/4gaBoards@main/client/public/4gaboards512w.png",
+  "description": "4ga Boards is a self-hosted kanban board for realtime project management, originally a fork of Planka. Projects hold boards, lists, cards and task lists, with a Markdown editor, labels, due dates, timers, comments, attachments, board import and export, Google/GitHub/Microsoft/OIDC sign-in, dark mode and keyboard shortcuts. This script builds the server and web client from source and runs them with PostgreSQL.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/4gaboards.sh",
+      "config_path": "/opt/4gaboards_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 3072,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The admin password is generated during install and stored as DEFAULT_ADMIN_PASSWORD in /opt/4gaboards_data/.env. Log in with admin (or admin@4gaboards.local) and change the password and email under Settings. The DEFAULT_ADMIN_* values are only read when the database is first created, so editing them later changes nothing.",
+      "type": "info"
+    },
+    {
+      "text": "User registration is open, which is the upstream default: anyone who reaches the port can create an account. Turn off User Registration in Settings > Instance Settings if that is not wanted.",
+      "type": "warning"
+    },
+    {
+      "text": "BASE_URL in /opt/4gaboards_data/.env points at the container IP, and realtime updates only accept that origin. Change it when the IP changes or 4ga Boards sits behind a reverse proxy or domain (set TRUST_PROXY=1 behind a proxy), then run systemctl restart 4gaboards.",
+      "type": "info"
+    },
+    {
+      "text": "On every start the server registers itself with notifications.4gaboards.com (instance URL, public IP) to receive release and security notices, and logs retry warnings while that host is unreachable. SYSTEM_NOTIFICATIONS_DISABLED=true in the .env opts out of the notices, but the registration request is still sent.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update build the web client from source, which peaks at about 2.4 GB of RAM. The running server needs around 300 MB, so the RAM can be lowered after the install and raised again before an update.",
+      "type": "info"
+    },
+    {
+      "text": "Attachments, avatars and project backgrounds are kept in /opt/4gaboards_data. Back that directory up together with the PostgreSQL database.",
+      "type": "info"
+    }
+  ]
+}

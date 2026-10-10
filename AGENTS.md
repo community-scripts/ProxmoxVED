@@ -1,4 +1,4 @@
-# 🤖 AI Working Instructions for ProxmoxVED
+# 🤖 AI Working Instructions for DevScripts
 
 > **For every AI assistant (GitHub Copilot, Claude, ChatGPT, Codex, …) producing scripts for this project.**
 
@@ -253,12 +253,13 @@ check before calling one from an Alpine branch.
 
 ```bash
 #!/usr/bin/env bash
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/DevScripts/main"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-$(dirname "${BASH_SOURCE[0]}")/../../core}/core/build.func"
 source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/core/build.func")
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: AuthorName (GitHubUsername)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://application-url.com
 
 APP="AppName"
@@ -294,9 +295,9 @@ function update_script() {
     systemctl stop appname
     msg_ok "Stopped Service"
 
-    create_backup /opt/appname/.env /opt/appname/data
+    create_backup /opt/appname/.env
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
+    CLEAN_INSTALL=1 CLEAN_INSTALL_KEEP="data" fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 
     restore_backup
 
@@ -327,7 +328,7 @@ echo -e "${GATEWAY}${BGN}http://${IP}:PORT${CL}"
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: AuthorName (GitHubUsername)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 # Source: https://application-url.com
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -567,8 +568,10 @@ them is not. Use `repo` or `FFMPEG_LICENSE=lgpl` when an app requires LGPL FFmpe
 | `$LOCAL_IP`                   | Always available - contains the container's IP address | `echo "Access: http://${LOCAL_IP}:3000"`  |
 | `ensure_dependencies`         | Checks/installs dependencies                           | `ensure_dependencies curl jq`             |
 | `install_packages_with_retry` | APT install with retry                                 | `install_packages_with_retry nginx redis` |
-| `create_backup`               | Backs up paths before an update                        | `create_backup /opt/app/.env /opt/app/data` |
+| `create_backup`               | Backs up paths before an update                        | `create_backup /opt/app/.env`             |
 | `restore_backup`              | Restores everything `create_backup` recorded           | `restore_backup`                          |
+| `CLEAN_INSTALL_KEEP`          | Paths relative to the target that a `CLEAN_INSTALL=1` wipe leaves in place (see #19) | `CLEAN_INSTALL=1 CLEAN_INSTALL_KEEP="data uploads" fetch_and_deploy_gh_release ...` |
+| `random_password [length]`    | Alphanumeric password of exactly `length` characters (default 24) | `ADMIN_PASS=$(random_password 16)` |
 
 ### Nginx Site Enablement
 
@@ -753,6 +756,9 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo"
 - `setup_hwaccel`
 - `create_backup` / `restore_backup`
 
+A helper called inside an open block hands the spinner back when it finishes, so
+wrapping no longer hides the step — it still reports it twice. Call them directly.
+
 ### 9. Creating Unnecessary System Users
 
 ```bash
@@ -911,8 +917,8 @@ msg_ok "Backed up Configuration"
 cp /tmp/appname.env.bak /opt/appname/.env
 
 # ✅ CORRECT - use the helpers (they bring their own msg_info/msg_ok)
-create_backup /opt/appname/.env /opt/appname/data
-# ... update ...
+create_backup /opt/appname/.env
+CLEAN_INSTALL=1 CLEAN_INSTALL_KEEP="data uploads" fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 restore_backup
 ```
 
@@ -920,6 +926,19 @@ restore_backup
 records a manifest so `restore_backup` needs no arguments, uses `cp -a` so
 permissions survive, skips re-backing-up on a retry so the last-known-good copy
 is kept, and aborts the update if the backup itself fails.
+
+Directories inside the deploy target — uploads, storage, databases — go into
+`CLEAN_INSTALL_KEEP` instead. They are moved aside and back, not copied, so an
+update needs neither the time nor the free space for a second copy, and nested
+paths and symlinks survive as they are. Two limits decide which mechanism a path
+gets:
+
+- Kept paths are back **before** the release is unpacked, so anything the release
+  ships under the same name overwrites them. A path upstream ships a default for
+  (a `config.yml`, a `config/` with samples) belongs in `create_backup`, which
+  restores after the deploy. Check the release tree before keeping a path.
+- A build that empties its output directory (`dist/`, `build/`) deletes what was
+  kept there.
 
 ### 20. Using "(Patience)" in msg_info by Default
 
@@ -1203,10 +1222,76 @@ Upstream install guides target multi-tenant hosts. An LXC runs one application.
 # fork/branch of core can be tested without touching this file.
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-...}"
 
-# ✅ CORRECT - shebang, then straight into the bootstrap
+# ✅ CORRECT - shebang, the scripts base, then straight into the bootstrap
 #!/usr/bin/env bash
+_CS_DEFAULT_URL="https://raw.githubusercontent.com/community-scripts/DevScripts/main"
 _cs_boot="${COMMUNITY_SCRIPTS_CORE_DIR:-...}"
 ```
+
+### 33. Hand-rolled Password Generators
+
+```bash
+# ❌ WRONG - returns fewer characters than asked for (the filter runs after the
+# length is fixed), and the | cut variant puts / and + into the password
+DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+ADMIN_PASS=$(openssl rand -base64 18 | cut -c1-13)
+
+# ✅ CORRECT - alphanumeric, exactly the requested length
+DB_PASS=$(random_password 13)
+ADMIN_PASS=$(random_password)
+```
+
+Hex tokens stay `openssl rand -hex 32`. A secret the application decodes as
+base64, or that upstream documents as `openssl rand -base64 32`, stays as it is.
+
+### 34. Unbalanced msg Blocks
+
+Every `msg_info` opens a block that exactly one `msg_ok` (or a `msg_error` that
+ends the script) closes. A block left open comes back as a spinner after every
+later `msg_ok`.
+
+```bash
+# ❌ WRONG - a completion reported with msg_info, a notice opened as a block,
+# a spinner running under a prompt
+msg_info "Stopping Service"
+systemctl stop appname
+msg_info "Stopped Service"
+
+msg_info "This update clears the configuration."
+
+msg_info "Installing Agent"
+stop_spinner
+read -r -p "${TAB3}Server URL: " server_url
+
+# ✅ CORRECT
+msg_info "Stopping Service"
+systemctl stop appname
+msg_ok "Stopped Service"
+
+msg_warn "This update clears the configuration."
+
+read -r -p "${TAB3}Server URL: " server_url
+msg_info "Installing Agent"
+```
+
+Notices are `msg_warn`, or `echo -e "${INFO}${YW}...${CL}"` when nothing is
+wrong. Ask before opening a block, never inside one, and never call
+`stop_spinner` directly.
+
+### 35. Re-tuning Timeouts the Helpers Already Set
+
+```bash
+# ❌ WRONG - lowers what the helper set
+PYTHON_VERSION="3.12" setup_uv
+export UV_HTTP_TIMEOUT=300
+
+# ✅ CORRECT - setup_uv exports UV_HTTP_TIMEOUT=600
+PYTHON_VERSION="3.12" setup_uv
+```
+
+`setup_uv` (`UV_HTTP_TIMEOUT`), `setup_composer` (`process-timeout`),
+`setup_rust` (cargo `net.retry`) and the pnpm/yarn setup already raise the
+network limits. Override one only for a measured reason, upward.
 
 ---
 
@@ -1238,7 +1323,7 @@ var_unprivileged="${var_unprivileged:-1}"
 being tested. Create the issue, then point the script at it:
 
 ```bash
-var_testurl="${var_testurl:-https://github.com/community-scripts/ProxmoxVED/issues/2135}"
+var_testurl="${var_testurl:-https://github.com/community-scripts/DevScripts/issues/2135}"
 ```
 
 The container then asks for feedback on every login, in its Proxmox description,
@@ -1252,7 +1337,7 @@ that generic warning rather than failing the build. It is not settable from a
 preferences.
 
 Keep it set if the script is promoted to ProxmoxVE while feedback is still
-wanted — the request follows the script and stops naming ProxmoxVED.
+wanted — the request follows the script and stops naming DevScripts.
 
 `var_arm64` has three states. **Only claim `yes` when it has actually been run on
 arm64** — the mere existence of an arm64 artifact is not verification:
@@ -1321,11 +1406,11 @@ function update_script() {
     systemctl stop appname
     msg_ok "Stopped Service"
 
-    # 4. Backup config/data (if present) - has its own messages, do not wrap
-    create_backup /opt/appname/.env /opt/appname/data
+    # 4. Backup config files (if present) - has its own messages, do not wrap
+    create_backup /opt/appname/.env
 
-    # 5. Perform clean install
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
+    # 5. Perform clean install; data directories inside the target stay in place
+    CLEAN_INSTALL=1 CLEAN_INSTALL_KEEP="data" fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 
     # 6. Restore BEFORE any build step that reads the config
     restore_backup
@@ -1397,6 +1482,10 @@ cleanup_lxc
 - [ ] Correct script structure followed
 - [ ] Update function present and functional
 - [ ] Data backup implemented in update function (backups go to `/opt`, NOT `/tmp`)
+- [ ] Data directories inside the deploy target kept with `CLEAN_INSTALL_KEEP` — only paths the release does not ship
+- [ ] Passwords via `random_password`, no `openssl rand -base64 | tr | head` pipelines
+- [ ] Every `msg_info` closed by exactly one `msg_ok`; notices via `msg_warn`; no prompt inside a block, no `stop_spinner`
+- [ ] No `UV_HTTP_TIMEOUT`/composer/cargo timeouts set by hand
 - [ ] `motd_ssh`, `customize`, `cleanup_lxc` at the end
 - [ ] No custom download/version-check logic
 - [ ] No default `(Patience)` text in msg_info labels
@@ -1411,6 +1500,7 @@ cleanup_lxc
 - [ ] Every user-facing message names the application, no `${APPLICATION}`/`$APP` placeholders
 - [ ] No `useradd`/`runuser`/`su -c` — the script runs as root
 - [ ] No engine comment block above `_cs_boot` in the CT script
+- [ ] Line 2 of the CT script pins `_CS_DEFAULT_URL` to DevScripts
 - [ ] `var_arm64` decided (yes/no) with the reason in the PR, or explicitly left to the user
 - [ ] Alpine variant, if any, follows Shape A or Shape B — never a duplicated script
 - [ ] `setup_*`/`update_*` defined for every OS family the script claims to support
@@ -1422,14 +1512,14 @@ cleanup_lxc
 
 Read both files end to end before writing your own. They are short on purpose.
 
-### CT Script: [ct/journiv.sh](ct/journiv.sh)
+### CT Script: [ct/journiv.sh](https://github.com/community-scripts/ProxmoxVE/blob/main/ct/journiv.sh)
 
 - No engine comment block above `_cs_boot`
 - `check_for_gh_release` for the version check
 - One function only: `update_script()`
 - Every message names Journiv
 
-### Install Script: [install/journiv-install.sh](install/journiv-install.sh)
+### Install Script: [install/journiv-install.sh](https://github.com/community-scripts/ProxmoxVE/blob/main/install/journiv-install.sh)
 
 - 131 lines, **zero** functions of its own, zero comment banners
 - `setup_postgresql` / `setup_postgresql_db` / `setup_uv` instead of hand-rolled setup

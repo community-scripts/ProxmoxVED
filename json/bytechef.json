@@ -1,0 +1,61 @@
+{
+  "name": "ByteChef",
+  "slug": "bytechef",
+  "categories": [
+    19
+  ],
+  "date_created": "2026-10-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://docs.bytechef.io/",
+  "website": "https://www.bytechef.io/",
+  "repository": "https://github.com/bytechefhq/bytechef",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/bytechef.webp",
+  "description": "ByteChef is an open-source API integration and workflow automation platform. Workflows are built in a visual editor from 170+ connectors, flow controls such as conditions, loops and branches, and JavaScript, Python or Ruby code steps, and run manually, on a schedule or from webhooks. This script builds the server and web client from source and runs them with PostgreSQL.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/bytechef.sh",
+      "config_path": "/opt/bytechef_data/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 6144,
+        "hdd": 12,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. Open http://<IP>:8080/login and click Create account: the first sign-up becomes the administrator and closes sign-up, further users are invited from the settings. Anyone who reaches the port can claim it until then, so create the account right after the install.",
+      "type": "warning"
+    },
+    {
+      "text": "Webhook triggers and OAuth2 connection redirects are built from BYTECHEF_PUBLIC_URL in /opt/bytechef_data/.env, which points at the container IP. Change it when the IP changes or ByteChef sits behind a reverse proxy or domain, then run systemctl restart bytechef.",
+      "type": "info"
+    },
+    {
+      "text": "Back up BYTECHEF_ENCRYPTION_PROPERTY_KEY from /opt/bytechef_data/.env together with the database. It encrypts the stored connection credentials, so a database restored without it is useless for them.",
+      "type": "warning"
+    },
+    {
+      "text": "ByteChef is open-core. Like the official image, this build runs the Enterprise Edition (BYTECHEF_EDITION=EE, the default; CE mode does not start in 0.34.x): the modules under the ByteChef Enterprise License (embedded iPaaS, API platform, AI gateway, SSO and SCIM, custom components, audit log) are free for development and testing, production use of them needs a subscription.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update compile ByteChef from source (Gradle, around 650 modules, plus the React client), which takes about 15 minutes on 4 cores and needs the 6 GB of RAM. The running server is fine with 2 GB, so the RAM can be lowered after the install and raised again before an update.",
+      "type": "info"
+    },
+    {
+      "text": "Code steps (JavaScript, Python, Ruby) run on the Temurin JDK in GraalVM's interpreter mode, not with the GraalVM JIT of the official image, so they work but run slower.",
+      "type": "info"
+    }
+  ]
+}

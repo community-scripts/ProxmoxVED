@@ -1,0 +1,61 @@
+{
+  "name": "Note Mark",
+  "slug": "notemark",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://notemark.docs.enchantedcode.co.uk/docs/",
+  "website": "https://notemark.docs.enchantedcode.co.uk/",
+  "repository": "https://github.com/enchant97/note-mark",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/note-mark.webp",
+  "description": "Note Mark is a lightning-fast, minimal web-based Markdown note-taking app. Notes are kept as plain Markdown files in folders on disk, with a SQLite database for users and the folder cache, and can be shared per note with other users or publicly. It offers a CodeMirror editor with optional Vim keybindings, rendered previews, asset uploads, a scratch pad and optional OpenID Connect login. This script builds the Go backend and the SolidJS/WebAssembly frontend from source.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/notemark.sh",
+      "config_path": "/opt/notemark_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. Create one at http://<IP>:8080/auth/signup. Sign-up is open to anyone who can reach the port, so once your accounts exist set ENABLE_INTERNAL_SIGNUP=false in /opt/notemark_data/.env and run systemctl restart notemark.",
+      "type": "warning"
+    },
+    {
+      "text": "PUBLIC_URL in /opt/notemark_data/.env is set to the container IP. It must be the address you open Note Mark at, without a trailing slash. Change it when the IP changes or when Note Mark sits behind a reverse proxy or domain, then run systemctl restart notemark. Upstream recommends a reverse proxy with HTTPS and rate limiting on /api/auth/*. Copy to clipboard and installing the app as a PWA only work over HTTPS.",
+      "type": "info"
+    },
+    {
+      "text": "Notes are stored as plain Markdown files in /opt/notemark_data/notes, and users plus the folder cache in /opt/notemark_data/db.sqlite. Back up the whole /opt/notemark_data directory. If you change note files outside Note Mark, run the clear-cache command and restart the service.",
+      "type": "info"
+    },
+    {
+      "text": "The CLI (user add, set-password, clear-cache, clean) needs the service environment: set -a; . /opt/notemark_data/.env; set +a; /opt/notemark/note-mark --help",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update build the Go backend and the Rust/WebAssembly + SolidJS frontend from source. That takes about 9 minutes on 2 cores and needs around 1 GB of RAM. The running server uses only a few dozen MB.",
+      "type": "info"
+    }
+  ]
+}

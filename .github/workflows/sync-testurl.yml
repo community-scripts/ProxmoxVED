@@ -26,15 +26,19 @@ permissions:
   contents: write
   issues: read
 
+concurrency:
+  group: sync-testurl
+  cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: ubuntu-latest
     if: >-
-      github.repository == 'community-scripts/ProxmoxVED' &&
+      github.repository == 'community-scripts/DevScripts' &&
       (github.event_name == 'workflow_dispatch' ||
        github.event.label.name == 'Ready For Testing')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
 
@@ -50,11 +54,11 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
-          chmod +x .github/workflows/scripts/sync-testurl.sh
+          # bash, not chmod +x: a mode change dirties the tree and breaks the rebase.
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            .github/workflows/scripts/sync-testurl.sh --all
+            bash .github/workflows/scripts/sync-testurl.sh --all
           else
-            .github/workflows/scripts/sync-testurl.sh "$ISSUE_NUMBER" "$ISSUE_TITLE"
+            bash .github/workflows/scripts/sync-testurl.sh "$ISSUE_NUMBER" "$ISSUE_TITLE"
           fi
 
       - name: Commit

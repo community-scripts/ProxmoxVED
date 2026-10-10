@@ -29,8 +29,8 @@ bash ct/debian.sh
 Optional overrides:
 
 ```bash
-export COMMUNITY_SCRIPTS_DIR=/path/to/ProxmoxVED/misc
-export COMMUNITY_SCRIPTS_URL=https://raw.githubusercontent.com/YOU/ProxmoxVED/your-branch
+export COMMUNITY_SCRIPTS_DIR=/path/to/DevScripts/misc
+export COMMUNITY_SCRIPTS_URL=https://raw.githubusercontent.com/YOU/DevScripts/your-branch
 ```
 
 See [Script origin (fork/branch)](source-origin.md).

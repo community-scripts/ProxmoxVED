@@ -1,0 +1,65 @@
+{
+  "name": "Databasement",
+  "slug": "databasement",
+  "categories": [
+    7
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://david-crty.github.io/databasement/",
+  "website": "https://david-crty.github.io/databasement/",
+  "repository": "https://github.com/David-Crty/databasement",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/databasement.webp",
+  "description": "Databasement is a self-hosted database backup manager with a web UI. It registers MySQL, MariaDB, PostgreSQL, MongoDB, SQLite and Redis/Valkey servers, optionally through an SSH tunnel, runs scheduled or on-demand backups with retention and compression or encryption, stores them on local disk, S3, SFTP, FTP, Samba or Azure Blob storage, and restores snapshots to any registered server. This script runs it with PHP-FPM, nginx and SQLite.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/databasement.sh",
+      "config_path": "/opt/databasement_data/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. The first account created at http://<IP>/register becomes the administrator and closes sign-up; further users are invited from the UI. Anyone who reaches the page can claim it until then, so create it right after the install.",
+      "type": "warning"
+    },
+    {
+      "text": "Back up APP_KEY from /opt/databasement_data/.env together with /opt/databasement_data/database.sqlite. It encrypts the stored database server passwords and, unless BACKUP_ENCRYPTION_KEY is set, the encrypted backups, so neither can be read without it.",
+      "type": "warning"
+    },
+    {
+      "text": "Backup and restore jobs run as www-data, so a local volume needs a path www-data can write to. /opt/databasement_data/backups is prepared for that and is also reachable as /data/backups, the path of upstream's sign-up demo backup.",
+      "type": "info"
+    },
+    {
+      "text": "Installed backup clients: mariadb-dump (used for MySQL as well), pg_dump 18 plus 16 for older servers, mongodump, redis-cli and sqlite3. Microsoft SQL Server and Firebird are not supported by this script: SQL Server needs Microsoft's ODBC driver and sqlpackage, Firebird the upstream gbak and isql tools.",
+      "type": "info"
+    },
+    {
+      "text": "Schedules run in UTC. Set APP_DISPLAY_TIMEZONE in /opt/databasement_data/.env (e.g. Europe/Berlin) for local times, then run: cd /opt/databasement && php artisan optimize && systemctl restart php8.5-fpm databasement-worker databasement-scheduler",
+      "type": "info"
+    },
+    {
+      "text": "A lost password is reset with: cd /opt/databasement && runuser -u www-data -- php artisan user:reset-password you@example.com",
+      "type": "info"
+    }
+  ]
+}

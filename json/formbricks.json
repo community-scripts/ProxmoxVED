@@ -1,0 +1,65 @@
+{
+  "name": "Formbricks",
+  "slug": "formbricks",
+  "categories": [
+    25
+  ],
+  "date_created": "2026-10-07",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://formbricks.com/docs/self-hosting/overview",
+  "website": "https://formbricks.com/",
+  "repository": "https://github.com/formbricks/formbricks",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/formbricks.webp",
+  "description": "Formbricks is an open-source survey and experience management platform and an alternative to Qualtrics. It runs link, website and in-app surveys with logic, multiple languages, hidden fields and partial responses, and passes responses on through webhooks, the API and integrations such as Slack, Notion and Zapier. This script builds the web app from source and runs it with PostgreSQL, Valkey and SpiceDB, which Formbricks 6 uses for authorization.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/formbricks.sh",
+      "config_path": "/opt/formbricks_data/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 12288,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "There is no default account. Open http://<IP>:3000 right after the install: the first sign-up creates the administrator and closes public sign-up, further users are invited from the organization settings. Anyone who reaches the port can claim the instance until then.",
+      "type": "warning"
+    },
+    {
+      "text": "WEBAPP_URL and NEXTAUTH_URL in /opt/formbricks_data/.env point at the container IP, and logins, survey links and emails are built from them. Change both when the IP changes or Formbricks sits behind a reverse proxy or domain, then run systemctl restart formbricks. Upstream expects HTTPS for production use.",
+      "type": "info"
+    },
+    {
+      "text": "Install and every update compile Formbricks from source with Turbopack, which takes 15 to 30 minutes on 4 cores and peaks at about 9.5 GB of RAM, hence the 12 GB. The running stack needs about 1.5 GB, so the RAM can be lowered to 3 GB after the install and has to be raised again before an update.",
+      "type": "info"
+    },
+    {
+      "text": "File uploads (images in surveys, file upload and picture selection questions, logos) need S3-compatible storage: add the S3_* settings to /opt/formbricks_data/.env. Email verification, password reset and invitation emails need the SMTP_* and MAIL_FROM settings; set EMAIL_VERIFICATION_DISABLED and PASSWORD_RESET_DISABLED to 0 once mail works.",
+      "type": "info"
+    },
+    {
+      "text": "Formbricks is open-core: the core is AGPLv3, apps/web/modules/ee is under the Formbricks Enterprise License. Teams and roles, SSO, contacts and segments, workflows, audit logs, Unify Feedback and dashboards need a license key in ENTERPRISE_LICENSE_KEY. Formbricks Hub and Cube, the extra services behind Unify Feedback, feedback datasets and dashboards, are not installed.",
+      "type": "info"
+    },
+    {
+      "text": "Authorization lives in SpiceDB, backed by its own spicedb database. Back up both PostgreSQL databases (formbricks and spicedb) together with /opt/formbricks_data; a restore without ENCRYPTION_KEY and AUTHZED_TOKEN from the .env files does not work.",
+      "type": "warning"
+    }
+  ]
+}

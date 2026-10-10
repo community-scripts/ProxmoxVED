@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/DevScripts/raw/main/LICENSE
 
 # ==============================================================================
 # CachyOS VM - Creates a CachyOS Virtual Machine
@@ -10,7 +10,7 @@
 # packages, custom kernels, and various desktop environment options.
 # ==============================================================================
 
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/DevScripts/main}"
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
 load_functions
 
@@ -27,7 +27,8 @@ THIN="discard=on,ssd=1,"
 header_info
 echo -e "\n Loading..."
 
-set -e
+set -Eeo pipefail
+shopt -s inherit_errexit
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -79,6 +80,7 @@ function advanced_settings() {
   vm_prompt_mac "$GEN_MAC"
   vm_prompt_vlan
   vm_prompt_mtu
+  vm_prompt_keyboard
   vm_prompt_verbose "no"
   vm_prompt_start_vm "yes"
 
@@ -105,25 +107,25 @@ vm_select_storage "$HN"
 msg_info "Retrieving the URL for the CachyOS Desktop ISO"
 
 # Get latest release version from SourceForge (format: YYMMDD in folder links)
-CACHYOS_VERSION=$(curl -fsSL "https://sourceforge.net/projects/cachyos-arch/files/gui-installer/desktop/" 2>/dev/null | grep -oP 'desktop/\K[0-9]{6}(?=/)' | sort -rn | head -1)
-if [ -z "$CACHYOS_VERSION" ]; then
-  CACHYOS_VERSION="260124"
+if ! vm_latest_from_index "https://sourceforge.net/projects/cachyos-arch/files/gui-installer/desktop/" 'desktop/\K[0-9]{6}(?=/)'; then
+  exit 115
 fi
+
+CACHYOS_VERSION="$VM_INDEX_LATEST"
+var_version="$CACHYOS_VERSION"
 
 # SourceForge download URL with mirror redirect
 URL="https://sourceforge.net/projects/cachyos-arch/files/gui-installer/desktop/${CACHYOS_VERSION}/cachyos-desktop-linux-${CACHYOS_VERSION}.iso/download"
 FILENAME="cachyos-desktop-linux-${CACHYOS_VERSION}.iso"
-CACHE_DIR="/var/lib/vz/template/iso"
-CACHE_FILE="${CACHE_DIR}/${FILENAME}"
-
-mkdir -p "$CACHE_DIR"
+vm_select_iso_storage "$FILENAME" "$HN"
+CACHE_FILE="$ISO_PATH"
 msg_ok "${CL}${BL}CachyOS Desktop ISO (Release: ${CACHYOS_VERSION})${CL}"
 
 # A bad SourceForge mirror serves an HTML notice with status 200, so the size
 # decides whether this is an ISO, not curl's exit code.
 MIN_ISO_BYTES=$((500 * 1024 * 1024))
 
-msg_info "Downloading CachyOS ISO (approximately 3.1 GB, this may take a while)"
+[[ -s "$CACHE_FILE" ]] || msg_info "Downloading the CachyOS ISO (approximately 3.1 GB, this may take a while)"
 vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" || exit 115
 
 # ==============================================================================
@@ -131,10 +133,12 @@ vm_fetch_image "$URL" "$CACHE_FILE" --cache --min-bytes "$MIN_ISO_BYTES" || exit
 # ==============================================================================
 msg_info "Creating a CachyOS VM"
 
-qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
+vm_claim_vmid
+qm create $VMID -agent 1${MACHINE} -tablet 0 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 0 -ostype l26 -scsihw virtio-scsi-pci \
   -efidisk0 ${STORAGE}:1,efitype=4m,pre-enrolled-keys=0 -scsi0 ${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,} \
-  -cdrom local:iso/${FILENAME} -boot order='scsi0;ide2' -vga qxl -serial0 socket >/dev/null
+  -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' -vga qxl -serial0 socket >/dev/null
+vm_mark_created
 
 set_description
 
@@ -143,37 +147,16 @@ msg_ok "Created a CachyOS VM ${CL}${BL}(${HN})"
 # ==============================================================================
 # START VM
 # ==============================================================================
-if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting CachyOS VM"
-  $STD qm start $VMID
-  msg_ok "Started CachyOS VM"
-fi
-
-post_update_to_api "done" "none"
+vm_start_vm "CachyOS VM"
 
 # ==============================================================================
 # FINAL OUTPUT
 # ==============================================================================
-echo -e "\n${INFO}${BOLD}${GN}CachyOS VM Configuration Summary:${CL}"
-echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
-echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
-echo -e "${TAB}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-echo -e "${TAB}${DGN}RAM: ${BGN}${RAM_SIZE} MiB${CL}"
-echo -e "${TAB}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-
-echo -e "\n${INFO}${BOLD}${YW}Next Steps:${CL}"
-echo -e "${TAB}1. Open the VM Console in Proxmox (noVNC or SPICE)"
-echo -e "${TAB}2. Boot from the CachyOS ISO"
-echo -e "${TAB}3. Use the Calamares installer to complete installation"
-echo -e "${TAB}4. Choose your preferred desktop environment during setup:"
-echo -e "${TAB}   ${BL}KDE Plasma, GNOME, XFCE, Hyprland, i3, and more${CL}"
-echo -e "${TAB}5. After installation, detach the ISO -- the boot order already
-${TAB}   prefers the disk, so the installed system takes over"
-
-echo -e "\n${INFO}${BOLD}${GN}CachyOS Features:${CL}"
-echo -e "${TAB}• Custom linux-cachyos kernel with BORE scheduler"
-echo -e "${TAB}• x86-64-v3/v4 optimized packages (auto-detected)"
-echo -e "${TAB}• LTO/PGO optimized applications"
-echo -e "${TAB}• Multiple filesystem options: btrfs, ext4, xfs, f2fs, zfs"
-
-msg_ok "Completed successfully!\n"
+vm_print_summary "Version=${CACHYOS_VERSION}" "ISO=${FILENAME}"
+vm_next_steps \
+  "Open the VM Console in Proxmox (noVNC or SPICE)." \
+  "Boot from the CachyOS ISO." \
+  "Use the Calamares installer to complete installation." \
+  "Choose your preferred desktop environment during setup." \
+  "After installation, detach the ISO; the boot order already prefers the disk."
+vm_finish "VM created; complete the CachyOS installation in the Proxmox console."

@@ -1,0 +1,61 @@
+{
+  "name": "Dragonfly",
+  "slug": "dragonfly",
+  "categories": [
+    8
+  ],
+  "date_created": "2026-10-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "interface_port": 6379,
+  "documentation": "https://www.dragonflydb.io/docs",
+  "website": "https://www.dragonflydb.io/",
+  "repository": "https://github.com/dragonflydb/dragonfly",
+  "logo": "https://cdn.jsdelivr.net/gh/dragonflydb/dragonfly@main/.github/images/logo-full.svg",
+  "description": "Dragonfly is an in-memory data store compatible with the Redis and Memcached APIs, so existing Redis clients, libraries and tools work against it unchanged. It is multi-threaded with a shared-nothing design that uses every core it is given, and it takes snapshots without forking, which keeps the memory overhead of a save low. This script installs the official package with a generated password and periodic snapshots.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/dragonfly.sh",
+      "config_path": "/etc/dragonfly/dragonfly.conf",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Dragonfly listens on port 6379 on all interfaces and requires a password. It is generated at install and stored as --requirepass in /etc/dragonfly/dragonfly.conf. Connect with `redis-cli -h <IP> -a <password>`; redis-cli is also installed inside the container.",
+      "type": "warning"
+    },
+    {
+      "text": "Dragonfly sets its memory limit at every start to 80% of the RAM free in the container and needs at least 256 MiB of that per CPU core, otherwise it refuses to start. Add RAM when you add cores (4 cores need more than 1.25 GB), or pin a limit with --maxmemory=<size> in the config.",
+      "type": "warning"
+    },
+    {
+      "text": "Once the memory limit is reached, writes fail with 'Out of memory' and nothing is evicted. To use Dragonfly as a cache that drops old keys instead, add --cache_mode=true to /etc/dragonfly/dragonfly.conf and run `systemctl restart dragonfly`.",
+      "type": "info"
+    },
+    {
+      "text": "Data is snapshotted to /var/lib/dragonfly every 30 minutes (--snapshot_cron) and on every clean stop, and loaded again at start. Back up that directory; updates leave it and the config in place.",
+      "type": "info"
+    },
+    {
+      "text": "Dragonfly is source-available under the Business Source License 1.1: free to self-host and to use in your own products, but not to offer as a hosted or managed in-memory data store service.",
+      "type": "info"
+    }
+  ]
+}

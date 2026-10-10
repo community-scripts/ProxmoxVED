@@ -5,7 +5,7 @@
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/DevScripts/main}"
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_URL:-https://raw.githubusercontent.com/community-scripts/core/main}/pve/vm-core.func")
 load_functions
 
@@ -15,14 +15,15 @@ METHOD=""
 APP_TYPE="vm"
 NSAPP="owncloud-vm"
 var_os="owncloud"
-var_version="18.0"
+var_version="19.0"
 APP="TurnKey ownCloud VM"
 
 THIN="discard=on,ssd=1,"
 
 header_info
 echo -e "\n Loading..."
-set -e
+set -Eeo pipefail
+shopt -s inherit_errexit
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "130"' SIGINT
@@ -32,7 +33,7 @@ trap 'post_update_to_api "failed" "129"; exit 129' SIGHUP
 vm_require_arch amd64
 
 TEMP_DIR=$(mktemp -d)
-pushd $TEMP_DIR >/dev/null
+pushd "$TEMP_DIR" >/dev/null
 
 function default_settings() {
   vm_apply_machine_type "i440fx"
@@ -56,9 +57,9 @@ function advanced_settings() {
   METHOD="advanced"
   vm_prompt_vmid "${VMID:-$(get_valid_nextid)}"
   vm_prompt_machine_type "i440fx"
-  vm_prompt_disk_size "8G"
+  vm_prompt_disk_size "10G"
   vm_prompt_disk_cache "none"
-  vm_prompt_hostname "owncloud"
+  vm_prompt_hostname "owncloud-vm"
   vm_prompt_cpu_model "kvm64"
   vm_prompt_cpu_cores "2"
   vm_prompt_ram "2048"
@@ -66,6 +67,7 @@ function advanced_settings() {
   vm_prompt_mac "$GEN_MAC"
   vm_prompt_vlan
   vm_prompt_mtu
+  vm_prompt_keyboard
   vm_prompt_verbose "no"
   vm_prompt_start_vm "yes"
 
@@ -78,71 +80,36 @@ function advanced_settings() {
   fi
 }
 
-
-
 vm_preflight
 vm_start_script "Use Default Settings?\n\nDefaults:\n• 2 CPU Cores\n• 2 GB RAM\n• 10 GB Disk" 13 58
 
 post_to_api_vm
 
 vm_select_storage "$HN"
-msg_info "Retrieving the URL for the $APP Disk Image"
-URL=http://mirror.turnkeylinux.org/turnkeylinux/images/iso/turnkey-owncloud-19.0-trixie-amd64.iso
+msg_info "Retrieving the $APP installer ISO"
+URL=https://mirror.turnkeylinux.org/turnkeylinux/images/iso/turnkey-owncloud-19.0-trixie-amd64.iso
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-# A mirror serving an error page returns 200, so size decides whether this
-# is an image. Anything real here is far above 5 MB.
-# Only ever read from here on, so the cache file is imported directly.
-FILE="$(vm_image_cache_path "$URL")"
-vm_fetch_image "$URL" "$FILE" --cache --min-bytes $((5 * 1024 * 1024)) || exit 115
+vm_select_iso_storage "$(basename "$URL")" "$HN"
+vm_fetch_image "$URL" "$ISO_PATH" --cache --min-bytes $((100 * 1024 * 1024)) || exit 115
 
-STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
-case $STORAGE_TYPE in
-nfs | dir)
-  DISK_EXT=".raw"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format raw"
-  THIN=""
-  ;;
-btrfs)
-  DISK_EXT=".raw"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format raw"
-  FORMAT=",efitype=4m"
-  THIN=""
-  ;;
-*)
-  DISK_EXT=""
-  DISK_REF=""
-  DISK_IMPORT="-format raw"
-  ;;
-esac
-for i in {0,1,2}; do
-  disk="DISK$i"
-  eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
-  eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
-done
-
+vm_claim_vmid
 msg_info "Creating a $APP"
-qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios seabios${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
-pvesm alloc $STORAGE $VMID $DISK1 12G 1>&/dev/null
-qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
-qm set $VMID \
-  -efidisk0 ${DISK0_REF}${FORMAT} \
-  -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN} \
-  -scsi1 ${DISK2_REF},${DISK_CACHE}${THIN} \
-  -boot order='scsi1;scsi0' >/dev/null
+qm create $VMID -agent 1${MACHINE} -tablet 0 -bios seabios${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
+  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci \
+  -scsi0 "${STORAGE}:${DISK_SIZE%G},${DISK_CACHE}${THIN%,}" \
+  -cdrom "$ISO_VOLUME" -boot order='scsi0;ide2' >/dev/null
+vm_mark_created
 
 set_description
-vm_resize_disk
 
 msg_ok "Created a $APP ${CL}${BL}(${HN})"
-if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting $APP"
-  $STD qm start $VMID
-  msg_ok "Started $APP"
-fi
-post_update_to_api "done" "none"
-msg_ok "Completed successfully!\n"
+vm_start_vm "$APP"
+vm_print_summary "Version=TurnKey ownCloud ${var_version}" "Installer=$(basename "$URL")" "Web UI=https://<VM-IP>/" "Webmin=https://<VM-IP>:12321/"
+vm_next_steps \
+  "Open the VM Console in Proxmox and complete the TurnKey installer." \
+  "Set the root, ownCloud admin, and database credentials when prompted." \
+  "After installation, detach the ISO: qm set ${VMID} --ide2 none." \
+  "Start or reboot the VM, then open https://<VM-IP>/ for ownCloud." \
+  "Manage the appliance through Webmin at https://<VM-IP>:12321/."
+vm_finish "VM created; complete the TurnKey ownCloud installation in the Proxmox console."

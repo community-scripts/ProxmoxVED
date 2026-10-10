@@ -1,0 +1,53 @@
+{
+  "name": "Casdoor",
+  "slug": "casdoor",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-10-05",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8000,
+  "documentation": "https://casdoor.ai/docs/overview",
+  "website": "https://casdoor.ai/",
+  "repository": "https://github.com/casdoor/casdoor",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/casdoor.webp",
+  "description": "Casdoor is an open-source identity and access management (IAM) and single sign-on platform with a web UI. It acts as an OAuth 2.0, OIDC, SAML and CAS provider, adds LDAP, RADIUS and SCIM endpoints, social and enterprise login providers, MFA and WebAuthn, and manages organizations, users, roles and Casbin-based permissions. This script installs the prebuilt release with a local PostgreSQL database.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/casdoor.sh",
+      "config_path": "/opt/casdoor_data/conf/app.conf",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "123"
+  },
+  "notes": [
+    {
+      "text": "Log in at http://<IP>:8000 as admin with password 123 (organization built-in). These defaults are public and give full control over every user and application, so change the password right after the install: the user menu in the top right, My Account, Password.",
+      "type": "warning"
+    },
+    {
+      "text": "origin in /opt/casdoor_data/conf/app.conf is the OIDC issuer and the base of the links Casdoor mails out, and points at the container IP. Change it before connecting applications when the IP changes or Casdoor sits behind a reverse proxy or domain, then run systemctl restart casdoor.",
+      "type": "info"
+    },
+    {
+      "text": "Besides the web UI on port 8000, Casdoor serves its built-in LDAP server on port 389 and a RADIUS server on UDP port 1812. The RADIUS shared secret is generated during the install and stored as radiusSecret in /opt/casdoor_data/conf/app.conf.",
+      "type": "info"
+    }
+  ]
+}

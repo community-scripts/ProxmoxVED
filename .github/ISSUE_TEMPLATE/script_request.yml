@@ -1,6 +1,5 @@
-```yml
 name: Script request
-description: Request a new script for Proxmox VE Helper-Scripts
+description: Request a new script for community-scripts
 title: "[Script request]: "
 labels: ["enhancement"]
 
@@ -8,10 +7,10 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for suggesting a new script for Proxmox VE Helper-Scripts.
+        Thanks for suggesting a new script for community-scripts.
 
         Please make sure the requested application fits the scope of this project.
-        Requests may be closed if the application is out of scope, abandoned, too new, not publicly verifiable, or not suitable for a reliable Proxmox VE Helper-Scripts integration.
+        Requests may be closed if the application is out of scope, abandoned, too new, not publicly verifiable, or not suitable for a reliable community-scripts integration.
 
   - type: input
     id: application-name
@@ -80,11 +79,11 @@ body:
     id: description
     attributes:
       label: Description
-      description: Explain what the application does and why it should be added to Proxmox VE Helper-Scripts.
+      description: Explain what the application does and why it should be added to community-scripts.
       placeholder: |
         Example:
         Home Assistant is a popular open-source platform for managing smart home devices.
-        Adding it to Proxmox VE Helper-Scripts would make setup and management on Proxmox easier for users who want a self-hosted smart home system.
+        Adding it to community-scripts would make setup and management easier on Proxmox VE and Incus for users who want a self-hosted smart home system.
     validations:
       required: true
 
@@ -106,10 +105,10 @@ body:
     id: scope-fit
     attributes:
       label: Scope Fit
-      description: Explain why this application fits the Proxmox VE Helper-Scripts project.
+      description: Explain why this application fits the community-scripts project.
       placeholder: |
         Example:
-        This is a self-hosted server application that can run reliably in a Proxmox LXC or VM.
+        This is a self-hosted server application that can run reliably in a container or VM on Proxmox VE or Incus.
         It has an active upstream project, official releases, and broad community adoption.
     validations:
       required: true
@@ -120,7 +119,7 @@ body:
       label: Due Diligence
       description: Please confirm the following before submitting your request.
       options:
-        - label: "I have searched existing [scripts](https://community-scripts.github.io/Proxmox/scripts) and found no duplicate."
+        - label: "I have searched existing [scripts](https://community-scripts.org/scripts) and found no duplicate."
           required: true
         - label: "I have searched existing [discussions](https://github.com/community-scripts/ProxmoxVE/discussions?discussions_q=) and found no duplicate request."
           required: true
@@ -136,7 +135,7 @@ body:
           required: true
         - label: "The application is actively maintained."
           required: true
-        - label: "The application is self-hosted and suitable for Proxmox VE Helper-Scripts."
+        - label: "The application is self-hosted and suitable for community-scripts."
           required: true
         - label: "I understand that requests outside the project scope may be closed without an extensive explanation."
           required: true
@@ -146,4 +145,3 @@ body:
       value: |
         Thanks for submitting your request.
         The team will review it and may ask for more information if needed.
-```
